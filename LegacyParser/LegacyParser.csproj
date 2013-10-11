@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A9D32E0B-F434-4B08-A883-A62C5BE5131A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VBScriptTranslator.LegacyParser</RootNamespace>
+    <AssemblyName>VBScriptTranslator.LegacyParser</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>3.5</OldToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CodeBlocks\Basic\AbstractFunctionBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\BlankLine.cs" />
+    <Compile Include="CodeBlocks\Basic\ClassBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\ValueSettingStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\OptionExplicit.cs" />
+    <Compile Include="CodeBlocks\Basic\DoBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\ExitStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\Expression.cs" />
+    <Compile Include="CodeBlocks\Basic\ForBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\OnErrorGoto0.cs" />
+    <Compile Include="CodeBlocks\Basic\OnErrorResumeNext.cs" />
+    <Compile Include="CodeBlocks\Basic\PrivateVariableStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\PropertyBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\PublicVariableStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\RandomizeStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\ReDimStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\SelectBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\Statement.cs" />
+    <Compile Include="CodeBlocks\Basic\CommentStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\DimStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\FunctionBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\SubBlock.cs" />
+    <Compile Include="CodeBlocks\Handlers\ClassHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\OptionExplicitHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\DoHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\ExitHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\ForHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\FunctionHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\NoSpecialCaseHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\OnErrorHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\RandomizeHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\RemCommentHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\SelectHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\StatementHandler.cs" />
+    <Compile Include="CodeBlocks\AbstractBlockHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\WhileHandler.cs" />
+    <Compile Include="CodeBlocks\ICodeBlock.cs" />
+    <Compile Include="CodeBlocks\SourceRendering\ISourceIndentHandler.cs" />
+    <Compile Include="CodeBlocks\SourceRendering\NullIndenter.cs" />
+    <Compile Include="CodeBlocks\SourceRendering\SourceIndentHandler.cs" />
+    <Compile Include="Parser.cs" />
+    <Compile Include="ContentBreaking\StringBreaker.cs" />
+    <Compile Include="ContentBreaking\TokenBreaker.cs" />
+    <Compile Include="Tokens\Basic\AtomToken.cs" />
+    <Compile Include="CodeBlocks\CodeBlockHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\DimHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\IfHandler.cs" />
+    <Compile Include="CodeBlocks\Basic\IfBlock.cs" />
+    <Compile Include="Tokens\Basic\ComparisonToken.cs" />
+    <Compile Include="Tokens\Basic\ArgumentSeparatorToken.cs" />
+    <Compile Include="Tokens\Basic\OpenBrace.cs" />
+    <Compile Include="Tokens\Basic\CloseBrace.cs" />
+    <Compile Include="Tokens\Basic\KeyWordToken.cs" />
+    <Compile Include="Tokens\Basic\MemberAccessorOrDecimalPointToken.cs" />
+    <Compile Include="Tokens\Basic\EndOfStatementNewLineToken.cs" />
+    <Compile Include="Tokens\Basic\EndOfStatementSameLineToken.cs" />
+    <Compile Include="Tokens\Basic\OperatorToken.cs" />
+    <Compile Include="Tokens\IToken.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="CodeBlocks\Basic\ForEachBlock.cs" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="Tokens\Basic\CommentToken.cs" />
+    <Compile Include="Tokens\Basic\AbstractEndOfStatementToken.cs" />
+    <Compile Include="Tokens\Basic\StringToken.cs" />
+    <Compile Include="Tokens\Basic\UnprocessedContentToken.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

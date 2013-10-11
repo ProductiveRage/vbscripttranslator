@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegacyParser", "LegacyParser\LegacyParser.csproj", "{A9D32E0B-F434-4B08-A883-A62C5BE5131A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{875539AC-E53F-42CB-8BC9-2730180D025B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{69946782-BAB3-4C3F-AB64-A351998256E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StageTwoParser", "StageTwoParser\StageTwoParser.csproj", "{05CA6867-A198-4952-883B-60C0A29C8BAE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A9D32E0B-F434-4B08-A883-A62C5BE5131A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9D32E0B-F434-4B08-A883-A62C5BE5131A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9D32E0B-F434-4B08-A883-A62C5BE5131A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9D32E0B-F434-4B08-A883-A62C5BE5131A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{875539AC-E53F-42CB-8BC9-2730180D025B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{875539AC-E53F-42CB-8BC9-2730180D025B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{875539AC-E53F-42CB-8BC9-2730180D025B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{875539AC-E53F-42CB-8BC9-2730180D025B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69946782-BAB3-4C3F-AB64-A351998256E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69946782-BAB3-4C3F-AB64-A351998256E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69946782-BAB3-4C3F-AB64-A351998256E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69946782-BAB3-4C3F-AB64-A351998256E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05CA6867-A198-4952-883B-60C0A29C8BAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05CA6867-A198-4952-883B-60C0A29C8BAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05CA6867-A198-4952-883B-60C0A29C8BAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05CA6867-A198-4952-883B-60C0A29C8BAE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

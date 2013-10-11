@@ -1,0 +1,44 @@
+﻿using System;
+using VBScriptTranslator.LegacyParser.Tokens;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.StageTwoParser.Tokens;
+
+namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.States
+{
+    public class GotSomeIntegerNumberContent : IAmLookingForNumberContent
+    {
+        public static GotSomeIntegerNumberContent Instance { get { return new GotSomeIntegerNumberContent(); } }
+        private GotSomeIntegerNumberContent() { }
+
+        public TokenProcessResult Process(IToken token, PartialNumberContent numberContent)
+        {
+            if (token == null)
+                throw new ArgumentNullException("token");
+            if (numberContent == null)
+                throw new ArgumentNullException("numberContent");
+
+            // The only continuation possibility for the number is if a decimal point is reached
+            if (token.Is<MemberAccessorOrDecimalPointToken>())
+            {
+                return new TokenProcessResult(
+                    numberContent.AddToken(token),
+                    new IToken[0],
+                    GotSomeDecimalNumberContent.Instance
+                );
+            }
+            
+            // If we're not at a decimal point then the end of the number content must have been reached
+            // - Try to extract the number content so far and express that as a new token
+            // - Return a "processedTokens" set of this and the current token (we don't need to worry about trying to process
+            //   that here since it's not valid for two number tokens to exist adjacently with nothing in between)
+            var number = numberContent.TryToExpressNumberFromTokens();
+            if (number == null)
+                throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
+            return new TokenProcessResult(
+                new PartialNumberContent(),
+                new[] { new NumericValueToken(number.Value), token },
+                Common.GetDefaultProcessor(token)
+            );
+        }
+    }
+}
