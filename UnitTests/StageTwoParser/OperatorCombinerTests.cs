@@ -76,5 +76,28 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new TokenSetComparer()
             );
         }
+
+        [Fact]
+        public void TwoGreaterThanOrEqualToOne()
+        {
+            Assert.Equal(
+                new[]
+                {
+                    Misc.GetAtomToken("2"),
+                    new ComparisonToken(">="),
+                    Misc.GetAtomToken("1")
+                },
+                OperatorCombiner.Combine(
+                    new[]
+                    {
+                        Misc.GetAtomToken("2"),
+                        new ComparisonToken(">"),
+                        new ComparisonToken("="),
+                        Misc.GetAtomToken("1")
+                    }
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

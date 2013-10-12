@@ -11,7 +11,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
     /// changing the meaning. The most obvious is "1 + -1" which may become "1 - 1" but "1-+---+2" is allowable in VBScript but may be reduced to "1+2"
     /// as the negative signs cancel each other out. There may still be some unnecessary "+" symbols are "1 / +2" is valid in VBScript, which may be
     /// reduced to "1 / 2". Note that "1 / -2" would not be altered (but the NumberRebuilder should be used to construct a NumericValueToken which
-    /// incorporates both the "-" and the "2", leaving only a single operator; the "/").
+    /// incorporates both the "-" and the "2", leaving only a single operator; the "/"). This method is also responsible for combinination of
+    /// particular operators such as ">" and "=" becoming "=".
     /// </summary>
     public static class OperatorCombiner
     {
@@ -20,7 +21,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
 
-            var rewrittenTokens = new List<IToken>();
+            // Handle +/- sign combinations
+            var additionSubtractionRewrittenTokens = new List<IToken>();
             var buffer = new List<OperatorToken>();
             var previousToken = (IToken)null;
             foreach (var token in tokens)
@@ -37,11 +39,11 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                         if (!IsTokenRedundant(condensedToken, previousToken))
                         {
                             // If this is a "+" and the last token was an OperatorToken, then this one is redundant (eg. "1 * +1")
-                            rewrittenTokens.Add(condensedToken);
+                            additionSubtractionRewrittenTokens.Add(condensedToken);
                         }
                         buffer.Clear();
                     }
-                    rewrittenTokens.Add(token);
+                    additionSubtractionRewrittenTokens.Add(token);
                     previousToken = token;
                 }
                 else
@@ -51,9 +53,41 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
             {
                 var condensedToken = CondenseNegations(buffer);
                 if (!IsTokenRedundant(condensedToken, previousToken))
-                    rewrittenTokens.Add(condensedToken);
+                    additionSubtractionRewrittenTokens.Add(condensedToken);
             }
-            return rewrittenTokens;
+
+            // Handle comparison token combinations (eg. ">", "=" to ">=")
+            var combinations = new[]
+            {
+                Tuple.Create(Tuple.Create("<", ">"), "<>"),
+                Tuple.Create(Tuple.Create("<", "="), "<="),
+                Tuple.Create(Tuple.Create(">", "="), ">=")
+            };
+            var comparisonRewrittenTokens = new List<IToken>();
+            for (var index = 0; index < additionSubtractionRewrittenTokens.Count; index++)
+            {
+                var token = additionSubtractionRewrittenTokens[index];
+                if (index == (additionSubtractionRewrittenTokens.Count - 1))
+                {
+                    comparisonRewrittenTokens.Add(token);
+                    continue;
+                }
+
+                var nextToken = additionSubtractionRewrittenTokens[index + 1];
+                var combineTokens = (
+                    ((token.Content == "<") && (nextToken.Content == ">")) ||
+                    ((token.Content == ">") && (nextToken.Content == "=")) ||
+                    ((token.Content == "<") && (nextToken.Content == "="))
+                );
+                if (combineTokens)
+                {
+                    comparisonRewrittenTokens.Add(AtomToken.GetNewToken(token.Content + nextToken.Content));
+                    index++;
+                    continue;
+                }
+                comparisonRewrittenTokens.Add(token);
+            }
+            return comparisonRewrittenTokens;
         }
 
         /// <summary>
