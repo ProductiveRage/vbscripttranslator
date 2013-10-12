@@ -9,6 +9,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 using VBScriptTranslator.LegacyParser.ContentBreaking;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.StageTwoParser;
 using VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding;
 using VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations;
 
@@ -21,6 +22,15 @@ namespace Tester
         // =======================================================================================
         static void Main()
         {
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithNoArgumentsAndNoBrackets();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithNoArgumentsWithBrackets();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ObjectFunctionCallWithNoArgumentsAndNoBrackets();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).NestedObjectFunctionCallWithNoArgumentsAndNoBrackets();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithTwoArgumentsOneIsNestedDirectionFunctionCallWithOneArgument();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ArrayElementFunctionCallWithNoArguments();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ObjectPropertyArrayElementFunctionCallWithNoArguments();
+            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ArrayElementNestedFunctionCallWithNoArguments();
+
             (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OnePlusNegativeOne();
             (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OneMinusNegativeOne();
             (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OneMultipliedByPlusOne();
@@ -84,9 +94,27 @@ namespace Tester
         private static void Test_Old(string filename)
         {
             // Load raw script content
-            var scriptContent = getScriptContent(filename);
-            scriptContent = scriptContent.Replace("\r\n", "\n");
+            ProcessContent(getScriptContent(filename).Replace("\r\n", "\n"));
+        }
 
+        private static void ProcessContent(string scriptContent)
+        {
+            // Translate these tokens into ICodeBlock implementations (representing
+            // code VBScript structures)
+            string[] endSequenceMet;
+            var handler = new CodeBlockHandler(null);
+            var codeBlocks = handler.Process(
+                GetTokens(scriptContent).ToList(),
+                out endSequenceMet
+            );
+
+            // DEBUG: ender processed content as VBScript source code
+            Console.WriteLine(getRenderedSourceVB(codeBlocks));
+            Console.ReadLine();
+        }
+
+        private static IEnumerable<IToken> GetTokens(string scriptContent)
+        {
             // Break down content into String, Comment and UnprocessedContent tokens
             var tokens = StringBreaker.SegmentString(scriptContent);
 
@@ -100,18 +128,7 @@ namespace Tester
                     atomTokens.Add(token);
             }
 
-            // Translate these tokens into ICodeBlock implementations (representing
-            // code VBScript structures)
-            string[] endSequenceMet;
-            var handler = new CodeBlockHandler(null);
-            var codeBlocks = handler.Process(
-                NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList(),
-                out endSequenceMet
-            );
-
-            // DEBUG: ender processed content as VBScript source code
-            Console.WriteLine(getRenderedSourceVB(codeBlocks));
-            Console.ReadLine();
+            return NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList();
         }
 
         // =======================================================================================

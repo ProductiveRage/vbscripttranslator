@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using VBScriptTranslator.LegacyParser.Tokens;
 
-namespace VBScriptTranslator.UnitTests.LegacyParser
+namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
     public class TokenSetComparer : IEqualityComparer<IEnumerable<IToken>>
     {

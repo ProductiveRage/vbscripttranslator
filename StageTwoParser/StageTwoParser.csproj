@@ -40,6 +40,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Expression.cs" />
+    <Compile Include="ExpressionSegment.cs" />
+    <Compile Include="ExpressionGenerator.cs" />
     <Compile Include="TokenCombining\NumberRebuilding\NumberRebuilder.cs" />
     <Compile Include="TokenCombining\NumberRebuilding\NumberRebuilderTokenExtensions.cs" />
     <Compile Include="TokenCombining\NumberRebuilding\PartialNumberContent.cs" />

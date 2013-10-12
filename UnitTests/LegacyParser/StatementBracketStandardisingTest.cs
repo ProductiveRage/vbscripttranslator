@@ -1,8 +1,7 @@
 ﻿using System;
-using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.LegacyParser

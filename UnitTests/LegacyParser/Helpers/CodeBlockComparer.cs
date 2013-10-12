@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.Tokens;
+using VBScriptTranslator.UnitTests.Shared.Comparers;
 
 namespace VBScriptTranslator.UnitTests.LegacyParser.Helpers
 {

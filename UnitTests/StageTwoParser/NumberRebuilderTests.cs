@@ -1,9 +1,9 @@
-﻿using System;
-using VBScriptTranslator.LegacyParser.Tokens;
+﻿using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding;
 using VBScriptTranslator.StageTwoParser.Tokens;
-using VBScriptTranslator.UnitTests.LegacyParser;
+using VBScriptTranslator.UnitTests.Shared;
+using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.StageTwoParser
@@ -22,7 +22,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new[]
                     {
                         new OperatorToken("-"),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
@@ -44,7 +44,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     {
                         new OpenBrace("("),
                         new OperatorToken("-"),
-                        GetAtomToken("1"),
+                        Misc.GetAtomToken("1"),
                         new CloseBrace(")")
                     }
                 ),
@@ -64,7 +64,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new[]
                     {
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
@@ -82,9 +82,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 NumberRebuilder.Rebuild(
                     new[]
                     {
-                        GetAtomToken("1"),
+                        Misc.GetAtomToken("1"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
@@ -103,9 +103,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new[]
                     {
                         new OperatorToken("-"),
-                        GetAtomToken("1"),
+                        Misc.GetAtomToken("1"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
@@ -125,7 +125,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     {
                         new OperatorToken("-"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
@@ -145,22 +145,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 NumberRebuilder.Rebuild(
                     new[]
                     {
-                        GetAtomToken("1"),
+                        Misc.GetAtomToken("1"),
                         new OperatorToken("+"),
                         new OperatorToken("-"),
-                        GetAtomToken("1")
+                        Misc.GetAtomToken("1")
                     }
                 ),
                 new TokenSetComparer()
             );
-        }
-
-        private AtomToken GetAtomToken(string content)
-        {
-            var token = AtomToken.GetNewToken(content);
-            if (token.GetType() != typeof(AtomToken))
-                throw new ArgumentException("Specified content was not mapped to an AtomToken, it was mapped to " + token.GetType());
-            return (AtomToken)token;
         }
     }
 }

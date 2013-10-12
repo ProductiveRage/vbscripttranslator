@@ -39,7 +39,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="LegacyParser\Helpers\TokenSetComparer.cs" />
+    <Compile Include="Shared\Comparers\ExpressionSetComparer.cs" />
+    <Compile Include="Shared\Comparers\ExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\ExpressionComparer.cs" />
+    <Compile Include="Shared\Comparers\TokenSetComparer.cs" />
+    <Compile Include="Shared\Misc.cs" />
+    <Compile Include="StageTwoParser\ExpressionGeneratorTests.cs" />
     <Compile Include="StageTwoParser\OperatorCombinerTests.cs" />
     <Compile Include="StageTwoParser\NumberRebuilderTests.cs" />
     <Compile Include="LegacyParser\StatementBracketStandardisingTest.cs" />
@@ -58,6 +63,7 @@
       <Name>LegacyParser</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
