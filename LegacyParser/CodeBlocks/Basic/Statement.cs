@@ -29,10 +29,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             Tokens = tokens.ToList().AsReadOnly();
             if (!Tokens.Any())
                 throw new ArgumentException("Statements must contain at least one token");
+            if (!Tokens.Any())
+                throw new ArgumentException("Empty tokens specified - invalid");
             if (Tokens.Any(t => t == null))
                 throw new ArgumentException("Null token passed into Statement constructor");
-            if (Tokens.Any(t => !(t is AtomToken) && !(t is CloseBrace) && !(t is OpenBrace) && !(t is StringToken)))
-                throw new ArgumentException("Statement may only be initialised with Atom, CloseBrace, OpenBrace or String tokens");
             var firstTokenAsAtom = tokens.First() as AtomToken;
             if ((firstTokenAsAtom != null) && firstTokenAsAtom.Content.Equals("Call", StringComparison.InvariantCultureIgnoreCase))
                 throw new ArgumentException("The first token may not be the Call keyword, that must be specified through the CallPrefixOption value where present");

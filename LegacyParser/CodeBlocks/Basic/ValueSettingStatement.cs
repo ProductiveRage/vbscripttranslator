@@ -26,16 +26,16 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 throw new ArgumentOutOfRangeException("valueSetType");
 
             ValueToSetTokens = valueToSetTokens.ToList().AsReadOnly();
+            if (!ValueToSetTokens.Any())
+                throw new ArgumentException("Empty valueToSetTokens specified - invalid");
             if (ValueToSetTokens.Any(t => t == null))
                 throw new ArgumentException("Null token present in valueToSetTokens set");
-            if (ValueToSetTokens.Any(t => !(t is AtomToken) && !(t is StringToken)))
-                throw new ArgumentException("valueToSetTokens set may contain Atom and String tokens");
 
             ExpressionTokens = expressionTokens.ToList().AsReadOnly();
+            if (!ExpressionTokens.Any())
+                throw new ArgumentException("Empty expressionTokens specified - invalid");
             if (ExpressionTokens.Any(t => t == null))
                 throw new ArgumentException("Null token present in expressionTokens set");
-            if (ExpressionTokens.Any(t => !(t is AtomToken) && !(t is StringToken)))
-                throw new ArgumentException("expressionTokens set may contain Atom and String tokens");
 
             ValueSetType = valueSetType;
         }
