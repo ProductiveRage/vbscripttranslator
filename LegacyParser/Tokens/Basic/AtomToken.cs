@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {
@@ -56,6 +57,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 
             if (isMustHandleKeyWord(content) || isMiscKeyWord(content))
                 return new KeyWordToken(content);
+            if (isLogicalOperator(content))
+                return new LogicalOperatorToken(content);
             if (isOperator(content))
                 return new OperatorToken(content);
             if (isComparison(content))
@@ -89,20 +92,57 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         // [PRIVATE] CONTENT DETERMINATION - eg. isOperator
         // =======================================================================================
         /// <summary>
-        /// Does the content appear to represent a VBScript operator? An exception will be raised
+        /// This will not be null, empty, contain any null or blank values, any duplicates or any content containing whitespace. These are ordered
+        /// according to the precedence that the VBScript interpreter will give to them when multiple occurences are encountered within an expression
+        /// (see http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx).
+        /// </summary>
+        public static IEnumerable<string> OperatorTokenValues = new List<string>
+        {
+            "^", "/", "*", "\"", "MOD", "+", "-", "&" // Note: "\" is integer division (see the link above)
+        }.AsReadOnly();
+
+        /// This will not be null, empty, contain any null or blank values, any duplicates or any content containing whitespace. These are ordered
+        /// according to the precedence that the VBScript interpreter will give to them when multiple occurences are encountered within an expression
+        /// (see http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx).
+        public static IEnumerable<string> LogicalOperatorTokenValues = new List<string>
+        {
+            "NOT", "AND", "OR", "XOR"
+        }.AsReadOnly();
+
+        /// <summary>
+        /// Does the content appear to represent a VBScript operator (eg. "*" or "AND")? An exception will be raised
         /// for null, blank or whitespace-containing input.
         /// </summary>
         protected static bool isOperator(string atomContent)
         {
             return isType(
                 atomContent,
-                new string[]
-                {
-                    "&", "+", "-", "*", "/", "MOD",
-                    "NOT", "AND", "OR", "XOR"
-                }
+                OperatorTokenValues.Concat(LogicalOperatorTokenValues)
             );
         }
+
+        /// <summary>
+        /// Does the content appear to represent a VBScript operator (eg. AND)? An exception will be raised
+        /// for null, blank or whitespace-containing input.
+        /// </summary>
+        protected static bool isLogicalOperator(string atomContent)
+        {
+            return isType(
+                atomContent,
+                LogicalOperatorTokenValues
+            );
+        }
+
+        /// <summary>
+        /// This will not be null, empty, contain any null or blank values, any duplicates or any content containing whitespace. These are ordered
+        /// according to the precedence that the VBScript interpreter will give to them when multiple occurences are encountered within an expression
+        /// (see http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx).
+        /// </summary>
+        public static IEnumerable<string> ComparisonTokenValues = new List<string>
+        {
+            "=", "<>", "<", ">", "<=", ">=", "IS",
+            "EQV", "IMP"
+        }.AsReadOnly();
 
         /// <summary>
         /// Does the content appear to represent a VBScript comparison? An exception will be raised
@@ -112,11 +152,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         {
             return isType(
                 atomContent,
-                new string[]
-                {
-                    "<", ">", "=", "IS",
-                    "EQV", "IMP"
-                }
+                ComparisonTokenValues
             );
         }
 
@@ -249,7 +285,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             );
         }
 
-        private static bool isType(string atomContent, string[] keyWords)
+        private static bool isType(string atomContent, IEnumerable<string> keyWords)
         {
             if (atomContent == null)
                 throw new ArgumentNullException("token");
@@ -259,16 +295,13 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 throw new ArgumentException("Whitespace encountered in atomContent - invalid");
             if (keyWords == null)
                 throw new ArgumentNullException("keyWords");
-            foreach (string keyWord in keyWords)
+            foreach (var keyWord in keyWords)
             {
                 if ((keyWord ?? "").Trim() == "")
                     throw new ArgumentException("Null / blank keyWord specified");
                 if (containsWhiteSpace(keyWord))
                     throw new ArgumentException("keyWord specified containing whitespce - invalid");
-            }
-            foreach (string keyWord in keyWords)
-            {
-                if (atomContent.ToUpper() == keyWord.ToUpper())
+                if (atomContent.Equals(keyWord, StringComparison.InvariantCultureIgnoreCase))
                     return true;
             }
             return false;
