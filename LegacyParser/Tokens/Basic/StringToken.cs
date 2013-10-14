@@ -17,6 +17,9 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             this.content = content;
         }
 
+        /// <summary>
+        /// This will not include the quotes in the value
+        /// </summary>
         public string Content
         {
             get { return this.content; }
