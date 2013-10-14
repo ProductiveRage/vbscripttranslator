@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.StageTwoParser.Tokens;
 
-namespace VBScriptTranslator.StageTwoParser
+namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
-    public class ExpressionSegment
+    public class CallExpressionSegment : IExpressionSegment
     {
-        public ExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
+        public CallExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
         {
             if (memberAccessTokens == null)
                 throw new ArgumentNullException("memberAccessTokens");
@@ -39,5 +39,31 @@ namespace VBScriptTranslator.StageTwoParser
         /// This will never be null nor contain any null references
         /// </summary>
         public IEnumerable<Expression> Arguments { get; private set; }
+
+        public string RenderedContent
+        {
+            get
+            {
+                var contentBuilder = new StringBuilder();
+                var tokens = MemberAccessTokens.ToArray();
+                for (var index = 0; index < tokens.Length; index++)
+                {
+                    var token = tokens[index];
+                    contentBuilder.Append(
+                        (token is StringToken) ? ("\"" + token.Content + "\"") : token.Content
+                    );
+                    if (index < (tokens.Length - 1))
+                        contentBuilder.Append(".");
+                }
+                if (Arguments.Any())
+                    contentBuilder.Append("(" + string.Join("", Arguments.Select(a => a.RenderedContent)) + ")");
+                return contentBuilder.ToString();
+            }
+        }
+
+        public override string ToString()
+        {
+            return base.ToString() + ":" + RenderedContent;
+        }
     }
 }

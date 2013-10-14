@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using VBScriptTranslator.LegacyParser.Tokens;
 
-namespace VBScriptTranslator.StageTwoParser
+namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
     public class Expression
     {
-        public Expression(IEnumerable<ExpressionSegment> segments)
+        public Expression(IEnumerable<IExpressionSegment> segments)
         {
             if (segments == null)
                 throw new ArgumentNullException("segments");
@@ -22,6 +21,22 @@ namespace VBScriptTranslator.StageTwoParser
         /// <summary>
         /// This will never be null, empty or contain any null references
         /// </summary>
-        public IEnumerable<ExpressionSegment> Segments { get; private set; }
+        public IEnumerable<IExpressionSegment> Segments { get; private set; }
+
+        public string RenderedContent
+        {
+            get
+            {
+                return string.Join(
+                    "",
+                    Segments.Select(s => s.RenderedContent)
+                );
+            }
+        }
+
+        public override string ToString()
+        {
+            return base.ToString() + ":" + RenderedContent;
+        }
     }
 }

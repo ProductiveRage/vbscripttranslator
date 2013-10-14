@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using VBScriptTranslator.StageTwoParser;
+using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {

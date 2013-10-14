@@ -2,7 +2,7 @@
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.StageTwoParser;
+using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using VBScriptTranslator.StageTwoParser.Tokens;
 using VBScriptTranslator.UnitTests.Shared;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
@@ -18,8 +18,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(Misc.GetAtomToken("Test"))
+                    EXP(
+                        CALL(Misc.GetAtomToken("Test"))
                     )
                 },
                 ExpressionGenerator.Generate(new[] {
@@ -35,8 +35,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // Test()
             Assert.Equal(new[]
                 {
-                    E(
-                        S(Misc.GetAtomToken("Test"))
+                    EXP(
+                        CALL(Misc.GetAtomToken("Test"))
                     )
                 },
                 ExpressionGenerator.Generate(new[] {
@@ -54,8 +54,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // a.Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("Test") }
                         )
                     )
@@ -75,8 +75,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // a.b.Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("b"), Misc.GetAtomToken("Test") }
                         )
                     )
@@ -98,8 +98,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // Test(1)
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("Test") },
                             new[] { Misc.GetAtomToken("1") }
                         )
@@ -116,21 +116,47 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         }
 
         [Fact]
+        public void DirectFunctionCallWithTwoArguments()
+        {
+            // Test(1, 2)
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new[] { Misc.GetAtomToken("Test") },
+                            new[] { Misc.GetAtomToken("1") },
+                            new[] { Misc.GetAtomToken("2") }
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                        Misc.GetAtomToken("Test"),
+                        new OpenBrace("("),
+                        Misc.GetAtomToken("1"),
+                        new ArgumentSeparatorToken(","),
+                        Misc.GetAtomToken("2"),
+                        new CloseBrace(")")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
         public void DirectFunctionCallWithTwoArgumentsOneIsNestedDirectionFunctionCallWithOneArgument()
         {
             // Test(Test2(1), 2)
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("Test") },
-                            E(
-                                S(
+                            EXP(
+                                CALL(
                                     new[] { Misc.GetAtomToken("Test2") },
                                     new[] { Misc.GetAtomToken("1") }
                                 )
                             ),
-                            E(S(Misc.GetAtomToken("2")))
+                            EXP(CALL(Misc.GetAtomToken("2")))
                         )
                     )
                 },
@@ -155,12 +181,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // a(0).Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("a") },
                             new[] { Misc.GetAtomToken("0") }
                         ),
-                        S(
+                        CALL(
                             new[] { Misc.GetAtomToken("Test") }
                         )
                     )
@@ -183,12 +209,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // a.b(0).Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("b") },
                             new[] { Misc.GetAtomToken("0") }
                         ),
-                        S(
+                        CALL(
                             new[] { Misc.GetAtomToken("Test") }
                         )
                     )
@@ -213,12 +239,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             // a(0).b.Test
             Assert.Equal(new[]
                 {
-                    E(
-                        S(
+                    EXP(
+                        CALL(
                             new[] { Misc.GetAtomToken("a") },
                             new[] { Misc.GetAtomToken("0") }
                         ),
-                        S(
+                        CALL(
                             new[] { Misc.GetAtomToken("b"), Misc.GetAtomToken("Test") }
                         )
                     )
@@ -238,47 +264,165 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         }
 
         /// <summary>
-        /// Create an ExpressionSegment from member access tokens and argument expressions
+        /// Additional brackets will be applied around all operations to ensure that VBScript operator rules are always maintained (if the operators
+        /// are all equivalent in terms of priority, terms will be bracketed from left-to-right, so a and b should be bracketed together)
         /// </summary>
-        private static ExpressionSegment S(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
+        [Fact]
+        public void AdditionWithThreeTerms()
         {
-            return new ExpressionSegment(
+            // a + b + c
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("a")),
+                                OP(new OperatorToken("+")),
+                                CALL(Misc.GetAtomToken("b"))
+                            )
+                        ),
+                        OP(new OperatorToken("+")),
+                        CALL(Misc.GetAtomToken("c"))
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("c")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// Multiplication should take precedence over addition so b and c should be bracketed together
+        /// </summary>
+        [Fact]
+        public void AdditionAndMultiplicationWithThreeTerms()
+        {
+            // a + b * c
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new OperatorToken("+")),
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("b")),
+                                OP(new OperatorToken("*")),
+                                CALL(Misc.GetAtomToken("c"))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// Arithmetic operations should take precedence over comparisons so b and c should be bracketed together
+        /// </summary>
+        [Fact]
+        public void AdditionAndEqualityComparisonWithThreeTerms()
+        {
+            // a + b * c
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new ComparisonToken("=")),
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("b")),
+                                OP(new OperatorToken("+")),
+                                CALL(Misc.GetAtomToken("c"))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new ComparisonToken("="),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("c")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// Create a BracketedExpressionSegment from a set of expressions
+        /// </summary>
+        private static BracketedExpressionSegment BR(IEnumerable<Expression> expressions)
+        {
+            return new BracketedExpressionSegment(expressions);
+        }
+
+        /// <summary>
+        /// Create a BracketedExpressionSegment from a set of expressions
+        /// </summary>
+        private static BracketedExpressionSegment BR(params Expression[] expressions)
+        {
+            return new BracketedExpressionSegment((IEnumerable<Expression>)expressions);
+        }
+
+        /// <summary>
+        /// Create an CallExpressionSegment from member access tokens and argument expressions
+        /// </summary>
+        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
+        {
+            return new CallExpressionSegment(
                 memberAccessTokens,
                 arguments
             );
         }
 
         /// <summary>
-        /// Create an ExpressionSegment from member access tokens and argument expressions
+        /// Create a CallExpressionSegment from member access tokens and argument expressions
         /// </summary>
-        private static ExpressionSegment S(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
+        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
         {
-            return S(memberAccessTokens, (IEnumerable<Expression>)arguments);
+            return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments);
         }
 
         /// <summary>
-        /// Create an ExpressionSegment from a single member access token and argument expressions
+        /// Create a CallExpressionSegment from a single member access token and argument expressions
         /// </summary>
-        private static ExpressionSegment S(IToken memberAccessToken, params Expression[] arguments)
+        private static CallExpressionSegment CALL(IToken memberAccessToken, params Expression[] arguments)
         {
-            return S(new[] { memberAccessToken }, (IEnumerable<Expression>)arguments);
+            return CALL(new[] { memberAccessToken }, (IEnumerable<Expression>)arguments);
         }
 
         /// <summary>
-        /// Create an ExpressionSegment from a single member access token and argument expressions expressed as token sets
+        /// Create a CallExpressionSegment from a single member access token and argument expressions expressed as token sets
         /// </summary>
-        private static ExpressionSegment S(IEnumerable<IToken> memberAccessTokens, params IEnumerable<IToken>[] arguments)
+        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params IEnumerable<IToken>[] arguments)
         {
-            return S(
+            return CALL(
                 memberAccessTokens,
-                arguments.Select(a => new Expression(new[] { S(a) }))
+                arguments.Select(a => new Expression(new[] { CALL(a) }))
             );
+        }
+
+        private static OperatorOrComparisonExpressionSegment OP(IToken token)
+        {
+            return new OperatorOrComparisonExpressionSegment(token);
         }
 
         /// <summary>
         /// Create an Expression from multiple ExpressionSegments
         /// </summary>
-        private static Expression E(params ExpressionSegment[] segments)
+        private static Expression EXP(params IExpressionSegment[] segments)
         {
             return new Expression(segments);
         }
@@ -286,9 +430,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create an Expression from a single ExpressionSegment
         /// </summary>
-        private static Expression E(ExpressionSegment segment)
+        private static Expression EXP(IExpressionSegment segment)
         {
-            return E(new[] { segment });
+            return EXP(new[] { segment });
         }
     }
 }
