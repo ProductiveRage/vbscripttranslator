@@ -95,6 +95,7 @@
     <Compile Include="CodeBlocks\Basic\IfBlock.cs" />
     <Compile Include="Tokens\Basic\ComparisonToken.cs" />
     <Compile Include="Tokens\Basic\ArgumentSeparatorToken.cs" />
+    <Compile Include="Tokens\Basic\LogicalOperatorToken.cs" />
     <Compile Include="Tokens\Basic\OpenBrace.cs" />
     <Compile Include="Tokens\Basic\CloseBrace.cs" />
     <Compile Include="Tokens\Basic\KeyWordToken.cs" />
