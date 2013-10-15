@@ -328,18 +328,172 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
+        [Fact]
+        public void AdditionAndMultiplicationWithThreeTermsWhereTheThirdTermIsAnArrayElement()
+        {
+            // a + b * c(0)
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new OperatorToken("+")),
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("b")),
+                                OP(new OperatorToken("*")),
+                                CALL(
+                                    new[] { Misc.GetAtomToken("c") },
+                                    new[] { Misc.GetAtomToken("0") }
+                                )
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("0"),
+                    new CloseBrace(")")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// This will try to ensure that the bracket around the array access doesn't interfere with the formatting of the fourth term
+        /// </summary>
+        [Fact]
+        public void AdditionAndMultiplicationAndAdditionWithFourTermsWhereTheThirdTermIsAnArrayElement()
+        {
+            // a + b * c(0) + d
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("a")),
+                                OP(new OperatorToken("+")),
+                                BR(
+                                    EXP(
+                                        CALL(Misc.GetAtomToken("b")),
+                                        OP(new OperatorToken("*")),
+                                        CALL(
+                                            new[] { Misc.GetAtomToken("c") },
+                                            new[] { Misc.GetAtomToken("0") }
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        OP(new OperatorToken("+")),
+                        CALL(Misc.GetAtomToken("d"))
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("0"),
+                    new CloseBrace(")"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("d"),
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// If an operation is already bracketed then additional brackets should not be added around the operation, they would be unnecessary
+        /// </summary>
+        [Fact]
+        public void AlreadyBracketedOperationsShouldNotGetUnnecessaryBracketing()
+        {
+            // a + (b * c)
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new OperatorToken("+")),
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("b")),
+                                OP(new OperatorToken("*")),
+                                CALL(Misc.GetAtomToken("c"))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c"),
+                    new CloseBrace(")")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
+        public void AlreadyBracketedOperationsShouldNotGetUnnecessaryBracketingIfTheyAppearInTheMiddleOfTheExpression()
+        {
+            // a + (b * c) + d
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        BR(
+                            EXP(
+                                CALL(Misc.GetAtomToken("a")),
+                                OP(new OperatorToken("+")),
+                                BR(
+                                    EXP(
+                                        CALL(Misc.GetAtomToken("b")),
+                                        OP(new OperatorToken("*")),
+                                        CALL(Misc.GetAtomToken("c"))
+                                    )
+                                )
+                            )
+                        ),
+                        OP(new OperatorToken("+")),
+                        CALL(Misc.GetAtomToken("d"))
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c"),
+                    new CloseBrace(")"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("d"),
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
         /// <summary>
         /// Arithmetic operations should take precedence over comparisons so b and c should be bracketed together
         /// </summary>
         [Fact]
         public void AdditionAndEqualityComparisonWithThreeTerms()
         {
-            // a + b * c
+            // a = b + c
             Assert.Equal(new[]
                 {
                     EXP(
                         CALL(Misc.GetAtomToken("a")),
-                        OP(new ComparisonToken("=")),
+                        OP(new ComparisonOperatorToken("=")),
                         BR(
                             EXP(
                                 CALL(Misc.GetAtomToken("b")),
@@ -351,10 +505,137 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new[] {
                     Misc.GetAtomToken("a"),
-                    new ComparisonToken("="),
+                    new ComparisonOperatorToken("="),
                     Misc.GetAtomToken("b"),
                     new OperatorToken("+"),
                     Misc.GetAtomToken("c")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// This covers an array of different types of expression
+        /// </summary>
+        [Fact]
+        public void TestArrayAccessObjectAccessMethodArgumentsMixedArithmeticAndComparisonOperations()
+        {
+            // a + b * c.d(Test(0), 1) + e = f
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        BR(
+                            EXP(
+                                BR(
+                                    EXP(
+                                        CALL(Misc.GetAtomToken("a")),
+                                        OP(new OperatorToken("+")),
+                                        BR(
+                                            EXP(
+                                                CALL(Misc.GetAtomToken("b")),
+                                                OP(new OperatorToken("*")),
+                                                CALL(
+                                                    new[] { Misc.GetAtomToken("c"), Misc.GetAtomToken("d") },
+                                                    EXP(
+                                                        CALL(
+                                                            new[] { Misc.GetAtomToken("Test") },
+                                                            new[] { Misc.GetAtomToken("0") }
+                                                        )
+                                                    ),
+                                                    EXP(CALL(Misc.GetAtomToken("1")))
+                                                )
+                                            )
+                                        )
+                                    )
+                                ),
+                                OP(new OperatorToken("+")),
+                                CALL(Misc.GetAtomToken("e"))
+                            )
+                        ),
+                        OP(new ComparisonOperatorToken("=")),
+                        CALL(Misc.GetAtomToken("f"))
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("b"),
+                    new OperatorToken("*"),
+                    Misc.GetAtomToken("c"),
+                    new MemberAccessorToken(),
+                    Misc.GetAtomToken("d"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("Test"),
+                    new OpenBrace("("),
+                    Misc.GetAtomToken("0"),
+                    new CloseBrace(")"),
+                    new ArgumentSeparatorToken(","),
+                    Misc.GetAtomToken("1"),
+                    new CloseBrace(")"),
+                    new OperatorToken("+"),
+                    Misc.GetAtomToken("e"),
+                    new ComparisonOperatorToken("="),
+                    Misc.GetAtomToken("f")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// To make it clear that the "-" is a one-sided operation (a negation, not a subtraction), it should be bracketed
+        /// </summary>
+        [Fact]
+        public void NegatedTermsShouldBeBracketed()
+        {
+            // a * -b
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new OperatorToken("*")),
+                        BR(
+                            EXP(
+                                OP(new OperatorToken("-")),
+                                CALL(Misc.GetAtomToken("b"))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new OperatorToken("*"),
+                    new OperatorToken("-"),
+                    Misc.GetAtomToken("b")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// This is the boolean equivalent of NegatedTermsShouldBeBracketed
+        /// </summary>
+        [Fact]
+        public void LogicalInversionsTermsShouldBeBracketed()
+        {
+            // a AND NOT b
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(Misc.GetAtomToken("a")),
+                        OP(new LogicalOperatorToken("AND")),
+                        BR(
+                            EXP(
+                                OP(new LogicalOperatorToken("NOT")),
+                                CALL(Misc.GetAtomToken("b"))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new[] {
+                    Misc.GetAtomToken("a"),
+                    new LogicalOperatorToken("AND"),
+                    new LogicalOperatorToken("NOT"),
+                    Misc.GetAtomToken("b")
                 }),
                 new ExpressionSetComparer()
             );
@@ -414,9 +695,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
-        private static OperatorOrComparisonExpressionSegment OP(IToken token)
+        private static OperationExpressionSegment OP(IToken token)
         {
-            return new OperatorOrComparisonExpressionSegment(token);
+            return new OperationExpressionSegment(token);
         }
 
         /// <summary>

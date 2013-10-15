@@ -93,7 +93,7 @@
     <Compile Include="CodeBlocks\Handlers\DimHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\IfHandler.cs" />
     <Compile Include="CodeBlocks\Basic\IfBlock.cs" />
-    <Compile Include="Tokens\Basic\ComparisonToken.cs" />
+    <Compile Include="Tokens\Basic\ComparisonOperatorToken.cs" />
     <Compile Include="Tokens\Basic\ArgumentSeparatorToken.cs" />
     <Compile Include="Tokens\Basic\LogicalOperatorToken.cs" />
     <Compile Include="Tokens\Basic\OpenBrace.cs" />

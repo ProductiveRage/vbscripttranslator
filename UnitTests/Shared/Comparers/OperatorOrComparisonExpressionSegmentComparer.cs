@@ -4,9 +4,9 @@ using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
-    public class OperatorOrComparisonExpressionSegmentComparer : IEqualityComparer<OperatorOrComparisonExpressionSegment>
+    public class OperatorOrComparisonExpressionSegmentComparer : IEqualityComparer<OperationExpressionSegment>
     {
-        public bool Equals(OperatorOrComparisonExpressionSegment x, OperatorOrComparisonExpressionSegment y)
+        public bool Equals(OperationExpressionSegment x, OperationExpressionSegment y)
         {
             if (x == null)
                 throw new ArgumentNullException("x");
@@ -17,7 +17,7 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             return tokenComparer.Equals(x.Token, y.Token);
         }
 
-        public int GetHashCode(OperatorOrComparisonExpressionSegment obj)
+        public int GetHashCode(OperationExpressionSegment obj)
         {
             if (obj == null)
                 throw new ArgumentNullException("obj");

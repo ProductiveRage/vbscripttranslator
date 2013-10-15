@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using VBScriptTranslator.LegacyParser.Tokens;
 
 namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
@@ -22,6 +23,14 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// This will never be null, empty or contain any null references
         /// </summary>
         public IEnumerable<IExpressionSegment> Segments { get; private set; }
+
+		/// <summary>
+		/// This will never be null, empty or contain any null references
+		/// </summary>
+		public IEnumerable<IToken> AllTokens
+		{
+			get { return Segments.SelectMany(s => s.AllTokens); }
+		}
 
         public string RenderedContent
         {

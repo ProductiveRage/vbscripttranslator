@@ -2,13 +2,13 @@
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {
     [Serializable]
-    public class ComparisonToken : AtomToken
+    public class ComparisonOperatorToken : OperatorToken
     {
         /// <summary>
         /// This inherits from AtomToken since a lot of processing would consider them the
         /// same token type while parsing the original content.
         /// </summary>
-        public ComparisonToken(string content) : base(content)
+        public ComparisonOperatorToken(string content) : base(content)
         {
             // Do all this validation (again) here in case this constructor wasn't called
             // by the AtomToken.GetNewToken method

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.StageTwoParser.Tokens;
 
 namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
@@ -40,24 +40,47 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// </summary>
         public IEnumerable<Expression> Arguments { get; private set; }
 
+		/// <summary>
+		/// This will never be null, empty or contain any null references
+		/// </summary>
+		IEnumerable<IToken> IExpressionSegment.AllTokens
+		{
+			get
+			{
+				var combinedTokens = new List<IToken>();
+				var tokens = MemberAccessTokens.ToArray();
+				for (var index = 0; index < tokens.Length; index++)
+				{
+					combinedTokens.Add(tokens[index]);
+					if (index < (tokens.Length - 1))
+						combinedTokens.Add(new MemberAccessorToken());
+				}
+				if (Arguments.Any())
+				{
+					combinedTokens.Add(new OpenBrace("("));
+					var arguments = Arguments.ToArray();
+					for (var index = 0; index < arguments.Length; index++)
+					{
+						combinedTokens.AddRange(arguments[index].AllTokens);
+						if (index < (arguments.Length - 1))
+							combinedTokens.Add(new ArgumentSeparatorToken(","));
+					}
+					combinedTokens.Add(new CloseBrace(")"));
+				}
+				return combinedTokens;
+			}
+		}
+
         public string RenderedContent
         {
             get
             {
-                var contentBuilder = new StringBuilder();
-                var tokens = MemberAccessTokens.ToArray();
-                for (var index = 0; index < tokens.Length; index++)
-                {
-                    var token = tokens[index];
-                    contentBuilder.Append(
-                        (token is StringToken) ? ("\"" + token.Content + "\"") : token.Content
-                    );
-                    if (index < (tokens.Length - 1))
-                        contentBuilder.Append(".");
-                }
-                if (Arguments.Any())
-                    contentBuilder.Append("(" + string.Join("", Arguments.Select(a => a.RenderedContent)) + ")");
-                return contentBuilder.ToString();
+				return string.Join(
+					"",
+					((IExpressionSegment)this).AllTokens.Select(t =>
+						(t is StringToken) ? ("\"" + t.Content + "\"") : t.Content
+					)
+				);
             }
         }
 

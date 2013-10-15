@@ -95,7 +95,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             for (var index = 0; index < initialTokens.Count; index++)
             {
                 var token = initialTokens[index];
-                if ((token is ComparisonToken) & (token.Content == "=") && (bracketCount == 0))
+                if ((token is ComparisonOperatorToken) & (token.Content == "=") && (bracketCount == 0))
                 {
                     inExpressionContent = true;
                     continue;

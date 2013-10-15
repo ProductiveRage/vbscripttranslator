@@ -59,10 +59,10 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 return new KeyWordToken(content);
             if (isLogicalOperator(content))
                 return new LogicalOperatorToken(content);
+            if (isComparison(content))
+                return new ComparisonOperatorToken(content);
             if (isOperator(content))
                 return new OperatorToken(content);
-            if (isComparison(content))
-                return new ComparisonToken(content);
             if (isMemberAccessor(content))
                 return new MemberAccessorOrDecimalPointToken(content);
             if (isArgumentSeparator(content))
@@ -96,7 +96,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// according to the precedence that the VBScript interpreter will give to them when multiple occurences are encountered within an expression
         /// (see http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx).
         /// </summary>
-        public static IEnumerable<string> OperatorTokenValues = new List<string>
+        public static IEnumerable<string> ArithmeticAndStringOperatorTokenValues = new List<string>
         {
             "^", "/", "*", "\"", "MOD", "+", "-", "&" // Note: "\" is integer division (see the link above)
         }.AsReadOnly();
@@ -110,14 +110,14 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         }.AsReadOnly();
 
         /// <summary>
-        /// Does the content appear to represent a VBScript operator (eg. "*" or "AND")? An exception will be raised
-        /// for null, blank or whitespace-containing input.
+        /// Does the content appear to represent a VBScript operator (eg. an arithermetic operator such as "*", a logical operator such as "AND" or
+        /// a comparison operator such as ">")? An exception will be raised for null, blank or whitespace-containing input.
         /// </summary>
         protected static bool isOperator(string atomContent)
         {
             return isType(
                 atomContent,
-                OperatorTokenValues.Concat(LogicalOperatorTokenValues)
+                ArithmeticAndStringOperatorTokenValues.Concat(LogicalOperatorTokenValues).Concat(ComparisonTokenValues)
             );
         }
 

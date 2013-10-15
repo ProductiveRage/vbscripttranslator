@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExpressionParsing\BracketedExpressionSegment.cs" />
-    <Compile Include="ExpressionParsing\OperationOrComparisonExpressionSegment.cs" />
+    <Compile Include="ExpressionParsing\OperationExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\IExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\Expression.cs" />
     <Compile Include="ExpressionParsing\CallExpressionSegment.cs" />
@@ -60,7 +60,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TokenCombining\OperatorCombinations\OperatorCombiner.cs" />
     <Compile Include="Tokens\NumericValueToken.cs" />
-    <Compile Include="Tokens\MemberAccessor.cs" />
+    <Compile Include="Tokens\MemberAccessorToken.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">

@@ -84,15 +84,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new[]
                 {
                     Misc.GetAtomToken("2"),
-                    new ComparisonToken(">="),
+                    new ComparisonOperatorToken(">="),
                     Misc.GetAtomToken("1")
                 },
                 OperatorCombiner.Combine(
                     new[]
                     {
                         Misc.GetAtomToken("2"),
-                        new ComparisonToken(">"),
-                        new ComparisonToken("="),
+                        new ComparisonOperatorToken(">"),
+                        new ComparisonOperatorToken("="),
                         Misc.GetAtomToken("1")
                     }
                 ),
