@@ -1,6 +1,6 @@
-﻿using System;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+﻿using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
@@ -15,7 +15,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    GetAtomToken("Test")
+                    BaseAtomTokenGenerator.Get("Test")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -30,9 +30,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    GetAtomToken("Test"),
+                    BaseAtomTokenGenerator.Get("Test"),
                     new OpenBrace("("),
-                    GetAtomToken("1"),
+                    BaseAtomTokenGenerator.Get("1"),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -48,9 +48,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    GetAtomToken("Test"),
+                    BaseAtomTokenGenerator.Get("Test"),
                     new OpenBrace("("),
-                    GetAtomToken("1"),
+                    BaseAtomTokenGenerator.Get("1"),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
@@ -69,9 +69,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var tokens = new[]
                 {
                     new OpenBrace("("),
-                    GetAtomToken("Test"),
+                    BaseAtomTokenGenerator.Get("Test"),
                     new OpenBrace("("),
-                    GetAtomToken("1"),
+                    BaseAtomTokenGenerator.Get("1"),
                     new CloseBrace(")"),
                     new CloseBrace(")")
                 };
@@ -88,11 +88,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    GetAtomToken("a"),
+                    BaseAtomTokenGenerator.Get("a"),
                     new MemberAccessorOrDecimalPointToken("."),
-                    GetAtomToken("Test"),
+                    BaseAtomTokenGenerator.Get("Test"),
                     new OpenBrace("("),
-                    GetAtomToken("1"),
+                    BaseAtomTokenGenerator.Get("1"),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -112,17 +112,17 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(
                     new[]
                     {
-                        GetAtomToken("Test"),
-                        GetAtomToken("1")
+                        BaseAtomTokenGenerator.Get("Test"),
+                        BaseAtomTokenGenerator.Get("1")
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
                     new[]
                     {
-                        GetAtomToken("Test"),
+                        BaseAtomTokenGenerator.Get("Test"),
                         new OpenBrace("("),
-                        GetAtomToken("1"),
+                        BaseAtomTokenGenerator.Get("1"),
                         new CloseBrace(")")
                     },
                     statement.BracketStandardisedTokens,
@@ -136,35 +136,27 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(
                     new[]
                     {
-                        GetAtomToken("a"),
+                        BaseAtomTokenGenerator.Get("a"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("Test"),
-                        GetAtomToken("1")
+                        BaseAtomTokenGenerator.Get("Test"),
+                        BaseAtomTokenGenerator.Get("1")
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
                     new[]
                     {
-                        GetAtomToken("a"),
+                        BaseAtomTokenGenerator.Get("a"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        GetAtomToken("Test"),
+                        BaseAtomTokenGenerator.Get("Test"),
                         new OpenBrace("("),
-                        GetAtomToken("1"),
+                        BaseAtomTokenGenerator.Get("1"),
                         new CloseBrace(")")
                     },
                     statement.BracketStandardisedTokens,
                     new TokenSetComparer()
                 );
             }
-        }
-
-        private static AtomToken GetAtomToken(string content)
-        {
-            var token = AtomToken.GetNewToken(content);
-            if (token.GetType() != typeof(AtomToken))
-                throw new ArgumentException("Specified content was not mapped to an AtomToken, it was mapped to " + token.GetType());
-            return (AtomToken)token;
         }
     }
 }

@@ -5,11 +5,9 @@ using System.Linq;
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {
     /// <summary>
-    /// This token represents a single unprocessed section of script content (not
-    /// string or comment) - it is not initialised directly through a constructor,
-    /// instead use the static GetNewToken method which try to will return an
-    /// appropriate token type (an actual AtomToken, Operator Token or one
-    /// of the AbstractEndOfStatement types)
+    /// This token represents a single unprocessed section of script content (not string or comment) - it is not initialised directly through a constructor,
+    /// instead use the static GetNewToken method which try to will return an appropriate token type (an actual AtomToken, Operator Token or one of the
+    /// AbstractEndOfStatement types)
     /// </summary>
     [Serializable]
     public class AtomToken : IToken
@@ -44,6 +42,17 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         {
             if (content == null)
                 throw new ArgumentNullException("content");
+
+            if (content.StartsWith("["))
+            {
+                if (!content.EndsWith("]"))
+                    throw new ArgumentException("If content starts with a square bracket then it must have a closing bracket to indicate an escaped-name variable");
+                var escapedContent = content.Substring(1, content.Length - 2);
+                if (escapedContent.Contains('\n') || escapedContent.Contains(']'))
+                    throw new ArgumentException("If this indicates an escaped-name variable then it may not contain any closing square brackets other than the termination character nor any line returns");
+                return new EscapedNameToken(escapedContent);
+            }
+
             if (content == "")
                 throw new ArgumentException("Blank content specified for AtomToken - invalid");
 
@@ -75,17 +84,16 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             return new AtomToken(content);
         }
 
+        private static string WhiteSpaceChars = new string(
+            Enumerable.Range((int)char.MinValue, (int)char.MaxValue).Select(v => (char)v).Where(c => char.IsWhiteSpace(c)).ToArray()
+        );
+
         private static bool containsWhiteSpace(string content)
         {
             if (content == null)
                 throw new ArgumentNullException("token");
-            string whitespace = " \r\n\t";
-            for (int index = 0; index < content.Length; index++)
-            {
-                if (whitespace.Contains(content.Substring(index, 1)))
-                    return true;
-            }
-            return false;
+
+            return content.Any(c => WhiteSpaceChars.IndexOf(c) != -1);
         }
 
         // =======================================================================================

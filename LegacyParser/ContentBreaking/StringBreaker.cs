@@ -76,7 +76,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     index = breakPoint;
                 }
 
-                // Check for string start / end
+                // Check for string content
                 else if (chr == "\"")
                 {
                     // Store any previous token content
@@ -114,7 +114,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                                 // Non-escaped quote: string end
                                 tokens.Add(new StringToken(tokenContent));
                                 tokenContent = "";
-                                index = indexString;    
+                                index = indexString;
                                 break;
                             }
                         }
@@ -122,7 +122,37 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     }
                 }
 
-                // Must be neither comment nor string..
+                // Check for crazy VBScript escaped-name variable content
+                // - It's acceptable to name a variable pretty much anything if it's wrapped in square brackets; seems to be any character other than
+                //   line returns and a closing square bracket (since there is no support for escaping the closing bracket). This includes single and
+                //   double quotes, whitespace, colons, numbers, underscores, anything - in fact a valid variable name is [ ], meaning a single space
+                //   wrapped in square brackets! This is a little-known feature but it shouldn't be too hard to parse out at this point.
+                else if (chr == "[")
+                {
+                    // Store any previous token content
+                    if (tokenContent != "")
+                        tokens.Add(new UnprocessedContentToken(tokenContent));
+
+                    tokenContent = "[";
+                    var indexString = index + 1;
+                    while (true)
+                    {
+                        chr = scriptContent.Substring(indexString, 1);
+                        if (chr == "\n")
+                            throw new Exception("Encountered line return in escaped-content variable name");
+                        tokenContent += chr;
+                        if (chr == "]")
+                        {
+                            tokens.Add(AtomToken.GetNewToken(tokenContent));
+                            tokenContent = "";
+                            index = indexString;
+                            break;
+                        }
+                        indexString++;
+                    }
+                }
+
+                // Mustn't be neither comment, string nor VBScript-escaped-variable-name..
                 else
                     tokenContent += chr;
 

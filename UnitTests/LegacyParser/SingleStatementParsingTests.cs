@@ -19,12 +19,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new Statement(
                         new[]
                         {
-                            GetAtomToken("WScript"),
+                            BaseAtomTokenGenerator.Get("WScript"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            GetAtomToken("Echo"),
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("Echo"),
+                            BaseAtomTokenGenerator.Get("1"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            GetAtomToken("1")
+                            BaseAtomTokenGenerator.Get("1")
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -43,13 +43,13 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new Statement(
                         new[]
                         {
-                            GetAtomToken("WScript"),
+                            BaseAtomTokenGenerator.Get("WScript"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            GetAtomToken("Echo"),
+                            BaseAtomTokenGenerator.Get("Echo"),
                             new OpenBrace("("),
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("1"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("1"),
                             new CloseBrace(")")
                         },
                         Statement.CallPrefixOptions.Absent
@@ -69,11 +69,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            GetAtomToken("a"),
+                            BaseAtomTokenGenerator.Get("a"),
                         },
                         new[]
                         {
-                            GetAtomToken("Nothing"),
+                            BaseAtomTokenGenerator.Get("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -92,16 +92,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            GetAtomToken("a"),
+                            BaseAtomTokenGenerator.Get("a"),
                             new OpenBrace("("),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new ArgumentSeparatorToken(","),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("1"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -120,16 +120,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            GetAtomToken("a"),
+                            BaseAtomTokenGenerator.Get("a"),
                             new OpenBrace("("),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new ArgumentSeparatorToken(","),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("1"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -148,16 +148,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            GetAtomToken("a"),
+                            BaseAtomTokenGenerator.Get("a"),
                             new OpenBrace("("),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new ArgumentSeparatorToken(","),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            GetAtomToken("Nothing"),
+                            BaseAtomTokenGenerator.Get("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -176,21 +176,21 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            GetAtomToken("a"),
+                            BaseAtomTokenGenerator.Get("a"),
                             new OpenBrace("("),
-                            GetAtomToken("GetValue"),
+                            BaseAtomTokenGenerator.Get("GetValue"),
                             new OpenBrace("("),
-                            GetAtomToken("1"),
+                            BaseAtomTokenGenerator.Get("1"),
                             new ArgumentSeparatorToken(","),
-                            GetAtomToken("3"),
+                            BaseAtomTokenGenerator.Get("3"),
                             new CloseBrace(")"),
                             new ArgumentSeparatorToken(","),
-                            GetAtomToken("0"),
+                            BaseAtomTokenGenerator.Get("0"),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            GetAtomToken("Nothing"),
+                            BaseAtomTokenGenerator.Get("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -198,14 +198,6 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 Parser.Parse("Set a(GetValue(1, 3), 0) = Nothing"),
                 new CodeBlockSetComparer()
             );
-        }
-
-        private AtomToken GetAtomToken(string content)
-        {
-            var token = AtomToken.GetNewToken(content);
-            if (token.GetType() != typeof(AtomToken))
-                throw new ArgumentException("Specified content was not mapped to an AtomToken, it was mapped to " + token.GetType());
-            return (AtomToken)token;
         }
     }
 }
