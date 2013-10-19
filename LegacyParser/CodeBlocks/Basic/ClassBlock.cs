@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
@@ -10,19 +11,21 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private string className;
+        private NameToken className;
         private List<ICodeBlock> statements;
-        public ClassBlock(string className, List<ICodeBlock> statements)
+        public ClassBlock(NameToken className, List<ICodeBlock> statements)
         {
-            if ((className ?? "").Trim() == "")
-                throw new ArgumentException("className is null or blank");
+            if (className == null)
+                throw new ArgumentNullException("className");
             if (statements == null)
                 throw new ArgumentNullException("statements");
+
             foreach (ICodeBlock block in statements)
             {
                 if (block == null)
                     throw new ArgumentException("Null block in statements");
             }
+
             this.className = className;
             this.statements = statements;
         }
@@ -35,7 +38,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public string Name
+        public NameToken Name
         {
             get { return this.className; }
         }
@@ -64,7 +67,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
             StringBuilder output = new StringBuilder();
-            output.AppendLine(indenter.Indent + "Class " + this.className);
+            output.AppendLine(indenter.Indent + "Class " + this.className.Content);
             foreach (ICodeBlock block in this.statements)
                 output.AppendLine(block.GenerateBaseSource(indenter.Increase()));
             output.Append(indenter.Indent + "End Class");

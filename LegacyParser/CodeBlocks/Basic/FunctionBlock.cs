@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
@@ -9,7 +10,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public FunctionBlock(
             bool isPublic,
             bool isDefault,
-            string name,
+            NameToken name,
             List<Parameter> parameters,
             List<ICodeBlock> statements)
             : base(isPublic, isDefault, name, parameters, statements) { }

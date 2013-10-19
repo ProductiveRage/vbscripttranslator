@@ -150,7 +150,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             // Get name (if no other content, we're all done!)
             string name = tokens[0].Content;
             if (tokens.Count == 1)
-                return new DimStatement.DimVariable(name, null);
+                return new DimStatement.DimVariable(new NameToken(name), null);
 
             // Ensure next token and last token are "(" and ")"
             if (tokens.Count == 2)
@@ -160,7 +160,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // If there were only three tokens, we're all done!
             if (tokens.Count == 3)
-                return new DimStatement.DimVariable(name, new List<Expression>());
+                return new DimStatement.DimVariable(new NameToken(name), new List<Expression>());
 
             // Use base.getEntryList to be flexible and grab dimension declarations
             // as Statement instances
@@ -169,7 +169,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             foreach (List<IToken> dimStatement in dimStatements)
                 dimensions.Add(new Expression(dimStatement));
 
-            return new DimStatement.DimVariable(name, dimensions);
+            return new DimStatement.DimVariable(new NameToken(name), dimensions);
         }
     }
 }

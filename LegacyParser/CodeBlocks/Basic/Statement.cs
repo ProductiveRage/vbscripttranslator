@@ -192,6 +192,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             return tokenArray;
         }
 
+        // TODO: Rename this method to something more appropriate (exclude rather than include?)
         private static bool IsTokenBaseAtomOrKeyWordOrNameOrNumericValueToken(IToken token)
         {
             if (token == null)
@@ -199,7 +200,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 
             return (
                 (token.GetType() == typeof(AtomToken)) ||
+
+                (token.GetType() == typeof(BuiltInFunctionToken)) ||
+                (token.GetType() == typeof(BuiltInValueToken)) ||
                 (token.GetType() == typeof(KeyWordToken)) ||
+
                 (token is NameToken) ||
                 (token.GetType() == typeof(NumericValueToken))
             );

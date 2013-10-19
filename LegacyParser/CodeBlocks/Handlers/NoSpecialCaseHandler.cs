@@ -19,6 +19,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             if (tokens.Count > 0)
             {
                 IToken token = tokens[0];
+                if (token is InlineCommentToken)
+                {
+                    tokens.RemoveAt(0);
+                    return new InlineCommentStatement(token.Content);
+                }
                 if (token is CommentToken)
                 {
                     tokens.RemoveAt(0);

@@ -151,25 +151,25 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             if ((blockType == BlockType.PublicSub)
             || (blockType == BlockType.PrivateSub))
-                return new SubBlock(isPublic, isDefault, funcName, parameters, blockContent);
+                return new SubBlock(isPublic, isDefault, new NameToken(funcName), parameters, blockContent);
 
             else if ((blockType == BlockType.PublicFunction)
             || (blockType == BlockType.PublicDefaultFunction)
             || (blockType == BlockType.PrivateFunction))
-                return new FunctionBlock(isPublic, isDefault, funcName, parameters, blockContent);
+                return new FunctionBlock(isPublic, isDefault, new NameToken(funcName), parameters, blockContent);
 
             else if ((blockType == BlockType.PublicPropertyGet)
             || (blockType == BlockType.PublicDefaultPropertyGet)
             || (blockType == BlockType.PrivatePropertyGet))
-                return new PropertyBlock(isPublic, true, funcName, PropertyBlock.PropertyType.Get, parameters, blockContent);
+                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Get, parameters, blockContent);
 
             else if ((blockType == BlockType.PublicPropertySet)
             || (blockType == BlockType.PrivatePropertySet))
-                return new PropertyBlock(isPublic, true, funcName, PropertyBlock.PropertyType.Set, parameters, blockContent);
+                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Set, parameters, blockContent);
 
             if ((blockType == BlockType.PublicPropertyLet)
             || (blockType == BlockType.PrivatePropertyLet))
-                return new PropertyBlock(isPublic, true, funcName, PropertyBlock.PropertyType.Let, parameters, blockContent);
+                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Let, parameters, blockContent);
 
             else
                 throw new Exception("Unrecognised BlockType [" + blockType.ToString() + "] - how did this happen??");
@@ -214,7 +214,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                         List<IToken> paramTokens = getParamTokens(tokens, offset, out byRef, out name, out isArray);
                         if ((paramTokens == null) || (paramTokens.Count == 0))
                             throw new Exception("Unexpected content from getParamsToken");
-                        parameters.Add(new FunctionBlock.Parameter(byRef, name, isArray));
+                        parameters.Add(new FunctionBlock.Parameter(byRef, new NameToken(name), isArray));
                         offset += paramTokens.Count;
 
                         // Next token should be close bracket (handled above) or

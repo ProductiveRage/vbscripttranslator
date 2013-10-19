@@ -13,7 +13,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private AtomToken loopVar;
+        private NameToken loopVar;
         private Expression loopSrc;
         private List<ICodeBlock> statements;
         
@@ -21,7 +21,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// It is valid to have a null conditionStatement in VBScript - in case the
         /// doUntil value is not of any consequence
         /// </summary>
-        public ForEachBlock(AtomToken loopVar, Expression loopSrc, List<ICodeBlock> statements)
+        public ForEachBlock(NameToken loopVar, Expression loopSrc, List<ICodeBlock> statements)
         {
             if (loopVar == null)
                 throw new ArgumentNullException("loopVar");
@@ -37,7 +37,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public AtomToken LoopVar
+        public NameToken LoopVar
         {
             get { return this.loopVar; }
         }

@@ -48,7 +48,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 tokens.RemoveAt(0);
 
             // Return Function code block instance
-            return new ClassBlock(className, functionContent);
+            return new ClassBlock(new NameToken(className), functionContent);
         }
     }
 }

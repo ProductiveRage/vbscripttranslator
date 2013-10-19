@@ -65,5 +65,57 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        [Fact]
+        public void InlineCommentsAreIdentifiedAsSuch()
+        {
+            // The StringBreaker will insert an EndOfStatementSameLineToken between the UnprocessedContentToken and InlineCommentToken
+            // since that the later processes rely on end-of-statement tokens, even before an inline comment
+            Assert.Equal(
+                new IToken[]
+                {
+                    new UnprocessedContentToken("WScript.Echo 1"),
+                    new EndOfStatementSameLineToken(),
+                    new InlineCommentToken(" Test")
+                },
+                StringBreaker.SegmentString(
+                    "WScript.Echo 1 ' Test"
+                ),
+                new TokenSetComparer()
+            );
+        }
+
+        [Fact]
+        public void REMCommentsAreIdentified()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new CommentToken(" Test"),
+                    new UnprocessedContentToken("WScript.Echo 1")
+                },
+                StringBreaker.SegmentString(
+                    "REM Test\nWScript.Echo 1"
+                ),
+                new TokenSetComparer()
+            );
+        }
+
+        [Fact]
+        public void InlineREMCommentsAreIdentified()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new UnprocessedContentToken("WScript.Echo 1"),
+                    new EndOfStatementSameLineToken(),
+                    new InlineCommentToken(" Test")
+                },
+                StringBreaker.SegmentString(
+                    "WScript.Echo 1 REM Test"
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

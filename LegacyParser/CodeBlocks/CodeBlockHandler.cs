@@ -66,7 +66,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
 
                 new RandomizeHandler(),
 
-                new RemCommentHandler(),
                 new NoSpecialCaseHandler(),
                 
                 // This should always be used as a last resort

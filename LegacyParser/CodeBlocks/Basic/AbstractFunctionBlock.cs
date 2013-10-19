@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
@@ -12,27 +13,28 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         private bool isPublic;
         private bool isDefault;
-        private string propName;
+        private NameToken name;
         private List<Parameter> parameters;
         private List<ICodeBlock> statements;
         public AbstractFunctionBlock(
             bool isPublic,
             bool isDefault,
-            string name,
+            NameToken name,
             List<Parameter> parameters,
             List<ICodeBlock> statements)
         {
-            if ((name ?? "").Trim() == "")
-                throw new ArgumentException("name is null or blank");
+            if (name == null)
+                throw new ArgumentNullException("name");
             if (!isPublic && isDefault)
                 throw new ArgumentException("Can not be default AND private");
             if (parameters == null)
                 throw new ArgumentNullException("parameters");
             if (statements == null)
                 throw new ArgumentNullException("statements");
+            
             this.isPublic = isPublic;
             this.isDefault = isDefault;
-            this.propName = name;
+            this.name = name;
             this.parameters = parameters;
             this.statements = statements;
         }
@@ -41,7 +43,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 
         public override string ToString()
         {
-            return base.ToString() + ":" + this.propName;
+            return base.ToString() + ":" + this.name;
         }
 
         // =======================================================================================
@@ -57,9 +59,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get { return this.isDefault; }
         }
 
-        public string Name
+        public NameToken Name
         {
-            get { return this.propName; }
+            get { return this.name; }
         }
 
         public List<Parameter> Parameters
@@ -87,18 +89,18 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public class Parameter
         {
             private bool byRef;
-            private string name;
+            private NameToken name;
             private bool isArray;
-            public Parameter(bool byRef, string name, bool isArray)
+            public Parameter(bool byRef, NameToken name, bool isArray)
             {
-                if ((name ?? "").Trim() == "")
-                    throw new ArgumentException("name is null or blank");
+                if (name == null)
+                    throw new ArgumentNullException("name");
                 this.byRef = byRef;
                 this.name = name;
                 this.isArray = isArray;
             }
             public bool ByRef { get { return this.byRef; } }
-            public string Name { get { return this.name; } }
+            public NameToken Name { get { return this.name; } }
             public bool IsArray { get { return this.isArray; } }
         }
 
@@ -125,7 +127,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if (this.isDefault)
                 output.Append("Default ");
             output.Append(this.keyWord + " ");
-            output.Append(this.propName);
+            output.Append(this.name.Content);
             output.Append("(");
             for (int index = 0; index < this.parameters.Count; index++)
             {
@@ -134,7 +136,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     output.Append("ByRef ");
                 else
                     output.Append("ByVal ");
-                output.Append(parameter.Name);
+                output.Append(parameter.Name.Content);
                 if (parameter.IsArray)
                     output.Append("()");
                 if (index < (this.parameters.Count - 1))

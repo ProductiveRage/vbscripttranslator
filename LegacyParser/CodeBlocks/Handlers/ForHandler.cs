@@ -52,7 +52,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             // Get block content
             var blockContent = getForBlockContent(tokens);
             return new ForEachBlock(
-                (AtomToken)AtomToken.GetNewToken(loopVar), // If this doesn't return an AtomToken then the content is invalid (eg. can't be a keyword)
+                new NameToken(loopVar),
                 new Expression(loopSrc),
                 blockContent
             );
@@ -106,7 +106,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             
             // All done!
             return new ForBlock(
-                (AtomToken)AtomToken.GetNewToken(loopVar), // If this doesn't return an AtomToken then the content is invalid (eg. can't be a keyword)
+                new NameToken(loopVar),
                 new Expression(loopFrom),
                 new Expression(loopTo),
                 (stepExpr == null ? null : new Expression(stepExpr)),

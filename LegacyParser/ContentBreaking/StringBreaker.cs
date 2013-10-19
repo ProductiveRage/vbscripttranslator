@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -7,6 +8,12 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 {
     public static class StringBreaker
     {
+        private static char[] WhiteSpaceCharsExceptLineReturn
+            = Enumerable.Range((int)char.MinValue, (int)char.MaxValue)
+                .Select(v => (char)v)
+                .Where(c => (c != '\n') && char.IsWhiteSpace(c))
+                .ToArray();
+
         /// <summary>
         /// Break down scriptContent into a combination of StringToken, CommentToken, UnprocessedContentToken and EndOfStatementNewLine instances (the
         /// end of statement tokens will not have been comprehensively handled).  This will never return null nor a set containing any null references.
@@ -24,14 +31,36 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 var chr = scriptContent.Substring(index, 1);
 
                 // Check for comment
+                bool isComment;
                 if (chr == "'")
+                    isComment = true;
+                else if (index <= (scriptContent.Length - 3))
+                {
+                    var threeChars = scriptContent.Substring(index, 3);
+                    var fourthChar = (index == scriptContent.Length - 3) ? (char?)null : scriptContent[index + 3];
+                    if (threeChars.Equals("REM", StringComparison.InvariantCultureIgnoreCase)
+                    && ((fourthChar == null) || WhiteSpaceCharsExceptLineReturn.Contains(fourthChar.Value)))
+                    {
+                        isComment = true;
+                        index += 2;
+                    }
+                    else
+                        isComment = false;
+                }
+                else
+                    isComment = false;
+                if (isComment)
                 {
                     // Store any previous token content
+                    bool isInlineComment;
                     if (tokenContent != "")
                     {
+                        isInlineComment = !tokenContent.Contains('\n');
                         tokens.Add(new UnprocessedContentToken(tokenContent));
                         tokenContent = "";
                     }
+                    else
+                        isInlineComment = false;
 
                     // Move past comment marker and look for end of comment (end of the
                     // line) then store in a CommentToken instance
@@ -52,27 +81,27 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         {
                             // StringToken CAN'T contain end-of-statement content so
                             // we'll definitely need an EndOfStatementNewLineToken
-                            tokens.Add(new EndOfStatementNewLineToken());
+                            tokens.Add(new EndOfStatementSameLineToken());
                         }
                         else if (prevToken is UnprocessedContentToken)
                         {
                             // UnprocessedContentToken MAY conclude with end-of-statement
                             // content, we'll need to check
-                            if (!prevToken.Content.TrimEnd('\t', '\r', ' ').EndsWith("\n"))
+                            if (!prevToken.Content.TrimEnd(WhiteSpaceCharsExceptLineReturn).EndsWith("\n"))
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
                                 tokens.Add(new UnprocessedContentToken(
                                     prevToken.Content.TrimEnd('\t', '\r', ' ')
                                 ));
-                                tokens.Add(new EndOfStatementNewLineToken());
+                                tokens.Add(new EndOfStatementSameLineToken());
                             }
                         }
                     }
-                    tokens.Add(
-                        new CommentToken(
-                            scriptContent.Substring(index, breakPoint - index)
-                        )
-                    );
+                    var commentContent = scriptContent.Substring(index, breakPoint - index);
+                    if (isInlineComment)
+                        tokens.Add(new InlineCommentToken(commentContent));
+                    else
+                        tokens.Add(new CommentToken(commentContent));
                     index = breakPoint;
                 }
 

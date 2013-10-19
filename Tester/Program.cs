@@ -9,7 +9,6 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 using VBScriptTranslator.LegacyParser.ContentBreaking;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.StageTwoParser;
 using VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding;
 using VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations;
 
@@ -22,82 +21,14 @@ namespace Tester
         // =======================================================================================
         static void Main()
         {
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithNoArgumentsAndNoBrackets();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithNoArgumentsWithBrackets();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ObjectFunctionCallWithNoArgumentsAndNoBrackets();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).NestedObjectFunctionCallWithNoArgumentsAndNoBrackets();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).DirectFunctionCallWithTwoArgumentsOneIsNestedDirectionFunctionCallWithOneArgument();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ArrayElementFunctionCallWithNoArguments();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ObjectPropertyArrayElementFunctionCallWithNoArguments();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.ExpressionGeneratorTests()).ArrayElementNestedFunctionCallWithNoArguments();
-
-            (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OnePlusNegativeOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OneMinusNegativeOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.OperatorCombinerTests()).OneMultipliedByPlusOne();
-
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).NegativeOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).BracketedNegativeOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).PointOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).OnePointOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).NegativeOnePointOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).NegativePointOne();
-            (new VBScriptTranslator.UnitTests.StageTwoParser.NumberRebuilderTests()).OnePlusNegativeOne();
-
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.NonChangingTests()).DirectMethodWithNoArgumentsAndNoBrackets();
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.NonChangingTests()).DirectMethodWithSingleArgumentWithBrackets();
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.NonChangingTests()).ObjectMethodWithSingleArgumentWithBrackets();
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.NonChangingTests()).DirectMethodWithSingleArgumentWithBracketsAndCallKeyword();
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.NonChangingTests()).DirectMethodWithSingleArgumentWithBracketsAndCallKeywordAndExtraBracketsCall();
-
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.ChangingTests()).DirectMethodWithSingleArgumentWithoutBrackets();
-            (new VBScriptTranslator.UnitTests.LegacyParser.StatementBracketStandardisingTest.ChangingTests()).ObjectMethodWithSingleArgumentWithoutBrackets();
-
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).StatementWithMemberAccessAndDecimalValueAndUnwrappedMethodArgument();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).StatementWithMemberAccessAndDecimalValueAndWrappedMethodArgument();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).SingleValueSetToNothing();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).TwoDimensionalArrayElementSetToNumber();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).TwoDimensionalArrayElementSetToNumberWithExplicitLet();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).TwoDimensionalArrayElementSetToNothing();
-            (new VBScriptTranslator.UnitTests.LegacyParser.SingleStatementParsingTests()).TwoDimensionalArrayElementWithMethodCallIndexSetToNothing();
-
             var filename = "Test.vbs";
-
-            Test_Old(filename);
-
-            var statement1 = new Statement(
-                new[]
-                {
-                    AtomToken.GetNewToken("WScript"),
-                    AtomToken.GetNewToken("."),
-                    AtomToken.GetNewToken("Echo"),
-                    AtomToken.GetNewToken("("),
-                    AtomToken.GetNewToken("1"),
-                    AtomToken.GetNewToken("."),
-                    AtomToken.GetNewToken("1"),
-                    AtomToken.GetNewToken("+"),
-                    new StringToken("2"),
-                    AtomToken.GetNewToken(")")
-                },
-                Statement.CallPrefixOptions.Absent
+            var testFileCodeBlocks = ProcessContent(
+                GetScriptContent(filename).Replace("\r\n", "\n")
             );
-            var statement2 = new Statement(
-                new[]
-                {
-                    AtomToken.GetNewToken("Go"),
-                    AtomToken.GetNewToken("("),
-                    AtomToken.GetNewToken(")")
-                },
-                Statement.CallPrefixOptions.Absent
-            );
+            Console.ReadLine();
         }
 
-        private static void Test_Old(string filename)
-        {
-            // Load raw script content
-            ProcessContent(getScriptContent(filename).Replace("\r\n", "\n"));
-        }
-
-        private static void ProcessContent(string scriptContent)
+        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent)
         {
             // Translate these tokens into ICodeBlock implementations (representing
             // code VBScript structures)
@@ -110,7 +41,7 @@ namespace Tester
 
             // DEBUG: ender processed content as VBScript source code
             Console.WriteLine(getRenderedSourceVB(codeBlocks));
-            Console.ReadLine();
+            return codeBlocks;
         }
 
         private static IEnumerable<IToken> GetTokens(string scriptContent)
@@ -134,10 +65,10 @@ namespace Tester
         // =======================================================================================
         // READ SCRIPT CONTENT
         // =======================================================================================
-        private static string getScriptContent(string filename)
+        private static string GetScriptContent(string filename)
         {
             if ((filename ?? "").Trim() == "")
-                throw new ArgumentException("getScriptContent: filename is null or blank");
+                throw new ArgumentException("GetScriptContent: filename is null or blank");
             
             var file = new FileInfo(filename);
             using (var stream = file.OpenText())
@@ -155,8 +86,18 @@ namespace Tester
                 throw new ArgumentNullException("content");
             
             var output = new StringBuilder();
-            foreach (var block in content)
-                output.AppendLine(block.GenerateBaseSource(new SourceIndentHandler()));
+            for (var index = 0; index < content.Count; index++)
+            {
+                var block = content[index];
+                var blockNext = (content.Count > (index + 1)) ? content[index + 1] : null;
+                output.Append(block.GenerateBaseSource(new SourceIndentHandler()));
+                if (blockNext is InlineCommentStatement)
+                {
+                    output.Append(" " + blockNext.GenerateBaseSource(new NullIndenter()));
+                    index++;
+                }
+                output.AppendLine();
+            }
             return output.ToString();
         }
     }

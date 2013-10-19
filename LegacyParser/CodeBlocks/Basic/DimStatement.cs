@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
@@ -32,17 +33,17 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         public class DimVariable
         {
-            private string name;
+            private NameToken name;
             private List<Expression> dimensions;
-            public DimVariable(string name, List<Expression> dimensions)
+            public DimVariable(NameToken name, List<Expression> dimensions)
             {
-                if ((name ?? "").Trim() == "")
-                    throw new ArgumentException("name is null or blank");
+                if (name == null)
+                    throw new ArgumentNullException("name");
                 this.name = name;
                 this.dimensions = dimensions;
             }
             
-            public string Name { get { return this.name; } }
+            public NameToken Name { get { return this.name; } }
 
             /// <summary>
             /// Variables list may be null (not explicitly defined as an array), have zero
@@ -71,7 +72,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             for (int index = 0; index < this.variables.Count; index++)
             {
                 DimVariable variable = this.variables[index];
-                output.Append(variable.Name);
+                output.Append(variable.Name.Content);
                 if (variable.Dimensions != null)
                 {
                     output.Append("(");

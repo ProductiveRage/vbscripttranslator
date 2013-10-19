@@ -34,6 +34,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
+            if (this.content.Trim() == "")
+                return "";
             return indenter.Indent + "'" + this.content;
         }
     }
