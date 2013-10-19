@@ -35,7 +35,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                     GotMinusSignOfNumber.Instance
                 );
             }
-            else if (token.IsNumericAtomToken())
+            else if (token is NumericValueToken)
             {
                 return new TokenProcessResult(
                     numberContent.AddToken(token),

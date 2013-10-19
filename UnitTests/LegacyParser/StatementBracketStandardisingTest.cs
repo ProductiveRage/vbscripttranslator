@@ -1,6 +1,6 @@
 ﻿using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
@@ -15,7 +15,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    BaseAtomTokenGenerator.Get("Test")
+                    new NameToken("Test")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -28,11 +28,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             [Fact]
             public void DirectMethodWithSingleArgumentWithBrackets()
             {
-                var tokens = new[]
+                var tokens = new IToken[]
                 {
-                    BaseAtomTokenGenerator.Get("Test"),
+                    new NameToken("Test"),
                     new OpenBrace("("),
-                    BaseAtomTokenGenerator.Get("1"),
+                    new NumericValueToken(1),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -46,11 +46,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             [Fact]
             public void DirectMethodWithSingleArgumentWithBracketsAndCallKeyword()
             {
-                var tokens = new[]
+                var tokens = new IToken[]
                 {
-                    BaseAtomTokenGenerator.Get("Test"),
+                    new NameToken("Test"),
                     new OpenBrace("("),
-                    BaseAtomTokenGenerator.Get("1"),
+                    new NumericValueToken(1),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
@@ -66,12 +66,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 // eg. "CALL(Test(1))"
                 // Note that "(Test(1))" is not valid but the extra brackets are allowable when CALL is used
-                var tokens = new[]
+                var tokens = new IToken[]
                 {
                     new OpenBrace("("),
-                    BaseAtomTokenGenerator.Get("Test"),
+                    new NameToken("Test"),
                     new OpenBrace("("),
-                    BaseAtomTokenGenerator.Get("1"),
+                    new NumericValueToken(1),
                     new CloseBrace(")"),
                     new CloseBrace(")")
                 };
@@ -86,13 +86,13 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             [Fact]
             public void ObjectMethodWithSingleArgumentWithBrackets()
             {
-                var tokens = new[]
+                var tokens = new IToken[]
                 {
-                    BaseAtomTokenGenerator.Get("a"),
+                    new NameToken("a"),
                     new MemberAccessorOrDecimalPointToken("."),
-                    BaseAtomTokenGenerator.Get("Test"),
+                    new NameToken("Test"),
                     new OpenBrace("("),
-                    BaseAtomTokenGenerator.Get("1"),
+                    new NumericValueToken(1),
                     new CloseBrace(")")
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -110,19 +110,19 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             public void DirectMethodWithSingleArgumentWithoutBrackets()
             {
                 var statement = new Statement(
-                    new[]
+                    new IToken[]
                     {
-                        BaseAtomTokenGenerator.Get("Test"),
-                        BaseAtomTokenGenerator.Get("1")
+                        new NameToken("Test"),
+                        new NumericValueToken(1)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
-                    new[]
+                    new IToken[]
                     {
-                        BaseAtomTokenGenerator.Get("Test"),
+                        new NameToken("Test"),
                         new OpenBrace("("),
-                        BaseAtomTokenGenerator.Get("1"),
+                        new NumericValueToken(1),
                         new CloseBrace(")")
                     },
                     statement.BracketStandardisedTokens,
@@ -134,23 +134,23 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             public void ObjectMethodWithSingleArgumentWithoutBrackets()
             {
                 var statement = new Statement(
-                    new[]
+                    new IToken[]
                     {
-                        BaseAtomTokenGenerator.Get("a"),
+                        new NameToken("a"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        BaseAtomTokenGenerator.Get("Test"),
-                        BaseAtomTokenGenerator.Get("1")
+                        new NameToken("Test"),
+                        new NumericValueToken(1)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
-                    new[]
+                    new IToken[]
                     {
-                        BaseAtomTokenGenerator.Get("a"),
+                        new NameToken("a"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        BaseAtomTokenGenerator.Get("Test"),
+                        new NameToken("Test"),
                         new OpenBrace("("),
-                        BaseAtomTokenGenerator.Get("1"),
+                        new NumericValueToken(1),
                         new CloseBrace(")")
                     },
                     statement.BracketStandardisedTokens,

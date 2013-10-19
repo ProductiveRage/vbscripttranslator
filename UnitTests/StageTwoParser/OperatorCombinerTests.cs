@@ -1,6 +1,6 @@
-﻿using VBScriptTranslator.LegacyParser.Tokens.Basic;
+﻿using VBScriptTranslator.LegacyParser.Tokens;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations;
-using VBScriptTranslator.UnitTests.Shared;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
@@ -12,19 +12,19 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void OnePlusNegativeOne()
         {
             Assert.Equal(
-                new[]
+                new IToken[]
                 {
-                    Misc.GetAtomToken("1"),
+                    new NumericValueToken(1),
                     new OperatorToken("-"),
-                    Misc.GetAtomToken("1")
+                    new NumericValueToken(1)
                 },
                 OperatorCombiner.Combine(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new OperatorToken("+"),
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -35,19 +35,19 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void OneMinusNegativeOne()
         {
             Assert.Equal(
-                new[]
+                new IToken[]
                 {
-                    Misc.GetAtomToken("1"),
+                    new NumericValueToken(1),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("1")
+                    new NumericValueToken(1)
                 },
                 OperatorCombiner.Combine(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new OperatorToken("-"),
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -58,19 +58,19 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void OneMultipliedByPlusOne()
         {
             Assert.Equal(
-                new[]
+                new IToken[]
                 {
-                    Misc.GetAtomToken("1"),
+                    new NumericValueToken(1),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("1")
+                    new NumericValueToken(1)
                 },
                 OperatorCombiner.Combine(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new OperatorToken("*"),
                         new OperatorToken("+"),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -81,19 +81,19 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void TwoGreaterThanOrEqualToOne()
         {
             Assert.Equal(
-                new[]
+                new IToken[]
                 {
-                    Misc.GetAtomToken("2"),
+                    new NumericValueToken(2),
                     new ComparisonOperatorToken(">="),
-                    Misc.GetAtomToken("1")
+                    new NumericValueToken(1)
                 },
                 OperatorCombiner.Combine(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("2"),
+                        new NumericValueToken(2),
                         new ComparisonOperatorToken(">"),
                         new ComparisonOperatorToken("="),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()

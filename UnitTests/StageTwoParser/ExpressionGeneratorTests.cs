@@ -19,11 +19,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("Test"))
+                        CALL(new NameToken("Test"))
                     )
                 },
                 ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -36,11 +36,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("Test"))
+                        CALL(new NameToken("Test"))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("Test"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("Test"),
                         new OpenBrace("("),
                         new CloseBrace(")")
                 }),
@@ -56,14 +56,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("Test") }
+                            new[] { new NameToken("a"), new NameToken("Test") }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -77,16 +77,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("b"), Misc.GetAtomToken("Test") }
+                            new[] { new NameToken("a"), new NameToken("b"), new NameToken("Test") }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("b"),
+                        new NameToken("b"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -100,15 +100,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("Test") },
-                            new[] { Misc.GetAtomToken("1") }
+                            new[] { new NameToken("Test") },
+                            new[] { new NumericValueToken(1) }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("Test"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("Test"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new CloseBrace(")")
                 }),
                 new ExpressionSetComparer()
@@ -123,18 +123,18 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("Test") },
-                            new[] { Misc.GetAtomToken("1") },
-                            new[] { Misc.GetAtomToken("2") }
+                            new[] { new NameToken("Test") },
+                            new[] { new NumericValueToken(1) },
+                            new[] { new NumericValueToken(2) }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("Test"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("Test"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new ArgumentSeparatorToken(","),
-                        Misc.GetAtomToken("2"),
+                        new NumericValueToken(2),
                         new CloseBrace(")")
                 }),
                 new ExpressionSetComparer()
@@ -149,26 +149,26 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("Test") },
+                            new[] { new NameToken("Test") },
                             EXP(
                                 CALL(
-                                    new[] { Misc.GetAtomToken("Test2") },
-                                    new[] { Misc.GetAtomToken("1") }
+                                    new[] { new NameToken("Test2") },
+                                    new[] { new NumericValueToken(1) }
                                 )
                             ),
-                            EXP(CALL(Misc.GetAtomToken("2")))
+                            EXP(CALL(new NumericValueToken(2)))
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("Test"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("Test"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("Test2"),
+                        new NameToken("Test2"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new CloseBrace(")"),
                         new ArgumentSeparatorToken(","),
-                        Misc.GetAtomToken("2"),
+                        new NumericValueToken(2),
                         new CloseBrace(")")
                 }),
                 new ExpressionSetComparer()
@@ -183,21 +183,21 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("a") },
-                            new[] { Misc.GetAtomToken("0") }
+                            new[] { new NameToken("a") },
+                            new[] { new NumericValueToken(0) }
                         ),
                         CALL(
-                            new[] { Misc.GetAtomToken("Test") }
+                            new[] { new NameToken("Test") }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("0"),
+                        new NumericValueToken(0),
                         new CloseBrace(")"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -211,23 +211,23 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("a"), Misc.GetAtomToken("b") },
-                            new[] { Misc.GetAtomToken("0") }
+                            new[] { new NameToken("a"), new NameToken("b") },
+                            new[] { new NumericValueToken(0) }
                         ),
                         CALL(
-                            new[] { Misc.GetAtomToken("Test") }
+                            new[] { new NameToken("Test") }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("b"),
+                        new NameToken("b"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("0"),
+                        new NumericValueToken(0),
                         new CloseBrace(")"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -241,23 +241,23 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { Misc.GetAtomToken("a") },
-                            new[] { Misc.GetAtomToken("0") }
+                            new[] { new NameToken("a") },
+                            new[] { new NumericValueToken(0) }
                         ),
                         CALL(
-                            new[] { Misc.GetAtomToken("b"), Misc.GetAtomToken("Test") }
+                            new[] { new NameToken("b"), new NameToken("Test") }
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                        Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a"),
                         new OpenBrace("("),
-                        Misc.GetAtomToken("0"),
+                        new NumericValueToken(0),
                         new CloseBrace(")"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("b"),
+                        new NameToken("b"),
                         new MemberAccessorToken(),
-                        Misc.GetAtomToken("Test")
+                        new NameToken("Test")
                 }),
                 new ExpressionSetComparer()
             );
@@ -276,21 +276,21 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     EXP(
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("a")),
+                                CALL(new NameToken("a")),
                                 OP(new OperatorToken("+")),
-                                CALL(Misc.GetAtomToken("b"))
+                                CALL(new NameToken("b"))
                             )
                         ),
                         OP(new OperatorToken("+")),
-                        CALL(Misc.GetAtomToken("c"))
+                        CALL(new NameToken("c"))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("c")
+                    new NameToken("c")
                 }),
                 new ExpressionSetComparer()
             );
@@ -306,23 +306,23 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("b")),
+                                CALL(new NameToken("b")),
                                 OP(new OperatorToken("*")),
-                                CALL(Misc.GetAtomToken("c"))
+                                CALL(new NameToken("c"))
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c")
+                    new NameToken("c")
                 }),
                 new ExpressionSetComparer()
             );
@@ -335,28 +335,28 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("b")),
+                                CALL(new NameToken("b")),
                                 OP(new OperatorToken("*")),
                                 CALL(
-                                    new[] { Misc.GetAtomToken("c") },
-                                    new[] { Misc.GetAtomToken("0") }
+                                    new[] { new NameToken("c") },
+                                    new[] { new NumericValueToken(0) }
                                 )
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c"),
+                    new NameToken("c"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("0"),
+                    new NumericValueToken(0),
                     new CloseBrace(")")
                 }),
                 new ExpressionSetComparer()
@@ -375,35 +375,35 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     EXP(
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("a")),
+                                CALL(new NameToken("a")),
                                 OP(new OperatorToken("+")),
                                 BR(
                                     EXP(
-                                        CALL(Misc.GetAtomToken("b")),
+                                        CALL(new NameToken("b")),
                                         OP(new OperatorToken("*")),
                                         CALL(
-                                            new[] { Misc.GetAtomToken("c") },
-                                            new[] { Misc.GetAtomToken("0") }
+                                            new[] { new NameToken("c") },
+                                            new[] { new NumericValueToken(0) }
                                         )
                                     )
                                 )
                             )
                         ),
                         OP(new OperatorToken("+")),
-                        CALL(Misc.GetAtomToken("d"))
+                        CALL(new NameToken("d"))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c"),
+                    new NameToken("c"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("0"),
+                    new NumericValueToken(0),
                     new CloseBrace(")"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("d"),
+                    new NameToken("d"),
                 }),
                 new ExpressionSetComparer()
             );
@@ -419,24 +419,24 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("b")),
+                                CALL(new NameToken("b")),
                                 OP(new OperatorToken("*")),
-                                CALL(Misc.GetAtomToken("c"))
+                                CALL(new NameToken("c"))
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c"),
+                    new NameToken("c"),
                     new CloseBrace(")")
                 }),
                 new ExpressionSetComparer()
@@ -452,31 +452,31 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     EXP(
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("a")),
+                                CALL(new NameToken("a")),
                                 OP(new OperatorToken("+")),
                                 BR(
                                     EXP(
-                                        CALL(Misc.GetAtomToken("b")),
+                                        CALL(new NameToken("b")),
                                         OP(new OperatorToken("*")),
-                                        CALL(Misc.GetAtomToken("c"))
+                                        CALL(new NameToken("c"))
                                     )
                                 )
                             )
                         ),
                         OP(new OperatorToken("+")),
-                        CALL(Misc.GetAtomToken("d"))
+                        CALL(new NameToken("d"))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c"),
+                    new NameToken("c"),
                     new CloseBrace(")"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("d"),
+                    new NameToken("d"),
                 }),
                 new ExpressionSetComparer()
             );
@@ -492,23 +492,23 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new ComparisonOperatorToken("=")),
                         BR(
                             EXP(
-                                CALL(Misc.GetAtomToken("b")),
+                                CALL(new NameToken("b")),
                                 OP(new OperatorToken("+")),
-                                CALL(Misc.GetAtomToken("c"))
+                                CALL(new NameToken("c"))
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new ComparisonOperatorToken("="),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("c")
+                    new NameToken("c")
                 }),
                 new ExpressionSetComparer()
             );
@@ -528,54 +528,54 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                             EXP(
                                 BR(
                                     EXP(
-                                        CALL(Misc.GetAtomToken("a")),
+                                        CALL(new NameToken("a")),
                                         OP(new OperatorToken("+")),
                                         BR(
                                             EXP(
-                                                CALL(Misc.GetAtomToken("b")),
+                                                CALL(new NameToken("b")),
                                                 OP(new OperatorToken("*")),
                                                 CALL(
-                                                    new[] { Misc.GetAtomToken("c"), Misc.GetAtomToken("d") },
+                                                    new[] { new NameToken("c"), new NameToken("d") },
                                                     EXP(
                                                         CALL(
-                                                            new[] { Misc.GetAtomToken("Test") },
-                                                            new[] { Misc.GetAtomToken("0") }
+                                                            new[] { new NameToken("Test") },
+                                                            new[] { new NumericValueToken(0) }
                                                         )
                                                     ),
-                                                    EXP(CALL(Misc.GetAtomToken("1")))
+                                                    EXP(CALL(new NumericValueToken(1)))
                                                 )
                                             )
                                         )
                                     )
                                 ),
                                 OP(new OperatorToken("+")),
-                                CALL(Misc.GetAtomToken("e"))
+                                CALL(new NameToken("e"))
                             )
                         ),
                         OP(new ComparisonOperatorToken("=")),
-                        CALL(Misc.GetAtomToken("f"))
+                        CALL(new NameToken("f"))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("b"),
+                    new NameToken("b"),
                     new OperatorToken("*"),
-                    Misc.GetAtomToken("c"),
+                    new NameToken("c"),
                     new MemberAccessorToken(),
-                    Misc.GetAtomToken("d"),
+                    new NameToken("d"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("Test"),
+                    new NameToken("Test"),
                     new OpenBrace("("),
-                    Misc.GetAtomToken("0"),
+                    new NumericValueToken(0),
                     new CloseBrace(")"),
                     new ArgumentSeparatorToken(","),
-                    Misc.GetAtomToken("1"),
+                    new NumericValueToken(1),
                     new CloseBrace(")"),
                     new OperatorToken("+"),
-                    Misc.GetAtomToken("e"),
+                    new NameToken("e"),
                     new ComparisonOperatorToken("="),
-                    Misc.GetAtomToken("f")
+                    new NameToken("f")
                 }),
                 new ExpressionSetComparer()
             );
@@ -591,21 +591,21 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new OperatorToken("*")),
                         BR(
                             EXP(
                                 OP(new OperatorToken("-")),
-                                CALL(Misc.GetAtomToken("b"))
+                                CALL(new NameToken("b"))
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new OperatorToken("*"),
                     new OperatorToken("-"),
-                    Misc.GetAtomToken("b")
+                    new NameToken("b")
                 }),
                 new ExpressionSetComparer()
             );
@@ -621,21 +621,21 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(Misc.GetAtomToken("a")),
+                        CALL(new NameToken("a")),
                         OP(new LogicalOperatorToken("AND")),
                         BR(
                             EXP(
                                 OP(new LogicalOperatorToken("NOT")),
-                                CALL(Misc.GetAtomToken("b"))
+                                CALL(new NameToken("b"))
                             )
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
-                    Misc.GetAtomToken("a"),
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("a"),
                     new LogicalOperatorToken("AND"),
                     new LogicalOperatorToken("NOT"),
-                    Misc.GetAtomToken("b")
+                    new NameToken("b")
                 }),
                 new ExpressionSetComparer()
             );

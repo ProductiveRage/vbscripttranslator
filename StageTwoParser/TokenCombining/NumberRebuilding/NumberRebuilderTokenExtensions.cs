@@ -23,14 +23,6 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
             return (token.Is<OpenBrace>() || token.Is<OperatorToken>());
         }
 
-        public static bool IsNumericAtomToken(this IToken token)
-        {
-            if (token == null)
-                throw new ArgumentNullException("token");
-
-            return token.Is<AtomToken>() && token.Content.All(c => "0123456789".IndexOf(c) != -1);
-        }
-
         public static bool IsMinusSignOperator(this IToken token)
         {
             if (token == null)

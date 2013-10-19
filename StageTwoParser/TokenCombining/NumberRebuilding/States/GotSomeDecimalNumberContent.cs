@@ -22,9 +22,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             if (token.Is<MemberAccessorOrDecimalPointToken>())
                 throw new Exception("Encountered a MemberAccessorOrDecimalPointToken while part way through processing a decimal value - invalid  content");
 
-            // If we hit a numeric atom token, though, then things ARE going well and we can conclude the number search and incorporate
-            // the current token
-            if (token.IsNumericAtomToken())
+            // If we hit a numeric token, though, then things ARE going well and we can conclude the number search and incorporate the current token
+            if (token is NumericValueToken)
             {
                 var number = numberContent.AddToken(token).TryToExpressNumberFromTokens();
                 if (number == null)

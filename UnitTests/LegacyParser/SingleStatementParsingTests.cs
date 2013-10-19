@@ -1,9 +1,9 @@
-﻿using System;
-using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
-using VBScriptTranslator.LegacyParser;
+﻿using VBScriptTranslator.LegacyParser;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.LegacyParser
@@ -17,14 +17,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new Statement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("WScript"),
+                            new NameToken("WScript"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            BaseAtomTokenGenerator.Get("Echo"),
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NameToken("Echo"),
+                            new NumericValueToken(1),
                             new MemberAccessorOrDecimalPointToken("."),
-                            BaseAtomTokenGenerator.Get("1")
+                            new NumericValueToken(1)
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -41,15 +41,15 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new Statement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("WScript"),
+                            new NameToken("WScript"),
                             new MemberAccessorOrDecimalPointToken("."),
-                            BaseAtomTokenGenerator.Get("Echo"),
+                            new NameToken("Echo"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NumericValueToken(1),
                             new MemberAccessorOrDecimalPointToken("."),
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NumericValueToken(1),
                             new CloseBrace(")")
                         },
                         Statement.CallPrefixOptions.Absent
@@ -69,11 +69,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("a"),
+                            new NameToken("a"),
                         },
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("Nothing"),
+                            new BuiltInValueToken("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -90,18 +90,18 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("a"),
+                            new NameToken("a"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NumericValueToken(1),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -118,18 +118,18 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("a"),
+                            new NameToken("a"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NumericValueToken(1),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -146,18 +146,18 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("a"),
+                            new NameToken("a"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("Nothing"),
+                            new BuiltInValueToken("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -174,23 +174,23 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new[]
+                        new IToken[]
                         {
-                            BaseAtomTokenGenerator.Get("a"),
+                            new NameToken("a"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("GetValue"),
+                            new NameToken("GetValue"),
                             new OpenBrace("("),
-                            BaseAtomTokenGenerator.Get("1"),
+                            new NumericValueToken(1),
                             new ArgumentSeparatorToken(","),
-                            BaseAtomTokenGenerator.Get("3"),
+                            new NumericValueToken(3),
                             new CloseBrace(")"),
                             new ArgumentSeparatorToken(","),
-                            BaseAtomTokenGenerator.Get("0"),
+                            new NumericValueToken(0),
                             new CloseBrace(")"),
                         },
                         new[]
                         {
-                            BaseAtomTokenGenerator.Get("Nothing"),
+                            new BuiltInValueToken("Nothing"),
                         },
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )

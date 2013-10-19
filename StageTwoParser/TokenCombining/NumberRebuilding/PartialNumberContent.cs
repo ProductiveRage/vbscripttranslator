@@ -57,7 +57,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
             if (token == null)
                 throw new ArgumentNullException("token");
 
-            return token.IsMinusSignOperator() || token.IsNumericAtomToken() || token.Is<MemberAccessorOrDecimalPointToken>();
+            return token.IsMinusSignOperator() || (token is NumericValueToken) || token.Is<MemberAccessorOrDecimalPointToken>();
         }
     }
 }

@@ -19,10 +19,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(-1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -40,11 +40,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new CloseBrace(")")
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
                         new OpenBrace("("),
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new CloseBrace(")")
                     }
                 ),
@@ -61,10 +61,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(0.1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
                         new MemberAccessorOrDecimalPointToken("."),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -80,11 +80,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(1.1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new MemberAccessorOrDecimalPointToken("."),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -100,12 +100,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(-1.1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new MemberAccessorOrDecimalPointToken("."),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -121,11 +121,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(-0.1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
                         new OperatorToken("-"),
                         new MemberAccessorOrDecimalPointToken("."),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()
@@ -143,12 +143,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NumericValueToken(-1)
                 },
                 NumberRebuilder.Rebuild(
-                    new[]
+                    new IToken[]
                     {
-                        Misc.GetAtomToken("1"),
+                        new NumericValueToken(1),
                         new OperatorToken("+"),
                         new OperatorToken("-"),
-                        Misc.GetAtomToken("1")
+                        new NumericValueToken(1)
                     }
                 ),
                 new TokenSetComparer()

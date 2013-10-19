@@ -21,7 +21,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
 
             // At this point, the current token needs to be either a number or a decimal point. Otherwise it's not going to be
             // part of a valid numeric value.
-            if (token.IsNumericAtomToken())
+            if (token is NumericValueToken)
             {
                 return new TokenProcessResult(
                     numberContent.AddToken(token),

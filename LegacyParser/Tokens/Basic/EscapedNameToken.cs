@@ -11,7 +11,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     /// live in the wild, but it's valid nonetheless and this class is how names of that form are represented.
     /// </summary>
     [Serializable]
-    public class EscapedNameToken : AtomToken
+    public class EscapedNameToken : NameToken
     {
         public EscapedNameToken(string content) : base(content, WhiteSpaceBehaviourOptions.Allow)
         {

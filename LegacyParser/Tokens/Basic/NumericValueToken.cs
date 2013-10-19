@@ -1,7 +1,7 @@
 ﻿using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace VBScriptTranslator.StageTwoParser.Tokens
+namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {
     [Serializable]
     public class NumericValueToken : AtomToken

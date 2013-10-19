@@ -49,6 +49,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         {
             if (content == null)
                 throw new ArgumentNullException("content");
+            if (content == "")
+                throw new ArgumentException("Blank content specified for AtomToken - invalid");
+
+            var recognisedType = TryToGetAsRecognisedType(content);
+            if (recognisedType != null)
+                return recognisedType;
 
             if (content.StartsWith("["))
             {
@@ -57,19 +63,33 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 return new EscapedNameToken(content);
             }
 
-            if (content == "")
-                throw new ArgumentException("Blank content specified for AtomToken - invalid");
+            if (containsWhiteSpace(content))
+                throw new ArgumentException("Whitespace in an AtomToken - invalid");
+
+            return new NameToken(content);
+        }
+
+        /// <summary>
+        /// This will try to identify the token content as a VBScript operator or comparison or built-in function or value or line return or statement
+        /// separator or numeric value. If unable to match its type then it will return null - this should indicate the name of a function, property,
+        /// variable, etc.. defined in the source code being processed.
+        /// </summary>
+        protected static IToken TryToGetAsRecognisedType(string content)
+        {
+            if (content == null)
+                throw new ArgumentNullException("content");
 
             if (content == "\n")
                 return new EndOfStatementNewLineToken();
             if (content == ":")
                 return new EndOfStatementSameLineToken();
 
-            if (containsWhiteSpace(content))
-                throw new ArgumentException("Whitespace in an AtomToken - invalid");
-
             if (isMustHandleKeyWord(content) || isMiscKeyWord(content))
                 return new KeyWordToken(content);
+            if (isVBScriptFunction(content))
+                return new BuiltInFunctionToken(content);
+            if (isVBScriptValue(content))
+                return new BuiltInValueToken(content);
             if (isLogicalOperator(content))
                 return new LogicalOperatorToken(content);
             if (isComparison(content))
@@ -85,14 +105,18 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (isCloseBrace(content))
                 return new CloseBrace(content);
 
-            return new AtomToken(content, WhiteSpaceBehaviourOptions.Disallow);
+            float numericValue;
+            if (float.TryParse(content, out numericValue))
+                return new NumericValueToken(numericValue);
+
+            return null;
         }
 
         private static string WhiteSpaceChars = new string(
             Enumerable.Range((int)char.MinValue, (int)char.MaxValue).Select(v => (char)v).Where(c => char.IsWhiteSpace(c)).ToArray()
         );
 
-        private static bool containsWhiteSpace(string content)
+        protected static bool containsWhiteSpace(string content)
         {
             if (content == null)
                 throw new ArgumentNullException("token");
@@ -249,9 +273,9 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 
         /// <summary>
         /// Does the content appear to represent a VBScript expression - eg. "TIMER".
-        /// An exception will be raised for null, blank or        /// whitespace-containing input.
+        /// An exception will be raised for null, blank or whitespace-containing input.
         /// </summary>
-        private static bool isVBScriptValue(string atomContent)
+        protected static bool isVBScriptValue(string atomContent)
         {
             return isType(
                 atomContent,
@@ -269,7 +293,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// Does the content appear to represent a VBScript function - eg. the "ISNULL" method.
         /// An exception will be raised for null, blank or whitespace-containing input.
         /// </summary>
-        private static bool isVBScriptFunction(string atomContent)
+        protected static bool isVBScriptFunction(string atomContent)
         {
             return isType(
                 atomContent,
