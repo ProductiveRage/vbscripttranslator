@@ -1,5 +1,9 @@
 Option Explicit
 
+Dim[]: [] = "Test123"
+WScript.Echo []
+
+' Comment
 WScript.Echo 1.1
 WScript.Echo a.Name
 
@@ -31,7 +35,9 @@ WScript.Echo T1(1, 2)
 WScript.Echo T1(1, 3) + T1(1, 4)
 
 Function T1(a1, a2)
-	T1 = a1 + a2
+	Dim a3: a3 = a1 + a2
+	WScript.Echo "T1 about to return " & a3
+	T1 = a3
 End Function
 
 Class CTest
@@ -44,6 +50,11 @@ Class CTest
 		Err.Clear
 		WScript.Echo "Still at F1"
 		On Error Goto 0
+		If (a1 = a2) Then
+			WScript.Echo "At F1, a1 = a2"
+		Else
+			WScript.Echo "At F1, a1 <> a2"
+		End If
 	End Function
 End Class
 

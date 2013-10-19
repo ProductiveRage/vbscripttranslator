@@ -6,6 +6,6 @@ namespace VBScriptTranslator.StageTwoParser.Tokens
     [Serializable]
     public class NumericValueToken : AtomToken
     {
-        public NumericValueToken(double value) : base(value.ToString()) { }
+        public NumericValueToken(double value) : base(value.ToString(), WhiteSpaceBehaviourOptions.Disallow) { }
     }
 }

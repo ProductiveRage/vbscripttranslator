@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {
@@ -10,28 +11,21 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     /// live in the wild, but it's valid nonetheless and this class is how names of that form are represented.
     /// </summary>
     [Serializable]
-    public class EscapedNameToken : IToken
+    public class EscapedNameToken : AtomToken
     {
-        /// <summary>
-        /// The escapedContent value should not include the opening and closing square brackets
-        /// </summary>
-        /// <param name="escapedContent"></param>
-        public EscapedNameToken(string escapedContent)
+        public EscapedNameToken(string content) : base(content, WhiteSpaceBehaviourOptions.Allow)
         {
             // Note that blank or whitespace-only are acceptable for this content so we can only check for null here
-            if (escapedContent == null)
+            if (string.IsNullOrWhiteSpace(content))
                 throw new ArgumentNullException("escapedContent");
-            if (escapedContent.Contains("]"))
-                throw new ArgumentException("escapedContent may not contain a closing square bracket");
-            if (escapedContent.Contains("\n"))
-                throw new ArgumentException("escapedContent may not contain a line return");
-
-            Content = escapedContent;
+            if (!content.StartsWith("["))
+                throw new ArgumentException("The content for an EscapedNameToken must start with an opening square bracket");
+            if (!content.EndsWith("]"))
+                throw new ArgumentException("The content for an EscapedNameToken must end with a closing square bracket");
+            if (content.Count(c => c == ']') > 1)
+                throw new ArgumentException("The content for an EscapedNameToken may only closing square bracket as the termination character, not within the content");
+            if (content.Any(c => c == '\n'))
+                throw new ArgumentException("The content for an EscapedNameToken not contain any line returns");
         }
-
-        /// <summary>
-        /// This will never be null but it may be blank or entirely whitespace (it will never contain line returns or closing square brackets, though)
-        /// </summary>
-        public string Content { get; private set; }
     }
 }

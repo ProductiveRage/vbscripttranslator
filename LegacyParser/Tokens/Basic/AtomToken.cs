@@ -16,17 +16,24 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         // CLASS INITIALISATION - INTERNAL
         // =======================================================================================
         protected string content;
-        protected AtomToken(string content)
+        protected AtomToken(string content, WhiteSpaceBehaviourOptions whiteSpaceBehaviour)
         {
-            // Do all this validation AGAIN because we may re-use this from
-            // inheriting classes (eg. OperatorToken)
+            // Do all this validation AGAIN because we may re-use this from inheriting classes (eg. OperatorToken)
             if (content == null)
                 throw new ArgumentNullException("content");
-            if (containsWhiteSpace(content))
+            if (!Enum.IsDefined(typeof(WhiteSpaceBehaviourOptions), whiteSpaceBehaviour))
+                throw new ArgumentOutOfRangeException("whiteSpaceBehaviour");
+            if ((whiteSpaceBehaviour == WhiteSpaceBehaviourOptions.Disallow) && containsWhiteSpace(content))
                 throw new ArgumentException("Whitespace encountered in AtomToken - invalid");
             if (content == "")
                 throw new ArgumentException("Blank content specified for AtomToken - invalid");
             this.content = content;
+        }
+
+        protected enum WhiteSpaceBehaviourOptions
+        {
+            Allow,
+            Disallow
         }
 
         // =======================================================================================
@@ -47,10 +54,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             {
                 if (!content.EndsWith("]"))
                     throw new ArgumentException("If content starts with a square bracket then it must have a closing bracket to indicate an escaped-name variable");
-                var escapedContent = content.Substring(1, content.Length - 2);
-                if (escapedContent.Contains('\n') || escapedContent.Contains(']'))
-                    throw new ArgumentException("If this indicates an escaped-name variable then it may not contain any closing square brackets other than the termination character nor any line returns");
-                return new EscapedNameToken(escapedContent);
+                return new EscapedNameToken(content);
             }
 
             if (content == "")
@@ -81,7 +85,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (isCloseBrace(content))
                 return new CloseBrace(content);
 
-            return new AtomToken(content);
+            return new AtomToken(content, WhiteSpaceBehaviourOptions.Disallow);
         }
 
         private static string WhiteSpaceChars = new string(

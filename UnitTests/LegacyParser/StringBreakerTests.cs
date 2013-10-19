@@ -1,7 +1,6 @@
 ﻿using VBScriptTranslator.LegacyParser.ContentBreaking;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.UnitTests.LegacyParser.Helpers;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
@@ -35,7 +34,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new EscapedNameToken(""),
+                    new EscapedNameToken("[]"),
                     new UnprocessedContentToken(" = 1")
                 },
                 StringBreaker.SegmentString(
@@ -55,9 +54,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new IToken[]
                 {
                     new UnprocessedContentToken("Dim "),
-                    new EscapedNameToken(""),
+                    new EscapedNameToken("[]"),
                     new UnprocessedContentToken(": "),
-                    new EscapedNameToken(""),
+                    new EscapedNameToken("[]"),
                     new UnprocessedContentToken(" = 1")
                 },
                 StringBreaker.SegmentString(

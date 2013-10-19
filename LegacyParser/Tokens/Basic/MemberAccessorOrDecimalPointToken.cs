@@ -12,7 +12,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// This inherits from AtomToken since a lot of processing would consider them the
         /// same token type while parsing the original content.
         /// </summary>
-        public MemberAccessorOrDecimalPointToken(string content) : base(content)
+        public MemberAccessorOrDecimalPointToken(string content) : base(content, WhiteSpaceBehaviourOptions.Disallow)
         {
             // Do all this validation (again) here in case this constructor wasn't called
             // by the AtomToken.GetNewToken method
