@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -7,7 +8,10 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 {
     public static class TokenBreaker
     {
-        private const string WhiteSpaceChars = " \r\t";
+        private static string WhiteSpaceChars = new string(
+            Enumerable.Range((int)char.MinValue, (int)char.MaxValue).Select(v => (char)v).Where(c => char.IsWhiteSpace(c)).ToArray()
+        );
+
         private const string TokenBreakChars = "_,.*&+-=!(){}[]:;\n";
 
         /// <summary>
@@ -25,7 +29,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             for (var index = 0; index < content.Length; index++)
             {
                 var chr = content.Substring(index, 1);
-                if (WhiteSpaceChars.IndexOf(chr) != -1)
+                if ((chr != "\n") && WhiteSpaceChars.IndexOf(chr) != -1)
                 {
                     // If we've found a (non-line-return) whitespace character, push content
                     // retrieved from the token so far (if any), into a fresh token on the
