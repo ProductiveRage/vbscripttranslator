@@ -5,6 +5,10 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
+    /// <summary>
+    /// Note: If VBScript encounters one of these without a previous DIM for the same variable then it will not raise an error, even if OPTION
+    /// EXPLICIT was specified - this may be considered to declare a variable initially, it does not necessarily have to re-declare it.
+    /// </summary>
     [Serializable]
     public class ReDimStatement : DimStatement
     {

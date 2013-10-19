@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -51,8 +50,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             tokens.RemoveRange(0, loopSrc.Count + 5);
 
             // Get block content
-            List<ICodeBlock> blockContent = getForBlockContent(tokens);
-            return new ForEachBlock(loopVar, new Expression(loopSrc), blockContent);
+            var blockContent = getForBlockContent(tokens);
+            return new ForEachBlock(
+                (AtomToken)AtomToken.GetNewToken(loopVar), // If this doesn't return an AtomToken then the content is invalid (eg. can't be a keyword)
+                new Expression(loopSrc),
+                blockContent
+            );
         }
         
         private ICodeBlock handleForStandard(List<IToken> tokens)
@@ -99,11 +102,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 tokens.RemoveRange(0, stepExpr.Count);
             }
             tokens.RemoveRange(0, 1); // End-of-statement
-            List<ICodeBlock> blockContent = getForBlockContent(tokens);
+            var blockContent = getForBlockContent(tokens);
             
             // All done!
             return new ForBlock(
-                loopVar,
+                (AtomToken)AtomToken.GetNewToken(loopVar), // If this doesn't return an AtomToken then the content is invalid (eg. can't be a keyword)
                 new Expression(loopFrom),
                 new Expression(loopTo),
                 (stepExpr == null ? null : new Expression(stepExpr)),

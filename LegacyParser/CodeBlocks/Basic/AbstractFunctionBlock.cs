@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Text;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public abstract class AbstractFunctionBlock : ICodeBlock
+    public abstract class AbstractFunctionBlock : ICodeBlock, IDefineScope
     {
         // =======================================================================================
         // CLASS INITIALISATION
@@ -70,6 +70,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public List<ICodeBlock> Statements
         {
             get { return this.statements; }
+        }
+
+        /// <summary>
+        /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
+        /// would include the statements inside the conditions but also the conditions themselves. It will never be null nor contain any nulls.
+        /// </summary>
+        IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
+        {
+            get { return this.statements.AsReadOnly(); }
         }
 
         // =======================================================================================

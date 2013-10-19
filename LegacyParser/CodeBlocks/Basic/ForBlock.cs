@@ -1,17 +1,19 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class ForBlock : ICodeBlock
+    public class ForBlock : IHaveNestedContent, ICodeBlock
     {
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private string loopVar;
+        private AtomToken loopVar;
         private Expression loopFrom;
         private Expression loopTo;
         private Expression loopStep;
@@ -21,10 +23,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// It is valid to have a null conditionStatement in VBScript - in case the
         /// doUntil value is not of any consequence
         /// </summary>
-        public ForBlock(string loopVar, Expression loopFrom, Expression loopTo, Expression loopStep, List<ICodeBlock> statements)
+        public ForBlock(AtomToken loopVar, Expression loopFrom, Expression loopTo, Expression loopStep, List<ICodeBlock> statements)
         {
-            if ((loopVar ?? "").Trim() == "")
-                throw new ArgumentException("loopVar is null or  blank");
+            if (loopVar == null)
+                throw new ArgumentNullException("loopVar");
             if (loopFrom == null)
                 throw new ArgumentNullException("loopFrom");
             if (loopTo == null)
@@ -41,7 +43,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public string LoopVar
+        public AtomToken LoopVar
         {
             get { return this.loopVar; }
         }
@@ -69,6 +71,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get { return this.statements; }
         }
 
+        /// <summary>
+        /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
+        /// would include the statements inside the conditions but also the conditions themselves. It will never be null nor contain any nulls.
+        /// </summary>
+        IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
+        {
+            get { return new ICodeBlock[] { new Expression(new[] { LoopVar }), LoopFrom, LoopTo, LoopStep }.Concat(Statements); }
+        }
+
         // =======================================================================================
         // VBScript BASE SOURCE RE-GENERATION
         // =======================================================================================
@@ -83,7 +94,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             // Open statement
             output.Append(indenter.Indent);
             output.Append("For ");
-            output.Append(this.loopVar);
+            output.Append(this.loopVar.Content);
             output.Append(" = ");
             output.Append(this.loopFrom.GenerateBaseSource(new NullIndenter()));
             output.Append(" To ");
