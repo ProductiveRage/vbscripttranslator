@@ -41,7 +41,6 @@
     <Compile Include="TranslationResult_Extensions.cs" />
     <Compile Include="NonNullImmutableListICodeBlock_Extensions.cs" />
     <Compile Include="ScopeAccessInformation_Extensions.cs" />
-    <Compile Include="Lists\NonNullOrEmptyStringList.cs" />
     <Compile Include="ScopeAccessInformation.cs" />
     <Compile Include="ExplicitVariableDeclaration.cs" />
     <Compile Include="Lists\IValueValidator.cs" />
