@@ -41,6 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExpressionParsing\BracketedExpressionSegment.cs" />
+    <Compile Include="ExpressionParsing\StringValueExpressionSegment.cs" />
+    <Compile Include="ExpressionParsing\NumericValueExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\OperationExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\IExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\Expression.cs" />

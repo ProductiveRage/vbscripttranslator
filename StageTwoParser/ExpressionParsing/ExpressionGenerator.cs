@@ -9,7 +9,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
     public static class ExpressionGenerator
     {
         /// <summary>
-        /// This will never return null nor a set containing any nulls
+        /// This will arrange a token set into an expression tree where no expression will have more than one operator, where multiple operators are
+        /// present the terms will be bracketed up to apply the max-one-operator restriction and to enforce VBScript operator precedence. This will
+        /// never return null nor a set containing any nulls, it will raise an exception for a null token set or a set containing any nulls.
         /// </summary>
         public static IEnumerable<Expression> Generate(IEnumerable<IToken> tokens)
         {
@@ -58,10 +60,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            new CallExpressionSegment(
-                                accessorBuffer.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
-                                new Expression[0]
-                            )
+                            GetCallOrValueExpressionSegment(accessorBuffer)
                         );
                         accessorBuffer.Clear();
                     }
@@ -108,10 +107,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            new CallExpressionSegment(
-                                accessorBuffer.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
-                                new Expression[0]
-                            )
+                            GetCallOrValueExpressionSegment(accessorBuffer)
                         );
                         accessorBuffer.Clear();
                     }
@@ -128,10 +124,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (accessorBuffer.Any())
             {
                 expressionSegments.Add(
-                    new CallExpressionSegment(
-                        accessorBuffer.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
-                        new Expression[0]
-                    )
+                    GetCallOrValueExpressionSegment(accessorBuffer)
                 );
                 accessorBuffer.Clear();
             }
@@ -250,6 +243,39 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 .Concat(
                     segmentsArray.Skip(index + count)
                 );
+        }
+
+        /// <summary>
+        /// If a single token of type NumericValueToken or StringToken is specified then return a NumericValueExpressionSegment or StringValueExpressionSegment to
+        /// represent the constant value. Otherwise return a CallExpressionSegment (with no arguments since method should not be called with tokens that describe
+        /// arguments for a call, that data should be parsed and used to instantiate a CallExpressionSegment directly since there is no chance of representing
+        /// that data in a constant-type expression segment).
+        /// </summary>
+        private static IExpressionSegment GetCallOrValueExpressionSegment(IEnumerable<IToken> tokens)
+        {
+            if (tokens == null)
+                throw new ArgumentNullException("tokens");
+
+            var tokensArray = tokens.ToArray();
+            if (!tokensArray.Any())
+                throw new ArgumentException("Empty tokens set specified, invalid");
+            if (tokensArray.Any(t => t == null))
+                throw new ArgumentException("Null reference encountered in tokens set");
+
+            if (tokensArray.Length == 1)
+            {
+                var numericValue = tokensArray[0] as NumericValueToken;
+                if (numericValue != null)
+                    return new NumericValueExpressionSegment(numericValue);
+                var stringValue = tokensArray[0] as StringToken;
+                if (stringValue != null)
+                    return new StringValueExpressionSegment(stringValue);
+            }
+
+            return new CallExpressionSegment(
+                tokensArray.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
+                new Expression[0]
+            );
         }
 
         /// <summary>

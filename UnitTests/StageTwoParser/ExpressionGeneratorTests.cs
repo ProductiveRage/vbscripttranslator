@@ -660,8 +660,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create an CallExpressionSegment from member access tokens and argument expressions
         /// </summary>
-        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
+        private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
         {
+            if ((memberAccessTokens.Count() == 1) && !arguments.Any())
+            {
+                if (memberAccessTokens.Single() is NumericValueToken)
+                    return new NumericValueExpressionSegment(memberAccessTokens.Single() as NumericValueToken);
+                if (memberAccessTokens.Single() is StringToken)
+                    return new StringValueExpressionSegment(memberAccessTokens.Single() as StringToken);
+            }
             return new CallExpressionSegment(
                 memberAccessTokens,
                 arguments
@@ -671,7 +678,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create a CallExpressionSegment from member access tokens and argument expressions
         /// </summary>
-        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
+        private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
         {
             return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments);
         }
@@ -679,7 +686,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create a CallExpressionSegment from a single member access token and argument expressions
         /// </summary>
-        private static CallExpressionSegment CALL(IToken memberAccessToken, params Expression[] arguments)
+        private static IExpressionSegment CALL(IToken memberAccessToken, params Expression[] arguments)
         {
             return CALL(new[] { memberAccessToken }, (IEnumerable<Expression>)arguments);
         }
@@ -687,8 +694,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create a CallExpressionSegment from a single member access token and argument expressions expressed as token sets
         /// </summary>
-        private static CallExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params IEnumerable<IToken>[] arguments)
+        private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params IEnumerable<IToken>[] arguments)
         {
+            if ((memberAccessTokens.Count() == 1) && !arguments.Any())
+            {
+                if (memberAccessTokens.Single() is NumericValueToken)
+                    return new NumericValueExpressionSegment(memberAccessTokens.Single() as NumericValueToken);
+                if (memberAccessTokens.Single() is StringToken)
+                    return new StringValueExpressionSegment(memberAccessTokens.Single() as StringToken);
+            }
             return CALL(
                 memberAccessTokens,
                 arguments.Select(a => new Expression(new[] { CALL(a) }))

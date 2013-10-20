@@ -41,6 +41,8 @@
   <ItemGroup>
     <Compile Include="LegacyParser\StringBreakerTests.cs" />
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\StringValueExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\NumericValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\TokenComparer.cs" />
     <Compile Include="Shared\Comparers\OperatorOrComparisonExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\MemberCallExpressionSegmentComparer.cs" />
