@@ -46,8 +46,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             public NameToken Name { get { return this.name; } }
 
             /// <summary>
-            /// Variables list may be null (not explicitly defined as an array), have zero
-            /// elements (an uninitialised array) or
+            /// Variables list may be null (not explicitly defined as an array), have zero elements (an uninitialised array) or multiple dimensions
             /// </summary>
             public List<Expression> Dimensions { get { return this.dimensions; } }
 

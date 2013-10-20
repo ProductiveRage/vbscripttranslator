@@ -14,12 +14,19 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         {
             if (content == null)
                 throw new ArgumentNullException("content");
-            this.content = content;
+            if (content.Contains("\n"))
+                throw new ArgumentException("The content may not include any line returns");
+
+            this.content = content.TrimEnd(); ;
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
+        /// <summary>
+        /// This will never be null or contain any line returns. It may be blank and may have leading whitespace (though it won't have
+        /// any trailing whitespace).
+        /// </summary>
         public string Content
         {
             get { return this.content; }
