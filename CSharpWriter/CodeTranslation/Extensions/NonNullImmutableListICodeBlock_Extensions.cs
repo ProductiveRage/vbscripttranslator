@@ -3,7 +3,7 @@ using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation.Extensions
 {
     public static class NonNullImmutableListICodeBlock_Extensions
     {

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation.Extensions
 {
     public static class TranslationResult_Extensions
     {

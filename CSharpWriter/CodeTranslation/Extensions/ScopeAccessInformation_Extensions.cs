@@ -5,7 +5,7 @@ using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation.Extensions
 {
     public static class ScopeAccessInformation_Extensions
     {

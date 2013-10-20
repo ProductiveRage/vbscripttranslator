@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public class CSharpName
     {

@@ -1,6 +1,6 @@
 ﻿using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public interface ITranslateIndividualStatements
     {

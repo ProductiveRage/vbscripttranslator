@@ -7,7 +7,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public class StatementTranslator : ITranslateIndividualStatements
     {

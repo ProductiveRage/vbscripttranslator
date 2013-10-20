@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public class TranslatedStatement
     {

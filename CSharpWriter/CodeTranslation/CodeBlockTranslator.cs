@@ -1,11 +1,12 @@
-﻿using CSharpWriter.Lists;
+﻿using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.Lists;
 using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public class CodeBlockTranslator
     {

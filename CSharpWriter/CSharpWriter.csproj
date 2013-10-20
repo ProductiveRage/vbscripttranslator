@@ -36,27 +36,27 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ITranslateIndividualStatements.cs" />
+    <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
     <Compile Include="Misc\Strings.cs" />
-    <Compile Include="ParentConstructTypeOptions.cs" />
-    <Compile Include="CSharpName.cs" />
-    <Compile Include="StatementTranslator.cs" />
-    <Compile Include="TranslationDelegates.cs" />
-    <Compile Include="TranslationResult_Extensions.cs" />
-    <Compile Include="NonNullImmutableListICodeBlock_Extensions.cs" />
-    <Compile Include="ScopeAccessInformation_Extensions.cs" />
-    <Compile Include="ScopeAccessInformation.cs" />
-    <Compile Include="ExplicitVariableDeclaration.cs" />
+    <Compile Include="CodeTranslation\ParentConstructTypeOptions.cs" />
+    <Compile Include="CodeTranslation\CSharpName.cs" />
+    <Compile Include="CodeTranslation\StatementTranslator.cs" />
+    <Compile Include="CodeTranslation\TranslationDelegates.cs" />
+    <Compile Include="CodeTranslation\Extensions\TranslationResult_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\NonNullImmutableListICodeBlock_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Extensions.cs" />
+    <Compile Include="CodeTranslation\ScopeAccessInformation.cs" />
+    <Compile Include="CodeTranslation\ExplicitVariableDeclaration.cs" />
     <Compile Include="Lists\IValueValidator.cs" />
     <Compile Include="Lists\ImmutableList_Extensions.cs" />
     <Compile Include="Lists\IEnumerable_Extensions.cs" />
     <Compile Include="Lists\NonNullImmutableList.cs" />
     <Compile Include="Lists\ImmutableList.cs" />
-    <Compile Include="CodeBlockTranslator.cs" />
+    <Compile Include="CodeTranslation\CodeBlockTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TranslatedStatement.cs" />
-    <Compile Include="TranslationResult.cs" />
-    <Compile Include="VariableDeclarationScopeOptions.cs" />
+    <Compile Include="CodeTranslation\TranslatedStatement.cs" />
+    <Compile Include="CodeTranslation\TranslationResult.cs" />
+    <Compile Include="CodeTranslation\VariableDeclarationScopeOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">

@@ -1,6 +1,6 @@
 ﻿using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     /// <summary>
     /// This must be responsible for translating any NameToken into a string that is legal for use as a C# identifier. It not expect a null name reference

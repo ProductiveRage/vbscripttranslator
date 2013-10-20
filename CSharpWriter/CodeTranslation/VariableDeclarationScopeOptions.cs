@@ -1,4 +1,4 @@
-﻿namespace CSharpWriter
+﻿namespace CSharpWriter.CodeTranslation
 {
     public enum VariableDeclarationScopeOptions
     {

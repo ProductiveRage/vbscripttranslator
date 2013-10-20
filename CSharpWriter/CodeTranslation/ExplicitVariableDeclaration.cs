@@ -1,7 +1,7 @@
 ﻿using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter
+namespace CSharpWriter.CodeTranslation
 {
     public class VariableDeclaration
     {
