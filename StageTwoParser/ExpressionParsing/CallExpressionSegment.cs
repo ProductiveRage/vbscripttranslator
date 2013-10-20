@@ -9,6 +9,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
     public class CallExpressionSegment : IExpressionSegment
     {
+        private static IEnumerable<Type> AllowableTypes = new[] { typeof(BuiltInFunctionToken), typeof(BuiltInValueToken), typeof(KeyWordToken), typeof(NameToken) };
+
         public CallExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
         {
             if (memberAccessTokens == null)
@@ -23,6 +25,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 throw new ArgumentException("Null reference encountered in memberAccessTokens set");
             if (MemberAccessTokens.Any(t => t is MemberAccessorOrDecimalPointToken))
                 throw new ArgumentException("MemberAccessorOrDecimalPointToken tokens should not be included in the memberAccessTokens, they are implicit as token separators");
+            var firstUnacceptableTokenIfAny = MemberAccessTokens.FirstOrDefault(t => !AllowableTypes.Contains(t.GetType()));
+            if (firstUnacceptableTokenIfAny != null)
+                throw new ArgumentException("Unacceptable token type encountered (" + firstUnacceptableTokenIfAny.GetType() + "), only allowed types are " + string.Join<Type>(", ", AllowableTypes));
 
             Arguments = arguments.ToList().AsReadOnly();
             if (Arguments.Any(e => e == null))
@@ -30,8 +35,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         }
 
         /// <summary>
-        /// This will never be null, empty or contain any null references. There should be considered to be implicit MemberAccessorPointTokens
-        /// between each token here (this will never contain any MemberAccessorOrDecimalPointToken references).
+        /// This will never be null, empty or contain any null references. There should be considered to be implicit MemberAccessorPointTokens between each
+        /// token here (this will never contain any MemberAccessorOrDecimalPointToken references). The only token types that may be present in this data are
+        /// BuiltInFunctionToken, BuiltInValueToken, KeyWordToken and NameToken.
         /// </summary>
         public IEnumerable<IToken> MemberAccessTokens { get; private set; }
 
@@ -78,7 +84,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				return string.Join(
 					"",
 					((IExpressionSegment)this).AllTokens.Select(t =>
-						(t is StringToken) ? ("\"" + t.Content + "\"") : t.Content
+						(t is StringToken) ? ("\"" + t.Content.Replace("\"", "\"\"") + "\"") : t.Content
 					)
 				);
             }
