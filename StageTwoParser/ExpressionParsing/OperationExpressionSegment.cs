@@ -7,20 +7,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
     public class OperationExpressionSegment : IExpressionSegment
     {
-        public OperationExpressionSegment(IToken token)
+        public OperationExpressionSegment(OperatorToken token)
         {
             if (token == null)
                 throw new ArgumentNullException("token");
-            if (!(token is OperatorToken))
-                throw new ArgumentException("The specified token must be an OperatorToken");
 
             Token = token;
         }
 
         /// <summary>
-        /// This will never be null and it will always be an OperatorToken
+        /// This will never be null
         /// </summary>
-        public IToken Token { get; private set; }
+        public OperatorToken Token { get; private set; }
 
 		/// <summary>
 		/// This will never be null, empty or contain any null references

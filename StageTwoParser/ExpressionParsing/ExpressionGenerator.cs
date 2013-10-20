@@ -102,7 +102,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     continue;
                 }
 
-                if (token is OperatorToken)
+                var operatorToken = token as OperatorToken;
+                if (operatorToken != null)
                 {
                     if (accessorBuffer.Any())
                     {
@@ -112,7 +113,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         accessorBuffer.Clear();
                     }
                     expressionSegments.Add(
-                        new OperationExpressionSegment(token)
+                        new OperationExpressionSegment(operatorToken)
                     );
                     tokenNavigator.MoveNext();
                     continue;

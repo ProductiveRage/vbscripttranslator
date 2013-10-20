@@ -709,7 +709,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
-        private static OperationExpressionSegment OP(IToken token)
+        private static OperationExpressionSegment OP(OperatorToken token)
         {
             return new OperationExpressionSegment(token);
         }
