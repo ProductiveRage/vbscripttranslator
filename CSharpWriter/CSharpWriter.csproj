@@ -36,6 +36,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ITranslateIndividualStatements.cs" />
     <Compile Include="Misc\Strings.cs" />
     <Compile Include="ParentConstructTypeOptions.cs" />
     <Compile Include="CSharpName.cs" />

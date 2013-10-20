@@ -18,29 +18,43 @@ namespace Tester
 {
     static class Program
     {
-        // =========0==============================================================================
-        // ENTRY POINT
-        // =======================================================================================
         static void Main()
         {
             // This is just a very simple configuration of the CodeBlockTranslator, its name generation implementations are not robust in
             // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
             var random = new Random();
+            var supportClassName = new CSharpName("_");
+            VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
+            TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "" : (optionalPrefix.Name + "_")) + "temp" + random.Next(1000000).ToString());
             var codeBlockTranslator = new CodeBlockTranslator(
-                new CSharpName("_VBS"),
-                name => new CSharpName(name.Content.ToLower()),
-                optionalPrefix => new CSharpName(((optionalPrefix == null) ? "" : (optionalPrefix.Name + "_")) + "temp" + random.Next(1000000).ToString())
+                supportClassName,
+                nameRewriter,
+                tempNameGenerator,
+                new StatementTranslator(
+                    supportClassName,
+                    nameRewriter,
+                    tempNameGenerator
+                )
             );
 
             var translatedCode1 = codeBlockTranslator.Translate(
                 ProcessContent(
-                    "' Test\n\n"
+                    "' Test\n\nDim i\ntest1 ' Inline comment\nWScript.Echo 1",
+                    false
                 ).ToNonNullImmutableList()
             );
+            Console.WriteLine(
+                string.Join(
+                    "\n",
+                    translatedCode1.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
+                )
+            );
+            Console.ReadLine();
 
             var filename = "Test.vbs";
             var testFileCodeBlocks = ProcessContent(
-                GetScriptContent(filename).Replace("\r\n", "\n")
+                GetScriptContent(filename).Replace("\r\n", "\n"),
+                true
             );
             Console.ReadLine();
 
@@ -50,7 +64,7 @@ namespace Tester
             Console.ReadLine();
         }
 
-        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent)
+        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent, bool pushContentToConsole)
         {
             // Translate these tokens into ICodeBlock implementations (representing
             // code VBScript structures)
@@ -62,7 +76,8 @@ namespace Tester
             );
 
             // DEBUG: ender processed content as VBScript source code
-            Console.WriteLine(GetRenderedSourceVB(codeBlocks));
+            if (pushContentToConsole)
+                Console.WriteLine(GetRenderedSourceVB(codeBlocks));
             return codeBlocks;
         }
 
@@ -84,9 +99,6 @@ namespace Tester
             return NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList();
         }
 
-        // =======================================================================================
-        // READ SCRIPT CONTENT
-        // =======================================================================================
         private static string GetScriptContent(string filename)
         {
             if ((filename ?? "").Trim() == "")
@@ -99,9 +111,6 @@ namespace Tester
             }
         }
 
-        // =======================================================================================
-        // REBUILD ORIGINAL SOURCE FROM PROCESSED CONTENT
-        // =======================================================================================
         private static string GetRenderedSourceVB(List<ICodeBlock> content)
         {
             if (content == null)

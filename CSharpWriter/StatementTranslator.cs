@@ -9,7 +9,7 @@ using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter
 {
-    public class StatementTranslator
+    public class StatementTranslator : ITranslateIndividualStatements
     {
         private readonly CSharpName _supportClassName;
         private readonly VBScriptNameRewriter _nameRewriter;
@@ -28,6 +28,10 @@ namespace CSharpWriter
             _tempNameGenerator = tempNameGenerator;
         }
 
+        /// <summary>
+        /// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of
+        /// a null statement reference)
+        /// </summary>
         public string Translate(LegacyParser.Statement statement)
         {
             if (statement == null)
@@ -141,8 +145,27 @@ namespace CSharpWriter
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
 
+            // The "master" CALL method signature is
+            //
+            //   CALL(object target, IEnumerable<string> members, IEnumerable<object> arguments)
+            //
+            // but there are alternate signatures to try to make the most common calls easier to read - eg.
+            //
+            //   CALL(object)
+            //   CALL(object, params object[] arguments)
+            //   CALL(object, string member1, params object[] arguments)
+            //   CALL(object, string member1, string member2, params object[] arguments)
+            //   ..
+            //   CALL(object, string member1, string member2, string member3, string member4, string member5, params object[] arguments)
+            //
+            // The maximum number of member access tokens (one being the initial object and further being the properties / functions accessed)
+            // that may use one of these alternate signatures is stored in the constant maxNumberOfMemberAccessorBeforeArraysRequired
+            const int maxNumberOfMemberAccessorBeforeArraysRequired = 6;
+
             var callExpressionContent = new StringBuilder();
 
+            // Note: Even if there is only a single member access token (meaning call for "a" not "a.Test") and there are no arguments, we
+            // still need to use the CALL method to account for any handling of default properties
             var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}",
@@ -153,7 +176,9 @@ namespace CSharpWriter
             var numberOfAccessTokens = callExpressionSegment.MemberAccessTokens.Count();
             if (numberOfAccessTokens > 1)
             {
-                callExpressionContent.Append(", new[] { ");
+                callExpressionContent.Append(", ");
+                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                    callExpressionContent.Append(" new[] { ");
                 for (var index = 1; index < numberOfAccessTokens; index++)
                 {
                     callExpressionContent.Append(
@@ -162,12 +187,15 @@ namespace CSharpWriter
                     if (index < (numberOfAccessTokens - 1))
                         callExpressionContent.Append(", ");
                 }
-                callExpressionContent.Append(" }");
+                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                    callExpressionContent.Append(" }");
             }
 
             if (callExpressionSegment.Arguments.Any())
             {
-                callExpressionContent.Append(", new object[] { ");
+                callExpressionContent.Append(", ");
+                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                    callExpressionContent.Append("new object[] { ");
                 var numberOfArguments = callExpressionSegment.Arguments.Count();
                 for (var index = 0; index < numberOfArguments; index++)
                 {
@@ -177,7 +205,8 @@ namespace CSharpWriter
                     if (index < (numberOfArguments - 1))
                         callExpressionContent.Append(", ");
                 }
-                callExpressionContent.Append(" }");
+                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                    callExpressionContent.Append(" }");
             }
 
             callExpressionContent.Append(")");
@@ -227,6 +256,7 @@ namespace CSharpWriter
         }
 
         /// <summary>
+        /// When trying to access variables, functions, classes, etc.. we need to pass 
         /// TODO: Explain..
         /// </summary>
         private string GetMemberAccessTokenName(IToken token)

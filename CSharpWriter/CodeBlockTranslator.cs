@@ -12,7 +12,12 @@ namespace CSharpWriter
         private readonly CSharpName _supportClassName;
         private readonly VBScriptNameRewriter _nameRewriter;
         private readonly TempValueNameGenerator _tempNameGenerator;
-        public CodeBlockTranslator(CSharpName supportClassName, VBScriptNameRewriter nameRewriter, TempValueNameGenerator tempNameGenerator)
+        private readonly ITranslateIndividualStatements _statementTranslator;
+        public CodeBlockTranslator(
+            CSharpName supportClassName,
+            VBScriptNameRewriter nameRewriter,
+            TempValueNameGenerator tempNameGenerator,
+            ITranslateIndividualStatements statementTranslator)
         {
             if (supportClassName == null)
                 throw new ArgumentNullException("supportClassName");
@@ -20,10 +25,13 @@ namespace CSharpWriter
                 throw new ArgumentNullException("nameRewriter");
             if (tempNameGenerator == null)
                 throw new ArgumentNullException("tempNameGenerator");
+            if (statementTranslator == null)
+                throw new ArgumentNullException("statementTranslator");
 
             _supportClassName = supportClassName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
+            _statementTranslator = statementTranslator;
         }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
@@ -163,10 +171,17 @@ namespace CSharpWriter
                     continue;
                 }
 
+                // This covers Statement and Expression instances
                 var statementBlock = block as Statement;
                 if (statementBlock != null)
                 {
-                    throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
+                    translationResult = translationResult.Add(
+                        new TranslatedStatement(
+                            _statementTranslator.Translate(statementBlock) + ";",
+                            indentationDepth
+                        )
+                    );
+                    continue;
                 }
 
                 var valueSettingStatement = block as ValueSettingStatement;
