@@ -277,6 +277,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         protected static bool isVBScriptValue(string atomContent)
         {
+            // TODO: Add support for vbCr, vbLf, etc.. (see http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbscon3.htm)
             return isType(
                 atomContent,
                 new string[]
