@@ -38,6 +38,7 @@
   <ItemGroup>
     <Compile Include="ParentConstructTypeOptions.cs" />
     <Compile Include="CSharpName.cs" />
+    <Compile Include="TranslationDelegates.cs" />
     <Compile Include="TranslationResult_Extensions.cs" />
     <Compile Include="NonNullImmutableListICodeBlock_Extensions.cs" />
     <Compile Include="ScopeAccessInformation_Extensions.cs" />
