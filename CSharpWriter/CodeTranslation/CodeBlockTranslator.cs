@@ -229,7 +229,7 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("variableDeclaration");
 
             return string.Format(
-                "object {0} = {1}null",
+                "object {0} = {1}null;",
                 _nameRewriter(variableDeclaration.Name).Name,
                 variableDeclaration.IsArray ? "(object[])" : ""
             );
