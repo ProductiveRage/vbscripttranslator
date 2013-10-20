@@ -87,9 +87,27 @@ namespace CSharpWriter
                 var commentBlock = block as CommentStatement;
                 if (commentBlock != null)
                 {
-                    // TODO: Handle InlineCommentStatements differently?
+                    var translatedCommentContent = "//" + commentBlock.Content;
+                    if (block is InlineCommentStatement)
+                    {
+                        var lastTranslatedStatement = translationResult.TranslatedStatements.LastOrDefault();
+                        if ((lastTranslatedStatement != null) && (lastTranslatedStatement.Content != ""))
+                        {
+                            translationResult = new TranslationResult(
+                                translationResult.TranslatedStatements
+                                    .RemoveLast()
+                                    .Add(new TranslatedStatement(
+                                        lastTranslatedStatement.Content + " " + translatedCommentContent,
+                                        lastTranslatedStatement.IndentationDepth
+                                    )),
+                                translationResult.ExplicitVariableDeclarations,
+                                translationResult.UndeclaredVariablesAccessed
+                            );
+                            continue;
+                        }
+                    }
                     translationResult = translationResult.Add(
-                        new TranslatedStatement("// " + commentBlock.Content, indentationDepth)
+                        new TranslatedStatement(translatedCommentContent, indentationDepth)
                     );
                     continue;
                 }
@@ -110,14 +128,17 @@ namespace CSharpWriter
                         )
                     );
 
-                    if ((explicitVariableDeclarationBlock is ReDimStatement)
-                    || (explicitVariableDeclarationBlock.Variables.Any(v => (v.Dimensions != null) && (v.Dimensions.Count > 0))))
-                    {
-                        // TODO: If this is a ReDim then non-constant expressions may be used to set the dimension limits, in which case it may not be moved
-                        // (though a default-null declaration SHOULD be added as well as leaving the ReDim translation where it is)
-                        // TODO: Need a translated statement if setting dimensions
-                        throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
-                    }
+                    var areDimensionsRequired = (
+                        (explicitVariableDeclarationBlock is ReDimStatement) ||
+                        (explicitVariableDeclarationBlock.Variables.Any(v => (v.Dimensions != null) && (v.Dimensions.Count > 0)))
+                    );
+                    if (!areDimensionsRequired)
+                        continue;
+                    
+                    // TODO: If this is a ReDim then non-constant expressions may be used to set the dimension limits, in which case it may not be moved
+                    // (though a default-null declaration SHOULD be added as well as leaving the ReDim translation where it is)
+                    // TODO: Need a translated statement if setting dimensions
+                    throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
                 }
 
                 var classBlock = block as ClassBlock;
@@ -206,14 +227,16 @@ namespace CSharpWriter
             throw new NotImplementedException("Not enabled support for Statement translation yet"); // TODO
         }
 
-        private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration, ParentConstructTypeOptions parentConstructType)
+        private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
         {
             if (variableDeclaration == null)
                 throw new ArgumentNullException("variableDeclaration");
-            if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
-                throw new ArgumentOutOfRangeException("parentConstructType");
 
-            throw new NotImplementedException("Not enabled support for Variable Declaration translation yet"); // TODO
+            return string.Format(
+                "object {0} = {1}null",
+                _nameRewriter(variableDeclaration.Name).Name,
+                variableDeclaration.IsArray ? "(object[])" : ""
+            );
         }
 
         private string TranslateClassHeader(ClassBlock classBlock)
@@ -237,6 +260,7 @@ namespace CSharpWriter
             ParentConstructTypeOptions parentConstructType,
             int indentationDepth)
         {
+            // TODO: Consider trying to insert the content after any comments or blank lines?
             if (translationResult == null)
                 throw new ArgumentNullException("translationResult");
             if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
@@ -247,10 +271,7 @@ namespace CSharpWriter
             return new TranslationResult(
                 translationResult.ExplicitVariableDeclarations
                     .Select(v =>
-                         new TranslatedStatement(
-                            TranslateVariableDeclaration(v, parentConstructType),
-                            indentationDepth
-                        )
+                         new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepth)
                     )
                     .ToNonNullImmutableList()
                     .AddRange(translationResult.TranslatedStatements),
@@ -274,10 +295,9 @@ namespace CSharpWriter
                     .Select(v =>
                          new TranslatedStatement(
                             TranslateVariableDeclaration(
-                                // Undeclared variables will be specified as non-array types initially (hence the false value for the isArray
-                                // argument if the VariableDeclaration constructor call below)
-                                new VariableDeclaration(v, VariableDeclarationScopeOptions.Public, false),
-                                ParentConstructTypeOptions.None
+                                // Undeclared variables will be specified as non-array types initially (hence the false
+                                // value for the isArray argument if the VariableDeclaration constructor call below)
+                                new VariableDeclaration(v, VariableDeclarationScopeOptions.Public, false)
                             ),
                             indentationDepth
                         )
