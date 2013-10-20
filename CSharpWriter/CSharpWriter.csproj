@@ -4,17 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{875539AC-E53F-42CB-8BC9-2730180D025B}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{5F5189EC-4856-4985-B954-CF86F3C6C2A0}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Tester</RootNamespace>
-    <AssemblyName>Tester</AssemblyName>
+    <RootNamespace>CSharpWriter</RootNamespace>
+    <AssemblyName>CSharpWriter</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,17 +21,14 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -40,35 +36,36 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="ParentConstructTypeOptions.cs" />
+    <Compile Include="CSharpName.cs" />
+    <Compile Include="TranslationResult_Extensions.cs" />
+    <Compile Include="NonNullImmutableListICodeBlock_Extensions.cs" />
+    <Compile Include="ScopeAccessInformation_Extensions.cs" />
+    <Compile Include="Lists\NonNullOrEmptyStringList.cs" />
+    <Compile Include="ScopeAccessInformation.cs" />
+    <Compile Include="ExplicitVariableDeclaration.cs" />
+    <Compile Include="Lists\IValueValidator.cs" />
+    <Compile Include="Lists\ImmutableList_Extensions.cs" />
+    <Compile Include="Lists\IEnumerable_Extensions.cs" />
+    <Compile Include="Lists\NonNullImmutableList.cs" />
+    <Compile Include="Lists\ImmutableList.cs" />
+    <Compile Include="CodeBlockTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TranslatedStatement.cs" />
+    <Compile Include="TranslationResult.cs" />
+    <Compile Include="VariableDeclarationScopeOptions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CSharpWriter\CSharpWriter.csproj">
-      <Project>{5f5189ec-4856-4985-b954-cf86f3c6c2a0}</Project>
-      <Name>CSharpWriter</Name>
+    <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">
+      <Project>{a9d32e0b-f434-4b08-a883-a62c5be5131a}</Project>
+      <Name>LegacyParser</Name>
     </ProjectReference>
     <ProjectReference Include="..\StageTwoParser\StageTwoParser.csproj">
       <Project>{05ca6867-a198-4952-883b-60c0a29c8bae}</Project>
       <Name>StageTwoParser</Name>
     </ProjectReference>
-    <ProjectReference Include="..\UnitTests\UnitTests.csproj">
-      <Project>{69946782-bab3-4c3f-ab64-a351998256e2}</Project>
-      <Name>UnitTests</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">
-      <Project>{a9d32e0b-f434-4b08-a883-a62c5be5131a}</Project>
-      <Name>LegacyParser</Name>
-    </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="Test.vbs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

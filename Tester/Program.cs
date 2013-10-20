@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CSharpWriter;
+using CSharpWriter.Lists;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,14 +18,34 @@ namespace Tester
 {
     static class Program
     {
-        // =======================================================================================
+        // =========0==============================================================================
         // ENTRY POINT
         // =======================================================================================
         static void Main()
         {
+            // This is just a very simple configuration of the CodeBlockTranslator, its name generation implementations are not robust in
+            // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
+            var random = new Random();
+            var codeBlockTranslator = new CodeBlockTranslator(
+                new CSharpName("_VBS"),
+                name => new CSharpName(name.Content.ToLower()),
+                optionalPrefix => new CSharpName(((optionalPrefix == null) ? "" : (optionalPrefix.Name + "_")) + "temp" + random.Next(1000000).ToString())
+            );
+
+            var translatedCode1 = codeBlockTranslator.Translate(
+                ProcessContent(
+                    "' Test\n\n"
+                ).ToNonNullImmutableList()
+            );
+
             var filename = "Test.vbs";
             var testFileCodeBlocks = ProcessContent(
                 GetScriptContent(filename).Replace("\r\n", "\n")
+            );
+            Console.ReadLine();
+
+            var translatedCode2 = codeBlockTranslator.Translate(
+                testFileCodeBlocks.ToNonNullImmutableList()
             );
             Console.ReadLine();
         }
@@ -40,7 +62,7 @@ namespace Tester
             );
 
             // DEBUG: ender processed content as VBScript source code
-            Console.WriteLine(getRenderedSourceVB(codeBlocks));
+            Console.WriteLine(GetRenderedSourceVB(codeBlocks));
             return codeBlocks;
         }
 
@@ -80,7 +102,7 @@ namespace Tester
         // =======================================================================================
         // REBUILD ORIGINAL SOURCE FROM PROCESSED CONTENT
         // =======================================================================================
-        private static string getRenderedSourceVB(List<ICodeBlock> content)
+        private static string GetRenderedSourceVB(List<ICodeBlock> content)
         {
             if (content == null)
                 throw new ArgumentNullException("content");
