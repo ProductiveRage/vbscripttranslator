@@ -210,7 +210,9 @@ namespace CSharpWriter.CodeTranslation
                 // 2. Properties
             }
 
-            // TODO: Explain..
+            // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
+            // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
+            // variable declarations into translated statements
             if (scopeAccessInformation.ParentConstructType == ParentConstructTypeOptions.NonScopeAlteringConstruct)
                 return translationResult;
             
@@ -219,14 +221,6 @@ namespace CSharpWriter.CodeTranslation
                 scopeAccessInformation.ParentConstructType,
                 indentationDepth
             );
-        }
-
-        private string TranslateStatement(Statement statement)
-        {
-            if (statement == null)
-                throw new ArgumentNullException("statement");
-
-            throw new NotImplementedException("Not enabled support for Statement translation yet"); // TODO
         }
 
         private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
