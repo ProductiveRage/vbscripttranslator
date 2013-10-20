@@ -85,6 +85,30 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             );
         }
 
+        /// <summary>
+        /// This recreates a bug where if there were line returns in the unprocessed content before what should be an inline comment, it
+        /// wasn't realised that these were before the line that the comment should be inline with
+        /// </summary>
+        [Fact]
+        public void InlineCommentsAreIdentifiedAsSuchWhenAfterMultipleLinesOfContent()
+        {
+            // This 
+            // The StringBreaker will insert an EndOfStatementSameLineToken between the UnprocessedContentToken and InlineCommentToken
+            // since that the later processes rely on end-of-statement tokens, even before an inline comment
+            Assert.Equal(
+                new IToken[]
+                {
+                    new UnprocessedContentToken("\nWScript.Echo 1"),
+                    new EndOfStatementSameLineToken(),
+                    new InlineCommentToken(" Test")
+                },
+                StringBreaker.SegmentString(
+                    "\nWScript.Echo 1 ' Test"
+                ),
+                new TokenSetComparer()
+            );
+        }
+
         [Fact]
         public void REMCommentsAreIdentified()
         {

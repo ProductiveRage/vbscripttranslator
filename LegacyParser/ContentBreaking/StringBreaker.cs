@@ -55,7 +55,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     bool isInlineComment;
                     if (tokenContent != "")
                     {
-                        isInlineComment = !tokenContent.Contains('\n');
+                        // TODO: Explain..
+                        var indexOfLastLineReturn = tokenContent.LastIndexOf('\n');
+                        isInlineComment = (indexOfLastLineReturn == -1) || (tokenContent.Substring(indexOfLastLineReturn + 1).Trim() != "");
                         tokens.Add(new UnprocessedContentToken(tokenContent));
                         tokenContent = "";
                     }

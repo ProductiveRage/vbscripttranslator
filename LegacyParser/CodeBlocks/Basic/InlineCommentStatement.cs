@@ -6,6 +6,5 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
     public class InlineCommentStatement : CommentStatement
     {
         public InlineCommentStatement(string content) : base(content) { }
-
     }
 }
