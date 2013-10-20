@@ -36,8 +36,10 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Misc\Strings.cs" />
     <Compile Include="ParentConstructTypeOptions.cs" />
     <Compile Include="CSharpName.cs" />
+    <Compile Include="StatementTranslator.cs" />
     <Compile Include="TranslationDelegates.cs" />
     <Compile Include="TranslationResult_Extensions.cs" />
     <Compile Include="NonNullImmutableListICodeBlock_Extensions.cs" />
