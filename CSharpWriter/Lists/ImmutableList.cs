@@ -47,6 +47,10 @@ namespace CSharpWriter.Lists
                 if ((index < 0) || (index >= Count))
                     throw new ArgumentOutOfRangeException("index");
 
+                // Getting the value of the last item is a very quick operation so we can add a shortcut for it
+                if (index == Count - 1)
+                    return _tail.Value;
+
                 EnsureAllValuesDataIsPopulated();
                 return _allValues[index];
             }
@@ -272,6 +276,24 @@ namespace CSharpWriter.Lists
             // Now toAdd back the values we walked through above to the part of the chain that can be persisted
             for (var index = valuesBeforeRemovalRange.Length - 1; index >= 0; index--)
                 node = new Node(valuesBeforeRemovalRange[index], node);
+            return new ImmutableList<T>(node, _optionalValueValidator);
+        }
+
+        public ImmutableList<T> RemoveLast()
+        {
+            return RemoveLast(1);
+        }
+
+        public ImmutableList<T> RemoveLast(int numberToRemove)
+        {
+            if (numberToRemove <= 0)
+                throw new ArgumentOutOfRangeException("numberToRemove", "must be greater than zero");
+            if (numberToRemove > Count)
+                throw new ArgumentOutOfRangeException("numberToRemove", "must not be greater than Count");
+
+            var node = _tail;
+            for (var index = 0; index < numberToRemove; index++)
+                node = node.Previous;
             return new ImmutableList<T>(node, _optionalValueValidator);
         }
 

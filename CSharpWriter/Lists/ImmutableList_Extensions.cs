@@ -30,5 +30,29 @@ namespace CSharpWriter.Lists
 
             return data.Count;
         }
+
+        /// <summary>
+        /// Getting the last item is a very simpler operation on the ImmutableList so we can add a specific override here that will prevent the LINQ
+        /// version from trying to enumerate over all of the data (which is more expensive, more so the greated then number of items in the list)
+        /// </summary>
+        public static T Last<T>(this ImmutableList<T> data)
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+
+            return data[data.Count - 1];
+        }
+
+        /// <summary>
+        /// Getting the last item is a very simpler operation on the ImmutableList so we can add a specific override here that will prevent the LINQ
+        /// version from trying to enumerate over all of the data (which is more expensive, more so the greated then number of items in the list)
+        /// </summary>
+        public static T LastOrDefault<T>(this ImmutableList<T> data)
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+
+            return (data.Count > 0) ? data.Last() : default(T);
+        }
     }
 }

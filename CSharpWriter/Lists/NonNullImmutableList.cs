@@ -35,49 +35,57 @@ namespace CSharpWriter.Lists
 
         public new NonNullImmutableList<T> Add(T value)
         {
-            return ToNonNullOrEmptyStringList(base.Add(value));
+            return ToNonNullImmutableList(base.Add(value));
         }
         public new NonNullImmutableList<T> AddRange(IEnumerable<T> values)
         {
-            return ToNonNullOrEmptyStringList(base.AddRange(values));
+            return ToNonNullImmutableList(base.AddRange(values));
         }
         public new NonNullImmutableList<T> Insert(T value, int insertAtIndex)
         {
-            return ToNonNullOrEmptyStringList(base.Insert(value, insertAtIndex));
+            return ToNonNullImmutableList(base.Insert(value, insertAtIndex));
         }
         public new NonNullImmutableList<T> Insert(IEnumerable<T> values, int insertAtIndex)
         {
-            return ToNonNullOrEmptyStringList(base.Insert(values, insertAtIndex));
+            return ToNonNullImmutableList(base.Insert(values, insertAtIndex));
         }
         public new NonNullImmutableList<T> Remove(T value)
         {
-            return ToNonNullOrEmptyStringList(base.Remove(value));
+            return ToNonNullImmutableList(base.Remove(value));
         }
         public new NonNullImmutableList<T> Remove(T value, IEqualityComparer<T> optionalComparer)
         {
-            return ToNonNullOrEmptyStringList(base.Remove(value, optionalComparer));
+            return ToNonNullImmutableList(base.Remove(value, optionalComparer));
         }
         public new NonNullImmutableList<T> RemoveAt(int removeAtIndex)
         {
-            return ToNonNullOrEmptyStringList(base.RemoveAt(removeAtIndex));
+            return ToNonNullImmutableList(base.RemoveAt(removeAtIndex));
         }
         public new NonNullImmutableList<T> RemoveRange(int removeAtIndex, int count)
         {
-            return ToNonNullOrEmptyStringList(base.RemoveRange(removeAtIndex, count));
+            return ToNonNullImmutableList(base.RemoveRange(removeAtIndex, count));
+        }
+        public new NonNullImmutableList<T> RemoveLast()
+        {
+            return ToNonNullImmutableList(base.RemoveLast());
+        }
+        public new NonNullImmutableList<T> RemoveLast(int numberToRemove)
+        {
+            return ToNonNullImmutableList(base.RemoveLast(numberToRemove));
         }
         public new NonNullImmutableList<T> Sort()
         {
-            return ToNonNullOrEmptyStringList(base.Sort());
+            return ToNonNullImmutableList(base.Sort());
         }
         public new NonNullImmutableList<T> Sort(Comparison<T> optionalComparison)
         {
-            return ToNonNullOrEmptyStringList(base.Sort(optionalComparison));
+            return ToNonNullImmutableList(base.Sort(optionalComparison));
         }
         public new NonNullImmutableList<T> Sort(IComparer<T> optionalComparer)
         {
-            return ToNonNullOrEmptyStringList(base.Sort(optionalComparer));
+            return ToNonNullImmutableList(base.Sort(optionalComparer));
         }
-        private NonNullImmutableList<T> ToNonNullOrEmptyStringList(ImmutableList<T> list)
+        private NonNullImmutableList<T> ToNonNullImmutableList(ImmutableList<T> list)
         {
             if (list == null)
                 throw new ArgumentNullException("list");
