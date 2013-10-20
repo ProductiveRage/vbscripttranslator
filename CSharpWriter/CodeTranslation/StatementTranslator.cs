@@ -162,10 +162,12 @@ namespace CSharpWriter.CodeTranslation
             // that may use one of these alternate signatures is stored in the constant maxNumberOfMemberAccessorBeforeArraysRequired
             const int maxNumberOfMemberAccessorBeforeArraysRequired = 6;
 
-            var callExpressionContent = new StringBuilder();
-
             // Note: Even if there is only a single member access token (meaning call for "a" not "a.Test") and there are no arguments, we
-            // still need to use the CALL method to account for any handling of default properties
+            // still need to use the CALL method to account for any handling of default properties (eg. a statement "Test" may be a call to
+            // a method named "Test" or "Test" may be an instance of a class which has a default parameter-less function, in which case the
+            // default function will be executed by that statement.
+
+            var callExpressionContent = new StringBuilder();
             var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}",
@@ -182,7 +184,7 @@ namespace CSharpWriter.CodeTranslation
                 for (var index = 1; index < numberOfAccessTokens; index++)
                 {
                     callExpressionContent.Append(
-                        GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.ElementAt(index))
+                        GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.ElementAt(index)).ToLiteral()
                     );
                     if (index < (numberOfAccessTokens - 1))
                         callExpressionContent.Append(", ");
@@ -266,7 +268,7 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("token");
 
             var nameToken = (token as NameToken) ?? new ForRenamingNameToken(token.Content);
-            return _nameRewriter(nameToken).Name.ToLiteral();
+            return _nameRewriter(nameToken).Name;
         }
 
         /// <summary>
