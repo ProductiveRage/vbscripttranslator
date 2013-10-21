@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Collections.Generic;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
@@ -12,26 +12,25 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private List<IfBlockSegment> content;
-        public IfBlock(List<IfBlockSegment> content)
+        public IfBlock(IEnumerable<IfBlockSegment> clauses)
         {
-            if (content == null)
-                throw new ArgumentNullException("content");
-            foreach (IfBlockSegment contentInner in content)
-            {
-                if (contentInner == null)
-                    throw new ArgumentException("Encountered null inner content");
-            }
-            this.content = content;
+            if (clauses == null)
+                throw new ArgumentNullException("clauses");
+
+            Clauses = clauses.ToList().AsReadOnly();
+            if (!Clauses.Any())
+                throw new ArgumentException("Empty clauses set specified - invalid");
+            if (Clauses.Any(c => c == null))
+                throw new ArgumentException("Null reference encountered in clauses set");
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public List<IfBlockSegment> Content
-        {
-            get { return this.content; }
-        }
+        /// <summary>
+        /// This will never be null, empty or contain any nulls
+        /// </summary>
+        public IEnumerable<IfBlockSegment> Clauses { get; private set; }
 
         // =======================================================================================
         // DESCRIPTION CLASSES
@@ -49,12 +48,21 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     throw new ArgumentNullException("conditionStatement");
                 if (statements == null)
                     throw new ArgumentNullException("statements");
+
                 Statements = statements.ToList().AsReadOnly();
                 if (Statements.Any(s => s == null))
                     throw new ArgumentException("Null reference encountered in statements set");
                 Condition = conditionStatement;
             }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
             public Expression Condition { get; private set; }
+
+            /// <summary>
+            /// This will never be null or contain any nulls
+            /// </summary>
             public IEnumerable<ICodeBlock> Statements { get; private set; }
         }
         
@@ -68,6 +76,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 if (Statements.Any(s => s == null))
                     throw new ArgumentException("Null reference encountered in statements set");
             }
+
+            /// <summary>
+            /// This will never be null or contain any nulls
+            /// </summary>
             public IEnumerable<ICodeBlock> Statements { get; private set; }
         }
 
@@ -80,11 +92,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            StringBuilder output = new StringBuilder();
-            for (int index = 0; index < this.content.Count; index++)
+            var output = new StringBuilder();
+            var numberOfClauses = Clauses.Count();
+            for (int index = 0; index < numberOfClauses; index++)
             {
                 // Render branch start: IF / ELSEIF / ELSE
-                IfBlockSegment segment = this.content[index];
+                var segment = Clauses.ElementAt(index);
                 if (segment is IfBlockConditionSegment)
                 {
                     output.Append(indenter.Indent);
@@ -101,7 +114,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     output.AppendLine(indenter.Indent + "ELSE");
 
                 // Render branch content
-                foreach (ICodeBlock statement in segment.Statements)
+                foreach (var statement in segment.Statements)
                     output.AppendLine(statement.GenerateBaseSource(indenter.Increase()));
             }
             output.Append(indenter.Indent + "END IF");
