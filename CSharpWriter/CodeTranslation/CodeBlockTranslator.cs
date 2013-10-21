@@ -1,7 +1,9 @@
 ﻿using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -140,7 +142,7 @@ namespace CSharpWriter.CodeTranslation
                 if (classBlock != null)
                 {
                     translationResult = translationResult.Add(
-                        new TranslatedStatement(TranslateClassHeader(classBlock), indentationDepth),
+                        TranslateClassHeader(classBlock, indentationDepth),
                         Translate(
                             classBlock.Statements.ToNonNullImmutableList(),
                             scopeAccessInformation.Extend(
@@ -158,7 +160,11 @@ namespace CSharpWriter.CodeTranslation
                 if (functionBlock != null)
                 {
                     translationResult = translationResult.Add(
-                        new TranslatedStatement(TranslateFunctionHeader(functionBlock), indentationDepth),
+                        TranslateFunctionHeader(
+                            functionBlock,
+                            (block is FunctionBlock), // hasReturnValue (true for FunctionBlock, false for SubBlock)
+                            indentationDepth
+                        ),
                         Translate(
                             functionBlock.Statements.ToNonNullImmutableList(),
                             scopeAccessInformation.Extend(
@@ -235,20 +241,62 @@ namespace CSharpWriter.CodeTranslation
             );
         }
 
-        private string TranslateClassHeader(ClassBlock classBlock)
+        private IEnumerable<TranslatedStatement> TranslateClassHeader(ClassBlock classBlock, int indentationDepth)
         {
             if (classBlock == null)
                 throw new ArgumentNullException("classBlock");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            throw new NotImplementedException("Not enabled support for Class header translation yet"); // TODO
+            // TODO: Should the supportClassName reference be passed in here?
+            var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
+            return new[]
+            {
+                new TranslatedStatement("public class " + className, indentationDepth),
+                new TranslatedStatement("{", indentationDepth),
+                new TranslatedStatement("private readonly IProvideVBScriptCompatFunctionality " + _supportClassName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("public " + className + "(IProvideVBScriptCompatFunctionality compatLayer)", indentationDepth + 1),
+                new TranslatedStatement("{", indentationDepth + 1),
+                new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(compatLayer)", indentationDepth + 3),
+                new TranslatedStatement("this." + _supportClassName.Name + " = compatLayer;", indentationDepth + 2),
+                new TranslatedStatement("}", indentationDepth + 1)
+            };
         }
 
-        private string TranslateFunctionHeader(AbstractFunctionBlock functionBlock)
+        private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, bool hasReturnValue, int indentationDepth)
         {
             if (functionBlock == null)
                 throw new ArgumentNullException("functionBlock");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            throw new NotImplementedException("Not enabled support for Function/Sub header translation yet"); // TODO
+            if (functionBlock.IsDefault)
+                throw new NotSupportedException("Default Functions are not supported yet"); // TODO
+
+            var content = new StringBuilder();
+            content.Append(functionBlock.IsPublic ? "public" : "private");
+            content.Append(" ");
+            content.Append(hasReturnValue ? "object" : "void");
+            content.Append(" ");
+            content.Append(_nameRewriter.GetMemberAccessTokenName(functionBlock.Name));
+            content.Append("(");
+            var numberOfParameters = functionBlock.Parameters.Count();
+            for (var index = 0; index < numberOfParameters; index++)
+            {
+                var parameter = functionBlock.Parameters.ElementAt(index);
+                if (parameter.ByRef)
+                    content.Append("ref ");
+                content.Append(_nameRewriter.GetMemberAccessTokenName(parameter.Name));
+                if (index < (numberOfParameters - 1))
+                    content.Append(", ");
+            }
+            content.Append(")");
+            return new[]
+            {
+                new TranslatedStatement(content.ToString(), indentationDepth),
+                new TranslatedStatement("{", indentationDepth)
+            };
         }
 
         private TranslationResult FlushExplicitVariableDeclarations(
