@@ -1,5 +1,6 @@
 ﻿using CSharpWriter.Misc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
@@ -28,26 +29,50 @@ namespace CSharpWriter.CodeTranslation
             _tempNameGenerator = tempNameGenerator;
         }
 
-        /// <summary>
-        /// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of
-        /// a null statement reference)
-        /// </summary>
-        public string Translate(LegacyParser.Statement statement)
+		/// <summary>
+		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
+		/// </summary>
+		public string Translate(LegacyParser.Statement statement)
+		{
+			if (statement == null)
+				throw new ArgumentNullException("statement");
+
+			return Translate(statement, ExpressionReturnTypeOptions.NotSpecified);
+		}
+
+		/// <summary>
+		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
+		/// </summary>
+		public string Translate(LegacyParser.Expression expression, ExpressionReturnTypeOptions returnRequirements)
+		{
+			if (expression == null)
+				throw new ArgumentNullException("expression");
+			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+				throw new ArgumentOutOfRangeException("returnRequirements");
+
+			return Translate((LegacyParser.Statement)expression, returnRequirements);
+		}
+
+		private string Translate(LegacyParser.Statement statement, ExpressionReturnTypeOptions returnRequirements)
         {
-            if (statement == null)
-                throw new ArgumentNullException("statement");
+			if (statement == null)
+				throw new ArgumentNullException("statement");
+			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+				throw new ArgumentOutOfRangeException("returnRequirements");
 
-            var expressions = ExpressionGenerator.Generate(statement.BracketStandardisedTokens).ToArray();
-            if (expressions.Length != 1)
-                throw new ArgumentException("Statement translation should always result in a single expression being generated");
+			var expressions = ExpressionGenerator.Generate(statement.BracketStandardisedTokens).ToArray();
+			if (expressions.Length != 1)
+				throw new ArgumentException("Statement translation should always result in a single expression being generated");
 
-            return Translate(expressions[0]);
-        }
+			return Translate(expressions[0], ExpressionReturnTypeOptions.NotSpecified);
+		}
 
-        private string Translate(Expression expression)
+		private string Translate(Expression expression, ExpressionReturnTypeOptions returnRequirements)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
+			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+				throw new ArgumentOutOfRangeException("returnRequirements");
 
             // Assert expectations about numbers of segments and operators (if any)
             var segments = expression.Segments.ToArray();
@@ -84,29 +109,44 @@ namespace CSharpWriter.CodeTranslation
                     throw new ArgumentException("If there are three segments, then the middle must be an operator");
             }
 
-            if (segments.Length == 1)
-                return TranslateNonOperatorSegment(segments[0]);
+			if (segments.Length == 1)
+			{
+				var result = TranslateNonOperatorSegment(segments[0]);
+				return ApplyReturnTypeGuarantee(
+					result.Item1,
+					result.Item2,
+					returnRequirements
+				);
+			}
 
             if (segments.Length == 2)
             {
-                return string.Format(
-                    "{0}.{1}({2})",
-                    _supportClassName.Name,
-                    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-                    TranslateNonOperatorSegment(segments[1])
-                );
+				return ApplyReturnTypeGuarantee(
+					string.Format(
+						"{0}.{1}({2})",
+						_supportClassName.Name,
+						GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
+						TranslateNonOperatorSegment(segments[1])
+					),
+					ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
+					returnRequirements
+				);
             }
 
-            return string.Format(
-                "{0}.{1}({2}, {3})",
-                _supportClassName.Name,
-                TranslateNonOperatorSegment(segments[0]),
-                GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-                TranslateNonOperatorSegment(segments[2])
+			return ApplyReturnTypeGuarantee(
+				string.Format(
+					"{0}.{1}({2}, {3})",
+					_supportClassName.Name,
+					TranslateNonOperatorSegment(segments[0]),
+					GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
+					TranslateNonOperatorSegment(segments[2])
+				),
+				ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
+				returnRequirements
             );
         }
 
-        private string TranslateNonOperatorSegment(IExpressionSegment segment)
+        private Tuple<string, ExpressionReturnTypeOptions> TranslateNonOperatorSegment(IExpressionSegment segment)
         {
             if (segment == null)
                 throw new ArgumentNullException("segment");
@@ -114,16 +154,20 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentException("This will not accept OperationExpressionSegment instances");
 
             var numericValueSegment = segment as NumericValueExpressionSegment;
-            if (numericValueSegment != null)
-                return numericValueSegment.Token.Content;
+			if (numericValueSegment != null)
+				return Tuple.Create(numericValueSegment.Token.Content, ExpressionReturnTypeOptions.Value);
 
             var stringValueSegment = segment as StringValueExpressionSegment;
             if (stringValueSegment != null)
-                return stringValueSegment.Token.Content.ToLiteral();
+				return Tuple.Create(stringValueSegment.Token.Content.ToLiteral(), ExpressionReturnTypeOptions.Value);
 
             var callExpressionSegment = segment as CallExpressionSegment;
             if (callExpressionSegment != null)
                 return Translate(callExpressionSegment);
+
+            var callSetExpressionSegment = segment as CallSetExpressionSegment;
+            if (callSetExpressionSegment != null)
+                return Translate(callSetExpressionSegment);
 
             var bracketedExpressionSegment = segment as BracketedExpressionSegment;
             if (bracketedExpressionSegment != null)
@@ -132,7 +176,7 @@ namespace CSharpWriter.CodeTranslation
             throw new NotImplementedException(); // TODO
         }
 
-        private string Translate(BracketedExpressionSegment bracketedExpressionSegment)
+		private Tuple<string, ExpressionReturnTypeOptions> Translate(BracketedExpressionSegment bracketedExpressionSegment)
         {
             if (bracketedExpressionSegment == null)
                 throw new ArgumentNullException("bracketedExpressionSegment");
@@ -140,16 +184,38 @@ namespace CSharpWriter.CodeTranslation
             throw new NotImplementedException(); // TODO
         }
 
-        private string Translate(CallExpressionSegment callExpressionSegment)
+        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
 
+            return TranslateCallExpressionSegment(
+                GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
+                callExpressionSegment.MemberAccessTokens.Skip(1),
+                callExpressionSegment.Arguments
+            );
+        }
+
+        private Tuple<string, ExpressionReturnTypeOptions> TranslateCallExpressionSegment(
+            string targetName,
+            IEnumerable<IToken> targetMemberAccessTokens,
+            IEnumerable<Expression> arguments)
+        {
+            if (string.IsNullOrWhiteSpace(targetName))
+                throw new ArgumentException("Null/blank targetName specified");
+            if (targetMemberAccessTokens == null)
+                throw new ArgumentNullException("targetMemberAccessTokens");
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
+
             // The "master" CALL method signature is
             //
-            //   CALL(object target, IEnumerable<string> members, IEnumerable<object> arguments)
+            //   CALL(object target, IEnumerable<string> members, params object[] arguments)
             //
-            // but there are alternate signatures to try to make the most common calls easier to read - eg.
+            // (the arguments set is passed as an array as VBScript parameters are, by default, by-ref and so all of the arguments have to be
+            // passed in this manner in case any of them need to be access in this manner).
+            //
+            // However, there are alternate signatures to try to make the most common calls easier to read - eg.
             //
             //   CALL(object)
             //   CALL(object, params object[] arguments)
@@ -168,51 +234,87 @@ namespace CSharpWriter.CodeTranslation
             // default function will be executed by that statement.
 
             var callExpressionContent = new StringBuilder();
-            var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}",
                 _supportClassName.Name,
-                GetMemberAccessTokenName(firstMemberAccessToken)
+                targetName
             );
 
-            var numberOfAccessTokens = callExpressionSegment.MemberAccessTokens.Count();
-            if (numberOfAccessTokens > 1)
+            var targetMemberAccessTokensArray = targetMemberAccessTokens.ToArray();
+            if (targetMemberAccessTokensArray.Any(t => t == null))
+                throw new ArgumentException("Null reference encountered in targetMemberAccessTokens set");
+
+            var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= (maxNumberOfMemberAccessorBeforeArraysRequired - 1));
+            if (targetMemberAccessTokensArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                if (!ableToUseShorthandCallSignature)
                     callExpressionContent.Append(" new[] { ");
-                for (var index = 1; index < numberOfAccessTokens; index++)
+                for (var index = 0; index < targetMemberAccessTokensArray.Length; index++)
                 {
                     callExpressionContent.Append(
-                        GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.ElementAt(index)).ToLiteral()
+                        GetMemberAccessTokenName(targetMemberAccessTokensArray[index]).ToLiteral()
                     );
-                    if (index < (numberOfAccessTokens - 1))
+                    if (index < (targetMemberAccessTokensArray.Length - 1))
                         callExpressionContent.Append(", ");
                 }
-                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                if (!ableToUseShorthandCallSignature)
                     callExpressionContent.Append(" }");
             }
 
-            if (callExpressionSegment.Arguments.Any())
+            var argumentsArray = arguments.ToArray();
+            if (argumentsArray.Any(a => a == null))
+                throw new ArgumentException("Null reference encountered in arguments set");
+
+            if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                if (!ableToUseShorthandCallSignature)
                     callExpressionContent.Append("new object[] { ");
-                var numberOfArguments = callExpressionSegment.Arguments.Count();
-                for (var index = 0; index < numberOfArguments; index++)
+                for (var index = 0; index < argumentsArray.Length; index++)
                 {
                     callExpressionContent.Append(
-                        Translate(callExpressionSegment.Arguments.ElementAt(index))
+                        Translate(argumentsArray[index], ExpressionReturnTypeOptions.NotSpecified)
                     );
-                    if (index < (numberOfArguments - 1))
+                    if (index < (argumentsArray.Length - 1))
                         callExpressionContent.Append(", ");
                 }
-                if (numberOfAccessTokens > maxNumberOfMemberAccessorBeforeArraysRequired)
+                if (!ableToUseShorthandCallSignature)
                     callExpressionContent.Append(" }");
             }
 
             callExpressionContent.Append(")");
-            return callExpressionContent.ToString();
+			return Tuple.Create(
+				callExpressionContent.ToString(),
+				ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
+			);
+        }
+
+        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallSetExpressionSegment callSetExpressionSegment)
+        {
+            if (callSetExpressionSegment == null)
+                throw new ArgumentNullException("callSetExpressionSegment");
+            
+            var content = "";
+            var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count();
+            for (var index = 0; index < numberOfCallExpressions; index++)
+            {
+                var callExpression = callSetExpressionSegment.CallExpressionSegments.ElementAt(index);
+                if (index == 0)
+                {
+                    content = Translate(callExpression).Item1;
+                    continue;
+                }
+                content = TranslateCallExpressionSegment(
+                    content,
+                    callExpression.MemberAccessTokens,
+                    callExpression.Arguments
+                ).Item1;
+            }
+            return Tuple.Create(
+                content,
+                ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
+            );
         }
 
         private string GetSupportFunctionName(OperatorToken operatorToken)
@@ -256,6 +358,42 @@ namespace CSharpWriter.CodeTranslation
                     throw new NotSupportedException("Unsupported OperatorToken content: " + operatorToken.Content);
             }
         }
+
+		private string ApplyReturnTypeGuarantee(string translatedContent, ExpressionReturnTypeOptions contentType, ExpressionReturnTypeOptions requiredReturnType)
+		{
+			if (string.IsNullOrWhiteSpace(translatedContent))
+				throw new ArgumentException("Null/blank translatedContent specified");
+
+			switch(requiredReturnType)
+			{
+				case ExpressionReturnTypeOptions.Boolean:
+					return string.Format(
+						"{0}.IF({1})",
+						_supportClassName.Name,
+						translatedContent
+					);
+
+				case ExpressionReturnTypeOptions.NotSpecified:
+					return translatedContent;
+
+				case ExpressionReturnTypeOptions.Reference:
+					// If we know that this returns a value type then we can tell at this point that it's not going to work. If it returns a Reference
+					// type then we're golden. If contentType is NotSpecified then we just have to hope for the best that it's appropriate.
+					if ((contentType == ExpressionReturnTypeOptions.Boolean) || (contentType == ExpressionReturnTypeOptions.Value))
+						throw new ArgumentException("Invalid content, Expression specified needs to return an Reference (Object), but returns " + contentType + " (this would result in a compile-time \"Object Expected\")");
+					return translatedContent;
+
+				case ExpressionReturnTypeOptions.Value:
+					return string.Format(
+						"{0}.VAL(1})",
+						_supportClassName.Name,
+						translatedContent
+					);
+
+				default:
+					throw new NotSupportedException("Unsupported requiredReturnType value: " + requiredReturnType);
+			}
+		}
 
         /// <summary>
         /// When trying to access variables, functions, classes, etc.. we need to pass the member's name through the VBScriptNameRewriter. In
