@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -11,11 +12,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private bool isPublic;
-        private bool isDefault;
-        private NameToken name;
-        private List<Parameter> parameters;
-        private List<ICodeBlock> statements;
         public AbstractFunctionBlock(
             bool isPublic,
             bool isDefault,
@@ -31,48 +27,47 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 throw new ArgumentNullException("parameters");
             if (statements == null)
                 throw new ArgumentNullException("statements");
+
+            Parameters = parameters.ToList().AsReadOnly();
+            if (Parameters.Any(p => p == null))
+                throw new ArgumentException("Null reference encountered in parameters set");
+            Statements = statements.ToList().AsReadOnly();
+            if (Statements.Any(s => s == null))
+                throw new ArgumentException("Null reference encountered in Statements set");
             
-            this.isPublic = isPublic;
-            this.isDefault = isDefault;
-            this.name = name;
-            this.parameters = parameters;
-            this.statements = statements;
+            IsPublic = isPublic;
+            IsDefault = isDefault;
+            Name = name;
         }
 
         protected abstract string keyWord { get; }
 
         public override string ToString()
         {
-            return base.ToString() + ":" + this.name;
+            return base.ToString() + ":" + Name;
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public bool IsPublic
-        {
-            get { return this.isPublic; }
-        }
+        public bool IsPublic { get; private set; }
 
-        public bool IsDefault
-        {
-            get { return this.isDefault; }
-        }
+        public bool IsDefault { get; private set; }
 
-        public NameToken Name
-        {
-            get { return this.name; }
-        }
+        /// <summary>
+        /// This will never be null
+        /// </summary>
+        public NameToken Name { get; private set; }
 
-        public List<Parameter> Parameters
-        {
-            get { return this.parameters; }
-        }
+        /// <summary>
+        /// This will never be null nor contain any null references
+        /// </summary>
+        public IEnumerable<Parameter> Parameters { get; private set; }
 
-        public List<ICodeBlock> Statements
-        {
-            get { return this.statements; }
-        }
+        /// <summary>
+        /// This will never be null nor contain any null references
+        /// </summary>
+        public IEnumerable<ICodeBlock> Statements { get; private set; }
 
         /// <summary>
         /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
@@ -80,7 +75,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
         {
-            get { return this.statements.AsReadOnly(); }
+            get { return Statements; }
         }
 
         // =======================================================================================
@@ -95,12 +90,19 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             {
                 if (name == null)
                     throw new ArgumentNullException("name");
+
                 this.byRef = byRef;
                 this.name = name;
                 this.isArray = isArray;
             }
+
             public bool ByRef { get { return this.byRef; } }
+            
+            /// <summary>
+            /// This will never be null
+            /// </summary>
             public NameToken Name { get { return this.name; } }
+            
             public bool IsArray { get { return this.isArray; } }
         }
 
@@ -120,18 +122,19 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             // Render opening declaration (scope, name, arguments)
             StringBuilder output = new StringBuilder();
             output.Append(indenter.Indent);
-            if (this.isPublic)
+            if (IsPublic)
                 output.Append("Public ");
             else
                 output.Append("Private ");
-            if (this.isDefault)
+            if (IsDefault)
                 output.Append("Default ");
             output.Append(this.keyWord + " ");
-            output.Append(this.name.Content);
+            output.Append(Name.Content);
             output.Append("(");
-            for (int index = 0; index < this.parameters.Count; index++)
+            var numberOfParameters = Parameters.Count();
+            for (int index = 0; index < numberOfParameters; index++)
             {
-                Parameter parameter = this.parameters[index];
+                Parameter parameter = Parameters.ElementAt(index);
                 if (parameter.ByRef)
                     output.Append("ByRef ");
                 else
@@ -139,13 +142,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 output.Append(parameter.Name.Content);
                 if (parameter.IsArray)
                     output.Append("()");
-                if (index < (this.parameters.Count - 1))
+                if (index < (numberOfParameters - 1))
                     output.Append(", ");
             }
             output.AppendLine(")");
 
             // Render content
-            foreach (ICodeBlock block in this.statements)
+            foreach (var block in Statements)
                 output.AppendLine(block.GenerateBaseSource(indenter.Increase()));
 
             // Close
