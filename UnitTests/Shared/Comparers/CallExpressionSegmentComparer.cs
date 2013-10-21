@@ -4,7 +4,7 @@ using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
-    public class MemberCallExpressionSegmentComparer : IEqualityComparer<CallExpressionSegment>
+    public class CallExpressionSegmentComparer : IEqualityComparer<CallExpressionSegment>
     {
         public bool Equals(CallExpressionSegment x, CallExpressionSegment y)
         {

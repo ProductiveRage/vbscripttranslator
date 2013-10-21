@@ -182,12 +182,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(
-                            new[] { new NameToken("a") },
-                            new[] { new NumericValueToken(0) }
-                        ),
-                        CALL(
-                            new[] { new NameToken("Test") }
+                        CALLSET(
+                            CALL(
+                                new[] { new NameToken("a") },
+                                new[] { new NumericValueToken(0) }
+                            ),
+                            CALL(
+                                new[] { new NameToken("Test") }
+                            )
                         )
                     )
                 },
@@ -210,12 +212,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(
-                            new[] { new NameToken("a"), new NameToken("b") },
-                            new[] { new NumericValueToken(0) }
-                        ),
-                        CALL(
-                            new[] { new NameToken("Test") }
+                        CALLSET(
+                            CALL(
+                                new[] { new NameToken("a"), new NameToken("b") },
+                                new[] { new NumericValueToken(0) }
+                            ),
+                            CALL(
+                                new[] { new NameToken("Test") }
+                            )
                         )
                     )
                 },
@@ -240,12 +244,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(
-                            new[] { new NameToken("a") },
-                            new[] { new NumericValueToken(0) }
-                        ),
-                        CALL(
-                            new[] { new NameToken("b"), new NameToken("Test") }
+                        CALLSET(
+                            CALL(
+                                new[] { new NameToken("a") },
+                                new[] { new NumericValueToken(0) }
+                            ),
+                            CALL(
+                                new[] { new NameToken("b"), new NameToken("Test") }
+                            )
                         )
                     )
                 },
@@ -627,6 +633,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
 		private static BracketedExpressionSegment BR(params IExpressionSegment[] segments)
         {
 			return new BracketedExpressionSegment((IEnumerable<IExpressionSegment>)segments);
+        }
+
+        private static CallSetExpressionSegment CALLSET(params IExpressionSegment[] segments)
+        {
+            return new CallSetExpressionSegment(segments.Cast<CallExpressionSegment>());
         }
 
         /// <summary>

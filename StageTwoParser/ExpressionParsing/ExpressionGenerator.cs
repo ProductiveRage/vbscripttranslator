@@ -158,7 +158,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 .Select((s, index) => Tuple.Create(s as OperationExpressionSegment, index))
                 .Where(s => s.Item1 != null);
             if (operatorSegments.Count() < 2)
-                return new Expression(segmentsArray);
+                return GetCallExpressionSegmentGroupedExpression(segmentsArray);
 
             // See http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx: "arithmetic operators are evaluated first, comparison operators are evaluated
             // next, and logical operators are evaluated last". The information from that article is also incorporated into the AtomToken ComparisonTokenValues,
@@ -209,7 +209,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
             var left = segmentsArray.Take(segmentToBreakOn.Item2);
             var right = segmentsArray.Skip(segmentToBreakOn.Item2 + 1);
-            return new Expression(new IExpressionSegment[]
+            return GetCallExpressionSegmentGroupedExpression(new IExpressionSegment[]
             {
                 WrapExpressionSegments(GetExpression(left).Segments),
                 segmentToBreakOn.Item1,
@@ -310,6 +310,51 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 			}
 			return new BracketedExpressionSegment(segmentsArray);
 		}
+
+        /// <summary>
+        /// Consecutive CallExpressionSegments should not appear in an Expression as consecutive CallExpressionSegments are segments that represent part
+        /// of the same operation - eg. "a(0).Test" is represented by two CallExpressionSegments, one for "a(0)" and one for "Test" - but really they
+        /// describe two parts of a single retrieval. As such, they should be wrapped in a CallSetExpressionSegment (single CallExpressionSegments
+        /// are fine).
+        /// </summary>
+        private static Expression GetCallExpressionSegmentGroupedExpression(IEnumerable<IExpressionSegment> segments)
+        {
+            if (segments == null)
+                throw new ArgumentNullException("segments");
+
+            var callExpressionSegmentBuffer = new List<CallExpressionSegment>();
+            var expressionSegments = new List<IExpressionSegment>();
+            foreach (var segment in segments)
+            {
+                if (segment == null)
+                    throw new ArgumentException("Null reference encountered in segments set");
+
+                var callExpressionSegment = segment as CallExpressionSegment;
+                if (callExpressionSegment != null)
+                {
+                    callExpressionSegmentBuffer.Add(callExpressionSegment);
+                    continue;
+                }
+
+                if (callExpressionSegmentBuffer.Count > 0)
+                {
+                    if (callExpressionSegmentBuffer.Count == 1)
+                        expressionSegments.Add(callExpressionSegmentBuffer[0]);
+                    else
+                        expressionSegments.Add(new CallSetExpressionSegment(callExpressionSegmentBuffer));
+                    callExpressionSegmentBuffer.Clear();
+                }
+                expressionSegments.Add(segment);
+            }
+            if (callExpressionSegmentBuffer.Count > 0)
+            {
+                if (callExpressionSegmentBuffer.Count == 1)
+                    expressionSegments.Add(callExpressionSegmentBuffer[0]);
+                else
+                    expressionSegments.Add(new CallSetExpressionSegment(callExpressionSegmentBuffer));
+            }
+            return new Expression(expressionSegments);
+        }
 
         private class IndexerOperationExpressionSegmentSorter : IComparer<Tuple<OperationExpressionSegment, int>>
         {
