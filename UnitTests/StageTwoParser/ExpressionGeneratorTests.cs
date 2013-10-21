@@ -275,11 +275,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         BR(
-                            EXP(
-                                CALL(new NameToken("a")),
-                                OP(new OperatorToken("+")),
-                                CALL(new NameToken("b"))
-                            )
+                            CALL(new NameToken("a")),
+                            OP(new OperatorToken("+")),
+                            CALL(new NameToken("b"))
                         ),
                         OP(new OperatorToken("+")),
                         CALL(new NameToken("c"))
@@ -309,11 +307,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
-                            EXP(
-                                CALL(new NameToken("b")),
-                                OP(new OperatorToken("*")),
-                                CALL(new NameToken("c"))
-                            )
+                            CALL(new NameToken("b")),
+                            OP(new OperatorToken("*")),
+                            CALL(new NameToken("c"))
                         )
                     )
                 },
@@ -338,13 +334,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
-                            EXP(
-                                CALL(new NameToken("b")),
-                                OP(new OperatorToken("*")),
-                                CALL(
-                                    new[] { new NameToken("c") },
-                                    new[] { new NumericValueToken(0) }
-                                )
+                            CALL(new NameToken("b")),
+                            OP(new OperatorToken("*")),
+                            CALL(
+                                new[] { new NameToken("c") },
+                                new[] { new NumericValueToken(0) }
                             )
                         )
                     )
@@ -374,18 +368,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         BR(
-                            EXP(
-                                CALL(new NameToken("a")),
-                                OP(new OperatorToken("+")),
-                                BR(
-                                    EXP(
-                                        CALL(new NameToken("b")),
-                                        OP(new OperatorToken("*")),
-                                        CALL(
-                                            new[] { new NameToken("c") },
-                                            new[] { new NumericValueToken(0) }
-                                        )
-                                    )
+                            CALL(new NameToken("a")),
+                            OP(new OperatorToken("+")),
+                            BR(
+                                CALL(new NameToken("b")),
+                                OP(new OperatorToken("*")),
+                                CALL(
+                                    new[] { new NameToken("c") },
+                                    new[] { new NumericValueToken(0) }
                                 )
                             )
                         ),
@@ -422,11 +412,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new OperatorToken("+")),
                         BR(
-                            EXP(
-                                CALL(new NameToken("b")),
-                                OP(new OperatorToken("*")),
-                                CALL(new NameToken("c"))
-                            )
+                            CALL(new NameToken("b")),
+                            OP(new OperatorToken("*")),
+                            CALL(new NameToken("c"))
                         )
                     )
                 },
@@ -451,16 +439,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         BR(
-                            EXP(
-                                CALL(new NameToken("a")),
-                                OP(new OperatorToken("+")),
-                                BR(
-                                    EXP(
-                                        CALL(new NameToken("b")),
-                                        OP(new OperatorToken("*")),
-                                        CALL(new NameToken("c"))
-                                    )
-                                )
+                            CALL(new NameToken("a")),
+                            OP(new OperatorToken("+")),
+                            BR(
+                                CALL(new NameToken("b")),
+                                OP(new OperatorToken("*")),
+                                CALL(new NameToken("c"))
                             )
                         ),
                         OP(new OperatorToken("+")),
@@ -495,11 +479,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new ComparisonOperatorToken("=")),
                         BR(
-                            EXP(
-                                CALL(new NameToken("b")),
-                                OP(new OperatorToken("+")),
-                                CALL(new NameToken("c"))
-                            )
+                            CALL(new NameToken("b")),
+                            OP(new OperatorToken("+")),
+                            CALL(new NameToken("c"))
                         )
                     )
                 },
@@ -525,32 +507,26 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         BR(
-                            EXP(
-                                BR(
-                                    EXP(
-                                        CALL(new NameToken("a")),
-                                        OP(new OperatorToken("+")),
-                                        BR(
-                                            EXP(
-                                                CALL(new NameToken("b")),
-                                                OP(new OperatorToken("*")),
-                                                CALL(
-                                                    new[] { new NameToken("c"), new NameToken("d") },
-                                                    EXP(
-                                                        CALL(
-                                                            new[] { new NameToken("Test") },
-                                                            new[] { new NumericValueToken(0) }
-                                                        )
-                                                    ),
-                                                    EXP(CALL(new NumericValueToken(1)))
-                                                )
-                                            )
-                                        )
-                                    )
-                                ),
+                            BR(
+                                CALL(new NameToken("a")),
                                 OP(new OperatorToken("+")),
-                                CALL(new NameToken("e"))
-                            )
+                                BR(
+                                    CALL(new NameToken("b")),
+                                    OP(new OperatorToken("*")),
+                                    CALL(
+                                        new[] { new NameToken("c"), new NameToken("d") },
+                                        EXP(
+                                            CALL(
+                                                new[] { new NameToken("Test") },
+                                                new[] { new NumericValueToken(0) }
+                                            )
+                                        ),
+                                        EXP(CALL(new NumericValueToken(1)))
+                                    )
+                                )
+                            ),
+                            OP(new OperatorToken("+")),
+                            CALL(new NameToken("e"))
                         ),
                         OP(new ComparisonOperatorToken("=")),
                         CALL(new NameToken("f"))
@@ -594,10 +570,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new OperatorToken("*")),
                         BR(
-                            EXP(
-                                OP(new OperatorToken("-")),
-                                CALL(new NameToken("b"))
-                            )
+                            OP(new OperatorToken("-")),
+                            CALL(new NameToken("b"))
                         )
                     )
                 },
@@ -624,10 +598,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("a")),
                         OP(new LogicalOperatorToken("AND")),
                         BR(
-                            EXP(
-                                OP(new LogicalOperatorToken("NOT")),
-                                CALL(new NameToken("b"))
-                            )
+                            OP(new LogicalOperatorToken("NOT")),
+                            CALL(new NameToken("b"))
                         )
                     )
                 },
@@ -644,17 +616,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions
         /// </summary>
-        private static BracketedExpressionSegment BR(IEnumerable<Expression> expressions)
+        private static BracketedExpressionSegment BR(IEnumerable<IExpressionSegment> segments)
         {
-            return new BracketedExpressionSegment(expressions);
+			return new BracketedExpressionSegment(segments);
         }
 
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions
         /// </summary>
-        private static BracketedExpressionSegment BR(params Expression[] expressions)
+		private static BracketedExpressionSegment BR(params IExpressionSegment[] segments)
         {
-            return new BracketedExpressionSegment((IEnumerable<Expression>)expressions);
+			return new BracketedExpressionSegment((IEnumerable<IExpressionSegment>)segments);
         }
 
         /// <summary>

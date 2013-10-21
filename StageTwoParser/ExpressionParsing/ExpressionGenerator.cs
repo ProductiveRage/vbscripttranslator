@@ -93,10 +93,12 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         );
                         accessorBuffer.Clear();
                     }
-                    else
+                    else if (bracketedExpressions.Any())
                     {
-                        expressionSegments.Add(
-                            WrapExpressionSegments(bracketedExpressions)
+						if (bracketedExpressions.Count() > 1)
+							throw new ArgumentException("If bracketed content is not for an argument list then it's invalid for there to be multiple expressions within it");
+						expressionSegments.Add(
+							WrapExpressionSegments(bracketedExpressions.Single().Segments)
                         );
                     }
                     continue;
@@ -209,9 +211,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             var right = segmentsArray.Skip(segmentToBreakOn.Item2 + 1);
             return new Expression(new IExpressionSegment[]
             {
-                WrapExpressionSegments(new[] { GetExpression(left) }),
+                WrapExpressionSegments(GetExpression(left).Segments),
                 segmentToBreakOn.Item1,
-                WrapExpressionSegments(new[] { GetExpression(right) })
+                WrapExpressionSegments(GetExpression(right).Segments)
             });
         }
 
@@ -234,12 +236,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
             return segmentsArray.Take(index)
                 .Concat(new[] {
-                    WrapExpressionSegments(new[]
-                    {
-                        new Expression(
-                            segmentsArray.Skip(index).Take(count)
-                        )
-                    })
+                    WrapExpressionSegments(
+                        segmentsArray.Skip(index).Take(count)
+                    )
                 })
                 .Concat(
                     segmentsArray.Skip(index + count)
@@ -280,43 +279,36 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         }
 
         /// <summary>
-		/// Generate a BracketedExpressionSegment instance - if there is only a single expression specified, with a single expression segment, where that segment
-		/// is a bracketed segment, then return that segment rather than wrapping it again (this is done recursively in case there are multiple layers of over-
-		/// wrapped bracketed segments). Note: If it ends up that there's only one expression segment in total then this will be returned, unwrapped.
+		/// Generate a BracketedExpressionSegment instance - if there is only a single expression segment, where that segment is a bracketed segment, then return
+		/// that segment rather than wrapping it again (this is done recursively in case there are multiple layers of over-wrapped bracketed segments). Note: If
+		/// it ends up that there's only one expression segment in total then this will be returned, unwrapped.
 		/// </summary>
-		private static IExpressionSegment WrapExpressionSegments(IEnumerable<Expression> expressions)
+		private static IExpressionSegment WrapExpressionSegments(IEnumerable<IExpressionSegment> segments)
 		{
-			if (expressions == null)
+			if (segments == null)
 				throw new ArgumentNullException("segments");
 
-			var expressionsArray = expressions.ToArray();
-			if (expressionsArray.Any(e => e == null))
-				throw new ArgumentException("Null reference encountered in expressions set");
+			var segmentsArray = segments.ToArray();
+			if (segmentsArray.Any(s => s == null))
+				throw new ArgumentException("Null reference encountered in segments set");
 
 			while (true)
 			{
-				if (expressionsArray.Length != 1)
+				if (segmentsArray.Length != 1)
 					break;
 
-				var onlyExpression = expressionsArray[0];
-				if (onlyExpression.Segments.Count() != 1)
-					break;
-
-				var onlySegmentAsBracketedSegment = onlyExpression.Segments.Single() as BracketedExpressionSegment;
+				var onlySegmentAsBracketedSegment = segmentsArray[0] as BracketedExpressionSegment;
 				if (onlySegmentAsBracketedSegment == null)
 					break;
 
-				if (onlySegmentAsBracketedSegment.Expressions.Count() != 1)
-					break;
-
-				expressionsArray = new[] { onlySegmentAsBracketedSegment.Expressions.Single() };
+				segmentsArray = onlySegmentAsBracketedSegment.Segments.ToArray();
 			}
-            if ((expressionsArray.Length == 1) && (expressionsArray[0].Segments.Count() == 1))
-            {
-                // If there's only one term to wrap then we can just return that without any wrapping!
-                return expressionsArray[0].Segments.Single();
-            }
-			return new BracketedExpressionSegment(expressionsArray);
+			if (segmentsArray.Length == 1)
+			{
+				// If there's only one term to wrap then we can just return that without any wrapping!
+				return segmentsArray[0];
+			}
+			return new BracketedExpressionSegment(segmentsArray);
 		}
 
         private class IndexerOperationExpressionSegmentSorter : IComparer<Tuple<OperationExpressionSegment, int>>

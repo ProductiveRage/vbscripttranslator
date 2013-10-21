@@ -48,7 +48,7 @@
     <Compile Include="Shared\Comparers\MemberCallExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSetComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSegmentComparer.cs" />
-    <Compile Include="Shared\Comparers\ExpressionComparer.cs" />
+    <Compile Include="Shared\Comparers\ExpressionSegmentSetComparer.cs" />
     <Compile Include="Shared\Comparers\TokenSetComparer.cs" />
     <Compile Include="Shared\Misc.cs" />
     <Compile Include="StageTwoParser\ExpressionGeneratorTests.cs" />

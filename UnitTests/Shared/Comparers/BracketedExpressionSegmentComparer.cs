@@ -13,8 +13,8 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             if (y == null)
                 throw new ArgumentNullException("y");
 
-            var expressionSetComparer = new ExpressionSetComparer();
-            return expressionSetComparer.Equals(x.Expressions, y.Expressions);
+            var expressionSegmentSetComparer = new ExpressionSegmentSetComparer();
+			return expressionSegmentSetComparer.Equals(x.Segments, y.Segments);
         }
 
         public int GetHashCode(BracketedExpressionSegment obj)

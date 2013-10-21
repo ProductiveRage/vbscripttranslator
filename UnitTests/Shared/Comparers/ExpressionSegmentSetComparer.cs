@@ -5,17 +5,17 @@ using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
-    public class ExpressionComparer : IEqualityComparer<Expression>
+    public class ExpressionSegmentSetComparer : IEqualityComparer<IEnumerable<IExpressionSegment>>
     {
-        public bool Equals(Expression x, Expression y)
+		public bool Equals(IEnumerable<IExpressionSegment> x, IEnumerable<IExpressionSegment> y)
         {
             if (x == null)
                 throw new ArgumentNullException("x");
             if (y == null)
                 throw new ArgumentNullException("y");
 
-            var segmentsX = x.Segments.ToArray();
-            var segmentsY = y.Segments.ToArray();
+            var segmentsX = x.ToArray();
+            var segmentsY = y.ToArray();
             if (segmentsX.Length != segmentsY.Length)
                 return false;
 
@@ -28,7 +28,7 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             return true;
         }
 
-        public int GetHashCode(Expression obj)
+		public int GetHashCode(IEnumerable<IExpressionSegment> obj)
         {
             if (obj == null)
                 throw new ArgumentNullException("obj");

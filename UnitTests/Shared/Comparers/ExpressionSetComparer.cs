@@ -19,10 +19,10 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             if (arrayX.Length != arrayY.Length)
                 return false;
 
-            var expressionComparer = new ExpressionComparer();
+            var expressionComparer = new ExpressionSegmentSetComparer();
             for (var index = 0; index < arrayX.Length; index++)
             {
-                if (!expressionComparer.Equals(arrayX[index], arrayY[index]))
+                if (!expressionComparer.Equals(arrayX[index].Segments, arrayY[index].Segments))
                     return false;
             }
             return true;

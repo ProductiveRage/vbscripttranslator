@@ -8,22 +8,22 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 {
     public class BracketedExpressionSegment : IExpressionSegment
     {
-        public BracketedExpressionSegment(IEnumerable<Expression> expressions)
+        public BracketedExpressionSegment(IEnumerable<IExpressionSegment> segments)
         {
-            if (expressions == null)
+			if (segments == null)
                 throw new ArgumentNullException("segments");
 
-            Expressions = expressions.ToList().AsReadOnly();
-            if (Expressions.Any(e => e == null))
-                throw new ArgumentException("Null reference encountered in expressions set");
-			if (!Expressions.Any())
-				throw new ArgumentException("Empty expressions set specified - invalid");
+			Segments = segments.ToList().AsReadOnly();
+			if (Segments.Any(e => e == null))
+				throw new ArgumentException("Null reference encountered in segments set");
+			if (!Segments.Any())
+				throw new ArgumentException("Empty segments set specified - invalid");
 		}
 
         /// <summary>
 		/// This will never be null, empty or contain any null references
 		/// </summary>
-        public IEnumerable<Expression> Expressions { get; private set; }
+		public IEnumerable<IExpressionSegment> Segments { get; private set; }
 
 		/// <summary>
 		/// This will never be null, empty or contain any null references
@@ -36,7 +36,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				{
 					new OpenBrace("(")
 				};
-				tokens.AddRange(Expressions.SelectMany(e => e.AllTokens));
+				tokens.AddRange(Segments.SelectMany(s => s.AllTokens));
 				tokens.Add(new CloseBrace(")"));
 				return tokens;
 			}
@@ -46,7 +46,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         {
             get
             {
-                return "(" + string.Join("", Expressions.Select(e => e.RenderedContent)) + ")";
+                return "(" + string.Join("", Segments.Select(e => e.RenderedContent)) + ")";
             }
         }
 
