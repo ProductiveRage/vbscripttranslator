@@ -67,14 +67,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new[]
+                        new Expression(new[]
                         {
                             new NameToken("a"),
-                        },
-                        new[]
+                        }),
+                        new Expression(new[]
                         {
                             new BuiltInValueToken("Nothing"),
-                        },
+                        }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
                 },
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new IToken[]
+                        new Expression(new IToken[]
                         {
                             new NameToken("a"),
                             new OpenBrace("("),
@@ -98,11 +98,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
                             new CloseBrace(")"),
-                        },
-                        new[]
+                        }),
+                        new Expression(new[]
                         {
                             new NumericValueToken(1),
-                        },
+                        }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
                 },
@@ -118,7 +118,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new IToken[]
+                        new Expression(new IToken[]
                         {
                             new NameToken("a"),
                             new OpenBrace("("),
@@ -126,11 +126,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
                             new CloseBrace(")"),
-                        },
-                        new[]
+                        }),
+                        new Expression(new[]
                         {
                             new NumericValueToken(1),
-                        },
+                        }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
                 },
@@ -146,7 +146,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new IToken[]
+                        new Expression(new IToken[]
                         {
                             new NameToken("a"),
                             new OpenBrace("("),
@@ -154,11 +154,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
                             new CloseBrace(")"),
-                        },
-                        new[]
+                        }),
+                        new Expression(new[]
                         {
                             new BuiltInValueToken("Nothing"),
-                        },
+                        }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
                 },
@@ -174,7 +174,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new ICodeBlock[]
                 {
                     new ValueSettingStatement(
-                        new IToken[]
+                        new Expression(new IToken[]
                         {
                             new NameToken("a"),
                             new OpenBrace("("),
@@ -187,11 +187,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
                             new CloseBrace(")"),
-                        },
-                        new[]
+                        }),
+                        new Expression(new[]
                         {
                             new BuiltInValueToken("Nothing"),
-                        },
+                        }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
                 },

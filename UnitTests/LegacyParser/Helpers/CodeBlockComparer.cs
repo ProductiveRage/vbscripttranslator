@@ -28,8 +28,8 @@ namespace VBScriptTranslator.UnitTests.LegacyParser.Helpers
                 var valueSettingStatementY = (ValueSettingStatement)y;
                 return (
                     (valueSettingStatementX.ValueSetType == valueSettingStatementY.ValueSetType) &&
-                    tokenSetComparer.Equals(valueSettingStatementX.ValueToSetTokens, valueSettingStatementY.ValueToSetTokens) &&
-                    tokenSetComparer.Equals(valueSettingStatementX.ExpressionTokens, valueSettingStatementY.ExpressionTokens)
+					tokenSetComparer.Equals(valueSettingStatementX.ValueToSet.Tokens, valueSettingStatementY.ValueToSet.Tokens) &&
+					tokenSetComparer.Equals(valueSettingStatementX.Expression.Tokens, valueSettingStatementY.Expression.Tokens)
                 );
             }
 

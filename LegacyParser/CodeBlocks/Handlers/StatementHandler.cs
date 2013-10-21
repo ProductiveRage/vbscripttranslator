@@ -118,12 +118,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // If we encountered a "=" which caused a switch from value-to-set tokens to expression-to-set-value-to tokens then this
             // must be a ValueSettingStatement. Otherwise, it's a non-value-setting statement, all of the tokens for which will be
-            // in the valueToSetTokens set.
+            // in the valueToSet set.
             if (inExpressionContent)
             {
                 return new ValueSettingStatement(
-                    valueToSetTokens,
-                    expressionTokens,
+                    new Expression(valueToSetTokens),
+                    new Expression(expressionTokens),
                     isSetStatement ? ValueSettingStatement.ValueSetTypeOptions.Set : ValueSettingStatement.ValueSetTypeOptions.Let
                 );
             }
