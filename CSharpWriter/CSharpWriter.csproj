@@ -37,7 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
-    <Compile Include="Misc\Strings.cs" />
+    <Compile Include="Misc\String_Extensions.cs" />
     <Compile Include="CodeTranslation\ParentConstructTypeOptions.cs" />
     <Compile Include="CodeTranslation\CSharpName.cs" />
     <Compile Include="CodeTranslation\StatementTranslator.cs" />
