@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
+    <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
     <Compile Include="Misc\String_Extensions.cs" />
     <Compile Include="CodeTranslation\ParentConstructTypeOptions.cs" />

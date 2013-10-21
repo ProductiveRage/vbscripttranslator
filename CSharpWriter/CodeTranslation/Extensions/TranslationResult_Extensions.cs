@@ -20,6 +20,20 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
+        public static TranslationResult Add(this TranslationResult source, IEnumerable<TranslatedStatement> toAdd)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+            if (toAdd == null)
+                throw new ArgumentNullException("toAdd");
+
+            return new TranslationResult(
+                source.TranslatedStatements.AddRange(toAdd),
+                source.ExplicitVariableDeclarations,
+                source.UndeclaredVariablesAccessed
+            );
+        }
+
         public static TranslationResult Add(this TranslationResult source, TranslationResult toAdd)
         {
             if (source == null)
@@ -48,7 +62,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
-        public static TranslationResult Add(this TranslationResult source, TranslatedStatement toAddBefore, TranslationResult toAdd, TranslatedStatement toAddAfter)
+        public static TranslationResult Add(this TranslationResult source, IEnumerable<TranslatedStatement> toAddBefore, TranslationResult toAdd, TranslatedStatement toAddAfter)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
@@ -61,7 +75,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
 
             return new TranslationResult(
                 source.TranslatedStatements
-                    .Add(toAddBefore)
+                    .AddRange(toAddBefore)
                     .AddRange(toAdd.TranslatedStatements)
                     .Add(toAddAfter),
                 source.ExplicitVariableDeclarations.AddRange(toAdd.ExplicitVariableDeclarations),
