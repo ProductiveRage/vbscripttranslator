@@ -1,23 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation
 {
-    public class CodeBlockTranslator
+    public abstract class CodeBlockTranslator
     {
-        private readonly CSharpName _supportClassName;
-        private readonly VBScriptNameRewriter _nameRewriter;
-        private readonly TempValueNameGenerator _tempNameGenerator;
-        private readonly ITranslateIndividualStatements _statementTranslator;
-        public CodeBlockTranslator(
+		protected readonly CSharpName _supportClassName;
+		protected readonly VBScriptNameRewriter _nameRewriter;
+		protected readonly TempValueNameGenerator _tempNameGenerator;
+		protected readonly ITranslateIndividualStatements _statementTranslator;
+        protected CodeBlockTranslator(
             CSharpName supportClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
@@ -38,25 +36,7 @@ namespace CSharpWriter.CodeTranslation
             _statementTranslator = statementTranslator;
         }
 
-        public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
-        {
-            if (blocks == null)
-                throw new ArgumentNullException("blocks");
-
-            var translationResult = Translate(
-                blocks,
-                ScopeAccessInformation.Empty.Extend(ParentConstructTypeOptions.None, blocks),
-                0
-            );
-            translationResult = FlushExplicitVariableDeclarations(translationResult, ParentConstructTypeOptions.None, 0);
-            translationResult = FlushUndeclaredVariableDeclarations(translationResult, 0);
-            return translationResult.TranslatedStatements;
-        }
-
-        private TranslationResult Translate(
-            NonNullImmutableList<ICodeBlock> blocks,
-            ScopeAccessInformation scopeAccessInformation,
-            int indentationDepth)
+        protected TranslationResult TranslateCommon(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
             if (blocks == null)
                 throw new ArgumentNullException("block");
@@ -66,7 +46,7 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             var translationResult = TranslationResult.Empty;
-			foreach (var block in RemoveDuplicateFunctions(blocks))
+			foreach (var block in blocks)
             {
                 if (block is OptionExplicit)
                     continue;
@@ -141,7 +121,7 @@ namespace CSharpWriter.CodeTranslation
                 {
                     translationResult = translationResult.Add(
                         TranslateClassHeader(classBlock, indentationDepth),
-                        Translate(
+                        TranslateCommon(
                             classBlock.Statements.ToNonNullImmutableList(),
                             scopeAccessInformation.Extend(
                                 ParentConstructTypeOptions.Class,
@@ -157,22 +137,14 @@ namespace CSharpWriter.CodeTranslation
                 var functionBlock = ((block is FunctionBlock) || (block is SubBlock)) ? block as AbstractFunctionBlock : null;
                 if (functionBlock != null)
                 {
-                    translationResult = translationResult.Add(
-                        TranslateFunctionHeader(
-                            functionBlock,
-                            (block is FunctionBlock), // hasReturnValue (true for FunctionBlock, false for SubBlock)
-                            indentationDepth
-                        ),
-                        Translate(
-                            functionBlock.Statements.ToNonNullImmutableList(),
-                            scopeAccessInformation.Extend(
-                                ParentConstructTypeOptions.FunctionOrProperty,
-                                functionBlock.Statements
-                            ),
-                            indentationDepth + 1
-                        ),
-                        new TranslatedStatement("}", indentationDepth)
-                    );
+					var codeBlockTranslator = new FunctionBlockTranslator(_supportClassName, _nameRewriter, _tempNameGenerator, _statementTranslator);
+					translationResult = translationResult.Add(
+						codeBlockTranslator.Translate(
+							functionBlock,
+							scopeAccessInformation,
+							indentationDepth
+						)
+					);
                     continue;
                 }
 
@@ -192,14 +164,46 @@ namespace CSharpWriter.CodeTranslation
                 var valueSettingStatement = block as ValueSettingStatement;
                 if (valueSettingStatement != null)
                 {
+                    // TODO: This isn't right, we need to access the target reference in a manner that allows us to change it.
+                    // With a _.SET method?
+                    /*
+                    translationResult = translationResult.Add(
+                        new TranslatedStatement(
+                            string.Format(
+                                "{0} = {1};",
+                                _statementTranslator.Translate(
+                                    valueSettingStatement.ValueToSet,
+                                    ExpressionReturnTypeOptions.NotSpecified
+                                ),
+                                _statementTranslator.Translate(
+                                    valueSettingStatement.Expression,
+                                    (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
+                                        ? ExpressionReturnTypeOptions.Reference
+                                        : ExpressionReturnTypeOptions.Value
+                                )
+                            ),
+                            indentationDepth
+                        )
+                    );
+                    continue;
+                     */
                     throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
                 }
+
+                var ifBlock = block as IfBlock;
+				if (ifBlock != null)
+				{
+					translationResult = translationResult.Add(
+						TranslateIfBlock(ifBlock, indentationDepth)
+					);
+					continue;
+				}
 
                 throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
 
                 // TODO
                 // - DoBlock
-                // - ExitStatement
+                // - ExitStatement (only in Function, Property, For and While code block translators)
                 // - Expression / Statement / ValueSettingStatement
                 // - ForBlock
                 // - ForEachBlock
@@ -227,39 +231,7 @@ namespace CSharpWriter.CodeTranslation
             );
         }
 
-		/// <summary>
-		/// VBScript allows functions with the same name to appear multiple times, where all but the last implementation will be ignored. This is not
-		/// allowed within classes, but this translation should only be dealing with valid VBScript so there will be no validation for that here.
-		/// </summary>
-		private NonNullImmutableList<ICodeBlock> RemoveDuplicateFunctions(NonNullImmutableList<ICodeBlock> blocks)
-		{
-			if (blocks == null)
-				throw new ArgumentNullException("blocks");
-
-			var removeAtLocations = new List<int>();
-			foreach (var block in blocks)
-			{
-				var functionBlock = block as AbstractFunctionBlock;
-				if (functionBlock == null)
-					continue;
-
-				var functionName = _nameRewriter(functionBlock.Name).Name;
-				removeAtLocations.AddRange(
-					blocks
-						.Select((b, blockIndex) => new { Index = blockIndex, Block = b })
-						.Where(indexedBlock => indexedBlock.Block is AbstractFunctionBlock)
-						.Where(indexedBlock => _nameRewriter(((AbstractFunctionBlock)indexedBlock.Block).Name).Name == functionName)
-						.Select(indexedBlock => indexedBlock.Index)
-						.OrderByDescending(blockIndex => blockIndex)
-						.Skip(1) // Leave the last one intact
-				);
-			}
-			foreach (var removeIndex in removeAtLocations.Distinct().OrderByDescending(i => i))
-				blocks = blocks.RemoveAt(removeIndex);
-			return blocks;
-		}
-
-		private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
+		protected string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
         {
             if (variableDeclaration == null)
                 throw new ArgumentNullException("variableDeclaration");
@@ -293,41 +265,21 @@ namespace CSharpWriter.CodeTranslation
             };
         }
 
-        private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, bool hasReturnValue, int indentationDepth)
+        private IEnumerable<TranslatedStatement> TranslateIfBlock(IfBlock ifBlock, int indentationDepth)
         {
-            if (functionBlock == null)
+            if (ifBlock == null)
                 throw new ArgumentNullException("functionBlock");
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            var content = new StringBuilder();
-            content.Append(functionBlock.IsPublic ? "public" : "private");
-            content.Append(" ");
-            content.Append(hasReturnValue ? "object" : "void");
-            content.Append(" ");
-            content.Append(_nameRewriter.GetMemberAccessTokenName(functionBlock.Name));
-            content.Append("(");
-            var numberOfParameters = functionBlock.Parameters.Count();
-            for (var index = 0; index < numberOfParameters; index++)
+            var hadFirstClause = false;
+            foreach (var clause in ifBlock.Clauses)
             {
-                var parameter = functionBlock.Parameters.ElementAt(index);
-                if (parameter.ByRef)
-                    content.Append("ref ");
-                content.Append(_nameRewriter.GetMemberAccessTokenName(parameter.Name));
-                if (index < (numberOfParameters - 1))
-                    content.Append(", ");
             }
-            content.Append(")");
-
-			var translatedStatements = new List<TranslatedStatement>();
-			if (functionBlock.IsDefault)
-				translatedStatements.Add(new TranslatedStatement("[" + typeof(IsDefault).FullName + "]", indentationDepth));
-			translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
-			translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
-			return translatedStatements;
+            throw new NotImplementedException(); // TODO
         }
 
-		private TranslationResult FlushExplicitVariableDeclarations(
+		protected TranslationResult FlushExplicitVariableDeclarations(
 			TranslationResult translationResult,
 			ParentConstructTypeOptions parentConstructType,
 			int indentationDepth)
@@ -351,34 +303,5 @@ namespace CSharpWriter.CodeTranslation
 				translationResult.UndeclaredVariablesAccessed
 			);
 		}
-
-		/// <summary>
-        /// This should only performed at the outer layer (and so no ParentConstructTypeOptions value is required, it is assumed to be None)
-        /// </summary>
-        private TranslationResult FlushUndeclaredVariableDeclarations(TranslationResult translationResult, int indentationDepth)
-        {
-            if (translationResult == null)
-                throw new ArgumentNullException("translationResult");
-            if (indentationDepth < 0)
-                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
-
-            return new TranslationResult(
-                translationResult.UndeclaredVariablesAccessed
-                    .Select(v =>
-                         new TranslatedStatement(
-                            TranslateVariableDeclaration(
-                                // Undeclared variables will be specified as non-array types initially (hence the false
-                                // value for the isArray argument if the VariableDeclaration constructor call below)
-                                new VariableDeclaration(v, VariableDeclarationScopeOptions.Public, false)
-                            ),
-                            indentationDepth
-                        )
-                    )
-                    .ToNonNullImmutableList()
-                    .AddRange(translationResult.TranslatedStatements),
-                translationResult.ExplicitVariableDeclarations,
-                new NonNullImmutableList<NameToken>()
-            );
-        }
     }
 }

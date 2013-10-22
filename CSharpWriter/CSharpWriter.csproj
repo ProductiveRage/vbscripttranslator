@@ -39,6 +39,8 @@
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
+    <Compile Include="CodeTranslation\Translators\OuterScopeBlockTranslator.cs" />
+    <Compile Include="CodeTranslation\Translators\FunctionBlockTranslator.cs" />
     <Compile Include="Misc\String_Extensions.cs" />
     <Compile Include="CodeTranslation\ParentConstructTypeOptions.cs" />
     <Compile Include="CodeTranslation\CSharpName.cs" />
@@ -54,7 +56,7 @@
     <Compile Include="Lists\IEnumerable_Extensions.cs" />
     <Compile Include="Lists\NonNullImmutableList.cs" />
     <Compile Include="Lists\ImmutableList.cs" />
-    <Compile Include="CodeTranslation\CodeBlockTranslator.cs" />
+    <Compile Include="CodeTranslation\Translators\CodeBlockTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CodeTranslation\TranslatedStatement.cs" />
     <Compile Include="CodeTranslation\TranslationResult.cs" />
