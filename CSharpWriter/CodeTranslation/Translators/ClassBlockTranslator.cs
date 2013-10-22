@@ -49,16 +49,14 @@ namespace CSharpWriter.CodeTranslation
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			// TODO
-			// - PropertyBlock (check for Default on the Get - the only place it's valid - before rendering Let or Set)
-
 			return base.TranslateCommon(
 				new BlockTranslationAttempter[]
 				{
 					base.TryToTranslateBlankLine,
 					base.TryToTranslateComment,
 					base.TryToTranslateDim,
-					base.TryToTranslateFunction
+					base.TryToTranslateFunction,
+					base.TryToTranslateProperty
 				}.ToNonNullImmutableList(),
 				blocks,
 				scopeAccessInformation,

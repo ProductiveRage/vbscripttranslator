@@ -55,16 +55,6 @@ namespace CSharpWriter.CodeTranslation
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			// TODO
-			// - DoBlock
-			// - ExitStatement (handle validation regarding matching ExitableStatementType to scopeAccessInformation.parentIfAny type
-			// - ForBlock
-			// - ForEachBlock
-			// - OnErrorResumeNext / OnErrorGoto0
-			// - PropertyBlock
-			// - RandomizeStatement (see http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND)
-			// - SelectBlock
-
 			return base.TranslateCommon(
 				new BlockTranslationAttempter[]
 				{
@@ -72,8 +62,14 @@ namespace CSharpWriter.CodeTranslation
 					base.TryToTranslateClass,
 					base.TryToTranslateComment,
 					base.TryToTranslateDim,
+					base.TryToTranslateDo,
+					base.TryToTranslateExit,
+					base.TryToTranslateFor,
+					base.TryToTranslateForEach,
 					base.TryToTranslateIf,
+					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,
+					base.TryToTranslateSelect
 				}.ToNonNullImmutableList(),
 				blocks,
 				scopeAccessInformation,

@@ -59,6 +59,11 @@ namespace CSharpWriter.CodeTranslation
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+			// TODO: Going to need to incorporate On Error Resume Next / Goto 0 handling outside of the rest of the process, requiring additional data
+			// in the scopeAccessInformation type?
+
+			// TODO: Ensure that the UndeclaredVariablesAccessed set is being 
+
             var translationResult = TranslationResult.Empty;
 			foreach (var block in blocks)
             {
@@ -109,6 +114,37 @@ namespace CSharpWriter.CodeTranslation
 			);
 		}
 
+		protected TranslationResult TryToTranslateComment(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var commentBlock = block as CommentStatement;
+			if (commentBlock == null)
+				return null;
+
+			var translatedCommentContent = "//" + commentBlock.Content;
+			if (block is InlineCommentStatement)
+			{
+				var lastTranslatedStatement = translationResult.TranslatedStatements.LastOrDefault();
+				if ((lastTranslatedStatement != null) && (lastTranslatedStatement.Content != ""))
+				{
+					translationResult = new TranslationResult(
+						translationResult.TranslatedStatements
+							.RemoveLast()
+							.Add(new TranslatedStatement(
+								lastTranslatedStatement.Content + " " + translatedCommentContent,
+								lastTranslatedStatement.IndentationDepth
+							)),
+						translationResult.ExplicitVariableDeclarations,
+						translationResult.UndeclaredVariablesAccessed
+					);
+					return translationResult;
+				}
+			}
+
+			return translationResult.Add(
+				new TranslatedStatement(translatedCommentContent, indentationDepth)
+			);
+		}
+
 		protected TranslationResult TryToTranslateDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
 			// This covers the DimStatement, ReDimStatement, PrivateVariableStatement and PublicVariableStatement
@@ -141,36 +177,41 @@ namespace CSharpWriter.CodeTranslation
 			throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
 		}
 
-		protected TranslationResult TryToTranslateComment(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		protected TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
-            var commentBlock = block as CommentStatement;
-            if (commentBlock == null)
+			var doBlock = block as DoBlock;
+			if (doBlock == null)
 				return null;
 
-            var translatedCommentContent = "//" + commentBlock.Content;
-            if (block is InlineCommentStatement)
-            {
-                var lastTranslatedStatement = translationResult.TranslatedStatements.LastOrDefault();
-                if ((lastTranslatedStatement != null) && (lastTranslatedStatement.Content != ""))
-                {
-                    translationResult = new TranslationResult(
-                        translationResult.TranslatedStatements
-                            .RemoveLast()
-                            .Add(new TranslatedStatement(
-                                lastTranslatedStatement.Content + " " + translatedCommentContent,
-                                lastTranslatedStatement.IndentationDepth
-                            )),
-                        translationResult.ExplicitVariableDeclarations,
-                        translationResult.UndeclaredVariablesAccessed
-                    );
-                    return translationResult;
-                }
-            }
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
 
-			return translationResult.Add(
-                new TranslatedStatement(translatedCommentContent, indentationDepth)
-            );
-        }
+		protected TranslationResult TryToTranslateExit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var exitStatement = block as ExitStatement;
+			if (exitStatement == null)
+				return null;
+
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
+
+		protected TranslationResult TryToTranslateFor(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var forBlock = block as ForBlock;
+			if (forBlock == null)
+				return null;
+
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
+
+		protected TranslationResult TryToTranslateForEach(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var forEachBlock = block as ForEachBlock;
+			if (forEachBlock == null)
+				return null;
+
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
 
 		protected TranslationResult TryToTranslateFunction(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -194,16 +235,41 @@ namespace CSharpWriter.CodeTranslation
 			if (ifBlock == null)
 				return null;
 
-			//var hadFirstClause = false;
-			foreach (var clause in ifBlock.Clauses)
-			{
-			}
-			throw new NotImplementedException(); // TODO
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
 		}
 
 		protected TranslationResult TryToTranslateOptionExplicit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
 			return (block is OptionExplicit) ? TranslationResult.Empty : null;
+		}
+
+		protected TranslationResult TryToTranslateProperty(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var propertyBlock = block as PropertyBlock;
+			if (propertyBlock == null)
+				return null;
+
+			// Note: Check for Default on the Get (the only place it's valid) before rendering Let or Set
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
+
+		protected TranslationResult TryToTranslateRandomize(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var randomizeStatement = block as RandomizeStatement;
+			if (randomizeStatement == null)
+				return null;
+
+			// Note: See http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+		}
+
+		protected TranslationResult TryToTranslateSelect(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		{
+			var selectBlock = block as SelectBlock;
+			if (selectBlock == null)
+				return null;
+
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
 		}
 
 		protected TranslationResult TryToTranslateStatementOrExpression(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -248,9 +314,8 @@ namespace CSharpWriter.CodeTranslation
 			//    )
 			//);
 			//continue;
-			//throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
-			
-			throw new NotImplementedException("Not enabled support for ValueSettingStatements yet"); // TODO
+
+			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
 		}
 
 		protected string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
