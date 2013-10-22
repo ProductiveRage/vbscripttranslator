@@ -1,9 +1,10 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CSharpSupport;
+using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -65,11 +66,8 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             var translationResult = TranslationResult.Empty;
-            for (var index = 0; index < blocks.Count; index++)
+			foreach (var block in RemoveDuplicateFunctions(blocks))
             {
-                var block = blocks[index];
-                var nextBlock = (index == (blocks.Count - 1)) ? null : blocks[index + 1]; // TODO: Is this required??
-
                 if (block is OptionExplicit)
                     continue;
 
@@ -206,7 +204,7 @@ namespace CSharpWriter.CodeTranslation
                 // - ForBlock
                 // - ForEachBlock
                 // - OnErrorResumeNext / OnErrorGoto0
-                // - PropertyBlock
+                // - PropertyBlock (check for Default on the Get - the only place it's valid - before rendering Let or Set)
                 // - RandomizeStatement (see http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND)
                 // - SelectBlock
 
@@ -229,7 +227,39 @@ namespace CSharpWriter.CodeTranslation
             );
         }
 
-        private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
+		/// <summary>
+		/// VBScript allows functions with the same name to appear multiple times, where all but the last implementation will be ignored. This is not
+		/// allowed within classes, but this translation should only be dealing with valid VBScript so there will be no validation for that here.
+		/// </summary>
+		private NonNullImmutableList<ICodeBlock> RemoveDuplicateFunctions(NonNullImmutableList<ICodeBlock> blocks)
+		{
+			if (blocks == null)
+				throw new ArgumentNullException("blocks");
+
+			var removeAtLocations = new List<int>();
+			foreach (var block in blocks)
+			{
+				var functionBlock = block as AbstractFunctionBlock;
+				if (functionBlock == null)
+					continue;
+
+				var functionName = _nameRewriter(functionBlock.Name).Name;
+				removeAtLocations.AddRange(
+					blocks
+						.Select((b, blockIndex) => new { Index = blockIndex, Block = b })
+						.Where(indexedBlock => indexedBlock.Block is AbstractFunctionBlock)
+						.Where(indexedBlock => _nameRewriter(((AbstractFunctionBlock)indexedBlock.Block).Name).Name == functionName)
+						.Select(indexedBlock => indexedBlock.Index)
+						.OrderByDescending(blockIndex => blockIndex)
+						.Skip(1) // Leave the last one intact
+				);
+			}
+			foreach (var removeIndex in removeAtLocations.Distinct().OrderByDescending(i => i))
+				blocks = blocks.RemoveAt(removeIndex);
+			return blocks;
+		}
+
+		private string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
         {
             if (variableDeclaration == null)
                 throw new ArgumentNullException("variableDeclaration");
@@ -248,14 +278,13 @@ namespace CSharpWriter.CodeTranslation
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // TODO: Should the supportClassName reference be passed in here?
             var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
             return new[]
             {
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly IProvideVBScriptCompatFunctionality " + _supportClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("public " + className + "(IProvideVBScriptCompatFunctionality compatLayer)", indentationDepth + 1),
+                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("public " + className + "(" + typeof(IProvideVBScriptCompatFunctionality).FullName + " compatLayer)", indentationDepth + 1),
                 new TranslatedStatement("{", indentationDepth + 1),
                 new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
                 new TranslatedStatement("throw new ArgumentNullException(compatLayer)", indentationDepth + 3),
@@ -270,9 +299,6 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("functionBlock");
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
-
-            if (functionBlock.IsDefault)
-                throw new NotSupportedException("Default Functions are not supported yet"); // TODO
 
             var content = new StringBuilder();
             content.Append(functionBlock.IsPublic ? "public" : "private");
@@ -292,39 +318,41 @@ namespace CSharpWriter.CodeTranslation
                     content.Append(", ");
             }
             content.Append(")");
-            return new[]
-            {
-                new TranslatedStatement(content.ToString(), indentationDepth),
-                new TranslatedStatement("{", indentationDepth)
-            };
+
+			var translatedStatements = new List<TranslatedStatement>();
+			if (functionBlock.IsDefault)
+				translatedStatements.Add(new TranslatedStatement("[" + typeof(IsDefault).FullName + "]", indentationDepth));
+			translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
+			translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
+			return translatedStatements;
         }
 
-        private TranslationResult FlushExplicitVariableDeclarations(
-            TranslationResult translationResult,
-            ParentConstructTypeOptions parentConstructType,
-            int indentationDepth)
-        {
-            // TODO: Consider trying to insert the content after any comments or blank lines?
-            if (translationResult == null)
-                throw new ArgumentNullException("translationResult");
-            if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
-                throw new ArgumentOutOfRangeException("parentConstructType");
-            if (indentationDepth < 0)
-                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
+		private TranslationResult FlushExplicitVariableDeclarations(
+			TranslationResult translationResult,
+			ParentConstructTypeOptions parentConstructType,
+			int indentationDepth)
+		{
+			// TODO: Consider trying to insert the content after any comments or blank lines?
+			if (translationResult == null)
+				throw new ArgumentNullException("translationResult");
+			if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
+				throw new ArgumentOutOfRangeException("parentConstructType");
+			if (indentationDepth < 0)
+				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            return new TranslationResult(
-                translationResult.ExplicitVariableDeclarations
-                    .Select(v =>
-                         new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepth)
-                    )
-                    .ToNonNullImmutableList()
-                    .AddRange(translationResult.TranslatedStatements),
-                new NonNullImmutableList<VariableDeclaration>(),
-                translationResult.UndeclaredVariablesAccessed
-            );
-        }
+			return new TranslationResult(
+				translationResult.ExplicitVariableDeclarations
+					.Select(v =>
+						 new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepth)
+					)
+					.ToNonNullImmutableList()
+					.AddRange(translationResult.TranslatedStatements),
+				new NonNullImmutableList<VariableDeclaration>(),
+				translationResult.UndeclaredVariablesAccessed
+			);
+		}
 
-        /// <summary>
+		/// <summary>
         /// This should only performed at the outer layer (and so no ParentConstructTypeOptions value is required, it is assumed to be None)
         /// </summary>
         private TranslationResult FlushUndeclaredVariableDeclarations(TranslationResult translationResult, int indentationDepth)
