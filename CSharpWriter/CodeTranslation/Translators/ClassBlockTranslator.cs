@@ -52,7 +52,18 @@ namespace CSharpWriter.CodeTranslation
 			// TODO
 			// - PropertyBlock (check for Default on the Get - the only place it's valid - before rendering Let or Set)
 
-			return base.TranslateCommon(blocks, scopeAccessInformation, indentationDepth);
+			return base.TranslateCommon(
+				new BlockTranslationAttempter[]
+				{
+					base.TryToTranslateBlankLine,
+					base.TryToTranslateComment,
+					base.TryToTranslateDim,
+					base.TryToTranslateFunction
+				}.ToNonNullImmutableList(),
+				blocks,
+				scopeAccessInformation,
+				indentationDepth
+			);
 		}
 
 		private IEnumerable<TranslatedStatement> TranslateClassHeader(ClassBlock classBlock, int indentationDepth)

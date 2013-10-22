@@ -43,8 +43,31 @@ namespace CSharpWriter.CodeTranslation
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
 			// TODO
+			// - DoBlock
+			// - ExitStatement (handle validation regarding matching ExitableStatementType to scopeAccessInformation.parentIfAny type
+			// - ForBlock
+			// - ForEachBlock
+			// - OnErrorResumeNext / OnErrorGoto0
+			// - PropertyBlock
+			// - RandomizeStatement (see http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND)
+			// - SelectBlock
 
-			return base.TranslateCommon(blocks, scopeAccessInformation, indentationDepth);
+			return base.TranslateCommon(
+				new BlockTranslationAttempter[]
+				{
+					base.TryToTranslateBlankLine,
+					base.TryToTranslateClass,
+					base.TryToTranslateComment,
+					base.TryToTranslateDim,
+					base.TryToTranslateFunction,
+					base.TryToTranslateIf,
+					base.TryToTranslateOptionExplicit,
+					base.TryToTranslateStatementOrExpression,
+				}.ToNonNullImmutableList(),
+				blocks,
+				scopeAccessInformation,
+				indentationDepth
+			);
 		}
 
 		/// <summary>
