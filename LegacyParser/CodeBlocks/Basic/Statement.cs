@@ -138,7 +138,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     // here as "(a.Test(1))" as the "Call" keyword is removed and so an OpenBrace is a valid first token as well
                     if (token is OpenBrace)
                         bracketCount = 1;
-                    else if (!IsTokenBaseAtomOrKeyWordOrNameOrNumericValueToken(token))
+					else if (!IsTokenAcceptableToCommenceCallExecution(token))
                         throw new ArgumentException("The first token should be an AtomToken or a KeyWordToken (not another type derived from AtomToken) to be a valid Statement");
                 }
                 else
@@ -162,9 +162,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                             // If we've reached an un-bracketed string then we need to standardise the brackets starting before this token and closing around the last
                             insertBracketsBeforeThisToken = true;
                         }
-                        if (IsTokenBaseAtomOrKeyWordOrNameOrNumericValueToken(token)
+						if (IsTokenAcceptableToCommenceCallExecution(token)
                         && (lastUnbracketedToken != null)
-                        && (IsTokenBaseAtomOrKeyWordOrNameOrNumericValueToken(lastUnbracketedToken)))
+						&& (IsTokenAcceptableToCommenceCallExecution(lastUnbracketedToken)))
                         {
                             // If we've hit adjacent tokens (excluding bracketed content) that look like objects, properties or functions then there should
                             // be brackets in between. This covers cases such as
@@ -192,8 +192,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             return tokenArray;
         }
 
-        // TODO: Rename this method to something more appropriate (exclude rather than include?)
-        private static bool IsTokenBaseAtomOrKeyWordOrNameOrNumericValueToken(IToken token)
+		/// <summary>
+		/// Is the current token something that could represent the start of, or the entirety of, a call or value access - values may be of types
+		/// NumericValueToken or BuiltInValueToken (in which case they should be entirety of an expression segment) or it might be the start of
+		/// a function call (eg.  BuiltInFunctionToken or NameToken, in some cases). Tokens that would not be acceptable would be open braces
+		/// (since bracketed expressions should be handled separately above) or ArgumentSeparatorToken, amongst others.
+		/// </summary>
+        private static bool IsTokenAcceptableToCommenceCallExecution(IToken token)
         {
             if (token == null)
                 throw new ArgumentNullException("token");
@@ -206,7 +211,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 (token.GetType() == typeof(KeyWordToken)) ||
 
                 (token is NameToken) ||
-                (token.GetType() == typeof(NumericValueToken))
+                (token.GetType() == typeof(NumericValueToken)) ||
+                (token.GetType() == typeof(StringToken))
             );
         }
     }
