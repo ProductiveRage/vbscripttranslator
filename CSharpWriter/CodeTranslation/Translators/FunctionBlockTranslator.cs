@@ -5,8 +5,8 @@ using System.Text;
 using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter.CodeTranslation
 {
@@ -59,7 +59,7 @@ namespace CSharpWriter.CodeTranslation
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
 			// TODO
-			// - 
+			// - ExitStatement (where statementType is Function)
 
 			return base.TranslateCommon(blocks, scopeAccessInformation, indentationDepth);
 		}

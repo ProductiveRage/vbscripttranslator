@@ -9,27 +9,27 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private ExitableStatementType loopType;
-        public ExitStatement(ExitableStatementType loopType)
+        private ExitableStatementType statementType;
+        public ExitStatement(ExitableStatementType statementType)
         {
             bool isValid = false;
             foreach (object value in Enum.GetValues(typeof(ExitableStatementType)))
             {
-                if (value.Equals(loopType))
+                if (value.Equals(statementType))
                 {
                     isValid = true;
                     break;
                 }
             }
             if (!isValid)
-                throw new ArgumentException("Invalid type value specified [" + loopType.ToString() + "]");
-            this.loopType = loopType;
+				throw new ArgumentException("Invalid statementType value specified [" + statementType.ToString() + "]");
+            this.statementType = statementType;
         }
 
         public enum ExitableStatementType
         {
-            For,
-            Do,
+			Do,
+			For,
 			Function,
 			Property
         }
@@ -43,7 +43,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            return indenter.Indent + "Exit " + this.loopType.ToString();
+            return indenter.Indent + "Exit " + this.statementType.ToString();
         }
     }
 }
