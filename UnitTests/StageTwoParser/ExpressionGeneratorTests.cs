@@ -619,6 +619,24 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
+        [Fact]
+        public void NewInstanceRequestsShouldNotBeConfusedWithCallExpressions()
+        {
+            // new Test
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        NEW("Test")
+                    )
+                },
+                ExpressionGenerator.Generate(new IToken[] {
+                    new KeyWordToken("new"),
+                    new NameToken("Test")
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions
         /// </summary>
@@ -690,6 +708,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 memberAccessTokens,
                 arguments.Select(a => new Expression(new[] { CALL(a) }))
             );
+        }
+
+        private static NewInstanceExpressionSegment NEW(string className)
+        {
+            return new NewInstanceExpressionSegment(new NameToken(className));
         }
 
         private static OperationExpressionSegment OP(OperatorToken token)

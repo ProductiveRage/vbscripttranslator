@@ -60,7 +60,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            GetCallOrValueExpressionSegment(accessorBuffer)
+                            GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
                         );
                         accessorBuffer.Clear();
                     }
@@ -86,8 +86,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            new CallExpressionSegment(
-                                accessorBuffer.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
+                            GetCallOrNewOrValueExpressionSegment(
+                                accessorBuffer,
                                 bracketedExpressions
                             )
                         );
@@ -110,7 +110,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            GetCallOrValueExpressionSegment(accessorBuffer)
+                            GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
                         );
                         accessorBuffer.Clear();
                     }
@@ -127,7 +127,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (accessorBuffer.Any())
             {
                 expressionSegments.Add(
-                    GetCallOrValueExpressionSegment(accessorBuffer)
+                    GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
                 );
                 accessorBuffer.Clear();
             }
@@ -247,11 +247,11 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
         /// <summary>
         /// If a single token of type NumericValueToken or StringToken is specified then return a NumericValueExpressionSegment or StringValueExpressionSegment to
-        /// represent the constant value. Otherwise return a CallExpressionSegment (with no arguments since method should not be called with tokens that describe
-        /// arguments for a call, that data should be parsed and used to instantiate a CallExpressionSegment directly since there is no chance of representing
+        /// represent the constant value (there should be zero arguments in this case). If there are two tokens, a KeyWordToken with content "new" and NameToken
+        /// (with no arguments) then this can be represented by a NewInstanceExpressionSegment. Otherwise return a CallExpressionSegment.
         /// that data in a constant-type expression segment).
         /// </summary>
-        private static IExpressionSegment GetCallOrValueExpressionSegment(IEnumerable<IToken> tokens)
+        private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(IEnumerable<IToken> tokens, IEnumerable<Expression> arguments)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
@@ -262,19 +262,30 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (tokensArray.Any(t => t == null))
                 throw new ArgumentException("Null reference encountered in tokens set");
 
-            if (tokensArray.Length == 1)
+            // If there are arguments then there's no change of representing this as a constant-type expression or as a new instance request
+            if (!arguments.Any())
             {
-                var numericValue = tokensArray[0] as NumericValueToken;
-                if (numericValue != null)
-                    return new NumericValueExpressionSegment(numericValue);
-                var stringValue = tokensArray[0] as StringToken;
-                if (stringValue != null)
-                    return new StringValueExpressionSegment(stringValue);
+                if (tokensArray.Length == 1)
+                {
+                    var numericValue = tokensArray[0] as NumericValueToken;
+                    if (numericValue != null)
+                        return new NumericValueExpressionSegment(numericValue);
+                    var stringValue = tokensArray[0] as StringToken;
+                    if (stringValue != null)
+                        return new StringValueExpressionSegment(stringValue);
+                }
+                else if ((tokensArray.Length == 2)
+                && (tokensArray[0] is KeyWordToken)
+                && tokensArray[0].Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var newInstanceName = tokensArray[1] as NameToken;
+                    if (newInstanceName != null)
+                        return new NewInstanceExpressionSegment(newInstanceName);
+                }
             }
-
             return new CallExpressionSegment(
                 tokensArray.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
-                new Expression[0]
+                arguments
             );
         }
 
@@ -354,6 +365,38 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     expressionSegments.Add(new CallSetExpressionSegment(callExpressionSegmentBuffer));
             }
             return new Expression(expressionSegments);
+        }
+
+        private static NewInstanceExpressionSegment TryToGetAsNewInstanceExpression(IExpressionSegment segment)
+        {
+            if (segment == null)
+                throw new ArgumentNullException("segment");
+
+            CallExpressionSegment callExpressionSegment;
+            if (segment is CallSetExpressionSegment)
+            {
+                var callSetExpressionSegment = segment as CallSetExpressionSegment;
+                if (callSetExpressionSegment.CallExpressionSegments.Count() > 1)
+                    return null;
+                callExpressionSegment = callSetExpressionSegment.CallExpressionSegments.Single();
+            }
+            else
+                callExpressionSegment = segment as CallExpressionSegment;
+            if (callExpressionSegment == null)
+                return null;
+
+            if ((callExpressionSegment.MemberAccessTokens.Count() != 2) || callExpressionSegment.Arguments.Any())
+                return null;
+
+            var memberAccessToken0 = callExpressionSegment.MemberAccessTokens.First();
+            if (!memberAccessToken0.Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
+                return null;
+
+            var memberAccessToken1 = callExpressionSegment.MemberAccessTokens.ElementAt(1) as NameToken;
+            if (memberAccessToken1 == null)
+                return null;
+
+            return new NewInstanceExpressionSegment(memberAccessToken1);
         }
 
         private class IndexerOperationExpressionSegmentSorter : IComparer<Tuple<OperationExpressionSegment, int>>

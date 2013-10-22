@@ -20,6 +20,8 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
                 return (new BracketedExpressionSegmentComparer()).Equals((BracketedExpressionSegment)x, (BracketedExpressionSegment)y);
             else if (x.GetType() == typeof(OperationExpressionSegment))
                 return (new OperatorOrComparisonExpressionSegmentComparer()).Equals((OperationExpressionSegment)x, (OperationExpressionSegment)y);
+            else if (x.GetType() == typeof(NewInstanceExpressionSegment))
+                return (new NewInstanceExpressionSegmentComparer()).Equals((NewInstanceExpressionSegment)x, (NewInstanceExpressionSegment)y);
             else if (x.GetType() == typeof(CallExpressionSegment))
                 return (new CallExpressionSegmentComparer()).Equals((CallExpressionSegment)x, (CallExpressionSegment)y);
             else if (x.GetType() == typeof(CallSetExpressionSegment))
