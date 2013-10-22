@@ -39,6 +39,7 @@
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
+    <Compile Include="CodeTranslation\Translators\ClassBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\OuterScopeBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\FunctionBlockTranslator.cs" />
     <Compile Include="Misc\String_Extensions.cs" />

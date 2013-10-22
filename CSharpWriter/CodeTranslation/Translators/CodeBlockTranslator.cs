@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
@@ -119,19 +118,15 @@ namespace CSharpWriter.CodeTranslation
                 var classBlock = block as ClassBlock;
                 if (classBlock != null)
                 {
-                    translationResult = translationResult.Add(
-                        TranslateClassHeader(classBlock, indentationDepth),
-                        TranslateCommon(
-                            classBlock.Statements.ToNonNullImmutableList(),
-                            scopeAccessInformation.Extend(
-                                ParentConstructTypeOptions.Class,
-                                classBlock.Statements
-                            ),
-                            indentationDepth + 1
-                        ),
-                        new TranslatedStatement("}", indentationDepth)
-                    );
-                    continue;
+					var codeBlockTranslator = new ClassBlockTranslator(_supportClassName, _nameRewriter, _tempNameGenerator, _statementTranslator);
+					translationResult = translationResult.Add(
+						codeBlockTranslator.Translate(
+							classBlock,
+							scopeAccessInformation,
+							indentationDepth
+						)
+					);
+					continue;
                 }
 
                 var functionBlock = ((block is FunctionBlock) || (block is SubBlock)) ? block as AbstractFunctionBlock : null;
@@ -208,7 +203,6 @@ namespace CSharpWriter.CodeTranslation
                 // - ForBlock
                 // - ForEachBlock
                 // - OnErrorResumeNext / OnErrorGoto0
-                // - PropertyBlock (check for Default on the Get - the only place it's valid - before rendering Let or Set)
                 // - RandomizeStatement (see http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND)
                 // - SelectBlock
 
@@ -243,28 +237,6 @@ namespace CSharpWriter.CodeTranslation
             );
         }
 
-        private IEnumerable<TranslatedStatement> TranslateClassHeader(ClassBlock classBlock, int indentationDepth)
-        {
-            if (classBlock == null)
-                throw new ArgumentNullException("classBlock");
-            if (indentationDepth < 0)
-                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
-
-            var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
-            return new[]
-            {
-                new TranslatedStatement("public class " + className, indentationDepth),
-                new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("public " + className + "(" + typeof(IProvideVBScriptCompatFunctionality).FullName + " compatLayer)", indentationDepth + 1),
-                new TranslatedStatement("{", indentationDepth + 1),
-                new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
-                new TranslatedStatement("throw new ArgumentNullException(compatLayer)", indentationDepth + 3),
-                new TranslatedStatement("this." + _supportClassName.Name + " = compatLayer;", indentationDepth + 2),
-                new TranslatedStatement("}", indentationDepth + 1)
-            };
-        }
-
         private IEnumerable<TranslatedStatement> TranslateIfBlock(IfBlock ifBlock, int indentationDepth)
         {
             if (ifBlock == null)
@@ -272,7 +244,7 @@ namespace CSharpWriter.CodeTranslation
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            var hadFirstClause = false;
+            //var hadFirstClause = false;
             foreach (var clause in ifBlock.Clauses)
             {
             }
