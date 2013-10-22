@@ -19,7 +19,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             if (tokens.Count == 0)
                 return null;
 
-            foreach (ExitStatement.LoopType exitType in Enum.GetValues(typeof(ExitStatement.LoopType)))
+            foreach (ExitStatement.ExitableStatementType exitType in Enum.GetValues(typeof(ExitStatement.ExitableStatementType)))
             {
                 string[] matchPattern = new string[] { "EXIT", exitType.ToString() };
                 if (base.checkAtomTokenPattern(tokens, matchPattern, false))

@@ -9,11 +9,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private LoopType loopType;
-        public ExitStatement(LoopType loopType)
+        private ExitableStatementType loopType;
+        public ExitStatement(ExitableStatementType loopType)
         {
             bool isValid = false;
-            foreach (object value in Enum.GetValues(typeof(LoopType)))
+            foreach (object value in Enum.GetValues(typeof(ExitableStatementType)))
             {
                 if (value.Equals(loopType))
                 {
@@ -26,10 +26,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             this.loopType = loopType;
         }
 
-        public enum LoopType
+        public enum ExitableStatementType
         {
             For,
-            Do
+            Do,
+			Function,
+			Property
         }
 
         // =======================================================================================
