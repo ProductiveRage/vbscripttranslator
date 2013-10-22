@@ -25,13 +25,10 @@ namespace CSharpWriter.CodeTranslation
 			blocks = RemoveDuplicateFunctions(blocks);
 			var translationResult = Translate(
                 blocks,
-                ScopeAccessInformation.Empty.Extend(
-					ParentConstructTypeOptions.None,
-					blocks
-				),
+                ScopeAccessInformation.Empty.Extend(null, blocks),
                 0
             );
-            translationResult = FlushExplicitVariableDeclarations(translationResult, ParentConstructTypeOptions.None, 0);
+            translationResult = FlushExplicitVariableDeclarations(translationResult, 0);
             translationResult = FlushUndeclaredVariableDeclarations(translationResult, 0);
             return translationResult.TranslatedStatements;
         }

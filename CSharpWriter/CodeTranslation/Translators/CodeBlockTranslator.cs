@@ -215,12 +215,11 @@ namespace CSharpWriter.CodeTranslation
             // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
             // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
             // variable declarations into translated statements
-            if (scopeAccessInformation.ParentConstructType == ParentConstructTypeOptions.NonScopeAlteringConstruct)
+			if (!(scopeAccessInformation.ParentIfAny is IDefineScope))
                 return translationResult;
             
             return FlushExplicitVariableDeclarations(
                 translationResult,
-                scopeAccessInformation.ParentConstructType,
                 indentationDepth
             );
         }
@@ -251,16 +250,11 @@ namespace CSharpWriter.CodeTranslation
             throw new NotImplementedException(); // TODO
         }
 
-		protected TranslationResult FlushExplicitVariableDeclarations(
-			TranslationResult translationResult,
-			ParentConstructTypeOptions parentConstructType,
-			int indentationDepth)
+		protected TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepth)
 		{
 			// TODO: Consider trying to insert the content after any comments or blank lines?
 			if (translationResult == null)
 				throw new ArgumentNullException("translationResult");
-			if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
-				throw new ArgumentOutOfRangeException("parentConstructType");
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 

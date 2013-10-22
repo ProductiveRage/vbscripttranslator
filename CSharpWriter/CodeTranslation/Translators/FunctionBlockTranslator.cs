@@ -37,10 +37,7 @@ namespace CSharpWriter.CodeTranslation
 			translationResult = translationResult.Add(
 				Translate(
 					functionBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(
-						ParentConstructTypeOptions.FunctionOrProperty,
-						functionBlock.Statements
-					),
+					scopeAccessInformation.Extend(functionBlock, functionBlock.Statements),
 					indentationDepth + 1
 				)
 			);

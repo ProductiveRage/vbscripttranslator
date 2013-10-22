@@ -11,19 +11,19 @@ namespace CSharpWriter.CodeTranslation.Extensions
     {
         public static ScopeAccessInformation Extend(
             this ScopeAccessInformation scopeInformation,
-            ParentConstructTypeOptions parentConstructType,
-            IEnumerable<ICodeBlock> blocks)
+			IHaveNestedContent parentIfAny,
+			IDefineScope scopeDefiningParentIfAny,
+			IEnumerable<ICodeBlock> blocks)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
-                throw new ArgumentOutOfRangeException("parentConstructType");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
             blocks = blocks.ToNonNullImmutableList().FlattenAllAccessibleBlockLevelCodeBlocks();
             return new ScopeAccessInformation(
-                parentConstructType,
+				parentIfAny,
+				scopeDefiningParentIfAny,
                 scopeInformation.Classes.AddRange(
                     blocks
                         .Where(b => b is ClassBlock)
@@ -50,5 +50,19 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 )
             );
         }
-    }
+
+		/// <summary>
+		/// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is convenience
+		/// method to save having to specify it explicitly for both
+		/// </summary>
+		public static ScopeAccessInformation Extend(this ScopeAccessInformation scopeInformation, IDefineScope parentIfAny, IEnumerable<ICodeBlock> blocks)
+		{
+			if (scopeInformation == null)
+				throw new ArgumentNullException("scopeInformation");
+			if (blocks == null)
+				throw new ArgumentNullException("blocks");
+
+			return Extend(scopeInformation, parentIfAny, parentIfAny, blocks);
+		}
+	}
 }

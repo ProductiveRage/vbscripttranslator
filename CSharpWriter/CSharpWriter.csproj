@@ -43,7 +43,6 @@
     <Compile Include="CodeTranslation\Translators\OuterScopeBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\FunctionBlockTranslator.cs" />
     <Compile Include="Misc\String_Extensions.cs" />
-    <Compile Include="CodeTranslation\ParentConstructTypeOptions.cs" />
     <Compile Include="CodeTranslation\CSharpName.cs" />
     <Compile Include="CodeTranslation\StatementTranslator.cs" />
     <Compile Include="CodeTranslation\TranslationDelegates.cs" />

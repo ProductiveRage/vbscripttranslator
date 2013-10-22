@@ -1,5 +1,6 @@
 ﻿using CSharpWriter.Lists;
 using System;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation
@@ -7,14 +8,13 @@ namespace CSharpWriter.CodeTranslation
     public class ScopeAccessInformation
     {
         public ScopeAccessInformation(
-            ParentConstructTypeOptions parentConstructType,
+			IHaveNestedContent parentIfAny,
+			IDefineScope scopeDefiningParentIfAny,
             NonNullImmutableList<NameToken> classes,
             NonNullImmutableList<NameToken> functions,
             NonNullImmutableList<NameToken> properties,
             NonNullImmutableList<NameToken> variables)
         {
-            if (!Enum.IsDefined(typeof(ParentConstructTypeOptions), parentConstructType))
-                throw new ArgumentOutOfRangeException("parentConstructType");
             if (classes == null)
                 throw new ArgumentNullException("classes");
             if (functions == null)
@@ -24,7 +24,11 @@ namespace CSharpWriter.CodeTranslation
             if (variables == null)
                 throw new ArgumentNullException("variables");
 
-            ParentConstructType = parentConstructType;
+			if ((parentIfAny == null) && (scopeDefiningParentIfAny != null))
+				throw new ArgumentException("If scopeDefiningParentIfAny is non-null then parentIfAny must be");
+
+            ParentIfAny = parentIfAny;
+			ScopeDefiningParentIfAny = scopeDefiningParentIfAny;
             Classes = classes;
             Functions = functions;
             Properties = properties;
@@ -36,7 +40,8 @@ namespace CSharpWriter.CodeTranslation
             get
             {
                 return new ScopeAccessInformation(
-                    ParentConstructTypeOptions.None,
+                    null,
+					null,
                     new NonNullImmutableList<NameToken>(),
                     new NonNullImmutableList<NameToken>(),
                     new NonNullImmutableList<NameToken>(),
@@ -45,7 +50,17 @@ namespace CSharpWriter.CodeTranslation
             }
         }
 
-        public ParentConstructTypeOptions ParentConstructType { get; private set; }
+        /// <summary>
+		/// /// This will be null if there is no scope-defining parent - ie. in the outermost scope
+        /// </summary>
+		public IHaveNestedContent ParentIfAny { get; private set; }
+
+		/// <summary>
+		/// This will be null if there is no scope-defining parent - eg. in the outermost scope, or within a non-scope-altering construct (such as an
+		/// IF block) within that scope. This may be the same reference as ParentIfAny. If this is non-null then ParentIfAny will always be non-null,
+		/// though it is possible for ParentIfAny to be non-null and this be null (eg. when inside an IF block in the outermost scope)
+		/// </summary>
+		public IDefineScope ScopeDefiningParentIfAny { get; private set; }
 
         /// <summary>
         /// This will never be null
