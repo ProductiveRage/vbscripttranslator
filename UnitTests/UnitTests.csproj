@@ -39,6 +39,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
     <Compile Include="LegacyParser\StringBreakerTests.cs" />
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\CallSetExpressionSegmentComparer.cs" />
@@ -63,6 +64,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
+      <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
+      <Name>CSharpSupport</Name>
+    </ProjectReference>
     <ProjectReference Include="..\StageTwoParser\StageTwoParser.csproj">
       <Project>{05ca6867-a198-4952-883b-60c0a29c8bae}</Project>
       <Name>StageTwoParser</Name>
@@ -72,7 +77,17 @@
       <Name>LegacyParser</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <COMReference Include="ADODB">
+      <Guid>{2A75196C-D9EB-4129-B803-931327F72D5C}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>8</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
