@@ -68,7 +68,8 @@ namespace CSharpWriter.CodeTranslation
 
 		/// <summary>
 		/// VBScript allows functions with the same name to appear multiple times, where all but the last implementation will be ignored (this is not
-		/// allowed within classes)
+		/// allowed within classes, however properties may exist with the same name as functions and take precedence so long as they come after the
+        /// functions - a "Name Redefined" error will be raised if the property comes first or if there are multiple properties with the same name)
 		/// </summary>
 		private NonNullImmutableList<ICodeBlock> RemoveDuplicateFunctions(NonNullImmutableList<ICodeBlock> blocks)
 		{

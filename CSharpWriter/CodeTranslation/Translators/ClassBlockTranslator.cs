@@ -25,6 +25,7 @@ namespace CSharpWriter.CodeTranslation
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // TODO: Require a variation of OuterScopeBlockTranslator's RemoveDuplicateFunctions (see notes on that method)
 			var translationResult = TranslationResult.Empty.Add(
 				TranslateClassHeader(classBlock, indentationDepth)
 			);
