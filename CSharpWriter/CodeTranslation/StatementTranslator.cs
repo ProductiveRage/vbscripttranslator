@@ -391,7 +391,7 @@ namespace CSharpWriter.CodeTranslation
 
 				case ExpressionReturnTypeOptions.Value:
 					return string.Format(
-						"{0}.VAL(1})",
+						"{0}.VAL({1})",
 						_supportClassName.Name,
 						translatedContent
 					);
