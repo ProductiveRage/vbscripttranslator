@@ -40,6 +40,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IProvideVBScriptCompatFunctionality_Extensions.cs" />
+    <Compile Include="IAccessValuesUsingVBScriptRules.cs" />
+    <Compile Include="VBScriptConstants.cs" />
     <Compile Include="IProvideVBScriptCompatFunctionality.cs" />
     <Compile Include="IsDefault.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
