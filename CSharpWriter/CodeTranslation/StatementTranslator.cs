@@ -38,7 +38,11 @@ namespace CSharpWriter.CodeTranslation
 			if (statement == null)
 				throw new ArgumentNullException("statement");
 
-			return Translate(statement, ExpressionReturnTypeOptions.NotSpecified);
+			// We actually need to request a "Value" return type here since a statement will need to evaluate to a value even though this value is not being considered.
+            // For example if we have the reference "o" "Set o = new CExample", the statement "o" is valid if "CExample" has a parameter-less default function or property
+            // but an "Object doesn't support this property or method" error will be raised if not. So the VBScript "default" logic has to be applied here, which it will
+            // be if we specify Value as the returnRequirements argument.
+            return Translate(statement, ExpressionReturnTypeOptions.Value);
 		}
 
 		/// <summary>
@@ -65,7 +69,7 @@ namespace CSharpWriter.CodeTranslation
 			if (expressions.Length != 1)
 				throw new ArgumentException("Statement translation should always result in a single expression being generated");
 
-			return Translate(expressions[0], ExpressionReturnTypeOptions.NotSpecified);
+            return Translate(expressions[0], returnRequirements);
 		}
 
 		private string Translate(Expression expression, ExpressionReturnTypeOptions returnRequirements)
