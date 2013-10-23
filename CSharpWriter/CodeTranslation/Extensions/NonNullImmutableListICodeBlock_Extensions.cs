@@ -30,7 +30,11 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     continue;
                 }
 
-                flattenedBlocks = flattenedBlocks.AddRange(parentBlock.AllExecutableBlocks);
+                flattenedBlocks = flattenedBlocks.AddRange(
+                    FlattenAllAccessibleBlockLevelCodeBlocks(
+                        parentBlock.AllExecutableBlocks.ToNonNullImmutableList()
+                    )
+                );
             }
             return flattenedBlocks;
         }
