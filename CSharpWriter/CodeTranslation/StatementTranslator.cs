@@ -1,4 +1,5 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
+﻿using CSharpSupport;
+using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Misc;
 using System;
 using System.Collections.Generic;
@@ -229,9 +230,9 @@ namespace CSharpWriter.CodeTranslation
             //   ..
             //   CALL(object, string member1, string member2, string member3, string member4, string member5, params object[] arguments)
             //
-            // The maximum number of member access tokens (one being the initial object and further being the properties / functions accessed)
-            // that may use one of these alternate signatures is stored in the constant maxNumberOfMemberAccessorBeforeArraysRequired
-            const int maxNumberOfMemberAccessorBeforeArraysRequired = 6;
+            // The maximum number of member access tokens (where only the targetMemberAccessTokens are considered, not the initial targetName
+            // token) that may use one of these alternate signatures is stored in a constant in the IProvideVBScriptCompatFunctionality
+            // static extension class that provides these convenience signatures.
 
             // Note: Even if there is only a single member access token (meaning call for "a" not "a.Test") and there are no arguments, we
             // still need to use the CALL method to account for any handling of default properties (eg. a statement "Test" may be a call to
@@ -249,7 +250,7 @@ namespace CSharpWriter.CodeTranslation
             if (targetMemberAccessTokensArray.Any(t => t == null))
                 throw new ArgumentException("Null reference encountered in targetMemberAccessTokens set");
 
-            var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= (maxNumberOfMemberAccessorBeforeArraysRequired - 1));
+            var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= IProvideVBScriptCompatFunctionality_Extensions.MaxNumberOfMemberAccessorBeforeArraysRequired);
             if (targetMemberAccessTokensArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
