@@ -20,14 +20,15 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 throw new ArgumentNullException("callExpressionSegments");
 
             CallExpressionSegments = callExpressionSegments.ToList().AsReadOnly();
-            if (!CallExpressionSegments.Any())
-                throw new ArgumentException("The callExpressionSegments set may not be empty");
+            if (CallExpressionSegments.Count() < 2)
+                throw new ArgumentException("The callExpressionSegments set must have at least two segments otherwise a single CallExpressionSegment should descrive this data");
             if (CallExpressionSegments.Any(t => t == null))
                 throw new ArgumentException("Null reference encountered in callExpressionSegments set");
         }
 
         /// <summary>
-        /// This will never be null, empty or contain any null references
+        /// This will never be null, empty (it will always have at least two entries otherwise a single CallExpressionSegment would be appropriate
+        /// rather than a CallSetExpressionSegment) or contain any null references
         /// </summary>
         public IEnumerable<CallExpressionSegment> CallExpressionSegments { get; private set; }
 
