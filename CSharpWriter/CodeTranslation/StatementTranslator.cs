@@ -46,6 +46,13 @@ namespace CSharpWriter.CodeTranslation
             // For example if we have the reference "o" "Set o = new CExample", the statement "o" is valid if "CExample" has a parameter-less default function or property
             // but an "Object doesn't support this property or method" error will be raised if not. So the VBScript "default" logic has to be applied here, which it will
             // be if we specify Value as the returnRequirements argument.
+            // - Update: Actually, this is only the case in the above example, where the entire statement is "o". If there was a method "Test1" which return an instance
+            //   of "CExample" then the statement "Test1" would not try to access the default function/property. Similarly, if there is a reference "p" with the property
+            //   "Child" where "Child" always returns an instance of "CExample", the statement "p.Child" would not access the default of "CExample"
+
+
+
+
             // TODO: This isn't always true! It works for the "o" example but if calling a method that returns an object reference then it DOESN'T apply!
             return Translate(statement, scopeAccessInformation, ExpressionReturnTypeOptions.Value);
 		}
@@ -249,15 +256,7 @@ namespace CSharpWriter.CodeTranslation
             {
                 // Note: The caller should have passed the targetName through a VBScript Name Rewriter but the scope access information values won't
                 // have been so we need to consider this when looking for a match in its data
-                var f123 =
-                    scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name)
-                    .Concat(
-                        scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name)
-                    )
-                    .Any(sj => sj == targetName);
-
-                if (scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name).Where(name => name == targetName).Any()
-                || scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name).Where(name => name == targetName).Any())
+                if (IsFunctionOrPropertyInScope(targetName, scopeAccessInformation))
                 {
                     var memberCallContent = new StringBuilder();
                     memberCallContent.Append(targetName);
@@ -358,6 +357,24 @@ namespace CSharpWriter.CodeTranslation
 				callExpressionContent.ToString(),
 				ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
 			);
+        }
+
+        /// <summary>
+        /// The rewrittenName should be a name already passed through the nameRewriter that we have reference to, the names in the ScopeAccessInformation
+        /// will not have been passed through this
+        /// </summary>
+        private bool IsFunctionOrPropertyInScope(string rewrittenName, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (string.IsNullOrWhiteSpace(rewrittenName))
+                throw new ArgumentException("Null/blank rewrittenName specified");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+
+            return (
+                scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name).Where(name => name == rewrittenName).Any() ||
+                scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name).Where(name => name == rewrittenName).Any()
+            );
         }
 
         private Tuple<string, ExpressionReturnTypeOptions> Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
