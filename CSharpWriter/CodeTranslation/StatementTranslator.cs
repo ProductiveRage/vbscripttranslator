@@ -35,50 +35,59 @@ namespace CSharpWriter.CodeTranslation
 		/// <summary>
 		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
 		/// </summary>
-		public string Translate(LegacyParser.Statement statement)
+		public string Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation)
 		{
 			if (statement == null)
 				throw new ArgumentNullException("statement");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
 			// We actually need to request a "Value" return type here since a statement will need to evaluate to a value even though this value is not being considered.
             // For example if we have the reference "o" "Set o = new CExample", the statement "o" is valid if "CExample" has a parameter-less default function or property
             // but an "Object doesn't support this property or method" error will be raised if not. So the VBScript "default" logic has to be applied here, which it will
             // be if we specify Value as the returnRequirements argument.
-            return Translate(statement, ExpressionReturnTypeOptions.Value);
+            // TODO: This isn't always true! It works for the "o" example but if calling a method that returns an object reference then it DOESN'T apply!
+            return Translate(statement, scopeAccessInformation, ExpressionReturnTypeOptions.Value);
 		}
 
 		/// <summary>
 		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
 		/// </summary>
-		public string Translate(LegacyParser.Expression expression, ExpressionReturnTypeOptions returnRequirements)
+        public string Translate(LegacyParser.Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
 		{
 			if (expression == null)
 				throw new ArgumentNullException("expression");
-			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
 
-			return Translate((LegacyParser.Statement)expression, returnRequirements);
+            return Translate((LegacyParser.Statement)expression, scopeAccessInformation, returnRequirements);
 		}
 
-		private string Translate(LegacyParser.Statement statement, ExpressionReturnTypeOptions returnRequirements)
+        private string Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
         {
 			if (statement == null)
 				throw new ArgumentNullException("statement");
-			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
 
 			var expressions = ExpressionGenerator.Generate(statement.BracketStandardisedTokens).ToArray();
 			if (expressions.Length != 1)
 				throw new ArgumentException("Statement translation should always result in a single expression being generated");
 
-            return Translate(expressions[0], returnRequirements);
+            return Translate(expressions[0], scopeAccessInformation, returnRequirements);
 		}
 
-		private string Translate(Expression expression, ExpressionReturnTypeOptions returnRequirements)
+        private string Translate(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
-			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
 
             // Assert expectations about numbers of segments and operators (if any)
@@ -118,7 +127,7 @@ namespace CSharpWriter.CodeTranslation
 
 			if (segments.Length == 1)
 			{
-				var result = TranslateNonOperatorSegment(segments[0]);
+				var result = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
 				return ApplyReturnTypeGuarantee(
 					result.Item1,
 					result.Item2,
@@ -133,7 +142,7 @@ namespace CSharpWriter.CodeTranslation
 						"{0}.{1}({2})",
 						_supportClassName.Name,
 						GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-						TranslateNonOperatorSegment(segments[1])
+                        TranslateNonOperatorSegment(segments[1], scopeAccessInformation)
 					),
 					ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
 					returnRequirements
@@ -144,21 +153,23 @@ namespace CSharpWriter.CodeTranslation
 				string.Format(
 					"{0}.{1}({2}, {3})",
 					_supportClassName.Name,
-					TranslateNonOperatorSegment(segments[0]),
+                    TranslateNonOperatorSegment(segments[0], scopeAccessInformation),
 					GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-					TranslateNonOperatorSegment(segments[2])
+                    TranslateNonOperatorSegment(segments[2], scopeAccessInformation)
 				),
 				ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
 				returnRequirements
             );
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> TranslateNonOperatorSegment(IExpressionSegment segment)
+        private Tuple<string, ExpressionReturnTypeOptions> TranslateNonOperatorSegment(IExpressionSegment segment, ScopeAccessInformation scopeAccessInformation)
         {
             if (segment == null)
                 throw new ArgumentNullException("segment");
             if (segment is OperationExpressionSegment)
                 throw new ArgumentException("This will not accept OperationExpressionSegment instances");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
             var numericValueSegment = segment as NumericValueExpressionSegment;
 			if (numericValueSegment != null)
@@ -170,11 +181,11 @@ namespace CSharpWriter.CodeTranslation
 
             var callExpressionSegment = segment as CallExpressionSegment;
             if (callExpressionSegment != null)
-                return Translate(callExpressionSegment);
+                return Translate(callExpressionSegment, scopeAccessInformation);
 
             var callSetExpressionSegment = segment as CallSetExpressionSegment;
             if (callSetExpressionSegment != null)
-                return Translate(callSetExpressionSegment);
+                return Translate(callSetExpressionSegment, scopeAccessInformation);
 
             var bracketedExpressionSegment = segment as BracketedExpressionSegment;
             if (bracketedExpressionSegment != null)
@@ -195,22 +206,26 @@ namespace CSharpWriter.CodeTranslation
             throw new NotImplementedException(); // TODO
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment)
+        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
             return TranslateCallExpressionSegment(
                 _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
                 callExpressionSegment.MemberAccessTokens.Skip(1),
-                callExpressionSegment.Arguments
+                callExpressionSegment.Arguments,
+                scopeAccessInformation
             );
         }
 
         private Tuple<string, ExpressionReturnTypeOptions> TranslateCallExpressionSegment(
             string targetName,
             IEnumerable<IToken> targetMemberAccessTokens,
-            IEnumerable<Expression> arguments)
+            IEnumerable<Expression> arguments,
+            ScopeAccessInformation scopeAccessInformation)
         {
             if (string.IsNullOrWhiteSpace(targetName))
                 throw new ArgumentException("Null/blank targetName specified");
@@ -218,6 +233,54 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("targetMemberAccessTokens");
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var targetMemberAccessTokensArray = targetMemberAccessTokens.ToArray();
+            if (targetMemberAccessTokensArray.Any(t => t == null))
+                throw new ArgumentException("Null reference encountered in targetMemberAccessTokens set");
+            var argumentsArray = arguments.ToArray();
+            if (argumentsArray.Any(a => a == null))
+                throw new ArgumentException("Null reference encountered in arguments set");
+
+            // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
+            // out by looking into the scope access information
+            if (targetMemberAccessTokensArray.Length == 0)
+            {
+                // Note: The caller should have passed the targetName through a VBScript Name Rewriter but the scope access information values won't
+                // have been so we need to consider this when looking for a match in its data
+                var f123 =
+                    scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name)
+                    .Concat(
+                        scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name)
+                    )
+                    .Any(sj => sj == targetName);
+
+                if (scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name).Where(name => name == targetName).Any()
+                || scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name).Where(name => name == targetName).Any())
+                {
+                    var memberCallContent = new StringBuilder();
+                    memberCallContent.Append(targetName);
+                    memberCallContent.Append("(");
+                    for (var index = 0; index < argumentsArray.Length; index++)
+                    {
+                        memberCallContent.Append(
+                            Translate(
+                                argumentsArray[index],
+                                scopeAccessInformation,
+                                ExpressionReturnTypeOptions.NotSpecified
+                            )
+                        );
+                        if (index < (argumentsArray.Length - 1))
+                            memberCallContent.Append(", ");
+                    }
+                    memberCallContent.Append(")");
+                    return Tuple.Create(
+                        memberCallContent.ToString(),
+                        ExpressionReturnTypeOptions.NotSpecified
+                    );
+                }
+            }
 
             // The "master" CALL method signature is
             //
@@ -244,18 +307,12 @@ namespace CSharpWriter.CodeTranslation
             // a method named "Test" or "Test" may be an instance of a class which has a default parameter-less function, in which case the
             // default function will be executed by that statement.
 
-            // TODO: If the target is a function or property then we can't use CALL, we need to pass the arguments to it directly
-
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}",
                 _supportClassName.Name,
                 targetName
             );
-
-            var targetMemberAccessTokensArray = targetMemberAccessTokens.ToArray();
-            if (targetMemberAccessTokensArray.Any(t => t == null))
-                throw new ArgumentException("Null reference encountered in targetMemberAccessTokens set");
 
             var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= IProvideVBScriptCompatFunctionality_Extensions.MaxNumberOfMemberAccessorBeforeArraysRequired);
             if (targetMemberAccessTokensArray.Length > 0)
@@ -275,10 +332,6 @@ namespace CSharpWriter.CodeTranslation
                     callExpressionContent.Append(" }");
             }
 
-            var argumentsArray = arguments.ToArray();
-            if (argumentsArray.Any(a => a == null))
-                throw new ArgumentException("Null reference encountered in arguments set");
-
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
@@ -287,7 +340,11 @@ namespace CSharpWriter.CodeTranslation
                 for (var index = 0; index < argumentsArray.Length; index++)
                 {
                     callExpressionContent.Append(
-                        Translate(argumentsArray[index], ExpressionReturnTypeOptions.NotSpecified)
+                        Translate(
+                            argumentsArray[index],
+                            scopeAccessInformation,
+                            ExpressionReturnTypeOptions.NotSpecified
+                        )
                     );
                     if (index < (argumentsArray.Length - 1))
                         callExpressionContent.Append(", ");
@@ -303,10 +360,12 @@ namespace CSharpWriter.CodeTranslation
 			);
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallSetExpressionSegment callSetExpressionSegment)
+        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callSetExpressionSegment == null)
                 throw new ArgumentNullException("callSetExpressionSegment");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
             
             var content = "";
             var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count();
@@ -315,13 +374,14 @@ namespace CSharpWriter.CodeTranslation
                 var callExpression = callSetExpressionSegment.CallExpressionSegments.ElementAt(index);
                 if (index == 0)
                 {
-                    content = Translate(callExpression).Item1;
+                    content = Translate(callExpression, scopeAccessInformation).Item1;
                     continue;
                 }
                 content = TranslateCallExpressionSegment(
                     content,
                     callExpression.MemberAccessTokens,
-                    callExpression.Arguments
+                    callExpression.Arguments,
+                    scopeAccessInformation
                 ).Item1;
             }
             return Tuple.Create(

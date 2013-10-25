@@ -282,7 +282,7 @@ namespace CSharpWriter.CodeTranslation
 
 			return translationResult.Add(
 				new TranslatedStatement(
-					_statementTranslator.Translate(statementBlock) + ";",
+					_statementTranslator.Translate(statementBlock, scopeAccessInformation) + ";",
 					indentationDepth
 				)
 			);
