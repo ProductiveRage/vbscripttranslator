@@ -48,14 +48,34 @@ namespace CSharpWriter.CodeTranslation
             // be if we specify Value as the returnRequirements argument.
             // - Update: Actually, this is only the case in the above example, where the entire statement is "o". If there was a method "Test1" which return an instance
             //   of "CExample" then the statement "Test1" would not try to access the default function/property. Similarly, if there is a reference "p" with the property
-            //   "Child" where "Child" always returns an instance of "CExample", the statement "p.Child" would not access the default of "CExample"
+            //   "Child" where "Child" always returns an instance of "CExample", the statement "p.Child" would not access the default of "CExample". If we had the "o"
+            //   reference was an array where each element was a "CExample" instance then the statment "o(0)" actually results in a "Type mismatch" error while
+            //   "o(0).Name" does not (assuming that CExample has a property Name that returns a value type). Since this translator is only intended to work
+            //   with valid VBScript, the behaviour in that case is not a concern.
+            if (statement.Tokens.Count() == 1)
+            {
+                // If we've got a single NameToken then we'll have to try to apply the default-accessing logic to it unless it's a function or property call
+                var statementNameToken = statement.Tokens.Single() as NameToken;
+                if (statementNameToken != null)
+                {
+                    var rewritterName = _nameRewriter(statementNameToken).Name;
+                    if (!IsFunctionOrPropertyInScope(rewritterName, scopeAccessInformation))
+                    {
+                        // In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
+                        // return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
+                        // of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
+                        // Expressions that return values could exist as just "o" since that WOULD be valid C#.
+                        return string.Format(
+                            "{0}.VAL({1})",
+                            _supportClassName.Name,
+                            rewritterName
+                        );
+                    }
+                }
+            }
 
-
-
-
-            // TODO: This isn't always true! It works for the "o" example but if calling a method that returns an object reference then it DOESN'T apply!
-            return Translate(statement, scopeAccessInformation, ExpressionReturnTypeOptions.Value);
-		}
+            return Translate(statement, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified);
+        }
 
 		/// <summary>
 		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
