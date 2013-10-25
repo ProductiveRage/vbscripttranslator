@@ -46,6 +46,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
             {
 				new OptionExplicitHandler(),
 
+                new NewInstanceHandler(),
+
                 new ClassHandler(),
                 new FunctionHandler(),
                 

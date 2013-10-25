@@ -12,6 +12,7 @@ using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter.CodeTranslation
 {
+    // TODO: Ensure the nameRewriter isn't being used anywhere it shouldn't - it shouldn't rename methods of COM components, for example
     public class StatementTranslator : ITranslateIndividualStatements
     {
         private readonly CSharpName _supportClassName;
@@ -179,6 +180,10 @@ namespace CSharpWriter.CodeTranslation
             if (bracketedExpressionSegment != null)
                 return Translate(bracketedExpressionSegment);
 
+            var newInstanceExpressionSegment = segment as NewInstanceExpressionSegment;
+            if (newInstanceExpressionSegment != null)
+                return Translate(newInstanceExpressionSegment);
+
             throw new NotImplementedException(); // TODO
         }
 
@@ -238,6 +243,8 @@ namespace CSharpWriter.CodeTranslation
             // still need to use the CALL method to account for any handling of default properties (eg. a statement "Test" may be a call to
             // a method named "Test" or "Test" may be an instance of a class which has a default parameter-less function, in which case the
             // default function will be executed by that statement.
+
+            // TODO: If the target is a function or property then we can't use CALL, we need to pass the arguments to it directly
 
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
@@ -320,6 +327,21 @@ namespace CSharpWriter.CodeTranslation
             return Tuple.Create(
                 content,
                 ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
+            );
+        }
+
+        private Tuple<string, ExpressionReturnTypeOptions> Translate(NewInstanceExpressionSegment newInstanceExpressionSegment)
+        {
+            if (newInstanceExpressionSegment == null)
+                throw new ArgumentNullException("newInstanceExpressionSegment");
+
+            return Tuple.Create(
+                string.Format(
+                    "new {0}({1})",
+                    _nameRewriter(newInstanceExpressionSegment.ClassName).Name,
+                    _supportClassName.Name
+                ),
+                ExpressionReturnTypeOptions.Reference
             );
         }
 

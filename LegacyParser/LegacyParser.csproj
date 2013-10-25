@@ -71,6 +71,7 @@
     <Compile Include="CodeBlocks\Basic\FunctionBlock.cs" />
     <Compile Include="CodeBlocks\Basic\SubBlock.cs" />
     <Compile Include="CodeBlocks\Handlers\ClassHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\NewInstanceHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\OptionExplicitHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\DoHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\ExitHandler.cs" />

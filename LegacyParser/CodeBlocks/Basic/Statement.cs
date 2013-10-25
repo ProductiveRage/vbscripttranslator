@@ -127,6 +127,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if (tokenArray.Length == 0)
                 throw new ArgumentException("Empty tokens set specified - invalid for a Statement");
 
+            // No need to try to re-arrange things if this is a new-instance expression, no brackets are required
+            if ((tokenArray[0] is KeyWordToken) && tokenArray[0].Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
+                return tokenArray;
+
             var bracketCount = 0;
             IToken lastUnbracketedToken = null;
             for (var tokenIndex = 0; tokenIndex < tokenArray.Length; tokenIndex++)

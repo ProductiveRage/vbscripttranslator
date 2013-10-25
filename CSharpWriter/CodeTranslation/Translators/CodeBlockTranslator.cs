@@ -74,8 +74,9 @@ namespace CSharpWriter.CodeTranslation
 					if (blockTranslationResult == null)
 						continue;
 
-					translationResult = blockTranslationResult;
+                    translationResult = translationResult.Add(blockTranslationResult);
 					hasBlockBeenTranslated = true;
+                    break;
 				}
 				if (!hasBlockBeenTranslated)
 					throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
