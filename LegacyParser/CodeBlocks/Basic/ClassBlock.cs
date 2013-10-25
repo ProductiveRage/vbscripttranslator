@@ -32,7 +32,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 
         public override string ToString()
         {
-            return base.ToString() + ":" + this.className;
+            return base.ToString() + ":" + this.className.Content;
         }
 
         // =======================================================================================
