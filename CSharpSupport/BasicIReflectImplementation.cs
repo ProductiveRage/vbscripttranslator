@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace CSharpSupport
 {
-	public class BasicIReflectImplementation : IReflect
+    [ComVisible(true)]
+    public class BasicIReflectImplementation : IReflect
 	{
 		public virtual FieldInfo GetField(string name, BindingFlags bindingAttr)
 		{
