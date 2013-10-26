@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace CSharpWriter.Misc
+namespace CSharpWriter.CodeTranslation.Extensions
 {
     public static class String_Extensions
     {
