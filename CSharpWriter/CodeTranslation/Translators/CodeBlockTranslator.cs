@@ -35,7 +35,8 @@ namespace CSharpWriter.CodeTranslation
         }
 
 		/// <summary>
-		/// This should return null if it is unable to process the specified block. It should raise an exception for any null arguments.
+		/// This should return null if it is unable to process the specified block. It should raise an exception for any null arguments. The returned value
+        /// (where non-null) should overwrite the input translationResult in the caller's scope (it should not be added to it).
 		/// </summary>
 		protected delegate TranslationResult BlockTranslationAttempter(
 			TranslationResult translationResult,
@@ -74,7 +75,7 @@ namespace CSharpWriter.CodeTranslation
 					if (blockTranslationResult == null)
 						continue;
 
-                    translationResult = translationResult.Add(blockTranslationResult);
+                    translationResult = blockTranslationResult;
 					hasBlockBeenTranslated = true;
                     break;
 				}
@@ -96,7 +97,7 @@ namespace CSharpWriter.CodeTranslation
 
 		protected TranslationResult TryToTranslateBlankLine(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
-			return (block is BlankLine) ? TranslationResult.Empty.Add(new TranslatedStatement("", indentationDepth)) : null;
+            return (block is BlankLine) ? translationResult.Add(new TranslatedStatement("", indentationDepth)) : null;
 		}
 
 		protected TranslationResult TryToTranslateClass(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
