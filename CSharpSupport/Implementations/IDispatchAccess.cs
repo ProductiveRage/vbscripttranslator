@@ -253,6 +253,18 @@ namespace CSharpSupport.Implementations
                     var errorType = GetErrorMessageForHResult(hrRet);
                     if (errorType != CommonErrors.Unknown)
                         message += " [" + errorType.ToString() + "]";
+                    if (args.Length > 0)
+                    {
+                        try { Marshal.GetObjectsForNativeVariants(rgvarg, args.Length); }
+                        catch (Exception)
+                        {
+                            // In Visual Studio 2012, if the "Prefer 32-bit" build option is not enabled then arguments do not get written into memory
+                            // correctly which will result in the request failing. If an exception has been raised then we can confirm if this is the
+                            // problem by trying to pull the arguments back out of the "rgvarg", if this operation fails then the absence of this
+                            // build option is most likely the cause.
+                            message += " - this may be due to the \"Prefer 32-bit\" option not being enabled in Visual Studio";
+                        }
+                    }
                     throw new ArgumentException(message);
                 }
                 return (T)varResult;
