@@ -75,6 +75,7 @@ namespace CSharpWriter.CodeTranslation
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
 			return new[]
             {
+                new TranslatedStatement("[System.Runtime.InteropServices.ComVisible(true)]", indentationDepth),
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
                 new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
