@@ -1,10 +1,10 @@
-﻿using System;
+﻿using CSharpSupport;
+using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.Lists;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CSharpSupport;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
@@ -97,8 +97,9 @@ namespace CSharpWriter.CodeTranslation
 				var parameter = functionBlock.Parameters.ElementAt(index);
 				if (parameter.ByRef)
 					content.Append("ref ");
-				content.Append(_nameRewriter.GetMemberAccessTokenName(parameter.Name));
-				if (index < (numberOfParameters - 1))
+                content.Append("object ");
+                content.Append(_nameRewriter.GetMemberAccessTokenName(parameter.Name));
+                if (index < (numberOfParameters - 1))
 					content.Append(", ");
 			}
 			content.Append(")");
@@ -106,9 +107,22 @@ namespace CSharpWriter.CodeTranslation
 			var translatedStatements = new List<TranslatedStatement>();
 			if (functionBlock.IsDefault)
 				translatedStatements.Add(new TranslatedStatement("[" + typeof(IsDefault).FullName + "]", indentationDepth));
-			translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
-			translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
-			return translatedStatements;
+            var property = functionBlock as PropertyBlock;
+            if ((property != null) && property.IsPublic && property.IsIndexedProperty())
+            {
+                translatedStatements.Add(
+                    new TranslatedStatement(
+                        string.Format(
+                            "[" + typeof(TranslatedProperty).FullName + "({0})]",
+                            property.Name.Content.ToLiteral()
+                        ),
+                        indentationDepth
+                    )
+                );
+            }
+            translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
+            translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
+            return translatedStatements;
 		}
     }
 }

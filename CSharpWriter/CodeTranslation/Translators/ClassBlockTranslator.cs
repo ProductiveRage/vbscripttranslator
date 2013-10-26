@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
@@ -72,6 +73,14 @@ namespace CSharpWriter.CodeTranslation
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // C# doesn't support nameed indexed properties, so if there are any Get properties with a parameter or any Let/Set properties
+            // with multiple parameters (they need at least; the value to set) then we'll have to get creative
+            string inheritance;
+            if (classBlock.Statements.Where(s => s is PropertyBlock).Cast<PropertyBlock>().Any(p => p.IsPublic && p.IsIndexedProperty()))
+                inheritance = " : " + typeof(TranslatedPropertyIReflectImplementation).FullName;
+            else
+                inheritance = "";
+
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
 			return new[]
             {
@@ -79,7 +88,7 @@ namespace CSharpWriter.CodeTranslation
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
                 new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("public " + className + "(" + typeof(IProvideVBScriptCompatFunctionality).FullName + " compatLayer)", indentationDepth + 1),
+                new TranslatedStatement("public " + className + "(" + typeof(IProvideVBScriptCompatFunctionality).FullName + " compatLayer)" + inheritance, indentationDepth + 1),
                 new TranslatedStatement("{", indentationDepth + 1),
                 new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
                 new TranslatedStatement("throw new ArgumentNullException(compatLayer)", indentationDepth + 3),

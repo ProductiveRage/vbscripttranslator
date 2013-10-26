@@ -37,12 +37,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
+    <Compile Include="CodeTranslation\Extensions\PropertyBlock_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
     <Compile Include="CodeTranslation\Translators\ClassBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\OuterScopeBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\FunctionBlockTranslator.cs" />
-    <Compile Include="Misc\String_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\String_Extensions.cs" />
     <Compile Include="CodeTranslation\CSharpName.cs" />
     <Compile Include="CodeTranslation\StatementTranslator.cs" />
     <Compile Include="CodeTranslation\TranslationDelegates.cs" />
@@ -76,7 +77,9 @@
       <Name>StageTwoParser</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Misc\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
