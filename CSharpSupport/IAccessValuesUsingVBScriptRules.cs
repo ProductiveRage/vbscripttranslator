@@ -19,6 +19,12 @@ namespace CSharpSupport
         object VAL(object o);
 
         /// <summary>
+        /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
+        /// side of a SET assignment)
+        /// </summary>
+        object OBJ(object o);
+
+        /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
         /// require a numeric value or null, otherwise an exception will be raised. Zero and null equate to false, non-zero numbers to true.
         /// </summary>

@@ -35,7 +35,18 @@ namespace CSharpSupport.Implementations
             // We don't recursively try defaults, so if this default is still not a value type then we're out of luck
             throw new Exception("Object expected (default method/property of object also returned non-value type data)");
         }
-             
+
+        /// <summary>
+        /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
+        /// side of a SET assignment)
+        /// </summary>
+        public object OBJ(object o)
+        {
+            if ((o == null) || IsVBScriptValueType(o))
+                throw new Exception("Object expected (SET-assignment-derived statement requires a non-value-type)");
+
+            return o;
+        }
 
         /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
