@@ -7,7 +7,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
     [Serializable]
     public class PropertyBlock : AbstractFunctionBlock
     {
-        private PropertyType propType;
         public PropertyBlock(
             bool isPublic,
             bool isDefault,
@@ -28,7 +27,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             }
             if (!isValid)
                 throw new ArgumentException("Invalid type value specified [" + propType.ToString() + "]");
-            this.propType = propType;
+            PropType = propType;
         }
 
         public enum PropertyType
@@ -38,9 +37,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             Let
         }
 
+        public PropertyType PropType { get; private set; }
+
         protected override string keyWord
         {
-            get { return "Property " + this.propType.ToString(); }
+            get { return "Property " + PropType.ToString(); }
         }
     }
 }

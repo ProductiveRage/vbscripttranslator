@@ -119,6 +119,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 case BlockType.PublicPropertyGet:
                 case BlockType.PublicDefaultPropertyGet:
                 case BlockType.PrivatePropertyGet:
+                case BlockType.PublicPropertyLet:
+                case BlockType.PrivatePropertyLet:
                 case BlockType.PublicPropertySet:
                 case BlockType.PrivatePropertySet:
                     endSequences.Add(new string[] { "END", "PROPERTY" });
@@ -161,15 +163,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             else if ((blockType == BlockType.PublicPropertyGet)
             || (blockType == BlockType.PublicDefaultPropertyGet)
             || (blockType == BlockType.PrivatePropertyGet))
-                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Get, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Get, parameters, blockContent);
 
             else if ((blockType == BlockType.PublicPropertySet)
             || (blockType == BlockType.PrivatePropertySet))
-                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Set, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Set, parameters, blockContent);
 
             if ((blockType == BlockType.PublicPropertyLet)
             || (blockType == BlockType.PrivatePropertyLet))
-                return new PropertyBlock(isPublic, true, new NameToken(funcName), PropertyBlock.PropertyType.Let, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Let, parameters, blockContent);
 
             else
                 throw new Exception("Unrecognised BlockType [" + blockType.ToString() + "] - how did this happen??");
