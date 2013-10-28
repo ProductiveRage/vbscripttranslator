@@ -562,6 +562,8 @@ namespace CSharpWriter.CodeTranslation
 					return translatedContent;
 
 				case ExpressionReturnTypeOptions.Value:
+					if (contentType == ExpressionReturnTypeOptions.Value)
+						return translatedContent;
 					return string.Format(
 						"{0}.VAL({1})",
 						_supportClassName.Name,
