@@ -272,7 +272,7 @@ namespace CSharpWriter.CodeTranslation
 			// Handle regular value-type constants
 			var constantProperty = typeof(VBScriptConstants).GetProperty(
 				builtInValueExpressionSegment.Token.Content,
-				BindingFlags.Public | BindingFlags.IgnoreCase
+				BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
 			);
 			if ((constantProperty == null) || !constantProperty.CanRead || constantProperty.GetIndexParameters().Any())
 				throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
