@@ -22,7 +22,7 @@ namespace CSharpSupport
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
         /// side of a SET assignment)
         /// </summary>
-        object OBJ(object o);
+        object OBJ(object o); // TODO: Is this really required / does it offer any real benefit?
 
         /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
