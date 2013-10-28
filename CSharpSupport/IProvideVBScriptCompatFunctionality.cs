@@ -35,31 +35,31 @@ namespace CSharpSupport
         int IMP(object l, object r);
 
         // Builtin functions
-        /* TODO
-            "TIMER",
-            "ERR",
-            "ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
-            "LBOUND", "UBOUND",
-            "VARTYPE", "TYPENAME",
-            "CREATEOBJECT", "GETOBJECT",
-            "CBYTE", "CINT", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
-            "DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
-            "NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
-            "ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
-            "HEX", "OCT", "FIX", "INT", "SNG",
-            "ASC", "ASCB", "ASCW",
-            "CHR", "CHRB", "CHRW",
-            "ASC", "ASCB", "ASCW",
-            "INSTR", "INSTRREV",
-            "LEN", "LENB",
-            "LCASE", "UCASE",
-            "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
-            "STRCOMP", "STRING",
-            "LTRIM", "RTRIM", "TRIM"
-         */
+		/* TODO
+			"ERR", // This is NOT a function (it's a value)
+			"TIMER", // This IS a function (as are all of the below)
+			"ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
+			"LBOUND", "UBOUND",
+			"VARTYPE", "TYPENAME",
+			"CREATEOBJECT", "GETOBJECT",
+			"CBYTE", "CINT", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
+			"DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
+			"NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
+			"ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
+			"HEX", "OCT", "FIX", "INT", "SNG",
+			"ASC", "ASCB", "ASCW",
+			"CHR", "CHRB", "CHRW",
+			"ASC", "ASCB", "ASCW",
+			"INSTR", "INSTRREV",
+			"LEN", "LENB",
+			"LCASE", "UCASE",
+			"LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
+			"STRCOMP", "STRING",
+			"LTRIM", "RTRIM", "TRIM"
+		 */
 
-        // TODO: Integration RANDOMIZE functionality
-        // TODO: Deal with error settings
+		// TODO: Integration RANDOMIZE functionality
+        // TODO: Deal with recording error settings
 
         void TRAP(Action action, bool enableErrorTrapping = true);
 

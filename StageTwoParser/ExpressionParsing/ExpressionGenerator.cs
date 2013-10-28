@@ -273,6 +273,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     var stringValue = tokensArray[0] as StringToken;
                     if (stringValue != null)
                         return new StringValueExpressionSegment(stringValue);
+					var builtInValue = tokensArray[0] as BuiltInValueToken;
+					if (builtInValue != null)
+						return new BuiltInValueExpressionSegment(builtInValue);
                 }
                 else if ((tokensArray.Length == 2)
                 && (tokensArray[0] is KeyWordToken)
