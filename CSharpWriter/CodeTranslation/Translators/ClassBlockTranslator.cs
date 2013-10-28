@@ -85,6 +85,7 @@ namespace CSharpWriter.CodeTranslation
 			return new[]
             {
                 new TranslatedStatement("[System.Runtime.InteropServices.ComVisible(true)]", indentationDepth),
+                new TranslatedStatement("[" + typeof(SourceClassName).FullName + "(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
                 new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
