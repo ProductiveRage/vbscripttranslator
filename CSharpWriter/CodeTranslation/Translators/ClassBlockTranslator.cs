@@ -33,7 +33,7 @@ namespace CSharpWriter.CodeTranslation
 			translationResult = translationResult.Add(
 				Translate(
 					classBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(classBlock, classBlock.Statements),
+					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
 					indentationDepth + 1
 				)
 			);

@@ -7,6 +7,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
+using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace CSharpWriter.CodeTranslation
 {
@@ -65,8 +66,6 @@ namespace CSharpWriter.CodeTranslation
 
 			// TODO: Going to need to incorporate On Error Resume Next / Goto 0 handling outside of the rest of the process, requiring additional data
 			// in the scopeAccessInformation type?
-
-			// TODO: Ensure that the UndeclaredVariablesAccessed set is being 
 
             var translationResult = TranslationResult.Empty;
 			foreach (var block in blocks)
@@ -178,8 +177,9 @@ namespace CSharpWriter.CodeTranslation
 
 			// TODO: If this is a ReDim then non-constant expressions may be used to set the dimension limits, in which case it may not be moved
 			// (though a default-null declaration SHOULD be added as well as leaving the ReDim translation where it is)
-			// TODO: Need a translated statement if setting dimensions
-			throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
+			
+            // TODO: Need a translated statement if setting dimensions
+            throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
 		}
 
 		protected TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -284,12 +284,18 @@ namespace CSharpWriter.CodeTranslation
 			if (statementBlock == null)
 				return null;
 
-			return translationResult.Add(
-				new TranslatedStatement(
-					_statementTranslator.Translate(statementBlock, scopeAccessInformation) + ";",
-					indentationDepth
-				)
-			);
+            var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
+			return
+                translationResult.Add(
+				    new TranslatedStatement(
+                        translatedStatementContentDetails.TranslatedContent + ";",
+					    indentationDepth
+				    )
+			    ).Add(
+                    scopeAccessInformation.GetUndeclaredVariables(
+                        translatedStatementContentDetails.VariablesAccesed
+                    )
+                );
 		}
 
 		protected TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -298,9 +304,9 @@ namespace CSharpWriter.CodeTranslation
 			if (valueSettingStatement == null)
 				return null;
 
-            var assignmentFormat = GetAssignmentFormat(valueSettingStatement, scopeAccessInformation);
+            var assignmentFormatDetails = GetAssignmentFormatDetails(valueSettingStatement, scopeAccessInformation);
 
-            var translatedExpression = _statementTranslator.Translate(
+            var translatedExpressionContentDetails = _statementTranslator.Translate(
                 valueSettingStatement.Expression,
                 scopeAccessInformation,
                 (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
@@ -312,15 +318,21 @@ namespace CSharpWriter.CodeTranslation
 			// behaviour and On Error Resume Next - essentially, need to wrap the expression in try..catch as well as the setting, since if the expression
 			// execution fails then the target should be set to empty (but this will fail if it's a SET assignment and so a further layer of error trapping
 			// is required).
-			return translationResult.Add(
-                new TranslatedStatement(
-                    assignmentFormat(translatedExpression) + ";",
-                    indentationDepth
+            return
+                translationResult.Add(
+                    new TranslatedStatement(
+                        assignmentFormatDetails.AssigmentFormat(translatedExpressionContentDetails.TranslatedContent) + ";",
+                        indentationDepth
+                    )
                 )
-            );
+                .Add(
+                    scopeAccessInformation.GetUndeclaredVariables(
+                        assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccesed)
+                    )
+                );
 		}
 
-        private Func<string, string> GetAssignmentFormat(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
+        private ValueSettingStatementAssigmentFormDetails GetAssignmentFormatDetails(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
         {
             if (valueSettingStatement == null)
                 throw new ArgumentNullException("valueSettingStatement");
@@ -347,10 +359,15 @@ namespace CSharpWriter.CodeTranslation
                     throw new ArgumentException("Where a ValueSettingStatement's ValueToSet expression is a single expression with a single CallExpressionSegment with one token, that token must be a NameToken");
 
                 // TODO: Need to consider whether we're in a function or property and whether this is an assigment for its return value
-                return translatedExpression => string.Format(
-                    "{0} = {1}",
-                    _nameRewriter(singleTokenAsName).Name,
-                    translatedExpression
+                // - If "_nameRewriter(singleTokenAsName).Name" matches "scopeAccessInformation.ScopeDefiningParentIfAny.Name" (if there is a scope-defining
+                //   parent) then use the "scopeAccessInformation.parentReturnValueNameIfAny" (if non-null)
+                return new ValueSettingStatementAssigmentFormDetails(
+                    translatedExpression => string.Format(
+                        "{0} = {1}",
+                        _nameRewriter(singleTokenAsName).Name,
+                        translatedExpression
+                    ),
+                    new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
                 );
             }
 
@@ -391,7 +408,7 @@ namespace CSharpWriter.CodeTranslation
                 callExpressionSegments.Add(
                     new CallExpressionSegment(
                         lastCallExpressionSegments.MemberAccessTokens.Take(numberOfMemberAccessTokensInLastCallExpressionSegment - 1),
-                        new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression[0]
+                        new StageTwoParser.Expression[0]
                     )
                 );
                 callExpressionSegments.Add(
@@ -407,9 +424,13 @@ namespace CSharpWriter.CodeTranslation
             // has the optional member accessor and any arguments.
             string targetAccessor;
             string optionalMemberAccessor;
-            IEnumerable<VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression> arguments;
+            IEnumerable<StageTwoParser.Expression> arguments;
             if (callExpressionSegments.Count == 1)
             {
+                // TODO: Need to consider whether we're in a function or property and whether this is an assigment for its return value
+                // - If the first member accessor's name when passed through the nameRewriter matches "scopeAccessInformation.ScopeDefiningParentIfAny
+                //   .Name" (if there is a scope-defining parent) then use the "scopeAccessInformation.parentReturnValueNameIfAny" (if non-null)
+
                 // The single CallExpressionSegment may have one or two member accessors
                 targetAccessor = callExpressionSegments[0].MemberAccessTokens.First().Content;
                 if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
@@ -420,17 +441,21 @@ namespace CSharpWriter.CodeTranslation
             }
             else
             {
+                // TODO: Need to consider whether we're in a function or property and whether this is an assigment for its return value
+                // - If the first call expression segment's member accessor's name when passed through the nameRewriter matches
+                //   "scopeAccessInformation.ScopeDefiningParentIfAny.Name" (if there is a scope-defining parent) then use the
+                //   "scopeAccessInformation.parentReturnValueNameIfAny" (if non-null)
+
                 var targetAccessCallExpressionSegments = callExpressionSegments.Take(callExpressionSegments.Count() - 1);
                 var targetAccessExpressionSegments = (targetAccessCallExpressionSegments.Count() > 1)
                     ? new IExpressionSegment[] { new CallSetExpressionSegment(targetAccessCallExpressionSegments) }
                     : new IExpressionSegment[] { targetAccessCallExpressionSegments.Single() };
-                targetAccessor = _statementTranslator.Translate(
-                    new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression(
-                        targetAccessExpressionSegments
-                    ),
-                    scopeAccessInformation,
-                    ExpressionReturnTypeOptions.NotSpecified
-                );
+                targetAccessor =
+                    _statementTranslator.Translate(
+                        new StageTwoParser.Expression(targetAccessExpressionSegments),
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified
+                    ).TranslatedContent;
 
                 // The last CallExpressionSegment may only have one member accessor
                 var lastCallExpressionSegment = callExpressionSegments.Last();
@@ -438,23 +463,79 @@ namespace CSharpWriter.CodeTranslation
                 arguments = lastCallExpressionSegment.Arguments;
             }
 
+            // Regardless of how we've gone about trying to access the data in the callExpressionSegments data above, we now need to get a
+            // set of all variables that are accessed so that later on we can identify any undeclared variable access attempts
+            var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
+
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
-            return translatedExpression => string.Format(
-                "{0}.SET({1}, {2}, {3}, {4})",
-                _supportClassName.Name,
-                targetAccessor,
-                (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
-				arguments.Any()
-					? string.Format(
-						"new object[] {{ {0} }}",
-						string.Join(
-							", ",
-							arguments.Select(a => _statementTranslator.Translate(a, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified))
-						)
-					)
-					: "new object[0]",
-                translatedExpression
+            return new ValueSettingStatementAssigmentFormDetails(
+                translatedExpression => string.Format(
+                    "{0}.SET({1}, {2}, {3}, {4})",
+                    _supportClassName.Name,
+                    targetAccessor,
+                    (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
+				    arguments.Any()
+					    ? string.Format(
+						    "new object[] {{ {0} }}",
+						    string.Join(
+							    ", ",
+							    arguments.Select(a => _statementTranslator.Translate(a, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified).TranslatedContent)
+						    )
+					    )
+					    : "new object[0]",
+                    translatedExpression
+                ),
+                variablesAccessed.ToNonNullImmutableList()
             );
+        }
+
+        private IEnumerable<NameToken> GetAccessedVariables(IEnumerable<CallExpressionSegment> callExpressionSegments, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (callExpressionSegments == null)
+                throw new ArgumentNullException("callExpressionSegments");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var callExpressionSegmentsArray = callExpressionSegments.ToArray();
+            if (callExpressionSegmentsArray.Any(e => e == null))
+                throw new ArgumentException("Null reference encountered in callExpressionSegments set");
+
+            if (!callExpressionSegmentsArray.Any())
+                return new NameToken[0];
+
+            var expression = (callExpressionSegmentsArray.Length == 1)
+                ? new StageTwoParser.Expression(callExpressionSegmentsArray)
+                : new StageTwoParser.Expression(new[] { new CallSetExpressionSegment(callExpressionSegmentsArray) });
+            return
+                _statementTranslator.Translate(
+                    expression,
+                    scopeAccessInformation,
+                    ExpressionReturnTypeOptions.NotSpecified
+                ).VariablesAccesed;
+        }
+
+        private class ValueSettingStatementAssigmentFormDetails
+        {
+            public ValueSettingStatementAssigmentFormDetails(Func<string, string> assigmentFormat, NonNullImmutableList<NameToken> variablesAccessed)
+            {
+                if (assigmentFormat == null)
+                    throw new ArgumentNullException("assigmentFormat");
+                if (variablesAccessed == null)
+                    throw new ArgumentNullException("memberCallVariablesAccessed");
+
+                AssigmentFormat = assigmentFormat;
+                VariablesAccessed = variablesAccessed;
+            }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public Func<string, string> AssigmentFormat { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public NonNullImmutableList<NameToken> VariablesAccessed { get; private set; }
         }
 
         protected string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)

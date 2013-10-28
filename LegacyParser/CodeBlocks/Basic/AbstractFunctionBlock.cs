@@ -70,6 +70,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public IEnumerable<ICodeBlock> Statements { get; private set; }
 
         /// <summary>
+        /// This must never be null but it may be empty (this may be the names of a a function's arguments, for example)
+        /// </summary>
+        IEnumerable<NameToken> IDefineScope.ExplicitScopeAdditions { get { return Parameters.Select(p => p.Name); } }
+
+        /// <summary>
         /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
         /// would include the statements inside the conditions but also the conditions themselves. It will never be null nor contain any nulls.
         /// </summary>

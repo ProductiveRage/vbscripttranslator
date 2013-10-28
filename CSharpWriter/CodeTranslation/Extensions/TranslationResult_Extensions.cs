@@ -1,6 +1,7 @@
 ﻿using CSharpWriter.Lists;
 using System;
 using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.Extensions
 {
@@ -62,24 +63,17 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
-        public static TranslationResult Add(this TranslationResult source, IEnumerable<TranslatedStatement> toAddBefore, TranslationResult toAdd, TranslatedStatement toAddAfter)
+        public static TranslationResult Add(this TranslationResult source, IEnumerable<NameToken> toAdd)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
-            if (toAddBefore == null)
-                throw new ArgumentNullException("toAddBefore");
             if (toAdd == null)
                 throw new ArgumentNullException("toAdd");
-            if (toAddAfter == null)
-                throw new ArgumentNullException("toAddAfter");
 
             return new TranslationResult(
-                source.TranslatedStatements
-                    .AddRange(toAddBefore)
-                    .AddRange(toAdd.TranslatedStatements)
-                    .Add(toAddAfter),
-                source.ExplicitVariableDeclarations.AddRange(toAdd.ExplicitVariableDeclarations),
-                source.UndeclaredVariablesAccessed.AddRange(toAdd.UndeclaredVariablesAccessed)
+                source.TranslatedStatements,
+                source.ExplicitVariableDeclarations,
+                source.UndeclaredVariablesAccessed.AddRange(toAdd.ToNonNullImmutableList())
             );
         }
     }

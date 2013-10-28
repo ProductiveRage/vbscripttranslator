@@ -1,5 +1,6 @@
 ﻿using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.Lists;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,9 +34,9 @@ namespace CSharpWriter.CodeTranslation
         }
 
 		/// <summary>
-		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
+		/// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
 		/// </summary>
-		public string Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation)
+        public TranslatedStatementContentDetails Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation)
 		{
 			if (statement == null)
 				throw new ArgumentNullException("statement");
@@ -65,10 +66,13 @@ namespace CSharpWriter.CodeTranslation
                         // return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
                         // of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
                         // Expressions that return values could exist as just "o" since that WOULD be valid C#.
-                        return string.Format(
-                            "{0}.VAL({1})",
-                            _supportClassName.Name,
-                            rewritterName
+                        return new TranslatedStatementContentDetails(
+                            string.Format(
+                                "{0}.VAL({1})",
+                                _supportClassName.Name,
+                                rewritterName
+                            ),
+                            new NonNullImmutableList<NameToken>(new[] { statementNameToken })
                         );
                     }
                 }
@@ -78,9 +82,9 @@ namespace CSharpWriter.CodeTranslation
         }
 
 		/// <summary>
-		/// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
+		/// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
 		/// </summary>
-        public string Translate(LegacyParser.Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+        public TranslatedStatementContentDetails Translate(LegacyParser.Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
 		{
 			if (expression == null)
 				throw new ArgumentNullException("expression");
@@ -92,7 +96,7 @@ namespace CSharpWriter.CodeTranslation
             return Translate((LegacyParser.Statement)expression, scopeAccessInformation, returnRequirements);
 		}
 
-        private string Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+        private TranslatedStatementContentDetails Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
         {
 			if (statement == null)
 				throw new ArgumentNullException("statement");
@@ -109,9 +113,9 @@ namespace CSharpWriter.CodeTranslation
 		}
 
         /// <summary>
-        /// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
+        /// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
         /// </summary>
-        public string Translate(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+        public TranslatedStatementContentDetails Translate(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
@@ -158,41 +162,53 @@ namespace CSharpWriter.CodeTranslation
 			if (segments.Length == 1)
 			{
 				var result = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
-				return ApplyReturnTypeGuarantee(
-					result.Item1,
-					result.Item2,
-					returnRequirements
+                return new TranslatedStatementContentDetails(
+				    ApplyReturnTypeGuarantee(
+    					result.TranslatedContent,
+					    result.ContentType,
+					    returnRequirements
+                    ),
+                    result.VariablesAccesed
 				);
 			}
 
             if (segments.Length == 2)
             {
-				return ApplyReturnTypeGuarantee(
-					string.Format(
-						"{0}.{1}({2})",
-						_supportClassName.Name,
-						GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-                        TranslateNonOperatorSegment(segments[1], scopeAccessInformation)
-					),
-					ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
-					returnRequirements
+                var result = TranslateNonOperatorSegment(segments[1], scopeAccessInformation);
+				return new TranslatedStatementContentDetails(
+                    ApplyReturnTypeGuarantee(
+					    string.Format(
+						    "{0}.{1}({2})",
+						    _supportClassName.Name,
+						    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
+                            result.TranslatedContent
+					    ),
+					    ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
+					    returnRequirements
+                    ),
+                    result.VariablesAccesed
 				);
             }
 
-			return ApplyReturnTypeGuarantee(
-				string.Format(
-					"{0}.{1}({2}, {3})",
-					_supportClassName.Name,
-                    TranslateNonOperatorSegment(segments[0], scopeAccessInformation),
-					GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
-                    TranslateNonOperatorSegment(segments[2], scopeAccessInformation)
-				),
-				ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
-				returnRequirements
+            var resultLeft = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
+            var resultRight = TranslateNonOperatorSegment(segments[2], scopeAccessInformation);
+            return new TranslatedStatementContentDetails(
+                ApplyReturnTypeGuarantee(
+				    string.Format(
+					    "{0}.{1}({2}, {3})",
+					    _supportClassName.Name,
+                        resultLeft.TranslatedContent,
+					    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
+                        resultRight.TranslatedContent
+				    ),
+				    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
+				    returnRequirements
+                ),
+                resultLeft.VariablesAccesed.AddRange(resultRight.VariablesAccesed)
             );
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> TranslateNonOperatorSegment(IExpressionSegment segment, ScopeAccessInformation scopeAccessInformation)
+        private TranslatedStatementContentDetailsWithContentType TranslateNonOperatorSegment(IExpressionSegment segment, ScopeAccessInformation scopeAccessInformation)
         {
             if (segment == null)
                 throw new ArgumentNullException("segment");
@@ -202,12 +218,24 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
 
             var numericValueSegment = segment as NumericValueExpressionSegment;
-			if (numericValueSegment != null)
-				return Tuple.Create(numericValueSegment.Token.Content, ExpressionReturnTypeOptions.Value);
+            if (numericValueSegment != null)
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    numericValueSegment.Token.Content,
+                    ExpressionReturnTypeOptions.Value,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
 
 			var stringValueSegment = segment as StringValueExpressionSegment;
 			if (stringValueSegment != null)
-				return Tuple.Create(stringValueSegment.Token.Content.ToLiteral(), ExpressionReturnTypeOptions.Value);
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    stringValueSegment.Token.Content.ToLiteral(),
+                    ExpressionReturnTypeOptions.Value,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
 
 			var builtInValueExpressionSegment = segment as BuiltInValueExpressionSegment;
 			if (builtInValueExpressionSegment != null)
@@ -232,7 +260,7 @@ namespace CSharpWriter.CodeTranslation
             throw new NotImplementedException(); // TODO
         }
 
-		private Tuple<string, ExpressionReturnTypeOptions> Translate(BracketedExpressionSegment bracketedExpressionSegment)
+        private TranslatedStatementContentDetailsWithContentType Translate(BracketedExpressionSegment bracketedExpressionSegment)
 		{
 			if (bracketedExpressionSegment == null)
 				throw new ArgumentNullException("bracketedExpressionSegment");
@@ -240,7 +268,7 @@ namespace CSharpWriter.CodeTranslation
 			throw new NotImplementedException(); // TODO
 		}
 
-		private Tuple<string, ExpressionReturnTypeOptions> Translate(BuiltInValueExpressionSegment builtInValueExpressionSegment)
+        private TranslatedStatementContentDetailsWithContentType Translate(BuiltInValueExpressionSegment builtInValueExpressionSegment)
 		{
 			if (builtInValueExpressionSegment == null)
 				throw new ArgumentNullException("builtInValueExpressionSegment");
@@ -248,24 +276,26 @@ namespace CSharpWriter.CodeTranslation
 			// Handle non-constants special cases
 			if (builtInValueExpressionSegment.Token.Content.Equals("err", StringComparison.InvariantCultureIgnoreCase))
 			{
-				return Tuple.Create(
+                return new TranslatedStatementContentDetailsWithContentType(
 					string.Format(
 						"{0}.ERR",
 						_supportClassName.Name
 					),
-					ExpressionReturnTypeOptions.Reference
+					ExpressionReturnTypeOptions.Reference,
+                    new NonNullImmutableList<NameToken>()
 				);
 			}
 
 			// Handle constants special cases
 			if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.InvariantCultureIgnoreCase))
 			{
-				return Tuple.Create(
-					string.Format(
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
 						"{0}.Constants.Nothing",
 						_supportClassName.Name
 					),
-					ExpressionReturnTypeOptions.Reference
+					ExpressionReturnTypeOptions.Reference,
+                    new NonNullImmutableList<NameToken>()
 				);
 			}
 
@@ -276,32 +306,43 @@ namespace CSharpWriter.CodeTranslation
 			);
 			if ((constantProperty == null) || !constantProperty.CanRead || constantProperty.GetIndexParameters().Any())
 				throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
-			return Tuple.Create(
+			return new TranslatedStatementContentDetailsWithContentType(
 				string.Format(
 					"{0}.Constants.{1}",
 					_supportClassName.Name,
 					constantProperty.Name
 				),
-				ExpressionReturnTypeOptions.Value
+				ExpressionReturnTypeOptions.Value,
+                new NonNullImmutableList<NameToken>()
 			);
 		}
 
-		private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
+        private TranslatedStatementContentDetailsWithContentType Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
-            return TranslateCallExpressionSegment(
+            var result = TranslateCallExpressionSegment(
                 _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
                 callExpressionSegment.MemberAccessTokens.Skip(1),
                 callExpressionSegment.Arguments,
                 scopeAccessInformation
             );
+            var targetNameToken = callExpressionSegment.MemberAccessTokens.First() as NameToken;
+            if (targetNameToken != null)
+            {
+                result = new TranslatedStatementContentDetailsWithContentType(
+                    result.TranslatedContent,
+                    result.ContentType,
+                    result.VariablesAccesed.Add(targetNameToken)
+                );
+            }
+            return result;
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> TranslateCallExpressionSegment(
+        private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
             string targetName,
             IEnumerable<IToken> targetMemberAccessTokens,
             IEnumerable<Expression> arguments,
@@ -331,25 +372,29 @@ namespace CSharpWriter.CodeTranslation
                 // have been so we need to consider this when looking for a match in its data
                 if (IsFunctionOrPropertyInScope(targetName, scopeAccessInformation))
                 {
+                    var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
                     var memberCallContent = new StringBuilder();
                     memberCallContent.Append(targetName);
                     memberCallContent.Append("(");
                     for (var index = 0; index < argumentsArray.Length; index++)
                     {
-                        memberCallContent.Append(
-                            Translate(
-                                argumentsArray[index],
-                                scopeAccessInformation,
-                                ExpressionReturnTypeOptions.NotSpecified
-                            )
+                        var translatedMemberCallArgumentContent = Translate(
+                            argumentsArray[index],
+                            scopeAccessInformation,
+                            ExpressionReturnTypeOptions.NotSpecified
                         );
+                        memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
+                            translatedMemberCallArgumentContent.VariablesAccesed
+                        );
+                        memberCallContent.Append(translatedMemberCallArgumentContent.TranslatedContent);
                         if (index < (argumentsArray.Length - 1))
                             memberCallContent.Append(", ");
                     }
                     memberCallContent.Append(")");
-                    return Tuple.Create(
+                    return new TranslatedStatementContentDetailsWithContentType(
                         memberCallContent.ToString(),
-                        ExpressionReturnTypeOptions.NotSpecified
+                        ExpressionReturnTypeOptions.NotSpecified,
+                        memberCallVariablesAccessed
                     );
                 }
             }
@@ -404,6 +449,7 @@ namespace CSharpWriter.CodeTranslation
                     callExpressionContent.Append(" }");
             }
 
+            var callExpressionVariablesAccessed = new NonNullImmutableList<NameToken>();
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
@@ -411,13 +457,15 @@ namespace CSharpWriter.CodeTranslation
                     callExpressionContent.Append("new object[] { ");
                 for (var index = 0; index < argumentsArray.Length; index++)
                 {
-                    callExpressionContent.Append(
-                        Translate(
-                            argumentsArray[index],
-                            scopeAccessInformation,
-                            ExpressionReturnTypeOptions.NotSpecified
-                        )
+                    var translatedCallExpressionArgumentContent = Translate(
+                        argumentsArray[index],
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified
                     );
+                    callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
+                        translatedCallExpressionArgumentContent.VariablesAccesed
+                    );
+                    callExpressionContent.Append(translatedCallExpressionArgumentContent.TranslatedContent);
                     if (index < (argumentsArray.Length - 1))
                         callExpressionContent.Append(", ");
                 }
@@ -426,9 +474,10 @@ namespace CSharpWriter.CodeTranslation
             }
 
             callExpressionContent.Append(")");
-			return Tuple.Create(
+			return new TranslatedStatementContentDetailsWithContentType(
 				callExpressionContent.ToString(),
-				ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
+				ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
+                callExpressionVariablesAccessed
 			);
         }
 
@@ -443,14 +492,13 @@ namespace CSharpWriter.CodeTranslation
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
-
             return (
                 scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name).Where(name => name == rewrittenName).Any() ||
                 scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name).Where(name => name == rewrittenName).Any()
             );
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
+        private TranslatedStatementContentDetailsWithContentType Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callSetExpressionSegment == null)
                 throw new ArgumentNullException("callSetExpressionSegment");
@@ -458,40 +506,48 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
             
             var content = "";
-            var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count();
+            var variablesAccessed = new NonNullImmutableList<NameToken>();
+            var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count(); // This will always be at least two (see notes in CallSetExpressionSegment)
             for (var index = 0; index < numberOfCallExpressions; index++)
             {
                 var callExpression = callSetExpressionSegment.CallExpressionSegments.ElementAt(index);
+                TranslatedStatementContentDetailsWithContentType translatedContent;
                 if (index == 0)
+                    translatedContent = Translate(callExpression, scopeAccessInformation);
+                else
                 {
-                    content = Translate(callExpression, scopeAccessInformation).Item1;
-                    continue;
+                    translatedContent = TranslateCallExpressionSegment(
+                        content,
+                        callExpression.MemberAccessTokens,
+                        callExpression.Arguments,
+                        scopeAccessInformation
+                    );
                 }
-                content = TranslateCallExpressionSegment(
-                    content,
-                    callExpression.MemberAccessTokens,
-                    callExpression.Arguments,
-                    scopeAccessInformation
-                ).Item1;
+                
+                // Overwrite any previous string content since it effectively gets passed through as an accumulator
+                content = translatedContent.TranslatedContent;
+                variablesAccessed = variablesAccessed.AddRange(translatedContent.VariablesAccesed);
             }
-            return Tuple.Create(
+            return new TranslatedStatementContentDetailsWithContentType(
                 content,
-                ExpressionReturnTypeOptions.NotSpecified // This could be anything so we have to report NotSpecified as the return type
+                ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
+                variablesAccessed
             );
         }
 
-        private Tuple<string, ExpressionReturnTypeOptions> Translate(NewInstanceExpressionSegment newInstanceExpressionSegment)
+        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment)
         {
             if (newInstanceExpressionSegment == null)
                 throw new ArgumentNullException("newInstanceExpressionSegment");
 
-            return Tuple.Create(
+            return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
                     "new {0}({1})",
                     _nameRewriter(newInstanceExpressionSegment.ClassName).Name,
                     _supportClassName.Name
                 ),
-                ExpressionReturnTypeOptions.Reference
+                ExpressionReturnTypeOptions.Reference,
+                new NonNullImmutableList<NameToken>()
             );
         }
 
@@ -582,5 +638,24 @@ namespace CSharpWriter.CodeTranslation
 					throw new NotSupportedException("Unsupported requiredReturnType value: " + requiredReturnType);
 			}
 		}
+
+        private class TranslatedStatementContentDetailsWithContentType : TranslatedStatementContentDetails
+        {
+            public TranslatedStatementContentDetailsWithContentType(
+                string content,
+                ExpressionReturnTypeOptions contentType,
+                NonNullImmutableList<NameToken> variablesAccessed) : base(content, variablesAccessed)
+            {
+                if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), contentType))
+                    throw new ArgumentOutOfRangeException("contentType");
+
+                ContentType = contentType;
+            }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public ExpressionReturnTypeOptions ContentType { get; private set; }
+        }
     }
 }

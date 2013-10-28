@@ -40,6 +40,7 @@
     <Compile Include="CodeTranslation\Extensions\PropertyBlock_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ITranslateIndividualStatements.cs" />
+    <Compile Include="CodeTranslation\TranslatedStatementContentDetails.cs" />
     <Compile Include="CodeTranslation\Translators\ClassBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\OuterScopeBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Translators\FunctionBlockTranslator.cs" />

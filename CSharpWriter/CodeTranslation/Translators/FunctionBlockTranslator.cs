@@ -37,7 +37,11 @@ namespace CSharpWriter.CodeTranslation
 			translationResult = translationResult.Add(
 				Translate(
 					functionBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(functionBlock, functionBlock.Statements),
+					scopeAccessInformation.Extend(
+                        functionBlock,
+                        _tempNameGenerator(new CSharpName("retVal")),
+                        functionBlock.Statements.ToNonNullImmutableList()
+                    ),
 					indentationDepth + 1
 				)
 			);

@@ -121,7 +121,10 @@ namespace CSharpWriter.CodeTranslation
 							indentationDepth
 						)
 					)
+                    .GroupBy(s => s.Content).Select(group => group.First()) // Lazy way to do distinct
+                    .OrderBy(s => s.Content)
 					.ToNonNullImmutableList()
+                    .Add(new TranslatedStatement("", indentationDepth)) // Blank line between inject variable declarations and the rest of the generated code
 					.AddRange(translationResult.TranslatedStatements),
 				translationResult.ExplicitVariableDeclarations,
 				new NonNullImmutableList<NameToken>()

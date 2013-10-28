@@ -10,6 +10,7 @@ namespace CSharpWriter.CodeTranslation
         public ScopeAccessInformation(
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
+            CSharpName parentReturnValueNameIfAny,
             NonNullImmutableList<NameToken> classes,
             NonNullImmutableList<NameToken> functions,
             NonNullImmutableList<NameToken> properties,
@@ -42,6 +43,7 @@ namespace CSharpWriter.CodeTranslation
                 return new ScopeAccessInformation(
                     null,
 					null,
+                    null,
                     new NonNullImmutableList<NameToken>(),
                     new NonNullImmutableList<NameToken>(),
                     new NonNullImmutableList<NameToken>(),
@@ -61,6 +63,11 @@ namespace CSharpWriter.CodeTranslation
 		/// though it is possible for ParentIfAny to be non-null and this be null (eg. when inside an IF block in the outermost scope)
 		/// </summary>
 		public IDefineScope ScopeDefiningParentIfAny { get; private set; }
+
+        /// <summary>
+        /// This will be null if there ScopeDefiningParentIfAny is null or if not a structure (ie. FUNCTION or PROPERTY) that returns a value
+        /// </summary>
+        public CSharpName ParentReturnValueNameIfAny { get; private set; }
 
         /// <summary>
         /// This will never be null
