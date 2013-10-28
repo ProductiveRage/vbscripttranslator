@@ -1,4 +1,5 @@
 ﻿ using System;
+using System.Runtime.InteropServices;
 
 namespace CSharpSupport
 {
@@ -22,10 +23,14 @@ namespace CSharpSupport
 		public object Null { get { return DBNull.Value; } }
 		
 		/// <summary>
-		/// This is like VBScript's non-value-type equivalent of Empty - internally we just a value that we can set to and compare to, but if this
-		/// gets passed into a COM component then it should probably be replaced with null (true null, not VBScript's null) - TODO: Confirm
+		/// VBScript's Nothing reference is an uninitialised object, not the same as Empty which is an uninitialised value type and not the same as Null
+		/// which is DBNull.Value. What this means under the hood is that Nothing is a VARIANT with type VT_EMPTY, Null is a VARIANT with type VT_NULL
+		/// and Empty is an uninitialised VARIANT. This means Empty is equivalent to .net's null, VBScript's Null can be mapped to DBNull.Value and
+		/// Nothing may be mapped to a DispatchWrapper that wraps null. Note that if this Nothing reference is passed from VBScript into a .net
+		/// COM component then it will appear as a .net null. This is expected and consistent behaviour with a Nothing reference generated
+		/// natively in VBScript.
 		/// </summary>
-		public object Nothing { get { return CSharpSupport.Nothing.Instance; } }
+		public object Nothing { get { return new DispatchWrapper(null); } }
 
 		// VarType Constants (http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbs57.htm)
 		public int vbEmpty { get { return 0; } }
