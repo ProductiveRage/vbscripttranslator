@@ -58,7 +58,8 @@ namespace CSharpWriter.CodeTranslation
 					base.TryToTranslateOptionExplicit,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,
-					base.TryToTranslateSelect
+					base.TryToTranslateSelect,
+                    base.TryToTranslateValueSettingStatement
 				}.ToNonNullImmutableList(),
 				blocks,
 				scopeAccessInformation,
