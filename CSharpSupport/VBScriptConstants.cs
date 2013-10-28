@@ -28,7 +28,7 @@ namespace CSharpSupport
 		/// and Empty is an uninitialised VARIANT. This means Empty is equivalent to .net's null, VBScript's Null can be mapped to DBNull.Value and
 		/// Nothing may be mapped to a DispatchWrapper that wraps null. Note that if this Nothing reference is passed from VBScript into a .net
 		/// COM component then it will appear as a .net null. This is expected and consistent behaviour with a Nothing reference generated
-		/// natively in VBScript.
+		/// natively in VBScript. See http://www.informit.com/articles/article.aspx?p=27219&seqNum=8 for more about the DispatchWrapper.
 		/// </summary>
 		public object Nothing { get { return new DispatchWrapper(null); } }
 
