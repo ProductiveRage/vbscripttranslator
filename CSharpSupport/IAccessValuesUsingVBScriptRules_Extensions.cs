@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace CSharpSupport
 {
-    public static class IProvideVBScriptCompatFunctionality_Extensions
+    public static class IAccessValuesUsingVBScriptRules_Extensions
 	{
         public const int MaxNumberOfMemberAccessorBeforeArraysRequired = 5;
 

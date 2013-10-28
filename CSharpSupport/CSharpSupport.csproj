@@ -45,7 +45,7 @@
     <Compile Include="TranslatedProperty.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />
     <Compile Include="Implementations\VBScriptEsqueValueRetriever.cs" />
-    <Compile Include="IProvideVBScriptCompatFunctionality_Extensions.cs" />
+    <Compile Include="IAccessValuesUsingVBScriptRules_Extensions.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules.cs" />
     <Compile Include="TranslatedPropertyIReflectImplementation.cs" />
     <Compile Include="VBScriptConstants.cs" />

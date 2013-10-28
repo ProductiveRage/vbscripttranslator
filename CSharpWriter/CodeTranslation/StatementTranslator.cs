@@ -431,7 +431,7 @@ namespace CSharpWriter.CodeTranslation
                 targetName
             );
 
-            var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= IProvideVBScriptCompatFunctionality_Extensions.MaxNumberOfMemberAccessorBeforeArraysRequired);
+            var ableToUseShorthandCallSignature = (targetMemberAccessTokensArray.Length <= IAccessValuesUsingVBScriptRules_Extensions.MaxNumberOfMemberAccessorBeforeArraysRequired);
             if (targetMemberAccessTokensArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
