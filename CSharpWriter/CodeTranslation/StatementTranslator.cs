@@ -197,8 +197,8 @@ namespace CSharpWriter.CodeTranslation
 				    string.Format(
 					    "{0}.{1}({2}, {3})",
 					    _supportClassName.Name,
+                        GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                         resultLeft.TranslatedContent,
-					    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                         resultRight.TranslatedContent
 				    ),
 				    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
