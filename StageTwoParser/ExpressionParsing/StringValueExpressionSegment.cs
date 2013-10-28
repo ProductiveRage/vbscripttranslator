@@ -16,7 +16,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         }
 
         /// <summary>
-        /// This will never be null and it will always be an OperatorToken
+        /// This will never be null
         /// </summary>
         public StringToken Token { get; private set; }
 
