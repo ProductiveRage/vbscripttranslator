@@ -40,7 +40,7 @@ namespace CSharpSupport.Implementations
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
         /// side of a SET assignment)
         /// </summary>
-		public object OBJ(object o) // TODO: Is this really required / does it offer any real benefit?
+		public object OBJ(object o)
         {
             if ((o == null) || IsVBScriptValueType(o))
                 throw new Exception("Object expected (SET-assignment-derived statement requires a non-value-type)");

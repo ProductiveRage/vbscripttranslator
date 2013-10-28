@@ -556,10 +556,18 @@ namespace CSharpWriter.CodeTranslation
 
 				case ExpressionReturnTypeOptions.Reference:
 					// If we know that this returns a value type then we can tell at this point that it's not going to work. If it returns a Reference
-					// type then we're golden. If contentType is NotSpecified then we just have to hope for the best that it's appropriate.
-					if ((contentType == ExpressionReturnTypeOptions.Boolean) || (contentType == ExpressionReturnTypeOptions.Value))
-						throw new ArgumentException("Invalid content, Expression specified needs to return an Reference (Object), but returns " + contentType + " (this would result in a compile-time \"Object Expected\")");
-					return translatedContent;
+					// type then we're golden. If contentType is NotSpecified then we need to pass it through the OBJ method so that a runtime exception
+					// is raised if the expression is NOT a reference type, in order to be consistent with VBScript's behaviour. (Previously, this would
+					// throw an exception at "translation time" - the runtime of the translator, as opposed to the runtime of the generated C# - that
+					// would indicate that the content was invalid for a Reference result if contentType was Boolean or Value, but this is inconsistent
+					// with VBScript, which would throw an exception at runtime - equivalent to the generated C#'s runtime).
+					if (contentType == ExpressionReturnTypeOptions.Reference)
+						return translatedContent;
+					return string.Format(
+						"{0}.OBJ({1})",
+						_supportClassName.Name,
+						translatedContent
+					);
 
 				case ExpressionReturnTypeOptions.Value:
 					if (contentType == ExpressionReturnTypeOptions.Value)
