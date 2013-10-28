@@ -107,7 +107,10 @@ namespace CSharpWriter.CodeTranslation
             return Translate(expressions[0], scopeAccessInformation, returnRequirements);
 		}
 
-        private string Translate(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+        /// <summary>
+        /// This will never return null or blank, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
+        /// </summary>
+        public string Translate(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
@@ -201,11 +204,11 @@ namespace CSharpWriter.CodeTranslation
 			if (numericValueSegment != null)
 				return Tuple.Create(numericValueSegment.Token.Content, ExpressionReturnTypeOptions.Value);
 
-            var stringValueSegment = segment as StringValueExpressionSegment;
-            if (stringValueSegment != null)
+			var stringValueSegment = segment as StringValueExpressionSegment;
+			if (stringValueSegment != null)
 				return Tuple.Create(stringValueSegment.Token.Content.ToLiteral(), ExpressionReturnTypeOptions.Value);
 
-            var callExpressionSegment = segment as CallExpressionSegment;
+			var callExpressionSegment = segment as CallExpressionSegment;
             if (callExpressionSegment != null)
                 return Translate(callExpressionSegment, scopeAccessInformation);
 
@@ -225,14 +228,14 @@ namespace CSharpWriter.CodeTranslation
         }
 
 		private Tuple<string, ExpressionReturnTypeOptions> Translate(BracketedExpressionSegment bracketedExpressionSegment)
-        {
-            if (bracketedExpressionSegment == null)
-                throw new ArgumentNullException("bracketedExpressionSegment");
+		{
+			if (bracketedExpressionSegment == null)
+				throw new ArgumentNullException("bracketedExpressionSegment");
 
-            throw new NotImplementedException(); // TODO
-        }
+			throw new NotImplementedException(); // TODO
+		}
 
-        private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
+		private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
