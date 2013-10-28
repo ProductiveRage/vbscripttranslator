@@ -3,6 +3,7 @@ using CSharpWriter.CodeTranslation.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -208,6 +209,10 @@ namespace CSharpWriter.CodeTranslation
 			if (stringValueSegment != null)
 				return Tuple.Create(stringValueSegment.Token.Content.ToLiteral(), ExpressionReturnTypeOptions.Value);
 
+			var builtInValueExpressionSegment = segment as BuiltInValueExpressionSegment;
+			if (builtInValueExpressionSegment != null)
+				return Translate(builtInValueExpressionSegment);
+
 			var callExpressionSegment = segment as CallExpressionSegment;
             if (callExpressionSegment != null)
                 return Translate(callExpressionSegment, scopeAccessInformation);
@@ -233,6 +238,52 @@ namespace CSharpWriter.CodeTranslation
 				throw new ArgumentNullException("bracketedExpressionSegment");
 
 			throw new NotImplementedException(); // TODO
+		}
+
+		private Tuple<string, ExpressionReturnTypeOptions> Translate(BuiltInValueExpressionSegment builtInValueExpressionSegment)
+		{
+			if (builtInValueExpressionSegment == null)
+				throw new ArgumentNullException("builtInValueExpressionSegment");
+
+			// Handle non-constants special cases
+			if (builtInValueExpressionSegment.Token.Content.Equals("err", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return Tuple.Create(
+					string.Format(
+						"{0}.ERR",
+						_supportClassName.Name
+					),
+					ExpressionReturnTypeOptions.Reference
+				);
+			}
+
+			// Handle constants special cases
+			if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return Tuple.Create(
+					string.Format(
+						"{0}.Constants.Nothing",
+						_supportClassName.Name
+					),
+					ExpressionReturnTypeOptions.Reference
+				);
+			}
+
+			// Handle regular value-type constants
+			var constantProperty = typeof(VBScriptConstants).GetProperty(
+				builtInValueExpressionSegment.Token.Content,
+				BindingFlags.Public | BindingFlags.IgnoreCase
+			);
+			if ((constantProperty == null) || !constantProperty.CanRead || constantProperty.GetIndexParameters().Any())
+				throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
+			return Tuple.Create(
+				string.Format(
+					"{0}.Constants.{1}",
+					_supportClassName.Name,
+					constantProperty.Name
+				),
+				ExpressionReturnTypeOptions.Value
+			);
 		}
 
 		private Tuple<string, ExpressionReturnTypeOptions> Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
