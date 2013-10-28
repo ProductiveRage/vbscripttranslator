@@ -15,8 +15,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
         private const string TokenBreakChars = "_,.*&+-=!(){}[]:;\n";
 
         /// <summary>
-        /// Break down an UnprocessedContentToken into a combination of AtomToken and AbstractEndOfStatementToken references. This will never
-        /// return null nor a set containing any null references.
+        /// Break down an UnprocessedContentToken into a combination of AtomToken and AbstractEndOfStatementToken references. This will never return null nor a set
+		/// containing any null references.
         /// </summary>
         public static IEnumerable<IToken> BreakUnprocessedToken(UnprocessedContentToken token)
         {
@@ -31,8 +31,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 var chr = content.Substring(index, 1);
                 if ((chr != "\n") && WhiteSpaceChars.IndexOf(chr) != -1)
                 {
-                    // If we've found a (non-line-return) whitespace character, push content
-                    // retrieved from the token so far (if any), into a fresh token on the
+                    // If we've found a (non-line-return) whitespace character, push content retrieved from the token so far (if any), into a fresh token on the
                     // list and clear the buffer to accept following data.
                     if (buffer != "")
                         tokens.Add(AtomToken.GetNewToken(buffer));
@@ -40,8 +39,20 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 }
                 else if (TokenBreakChars.IndexOf(chr) != -1)
                 {
-                    // If we've found another "break" character (which means a token split
-                    // is identified, but that we want to keep the break character itself,
+					// If the current character is a "&" then it may be a string concatenation or it may be the start of a hex number (eg. "&h001"), if it's
+					// the latter then we want to represent the content as a single token "&h001" not break the "&" out.
+					if ((chr == "&") && (index <= (content.Length - 3)))
+					{
+						var chrNext = content.Substring(index + 1, 1);
+						var chrNextNext = content.Substring(index + 2, 1);
+						if (chrNext.Equals("H", StringComparison.InvariantCultureIgnoreCase) && ("0123456789".IndexOf(chrNextNext) != -1))
+						{
+							buffer += chr;
+							continue;
+						}
+					}
+
+                    // If we've found another "break" character (which means a token split is identified, but that we want to keep the break character itself,
                     // unlike with whitespace breaks), then do similar to above.
                     if (buffer != "")
                         tokens.Add(AtomToken.GetNewToken(buffer));
@@ -61,8 +72,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
         }
 
         /// <summary>
-        /// Look for any "_" character AtomTokens and ensure they are followed by a line
-        /// return - if so, drop both (if not, raise exception - invalid VBScript)
+        /// Look for any "_" character AtomTokens and ensure they are followed by a line return - if so, drop both (if not, raise exception - invalid VBScript)
         /// </summary>
         private static List<IToken> handleLineReturnCancels(List<IToken> tokens)
         {

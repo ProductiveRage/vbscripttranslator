@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
@@ -108,6 +109,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             float numericValue;
             if (float.TryParse(content, out numericValue))
                 return new NumericValueToken(numericValue);
+			if (content.StartsWith("&h", StringComparison.InvariantCultureIgnoreCase))
+			{
+				int numericHexValue;
+				if (int.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
+					return new NumericValueToken(numericHexValue);
+			}
 
             return null;
         }
