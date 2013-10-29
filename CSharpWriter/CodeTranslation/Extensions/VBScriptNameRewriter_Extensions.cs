@@ -9,7 +9,9 @@ namespace CSharpWriter.CodeTranslation.Extensions
         /// <summary>
         /// When trying to access variables, functions, classes, etc.. we need to pass the member's name through the VBScriptNameRewriter. In
         /// most cases this token will be a NameToken which we can pass straight in, but in some cases it may be another type (perhaps a key
-        /// word type) and so will have to be wrapped in a NameToken instance before passing through the name rewriter.
+        /// word type) and so will have to be wrapped in a NameToken instance before passing through the name rewriter. This extension
+		/// method should be used in all places where the VBScriptNameRewriter is used by the CSharpWriter since it allows us to override
+		/// its behaviour where required - eg. by using a DoNotRenameNameToken
         /// </summary>
         public static string GetMemberAccessTokenName(this VBScriptNameRewriter source, IToken token)
         {
@@ -19,6 +21,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("token");
 
             var nameToken = (token as NameToken) ?? new ForRenamingNameToken(token.Content);
+			if (nameToken is DoNotRenameNameToken)
+				return nameToken.Content;
             return source(nameToken).Name;
         }
 
