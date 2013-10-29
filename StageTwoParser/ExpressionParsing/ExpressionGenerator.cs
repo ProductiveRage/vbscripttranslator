@@ -60,7 +60,11 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
+                            GetCallOrNewOrValueExpressionSegment(
+								accessorBuffer,
+								new Expression[0],
+								false // false => zero-argument content not bracketed
+							)
                         );
                         accessorBuffer.Clear();
                     }
@@ -88,7 +92,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         expressionSegments.Add(
                             GetCallOrNewOrValueExpressionSegment(
                                 accessorBuffer,
-                                bracketedExpressions
+                                bracketedExpressions,
+								true // true => brackets are present for any arguments
                             )
                         );
                         accessorBuffer.Clear();
@@ -110,7 +115,11 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (accessorBuffer.Any())
                     {
                         expressionSegments.Add(
-                            GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
+                            GetCallOrNewOrValueExpressionSegment(
+								accessorBuffer,
+								new Expression[0],
+								false // false => zero-argument content not bracketed
+							)
                         );
                         accessorBuffer.Clear();
                     }
@@ -127,7 +136,11 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (accessorBuffer.Any())
             {
                 expressionSegments.Add(
-                    GetCallOrNewOrValueExpressionSegment(accessorBuffer, new Expression[0])
+                    GetCallOrNewOrValueExpressionSegment(
+						accessorBuffer,
+						new Expression[0],
+						false // false => zero-argument content not bracketed
+					)
                 );
                 accessorBuffer.Clear();
             }
@@ -251,7 +264,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// (with no arguments) then this can be represented by a NewInstanceExpressionSegment. Otherwise return a CallExpressionSegment.
         /// that data in a constant-type expression segment).
         /// </summary>
-        private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(IEnumerable<IToken> tokens, IEnumerable<Expression> arguments)
+        private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(IEnumerable<IToken> tokens, IEnumerable<Expression> arguments, bool argumentsAreBracketed)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
@@ -286,9 +299,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         return new NewInstanceExpressionSegment(newInstanceName);
                 }
             }
+
+			CallExpressionSegment.ArgumentBracketPresenceOptions? zeroArgumentBracketsPresence;
+			if (arguments.Any())
+				zeroArgumentBracketsPresence = null;
+			else if (argumentsAreBracketed)
+				zeroArgumentBracketsPresence = CallExpressionSegment.ArgumentBracketPresenceOptions.Present;
+			else
+				zeroArgumentBracketsPresence = CallExpressionSegment.ArgumentBracketPresenceOptions.Absent;
             return new CallExpressionSegment(
                 tokensArray.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
-                arguments
+                arguments,
+				zeroArgumentBracketsPresence
             );
         }
 

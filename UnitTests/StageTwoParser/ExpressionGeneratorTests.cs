@@ -29,14 +29,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
-        [Fact]
+		[Fact]
         public void DirectFunctionCallWithNoArgumentsWithBrackets()
         {
             // Test()
             Assert.Equal(new[]
                 {
                     EXP(
-                        CALL(new NameToken("Test"))
+                        CALL(new NameToken("Test"), CallExpressionSegment.ArgumentBracketPresenceOptions.Present)
                     )
                 },
                 ExpressionGenerator.Generate(new IToken[] {
@@ -658,11 +658,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             return new CallSetExpressionSegment(segments.Cast<CallExpressionSegment>());
         }
 
-        /// <summary>
-        /// Create an CallExpressionSegment from member access tokens and argument expressions
-        /// </summary>
-        private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
-        {
+		/// <summary>
+		/// Create an CallExpressionSegment from member access tokens and argument expressions (the zeroArgBrackets is only considered if arguments is an empty set,
+		/// if arguments is empty and zeroArgBrackets is null then a Absent will be used as a default)
+		/// </summary>
+		private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments, CallExpressionSegment.ArgumentBracketPresenceOptions? zeroArgBrackets)
+		{
             if ((memberAccessTokens.Count() == 1) && !arguments.Any())
             {
                 if (memberAccessTokens.Single() is NumericValueToken)
@@ -670,30 +671,60 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 if (memberAccessTokens.Single() is StringToken)
                     return new StringValueExpressionSegment(memberAccessTokens.Single() as StringToken);
             }
-            return new CallExpressionSegment(
+
+			CallExpressionSegment.ArgumentBracketPresenceOptions? argBrackets;
+			if (arguments.Any())
+				argBrackets = null;
+			else if (zeroArgBrackets == null)
+				argBrackets = CallExpressionSegment.ArgumentBracketPresenceOptions.Absent;
+			else
+				argBrackets = zeroArgBrackets;
+
+			return new CallExpressionSegment(
                 memberAccessTokens,
-                arguments
+                arguments,
+				argBrackets
             );
         }
 
-        /// <summary>
-        /// Create a CallExpressionSegment from member access tokens and argument expressions
-        /// </summary>
-        private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
-        {
-            return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments);
-        }
+		/// <summary>
+		/// Create a CallExpressionSegment from member access tokens and argument expressions (the zeroArgBrackets is only considered if arguments is an empty set,
+		/// if arguments is empty and zeroArgBrackets is null then a Absent will be used as a default)
+		/// </summary>
+		private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, CallExpressionSegment.ArgumentBracketPresenceOptions? zeroArgBrackets, params Expression[] arguments)
+		{
+			return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments, zeroArgBrackets);
+		}
 
-        /// <summary>
-        /// Create a CallExpressionSegment from a single member access token and argument expressions
-        /// </summary>
-        private static IExpressionSegment CALL(IToken memberAccessToken, params Expression[] arguments)
-        {
-            return CALL(new[] { memberAccessToken }, (IEnumerable<Expression>)arguments);
-        }
+		/// <summary>
+		/// Create a CallExpressionSegment from member access tokens and argument expressions (applying the default logic for ArgumentBracketPresenceOptions; null
+		/// if there are arguments and Absent otherwise)
+		/// </summary>
+		private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
+		{
+			return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments, null);
+		}
 
-        /// <summary>
-        /// Create a CallExpressionSegment from a single member access token and argument expressions expressed as token sets
+		/// <summary>
+		/// Create a CallExpressionSegment from a single member access token and argument expressions (applying the default logic for ArgumentBracketPresenceOptions;
+		/// null if there are arguments and Absent otherwise)
+		/// </summary>
+		private static IExpressionSegment CALL(IToken memberAccessToken, params Expression[] arguments)
+		{
+			return CALL(new[] { memberAccessToken }, arguments);
+		}
+
+		/// <summary>
+		/// Create a CallExpressionSegment from a single member access token with no argument expressions and an explicit ArgumentBracketPresenceOptions value
+		/// </summary>
+		private static IExpressionSegment CALL(IToken memberAccessToken, CallExpressionSegment.ArgumentBracketPresenceOptions zeroArgBrackets)
+		{
+			return CALL(new[] { memberAccessToken }, new Expression[0], zeroArgBrackets);
+		}
+
+		/// <summary>
+		/// Create a CallExpressionSegment from a single member access token and argument expressions expressed as token sets (applying the default logic for
+		/// ArgumentBracketPresenceOptions; null if there are arguments and Absent otherwise)
         /// </summary>
         private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params IEnumerable<IToken>[] arguments)
         {
@@ -706,7 +737,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             }
             return CALL(
                 memberAccessTokens,
-                arguments.Select(a => new Expression(new[] { CALL(a) }))
+                arguments.Select(a => new Expression(new[] { CALL(a) })),
+				null
             );
         }
 

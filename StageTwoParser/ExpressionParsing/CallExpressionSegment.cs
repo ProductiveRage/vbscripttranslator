@@ -11,7 +11,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
     {
         private static IEnumerable<Type> AllowableTypes = new[] { typeof(BuiltInFunctionToken), typeof(BuiltInValueToken), typeof(KeyWordToken), typeof(NameToken) };
 
-        public CallExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments)
+		public CallExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments, ArgumentBracketPresenceOptions? zeroArgumentBracketsPresence)
         {
             if (memberAccessTokens == null)
                 throw new ArgumentNullException("memberAccessTokens");
@@ -32,7 +32,25 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             Arguments = arguments.ToList().AsReadOnly();
             if (Arguments.Any(e => e == null))
                 throw new ArgumentException("Null reference encountered in arguments set");
+
+			if (Arguments.Any())
+			{
+				if (zeroArgumentBracketsPresence != null)
+					throw new ArgumentException("ZeroArgumentBracketsPresence must be null if there are arguments for this CallExpressionSegment");
+			}
+			else if (zeroArgumentBracketsPresence == null)
+				throw new ArgumentException("ZeroArgumentBracketsPresence must not be null if there are zero arguments for this CallExpressionSegment");
+			else if (!Enum.IsDefined(typeof(ArgumentBracketPresenceOptions), zeroArgumentBracketsPresence.Value))
+				throw new ArgumentOutOfRangeException("zeroArgumentBracketsPresence");
+
+			ZeroArgumentBracketsPresence = zeroArgumentBracketsPresence;
         }
+
+		public enum ArgumentBracketPresenceOptions
+		{
+			Absent,
+			Present
+		}
 
         /// <summary>
         /// This will never be null, empty or contain any null references. There should be considered to be implicit MemberAccessorPointTokens between each
@@ -45,6 +63,13 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// This will never be null nor contain any null references
         /// </summary>
         public IEnumerable<Expression> Arguments { get; private set; }
+
+		/// <summary>
+		/// In very particular scenarios, VBScript uses brackets to determine whether a zero-argument call is a method call or a value assignment (when
+		/// setting the return value for a function, for example). This value will be null if there are any arguments and non-null if there are zero
+		/// argument.s
+		/// </summary>
+		public ArgumentBracketPresenceOptions? ZeroArgumentBracketsPresence { get; private set; }
 
 		/// <summary>
 		/// This will never be null, empty or contain any null references

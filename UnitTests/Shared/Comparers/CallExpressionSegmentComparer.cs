@@ -21,6 +21,9 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             if (!expressSetComparer.Equals(x.Arguments, y.Arguments))
                 return false;
 
+			if (x.ZeroArgumentBracketsPresence != y.ZeroArgumentBracketsPresence)
+				return false;
+
             return true;
         }
 
