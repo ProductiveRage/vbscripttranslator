@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
+    <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\StatementTranslatorTests.cs" />
     <Compile Include="LegacyParser\StringBreakerTests.cs" />
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\CallSetExpressionSegmentComparer.cs" />
@@ -53,6 +54,7 @@
     <Compile Include="Shared\Comparers\ExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSegmentSetComparer.cs" />
     <Compile Include="Shared\Comparers\TokenSetComparer.cs" />
+    <Compile Include="Shared\Comparers\TranslatedStatementContentDetailsComparer.cs" />
     <Compile Include="Shared\Misc.cs" />
     <Compile Include="StageTwoParser\ExpressionGeneratorTests.cs" />
     <Compile Include="StageTwoParser\OperatorCombinerTests.cs" />
@@ -67,6 +69,10 @@
     <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
       <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
       <Name>CSharpSupport</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CSharpWriter\CSharpWriter.csproj">
+      <Project>{5F5189EC-4856-4985-B954-CF86F3C6C2A0}</Project>
+      <Name>CSharpWriter</Name>
     </ProjectReference>
     <ProjectReference Include="..\StageTwoParser\StageTwoParser.csproj">
       <Project>{05ca6867-a198-4952-883b-60c0a29c8bae}</Project>
