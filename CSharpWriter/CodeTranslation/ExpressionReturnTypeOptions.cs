@@ -8,6 +8,12 @@
 		/// </summary>
 		Boolean,
 
+		/// <summary>
+		/// This means that the expression is a non-value-returning statement, in some cases different logic is applied to statements than value-returning
+		/// expressions and so a distinction is required between None and NotSpecified
+		/// </summary>
+		None,
+
 		NotSpecified,
 
 		/// <summary>

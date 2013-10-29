@@ -33,85 +33,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             _tempNameGenerator = tempNameGenerator;
         }
 
-		/// <summary>
-		/// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
-		/// </summary>
-        public TranslatedStatementContentDetails Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation)
-		{
-			if (statement == null)
-				throw new ArgumentNullException("statement");
-            if (scopeAccessInformation == null)
-                throw new ArgumentNullException("scopeAccessInformation");
-
-			// We actually need to request a "Value" return type here since a statement will need to evaluate to a value even though this value is not being considered.
-            // For example if we have the reference "o" "Set o = new CExample", the statement "o" is valid if "CExample" has a parameter-less default function or property
-            // but an "Object doesn't support this property or method" error will be raised if not. So the VBScript "default" logic has to be applied here, which it will
-            // be if we specify Value as the returnRequirements argument.
-            // - Update: Actually, this is only the case in the above example, where the entire statement is "o". If there was a method "Test1" which returned an instance
-            //   of "CExample" then the statement "Test1" would not try to access the default function/property. Similarly, if there is a reference "p" with the property
-            //   "Child" where "Child" always returns an instance of "CExample", the statement "p.Child" would not access the default of "CExample". If we had the "o"
-            //   reference was an array where each element was a "CExample" instance then the statment "o(0)" actually results in a "Type mismatch" error while
-            //   "o(0).Name" does not (assuming that CExample has a property Name that returns a value type). Since this translator is only intended to work
-            //   with valid VBScript, the behaviour in that case is not a concern.
-            if (statement.Tokens.Count() == 1)
-            {
-                // If we've got a single NameToken then we'll have to try to apply the default-accessing logic to it unless it's a function or property call
-                var statementNameToken = statement.Tokens.Single() as NameToken;
-                if (statementNameToken != null)
-                {
-                    var rewrittenName = _nameRewriter(statementNameToken).Name;
-                    if (!IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation))
-                    {
-                        // In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
-                        // return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
-                        // of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
-                        // Expressions that return values could exist as just "o" since that WOULD be valid C#.
-                        return new TranslatedStatementContentDetails(
-                            string.Format(
-                                "{0}.VAL({1})",
-                                _supportClassName.Name,
-                                rewrittenName
-                            ),
-                            new NonNullImmutableList<NameToken>(new[] { statementNameToken })
-                        );
-                    }
-                }
-            }
-
-            return Translate(statement, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified);
-        }
-
-		/// <summary>
-		/// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
-		/// </summary>
-        public TranslatedStatementContentDetails Translate(LegacyParser.Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
-		{
-			if (expression == null)
-				throw new ArgumentNullException("expression");
-            if (scopeAccessInformation == null)
-                throw new ArgumentNullException("scopeAccessInformation");
-            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
-				throw new ArgumentOutOfRangeException("returnRequirements");
-
-            return Translate((LegacyParser.Statement)expression, scopeAccessInformation, returnRequirements);
-		}
-
-        private TranslatedStatementContentDetails Translate(LegacyParser.Statement statement, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
-        {
-			if (statement == null)
-				throw new ArgumentNullException("statement");
-            if (scopeAccessInformation == null)
-                throw new ArgumentNullException("scopeAccessInformation");
-            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
-				throw new ArgumentOutOfRangeException("returnRequirements");
-
-			var expressions = ExpressionGenerator.Generate(statement.BracketStandardisedTokens).ToArray();
-			if (expressions.Length != 1)
-				throw new ArgumentException("Statement translation should always result in a single expression being generated");
-
-            return Translate(expressions[0], scopeAccessInformation, returnRequirements);
-		}
-
         /// <summary>
         /// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null expression reference)
         /// </summary>
@@ -123,6 +44,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
             if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
+
+			// See notes in TryToGetShortCutStatementResponse method..
+			var shortCutStatementResponse = TryToGetShortCutStatementResponse(expression, scopeAccessInformation, returnRequirements);
+			if (shortCutStatementResponse != null)
+				return shortCutStatementResponse;
 
             // Assert expectations about numbers of segments and operators (if any)
             var segments = expression.Segments.ToArray();
@@ -608,6 +534,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					);
 
 				case ExpressionReturnTypeOptions.NotSpecified:
+				case ExpressionReturnTypeOptions.None:
 					return translatedContent;
 
 				case ExpressionReturnTypeOptions.Reference:
@@ -637,6 +564,65 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				default:
 					throw new NotSupportedException("Unsupported requiredReturnType value: " + requiredReturnType);
 			}
+		}
+
+		private TranslatedStatementContentDetails TryToGetShortCutStatementResponse(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+		{
+			if (expression == null)
+				throw new ArgumentNullException("expression");
+			if (scopeAccessInformation == null)
+				throw new ArgumentNullException("scopeAccessInformation");
+			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+				throw new ArgumentOutOfRangeException("returnRequirements");
+
+			// There are some special rules for Statements (expressions where the return type is None); if "o" is an object reference, then a statement "o" will have value-
+			// type logic applied to it, so it will require a parameter-less default function or property otherwise an "Object doesn't support this property or method"
+			// error will be raised. However, if "o" is a function which returns an object reference, the value-type logic will not be applied to it. If "o" has a property
+			// "Child" which is an object reference, then "o.Child" will also not have value-type access logic applied to it. If "o" is an array, then a statement "o(0)"
+			// will result in a "Type mismatch" error; "o(0).Name" would not, however (assuming that the first element of the "o" array was an object with a property
+			// called "Name").
+
+			// The specific case that we want to address with this "shortcut" avenue is where we have a statement (so return type is None) with a single call expression
+			// segment with a single NameToken, which does not indicate a function or property. If these conditions are met then we can avoid all of the rest of the
+			// translation process. Note: We can't do this if return type is anything other than None since in C# it's not valid to have a statement that is only an
+			// instance of a class (if it's wrapped in a call to OBJ or VAL then it's ok since it's a method call, but that would be handled by the standard
+			// translation process).
+			if (returnRequirements != ExpressionReturnTypeOptions.None)
+				return null;
+
+			if (expression.Segments.Take(2).Count() > 1)
+				return null;
+
+			var onlyExpressionSegmentAsCallExpression = expression.Segments.Single() as CallExpressionSegment;
+			if (onlyExpressionSegmentAsCallExpression == null)
+				return null;
+
+			// If there are multiple member accessor tokens, arguments or if there were brackets following the single member accessor then this logic doesn't apply
+			if ((onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Take(2).Count() > 1)
+			|| onlyExpressionSegmentAsCallExpression.Arguments.Any()
+			|| onlyExpressionSegmentAsCallExpression.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Present)
+				return null;
+
+			var onlyMemberAccessTokenAsName = onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Single() as NameToken;
+			if (onlyMemberAccessTokenAsName == null)
+				return null;
+
+			var rewrittenName = _nameRewriter(onlyMemberAccessTokenAsName).Name;
+			if (IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation))
+				return null;
+
+			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
+			// return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
+			// of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
+			// Expressions that return values could exist as just "o" since that WOULD be valid C#.
+			return new TranslatedStatementContentDetails(
+				string.Format(
+					"{0}.VAL({1})",
+					_supportClassName.Name,
+					rewrittenName
+				),
+				new NonNullImmutableList<NameToken>(new[] { onlyMemberAccessTokenAsName })
+			);
 		}
 
         private class TranslatedStatementContentDetailsWithContentType : TranslatedStatementContentDetails
