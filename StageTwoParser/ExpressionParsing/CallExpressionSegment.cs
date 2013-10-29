@@ -25,7 +25,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 throw new ArgumentException("Null reference encountered in memberAccessTokens set");
             if (MemberAccessTokens.Any(t => t is MemberAccessorOrDecimalPointToken))
                 throw new ArgumentException("MemberAccessorOrDecimalPointToken tokens should not be included in the memberAccessTokens, they are implicit as token separators");
-            var firstUnacceptableTokenIfAny = MemberAccessTokens.FirstOrDefault(t => !AllowableTypes.Contains(t.GetType()));
+			var firstUnacceptableTokenIfAny = MemberAccessTokens.FirstOrDefault(token => !AllowableTypes.Any(allowedType => allowedType.IsInstanceOfType(token)));
             if (firstUnacceptableTokenIfAny != null)
                 throw new ArgumentException("Unacceptable token type encountered (" + firstUnacceptableTokenIfAny.GetType() + "), only allowed types are " + string.Join<Type>(", ", AllowableTypes));
 
