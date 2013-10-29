@@ -66,7 +66,9 @@ namespace CSharpWriter.CodeTranslation
 		public IDefineScope ScopeDefiningParentIfAny { get; private set; }
 
         /// <summary>
-        /// This will be null if there ScopeDefiningParentIfAny is null or if not a structure (ie. FUNCTION or PROPERTY) that returns a value
+        /// This will be null if the ScopeDefiningParentIfAny is null or if not a structure that returns a value, if ScopeDefiningParentIfAny IS a
+		/// structure that returns a value (ie. FUNCTION or PROPERTY) then this will be non-null. If this is non-null then ScopeDefiningParentIfAny
+		/// will also be non-null.
         /// </summary>
         public CSharpName ParentReturnValueNameIfAny { get; private set; }
 
