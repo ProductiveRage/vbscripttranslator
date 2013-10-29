@@ -63,6 +63,9 @@
     <Compile Include="Lists\NonNullImmutableList.cs" />
     <Compile Include="Lists\ImmutableList.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\CodeBlockTranslator.cs" />
+    <Compile Include="Logging\ConsoleLogger.cs" />
+    <Compile Include="Logging\NullLogger.cs" />
+    <Compile Include="Logging\ILogInformation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CodeTranslation\TranslatedStatement.cs" />
     <Compile Include="CodeTranslation\TranslationResult.cs" />

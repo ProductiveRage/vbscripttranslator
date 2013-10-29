@@ -2,6 +2,7 @@
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,8 +19,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
 			ITranslateIndividualStatements statementTranslator,
-			ITranslateValueSettingsStatements valueSettingStatementTranslator)
-			: base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator) { }
+			ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            ILogInformation logger) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
 		public TranslationResult Translate(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{

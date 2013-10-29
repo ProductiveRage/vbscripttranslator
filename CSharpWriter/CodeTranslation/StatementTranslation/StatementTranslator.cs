@@ -1,6 +1,7 @@
 ﻿using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +20,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         private readonly CSharpName _supportClassName;
         private readonly VBScriptNameRewriter _nameRewriter;
         private readonly TempValueNameGenerator _tempNameGenerator;
-        public StatementTranslator(CSharpName supportClassName, VBScriptNameRewriter nameRewriter, TempValueNameGenerator tempNameGenerator)
+        private readonly ILogInformation _logger;
+        public StatementTranslator(CSharpName supportClassName, VBScriptNameRewriter nameRewriter, TempValueNameGenerator tempNameGenerator, ILogInformation logger)
         {
             if (supportClassName == null)
                 throw new ArgumentNullException("supportClassName");
@@ -27,10 +29,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("nameRewriter");
             if (tempNameGenerator == null)
                 throw new ArgumentNullException("tempNameGenerator");
+            if (logger == null)
+                throw new ArgumentNullException("logger");
 
             _supportClassName = supportClassName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
+            _logger = logger;
         }
 
         /// <summary>

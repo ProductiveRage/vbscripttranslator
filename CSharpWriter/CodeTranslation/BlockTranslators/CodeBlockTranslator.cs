@@ -1,14 +1,11 @@
 ﻿using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.StageTwoParser.ExpressionParsing;
-using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -19,12 +16,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 		protected readonly TempValueNameGenerator _tempNameGenerator;
 		private readonly ITranslateIndividualStatements _statementTranslator;
 		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
-		protected CodeBlockTranslator(
+        private readonly ILogInformation _logger;
+        protected CodeBlockTranslator(
             CSharpName supportClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
-			ITranslateValueSettingsStatements valueSettingStatementTranslator)
+			ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            ILogInformation logger)
         {
             if (supportClassName == null)
                 throw new ArgumentNullException("supportClassName");
@@ -36,12 +35,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("statementTranslator");
 			if (valueSettingStatementTranslator == null)
 				throw new ArgumentNullException("valueSettingStatementTranslator");
+            if (logger == null)
+                throw new ArgumentNullException("logger");
 
             _supportClassName = supportClassName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _statementTranslator = statementTranslator;
 			_valueSettingStatementTranslator = valueSettingStatementTranslator;
+            _logger = logger;
         }
 
 		/// <summary>
@@ -114,7 +116,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (classBlock == null)
 				return null;
 
-			var codeBlockTranslator = new ClassBlockTranslator(_supportClassName, _nameRewriter, _tempNameGenerator, _statementTranslator, _valueSettingStatementTranslator);
+			var codeBlockTranslator = new ClassBlockTranslator(
+                _supportClassName,
+                _nameRewriter,
+                _tempNameGenerator,
+                _statementTranslator,
+                _valueSettingStatementTranslator,
+                _logger
+            );
 			return translationResult.Add(
 				codeBlockTranslator.Translate(
 					classBlock,
@@ -234,7 +243,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (functionBlock == null)
 				return null;
 
-			var codeBlockTranslator = new FunctionBlockTranslator(_supportClassName, _nameRewriter, _tempNameGenerator, _statementTranslator, _valueSettingStatementTranslator);
+			var codeBlockTranslator = new FunctionBlockTranslator(
+                _supportClassName,
+                _nameRewriter,
+                _tempNameGenerator,
+                _statementTranslator,
+                _valueSettingStatementTranslator,
+                _logger
+            );
 			return translationResult.Add(
 				codeBlockTranslator.Translate(
 					functionBlock,

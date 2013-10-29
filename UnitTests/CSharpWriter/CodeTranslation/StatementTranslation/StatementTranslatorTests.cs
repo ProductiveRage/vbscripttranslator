@@ -1,6 +1,7 @@
 ﻿using CSharpWriter.CodeTranslation;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
@@ -78,7 +79,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			return new StatementTranslator(
 				DefaultSupportClassName,
 				DefaultNameRewriter,
-				GetDefaultTempValueNameGenerator()
+				GetDefaultTempValueNameGenerator(),
+                new NullLogger()
 			);
 		}
 

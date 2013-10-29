@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using CSharpWriter.CodeTranslation.Extensions;
+﻿using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -17,8 +18,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
-			ITranslateValueSettingsStatements valueSettingStatementTranslator)
-			: base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator) { }
+            ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            ILogInformation logger) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
         {
