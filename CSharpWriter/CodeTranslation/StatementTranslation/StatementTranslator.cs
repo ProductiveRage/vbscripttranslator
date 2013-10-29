@@ -51,11 +51,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				return shortCutStatementResponse;
 
             // Assert expectations about numbers of segments and operators (if any)
+			// - There may not be more than three segments, and only three where there are two values or calls separated by an operator. CallSetExpressionSegments and
+			//   BracketedExpressionSegments are key to ensuring that this format is met.
             var segments = expression.Segments.ToArray();
             if (segments.Length == 0)
                 throw new ArgumentException("The expression was broken down into zero segments - invalid content");
             if (segments.Length > 3)
-                throw new ArgumentException("Expressions with more than three segments are invalid (they must be broken down further), this one has " + segments.Length);
+				throw new ArgumentException("Expressions with more than three segments are invalid (they must be processed further, potentially using CallSetExpressionSegments and BracketedExpressionSegments where appropriate), this one has " + segments.Length);
             var operatorSegmentsWithIndexes = segments
                 .Select((segment, index) => new { Segment = segment as OperationExpressionSegment, Index = index })
                 .Where(s => s.Segment != null);
