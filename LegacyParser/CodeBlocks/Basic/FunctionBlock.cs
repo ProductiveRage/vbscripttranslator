@@ -13,7 +13,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             NameToken name,
             List<Parameter> parameters,
             List<ICodeBlock> statements)
-            : base(isPublic, isDefault, name, parameters, statements) { }
+            : base(isPublic, isDefault, true, name,parameters, statements) { }
 
         protected override string keyWord
         {

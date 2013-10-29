@@ -15,6 +15,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public AbstractFunctionBlock(
             bool isPublic,
             bool isDefault,
+			bool hasReturnValue,
             NameToken name,
             List<Parameter> parameters,
             List<ICodeBlock> statements)
@@ -37,6 +38,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             
             IsPublic = isPublic;
             IsDefault = isDefault;
+			HasReturnValue = hasReturnValue;
             Name = name;
         }
 
@@ -53,6 +55,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public bool IsPublic { get; private set; }
 
         public bool IsDefault { get; private set; }
+
+		public bool HasReturnValue { get; private set; }
 
         /// <summary>
         /// This will never be null

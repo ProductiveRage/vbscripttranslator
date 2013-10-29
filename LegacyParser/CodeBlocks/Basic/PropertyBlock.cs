@@ -14,7 +14,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             PropertyType propType,
             List<Parameter> parameters,
             List<ICodeBlock> statements)
-            : base(isPublic, isDefault, name, parameters, statements)
+            : base(isPublic, isDefault, (propType == PropertyType.Get), name, parameters, statements)
         {
             bool isValid = false;
             foreach (object value in Enum.GetValues(typeof(PropertyType)))
