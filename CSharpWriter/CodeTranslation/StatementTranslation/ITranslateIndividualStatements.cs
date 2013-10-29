@@ -1,7 +1,7 @@
 ﻿using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
-namespace CSharpWriter.CodeTranslation
+namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
     public interface ITranslateIndividualStatements
     {

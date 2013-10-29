@@ -11,7 +11,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
     // TODO: Ensure the nameRewriter isn't being used anywhere it shouldn't - it shouldn't rename methods of COM components, for example
     public class StatementTranslator : ITranslateIndividualStatements
@@ -47,7 +47,7 @@ namespace CSharpWriter.CodeTranslation
             // For example if we have the reference "o" "Set o = new CExample", the statement "o" is valid if "CExample" has a parameter-less default function or property
             // but an "Object doesn't support this property or method" error will be raised if not. So the VBScript "default" logic has to be applied here, which it will
             // be if we specify Value as the returnRequirements argument.
-            // - Update: Actually, this is only the case in the above example, where the entire statement is "o". If there was a method "Test1" which return an instance
+            // - Update: Actually, this is only the case in the above example, where the entire statement is "o". If there was a method "Test1" which returned an instance
             //   of "CExample" then the statement "Test1" would not try to access the default function/property. Similarly, if there is a reference "p" with the property
             //   "Child" where "Child" always returns an instance of "CExample", the statement "p.Child" would not access the default of "CExample". If we had the "o"
             //   reference was an array where each element was a "CExample" instance then the statment "o(0)" actually results in a "Type mismatch" error while
@@ -59,8 +59,8 @@ namespace CSharpWriter.CodeTranslation
                 var statementNameToken = statement.Tokens.Single() as NameToken;
                 if (statementNameToken != null)
                 {
-                    var rewritterName = _nameRewriter(statementNameToken).Name;
-                    if (!IsFunctionOrPropertyInScope(rewritterName, scopeAccessInformation))
+                    var rewrittenName = _nameRewriter(statementNameToken).Name;
+                    if (!IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation))
                     {
                         // In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
                         // return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
@@ -70,7 +70,7 @@ namespace CSharpWriter.CodeTranslation
                             string.Format(
                                 "{0}.VAL({1})",
                                 _supportClassName.Name,
-                                rewritterName
+                                rewrittenName
                             ),
                             new NonNullImmutableList<NameToken>(new[] { statementNameToken })
                         );

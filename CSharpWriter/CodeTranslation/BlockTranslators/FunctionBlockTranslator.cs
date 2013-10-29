@@ -1,5 +1,6 @@
 ﻿using CSharpSupport;
 using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public class FunctionBlockTranslator : CodeBlockTranslator
     {
@@ -16,7 +17,9 @@ namespace CSharpWriter.CodeTranslation
             CSharpName supportClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
-            ITranslateIndividualStatements statementTranslator) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator) { }
+			ITranslateIndividualStatements statementTranslator,
+			ITranslateValueSettingsStatements valueSettingStatementTranslator)
+			: base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator) { }
 
 		public TranslationResult Translate(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{

@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public class OuterScopeBlockTranslator : CodeBlockTranslator
     {
@@ -15,7 +16,9 @@ namespace CSharpWriter.CodeTranslation
             CSharpName supportClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
-            ITranslateIndividualStatements statementTranslator) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator) { }
+            ITranslateIndividualStatements statementTranslator,
+			ITranslateValueSettingsStatements valueSettingStatementTranslator)
+			: base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator) { }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
         {
