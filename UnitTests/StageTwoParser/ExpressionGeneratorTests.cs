@@ -41,8 +41,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("Test"),
-                        new OpenBrace("("),
-                        new CloseBrace(")")
+                        new OpenBrace(),
+                        new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -107,9 +107,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("Test"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(1),
-                        new CloseBrace(")")
+                        new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -131,11 +131,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("Test"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(1),
                         new ArgumentSeparatorToken(","),
                         new NumericValueToken(2),
-                        new CloseBrace(")")
+                        new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -162,14 +162,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("Test"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NameToken("Test2"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(1),
-                        new CloseBrace(")"),
+                        new CloseBrace(),
                         new ArgumentSeparatorToken(","),
                         new NumericValueToken(2),
-                        new CloseBrace(")")
+                        new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -195,9 +195,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("a"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(0),
-                        new CloseBrace(")"),
+                        new CloseBrace(),
                         new MemberAccessorToken(),
                         new NameToken("Test")
                 }),
@@ -227,9 +227,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NameToken("a"),
                         new MemberAccessorToken(),
                         new NameToken("b"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(0),
-                        new CloseBrace(")"),
+                        new CloseBrace(),
                         new MemberAccessorToken(),
                         new NameToken("Test")
                 }),
@@ -257,9 +257,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("a"),
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new NumericValueToken(0),
-                        new CloseBrace(")"),
+                        new CloseBrace(),
                         new MemberAccessorToken(),
                         new NameToken("b"),
                         new MemberAccessorToken(),
@@ -355,9 +355,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NameToken("b"),
                     new OperatorToken("*"),
                     new NameToken("c"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NumericValueToken(0),
-                    new CloseBrace(")")
+                    new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -395,9 +395,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NameToken("b"),
                     new OperatorToken("*"),
                     new NameToken("c"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NumericValueToken(0),
-                    new CloseBrace(")"),
+                    new CloseBrace(),
                     new OperatorToken("+"),
                     new NameToken("d"),
                 }),
@@ -427,11 +427,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 ExpressionGenerator.Generate(new IToken[] {
                     new NameToken("a"),
                     new OperatorToken("+"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NameToken("b"),
                     new OperatorToken("*"),
                     new NameToken("c"),
-                    new CloseBrace(")")
+                    new CloseBrace()
                 }),
                 new ExpressionSetComparer()
             );
@@ -460,11 +460,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 ExpressionGenerator.Generate(new IToken[] {
                     new NameToken("a"),
                     new OperatorToken("+"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NameToken("b"),
                     new OperatorToken("*"),
                     new NameToken("c"),
-                    new CloseBrace(")"),
+                    new CloseBrace(),
                     new OperatorToken("+"),
                     new NameToken("d"),
                 }),
@@ -546,14 +546,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new NameToken("c"),
                     new MemberAccessorToken(),
                     new NameToken("d"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NameToken("Test"),
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NumericValueToken(0),
-                    new CloseBrace(")"),
+                    new CloseBrace(),
                     new ArgumentSeparatorToken(","),
                     new NumericValueToken(1),
-                    new CloseBrace(")"),
+                    new CloseBrace(),
                     new OperatorToken("+"),
                     new NameToken("e"),
                     new ComparisonOperatorToken("="),

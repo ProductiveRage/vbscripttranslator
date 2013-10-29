@@ -23,6 +23,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             if (scriptContent == null)
                 throw new ArgumentNullException("scriptContent");
 
+            // Normalise line returns
+            scriptContent = scriptContent.Replace("\r\n", "\n").Replace('\r', '\n');
+
             var index = 0;
             var tokenContent = "";
             var tokens = new List<IToken>();
@@ -93,7 +96,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
                                 tokens.Add(new UnprocessedContentToken(
-                                    prevToken.Content.TrimEnd('\t', '\r', ' ')
+                                    prevToken.Content.TrimEnd('\t', ' ')
                                 ));
                                 tokens.Add(new EndOfStatementSameLineToken());
                             }

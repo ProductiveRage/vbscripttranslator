@@ -35,17 +35,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new OpenBrace("("),
+                    new OpenBrace(),
                     new NumericValueToken(-1),
-                    new CloseBrace(")")
+                    new CloseBrace()
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new OpenBrace("("),
+                        new OpenBrace(),
                         new OperatorToken("-"),
                         new NumericValueToken(1),
-                        new CloseBrace(")")
+                        new CloseBrace()
                     }
                 ),
                 new TokenSetComparer()

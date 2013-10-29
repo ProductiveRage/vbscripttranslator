@@ -180,9 +180,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                         if (insertBracketsBeforeThisToken)
                         {
                             return tokenArray.Take(tokenIndex)
-                                .Concat(new[] { new OpenBrace("(") })
+                                .Concat(new[] { new OpenBrace() })
                                 .Concat(tokenArray.Skip(tokenIndex))
-                                .Concat(new[] { new CloseBrace(")") });
+                                .Concat(new[] { new CloseBrace() });
                         }
                     }
                 }

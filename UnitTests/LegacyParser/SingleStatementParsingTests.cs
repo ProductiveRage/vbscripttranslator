@@ -46,11 +46,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new NameToken("WScript"),
                             new MemberAccessorOrDecimalPointToken("."),
                             new NameToken("Echo"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NumericValueToken(1),
                             new MemberAccessorOrDecimalPointToken("."),
                             new NumericValueToken(1),
-                            new CloseBrace(")")
+                            new CloseBrace()
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -93,11 +93,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new Expression(new IToken[]
                         {
                             new NameToken("a"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
-                            new CloseBrace(")"),
+                            new CloseBrace(),
                         }),
                         new Expression(new[]
                         {
@@ -121,11 +121,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new Expression(new IToken[]
                         {
                             new NameToken("a"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
-                            new CloseBrace(")"),
+                            new CloseBrace(),
                         }),
                         new Expression(new[]
                         {
@@ -149,11 +149,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new Expression(new IToken[]
                         {
                             new NameToken("a"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NumericValueToken(0),
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
-                            new CloseBrace(")"),
+                            new CloseBrace(),
                         }),
                         new Expression(new[]
                         {
@@ -177,16 +177,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new Expression(new IToken[]
                         {
                             new NameToken("a"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NameToken("GetValue"),
-                            new OpenBrace("("),
+                            new OpenBrace(),
                             new NumericValueToken(1),
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(3),
-                            new CloseBrace(")"),
+                            new CloseBrace(),
                             new ArgumentSeparatorToken(","),
                             new NumericValueToken(0),
-                            new CloseBrace(")"),
+                            new CloseBrace(),
                         }),
                         new Expression(new[]
                         {

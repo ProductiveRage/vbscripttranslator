@@ -102,9 +102,9 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (isArgumentSeparator(content))
                 return new ArgumentSeparatorToken(content);
             if (isOpenBrace(content))
-                return new OpenBrace(content);
+                return new OpenBrace();
             if (isCloseBrace(content))
-                return new CloseBrace(content);
+                return new CloseBrace();
 
             float numericValue;
             if (float.TryParse(content, out numericValue))

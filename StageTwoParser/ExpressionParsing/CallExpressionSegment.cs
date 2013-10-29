@@ -88,7 +88,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				}
 				if (Arguments.Any())
 				{
-					combinedTokens.Add(new OpenBrace("("));
+					combinedTokens.Add(new OpenBrace());
 					var arguments = Arguments.ToArray();
 					for (var index = 0; index < arguments.Length; index++)
 					{
@@ -96,7 +96,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 						if (index < (arguments.Length - 1))
 							combinedTokens.Add(new ArgumentSeparatorToken(","));
 					}
-					combinedTokens.Add(new CloseBrace(")"));
+					combinedTokens.Add(new CloseBrace());
 				}
 				return combinedTokens;
 			}

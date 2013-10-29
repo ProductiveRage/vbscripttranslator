@@ -584,9 +584,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					// is raised if the expression is NOT a reference type, in order to be consistent with VBScript's behaviour. (Previously, this would
 					// throw an exception at "translation time" - the runtime of the translator, as opposed to the runtime of the generated C# - that
 					// would indicate that the content was invalid for a Reference result if contentType was Boolean or Value, but this is inconsistent
-					// with VBScript, which would throw an exception at runtime - equivalent to the generated C#'s runtime).
+					// with VBScript, which would throw an exception at runtime - equivalent to the generated C#'s runtime. Now a log warning is
+                    // recorded, which is hopefully a reasonable compromise).
 					if (contentType == ExpressionReturnTypeOptions.Reference)
 						return translatedContent;
+                    // TODO: if ((contentType == ExpressionReturnTypeOptions.Boolean) || (contentType == ExpressionReturnTypeOptions.Value))
+                    // TODO:     _logger.Warning("
+                    // TODO: Warn for contentType = None as well?
 					return string.Format(
 						"{0}.OBJ({1})",
 						_supportClassName.Name,
