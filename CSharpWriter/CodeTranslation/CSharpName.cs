@@ -19,5 +19,10 @@ namespace CSharpWriter.CodeTranslation
         /// This will never be null, blank or contain any whitespace
         /// </summary>
         public string Name { get; private set; }
+
+		public override string ToString()
+		{
+			return base.ToString() + ":" + Name;
+		}
     }
 }
