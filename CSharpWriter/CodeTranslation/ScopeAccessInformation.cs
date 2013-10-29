@@ -30,6 +30,7 @@ namespace CSharpWriter.CodeTranslation
 
             ParentIfAny = parentIfAny;
 			ScopeDefiningParentIfAny = scopeDefiningParentIfAny;
+            ParentReturnValueNameIfAny = parentReturnValueNameIfAny;
             Classes = classes;
             Functions = functions;
             Properties = properties;
