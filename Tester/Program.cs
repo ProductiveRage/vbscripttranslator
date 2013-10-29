@@ -1,13 +1,12 @@
 ﻿using CSharpWriter.CodeTranslation;
+using CSharpWriter.CodeTranslation.BlockTranslators;
+using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
+using CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 using VBScriptTranslator.LegacyParser.ContentBreaking;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -20,65 +19,55 @@ namespace Tester
     {
         static void Main()
         {
+            Console.WriteLine(
+                Translate(
+                    "' Test\n\nDim i\ntest1 ' Inline comment\nWScript.Echo 1"
+                )
+            );
+            Console.ReadLine();
+        }
+
+        private static string Translate(string scriptContent)
+        {
+            if (scriptContent == null)
+                throw new ArgumentNullException("scriptContent");
+
             // This is just a very simple configuration of the CodeBlockTranslator, its name generation implementations are not robust in
             // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
             var random = new Random();
             var supportClassName = new CSharpName("_");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
-            TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "" : (optionalPrefix.Name + "_")) + "temp" + random.Next(1000000).ToString());
-            var codeBlockTranslator = new CodeBlockTranslator(
+            TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
+            var logger = new ConsoleLogger();
+            var statementTranslator = new StatementTranslator(supportClassName, nameRewriter, tempNameGenerator, logger);
+            var codeBlockTranslator = new OuterScopeBlockTranslator(
                 supportClassName,
                 nameRewriter,
                 tempNameGenerator,
-                new StatementTranslator(
-                    supportClassName,
-                    nameRewriter,
-                    tempNameGenerator
-                )
+                statementTranslator,
+                new ValueSettingsStatementsTranslator(supportClassName, nameRewriter, statementTranslator, logger),
+                logger
             );
 
             var translatedCode1 = codeBlockTranslator.Translate(
-                ProcessContent(
-                    "' Test\n\nDim i\ntest1 ' Inline comment\nWScript.Echo 1",
-                    false
-                ).ToNonNullImmutableList()
+                ProcessContent(scriptContent).ToNonNullImmutableList()
             );
-            Console.WriteLine(
-                string.Join(
-                    "\n",
-                    translatedCode1.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
-                )
+            return string.Join(
+                "\n",
+                translatedCode1.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
             );
-            Console.ReadLine();
-
-            var filename = "Test.vbs";
-            var testFileCodeBlocks = ProcessContent(
-                GetScriptContent(filename).Replace("\r\n", "\n"),
-                true
-            );
-            Console.ReadLine();
-
-            var translatedCode2 = codeBlockTranslator.Translate(
-                testFileCodeBlocks.ToNonNullImmutableList()
-            );
-            Console.ReadLine();
         }
 
-        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent, bool pushContentToConsole)
+        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent)
         {
             // Translate these tokens into ICodeBlock implementations (representing
             // code VBScript structures)
             string[] endSequenceMet;
             var handler = new CodeBlockHandler(null);
-            var codeBlocks = handler.Process(
+            return handler.Process(
                 GetTokens(scriptContent).ToList(),
                 out endSequenceMet
             );
-
-            // DEBUG: ender processed content as VBScript source code
-            if (pushContentToConsole)
-                Console.WriteLine(GetRenderedSourceVB(codeBlocks));
-            return codeBlocks;
         }
 
         private static IEnumerable<IToken> GetTokens(string scriptContent)
@@ -97,39 +86,6 @@ namespace Tester
             }
 
             return NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList();
-        }
-
-        private static string GetScriptContent(string filename)
-        {
-            if ((filename ?? "").Trim() == "")
-                throw new ArgumentException("GetScriptContent: filename is null or blank");
-            
-            var file = new FileInfo(filename);
-            using (var stream = file.OpenText())
-            {
-                return stream.ReadToEnd();
-            }
-        }
-
-        private static string GetRenderedSourceVB(List<ICodeBlock> content)
-        {
-            if (content == null)
-                throw new ArgumentNullException("content");
-            
-            var output = new StringBuilder();
-            for (var index = 0; index < content.Count; index++)
-            {
-                var block = content[index];
-                var blockNext = (content.Count > (index + 1)) ? content[index + 1] : null;
-                output.Append(block.GenerateBaseSource(new SourceIndentHandler()));
-                if (blockNext is InlineCommentStatement)
-                {
-                    output.Append(" " + blockNext.GenerateBaseSource(new NullIndenter()));
-                    index++;
-                }
-                output.AppendLine();
-            }
-            return output.ToString();
         }
     }
 }
