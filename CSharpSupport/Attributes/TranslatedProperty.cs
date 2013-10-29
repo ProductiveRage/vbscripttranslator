@@ -1,14 +1,14 @@
 ﻿using System;
 
-namespace CSharpSupport
+namespace CSharpSupport.Attributes
 {
 	/// <summary>
-	/// In order to fully implement VBScript TypeName support, we will need the original names of classes before they were changed for C# generation (for cases
-	/// where they WERE changed). Generated classes should be decorated with this attribute to expose that information.
+    /// Since C# doesn't support named index properties, where these exist in VBScript source they are converted into methods for the get and set (depending
+    /// upon which are present in the source) with this attribute. The getter and setter will have non-void and void return types, resp.
 	/// </summary>
-    public class SourceClassName : Attribute
+    public class TranslatedProperty : Attribute
     {
-		public SourceClassName(string name)
+        public TranslatedProperty(string name)
         {
             if (name == null)
                 throw new ArgumentNullException("name");

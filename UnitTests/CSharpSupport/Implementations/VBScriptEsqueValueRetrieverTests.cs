@@ -1,4 +1,4 @@
-﻿using CSharpSupport;
+﻿using CSharpSupport.Attributes;
 using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;

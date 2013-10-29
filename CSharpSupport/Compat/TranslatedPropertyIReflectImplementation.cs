@@ -1,11 +1,12 @@
-﻿using System;
+﻿using CSharpSupport.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace CSharpSupport
+namespace CSharpSupport.Compat
 {
     /// <summary>
     /// C# doesn't support named indexed-properties so indexed VBScript properties will be represented by separate getter and setter methods (unless the property

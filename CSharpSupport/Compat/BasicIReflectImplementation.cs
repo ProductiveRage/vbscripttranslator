@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace CSharpSupport
+namespace CSharpSupport.Compat
 {
     [ComVisible(true)]
     public class BasicIReflectImplementation : IReflect

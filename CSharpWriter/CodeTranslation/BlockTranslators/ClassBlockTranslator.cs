@@ -1,4 +1,6 @@
 ﻿using CSharpSupport;
+using CSharpSupport.Attributes;
+using CSharpSupport.Compat;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;

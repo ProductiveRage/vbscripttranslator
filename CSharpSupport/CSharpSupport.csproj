@@ -40,19 +40,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicIReflectImplementation.cs" />
-    <Compile Include="SourceClassName.cs" />
-    <Compile Include="TranslatedProperty.cs" />
+    <Compile Include="Compat\BasicIReflectImplementation.cs" />
+    <Compile Include="Attributes\SourceClassName.cs" />
+    <Compile Include="Attributes\TranslatedProperty.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />
     <Compile Include="Implementations\VBScriptEsqueValueRetriever.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules_Extensions.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules.cs" />
-    <Compile Include="TranslatedPropertyIReflectImplementation.cs" />
+    <Compile Include="Compat\TranslatedPropertyIReflectImplementation.cs" />
     <Compile Include="VBScriptConstants.cs" />
     <Compile Include="IProvideVBScriptCompatFunctionality.cs" />
-    <Compile Include="IsDefault.cs" />
+    <Compile Include="Attributes\IsDefault.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
