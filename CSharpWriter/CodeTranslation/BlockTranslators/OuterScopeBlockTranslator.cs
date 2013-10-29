@@ -87,12 +87,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				if (functionBlock == null)
 					continue;
 
-				var functionName = _nameRewriter(functionBlock.Name).Name;
+				var functionName = _nameRewriter.GetMemberAccessTokenName(functionBlock.Name);
 				removeAtLocations.AddRange(
 					blocks
 						.Select((b, blockIndex) => new { Index = blockIndex, Block = b })
 						.Where(indexedBlock => indexedBlock.Block is AbstractFunctionBlock)
-						.Where(indexedBlock => _nameRewriter(((AbstractFunctionBlock)indexedBlock.Block).Name).Name == functionName)
+						.Where(indexedBlock => _nameRewriter.GetMemberAccessTokenName(((AbstractFunctionBlock)indexedBlock.Block).Name) == functionName)
 						.Select(indexedBlock => indexedBlock.Index)
 						.OrderByDescending(blockIndex => blockIndex).Skip(1) // Leave the last one intact
 				);

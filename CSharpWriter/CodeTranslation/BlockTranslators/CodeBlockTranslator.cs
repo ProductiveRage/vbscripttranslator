@@ -335,7 +335,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             return string.Format(
                 "object {0} = {1}null;",
-                _nameRewriter(variableDeclaration.Name).Name,
+                _nameRewriter.GetMemberAccessTokenName(variableDeclaration.Name),
                 variableDeclaration.IsArray ? "(object[])" : ""
             );
         }

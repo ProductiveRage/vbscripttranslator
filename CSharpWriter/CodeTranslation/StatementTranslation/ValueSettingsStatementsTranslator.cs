@@ -49,8 +49,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					: ExpressionReturnTypeOptions.Value
 			);
 
-
-			throw new NotImplementedException(); // TODO
+			return new TranslatedStatementContentDetails(
+				assignmentFormatDetails.AssigmentFormat(translatedExpressionContentDetails.TranslatedContent),
+				assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccesed)
+			);
 		}
 
 		private ValueSettingStatementAssigmentFormatDetails GetAssignmentFormatDetails(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
@@ -79,18 +81,21 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				if (singleTokenAsName == null)
 					throw new ArgumentException("Where a ValueSettingStatement's ValueToSet expression is a single expression with a single CallExpressionSegment with one token, that token must be a NameToken");
 
-				// TODO: Explain..
+				// If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
+				// replacement so that the return value reference is updated.
+				// TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+				// the replacement (in order to be consistent with VBScript's runtime behaviour)
+				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
 				var isSingleTokenSettingParentScopeReturnValue = (
-					(scopeAccessInformation.ScopeDefiningParentIfAny != null) &&
 					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-					scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content.Equals(singleTokenAsName.Content, StringComparison.InvariantCultureIgnoreCase)
+					rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
 				);
 				return new ValueSettingStatementAssigmentFormatDetails(
 					translatedExpression => string.Format(
 						"{0} = {1}",
 						isSingleTokenSettingParentScopeReturnValue
 							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
-							: _nameRewriter(singleTokenAsName).Name,
+							: rewrittenFirstMemberAccessor,
 						translatedExpression
 					),
 					new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
@@ -135,14 +140,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					new CallExpressionSegment(
 						lastCallExpressionSegments.MemberAccessTokens.Take(numberOfMemberAccessTokensInLastCallExpressionSegment - 1),
 						new StageTwoParser.Expression[0],
-						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // TODO: Do properly
+						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // Can't be any brackets as we're splitting a CallExpressionSegment in two
 					)
 				);
 				callExpressionSegments.Add(
 					new CallExpressionSegment(
 						new[] { lastCallExpressionSegments.MemberAccessTokens.Last() },
 						lastCallExpressionSegments.Arguments,
-						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // TODO: Do properly
+						lastCallExpressionSegments.ZeroArgumentBracketsPresence
 					)
 				);
 			}
@@ -155,10 +160,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			IEnumerable<StageTwoParser.Expression> arguments;
 			if (callExpressionSegments.Count == 1)
 			{
-				// TODO: Need to consider whether we're in a function or property and whether this is an assigment for its return value
-				// - If the first member accessor's name when passed through the nameRewriter matches "scopeAccessInformation.ScopeDefiningParentIfAny
-				//   .Name" (if there is a scope-defining parent) then use the "scopeAccessInformation.parentReturnValueNameIfAny" (if non-null)
-
 				// The single CallExpressionSegment may have one or two member accessors
 				targetAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegments[0].MemberAccessTokens.First());
 				if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
@@ -170,19 +171,20 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					);
 				}
 				arguments = callExpressionSegments[0].Arguments;
+
+				// If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
+				// replacement so that the return value reference is updated.
+				// TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+				// the replacement (in order to be consistent with VBScript's runtime behaviour)
+				var isSingleTokenSettingParentScopeReturnValue = (
+					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
+					targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
+				);
+				if (isSingleTokenSettingParentScopeReturnValue)
+					targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
 			}
 			else
 			{
-				// TODO: Need to consider whether we're in a function or property and whether this is an assigment for its return value
-				// - If the first call expression segment's member accessor's name when passed through the nameRewriter matches
-				//   "scopeAccessInformation.ScopeDefiningParentIfAny.Name" (if there is a scope-defining parent) then use the
-				//   "scopeAccessInformation.parentReturnValueNameIfAny" (if non-null)
-				// ******* If the returnVal logic has to go into the StatementTranslator then we don't have to do any special handling
-				//         here since that will take care of it (the only thing it doesn't handle is the lastCallExpressionSegment
-				//         which can't be applicable for a replacement as it has to be a property of function hanging off a
-				//         reference (since we know there are more than two segments) and we can't do return value
-				//         replacing in that scenario
-
 				var targetAccessCallExpressionSegments = callExpressionSegments.Take(callExpressionSegments.Count() - 1);
 				var targetAccessExpressionSegments = (targetAccessCallExpressionSegments.Count() > 1)
 					? new IExpressionSegment[] { new CallSetExpressionSegment(targetAccessCallExpressionSegments) }
@@ -198,6 +200,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				var lastCallExpressionSegment = callExpressionSegments.Last();
 				optionalMemberAccessor = _nameRewriter.GetMemberAccessTokenName(lastCallExpressionSegment.MemberAccessTokens.Single());
 				arguments = lastCallExpressionSegment.Arguments;
+
+				// Note: In this case, we don't have to apply any special logic to make "return value replacements" for assignment targets
+				// (when "F2 = 1" is setting the return value for the function "F2" that we're inside of, for example) since this will be
+				// handled by the statement translator. The cases above where there was only a single token or only a single call
+				// expression segment needed additional logic since they don't use the statement translator for the left hand
+				// side of the assignment expression.
 			}
 
 			// Regardless of how we've gone about trying to access the data in the callExpressionSegments data above, we now need to get a
@@ -207,12 +215,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
 
 			// Note: The translatedExpression will already account for whether the statement is of type LET or SET
-			// TODO: Explain..
-			var isCallExpressionSettingParentScopeReturnValue = (
-				(scopeAccessInformation.ScopeDefiningParentIfAny != null) &&
-				(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-				scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content.Equals(targetAccessor, StringComparison.InvariantCultureIgnoreCase)
-			);
 			return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",

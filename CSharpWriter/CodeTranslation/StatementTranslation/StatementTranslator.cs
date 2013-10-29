@@ -245,12 +245,46 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			);
 		}
 
-        private TranslatedStatementContentDetailsWithContentType Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
+        /// <summary>
+		/// This may only be called when a CallExpressionSegment is encountered as one of the segments in the Expression passed into the public Translate method
+		/// or if it is the first segment in a CallSetExpressionSegment, subsequent segments in a CallSetExpressionSegment should be passed direct into the 
+		/// TranslateCallExpressionSegment method)
+        /// </summary>
+		private TranslatedStatementContentDetailsWithContentType Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
+
+			// We may have to monkey about with the data here - if there are references to the return value of the current function (if we're in one) then these
+			// need to be replaced with the scopeAccessInformation's parentReturnValueNameIfAny value (if there is one). Note: If ParentReturnValueNameIfAny is
+			// non-null then ScopeDefiningParentIfAny will also be non-null (according to the ScopeAccessInformation class).
+			if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
+			{
+				// If the segment's first (or only) member accessor and no arguments and wasn't expressed in the source code as a function call (ie. it didn't
+				// have brackets after the member accessor) and the single member accessor matches the name of the ScopeDefiningParentIfAny then we need to
+				// make the replacement..
+				// - If arguments are specified or brackets used with no arguments then it is always a function (or property) call and the return-value
+				//   replacement does not need to be made (the return value may not be DIM'd or REDIM'd to an array and so element access is not allowed,
+				//   so ANY argument use always points to a function / property call)
+				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
+				var rewrittenScopeDefiningParentName = _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name);
+				if ((rewrittenFirstMemberAccessor == rewrittenScopeDefiningParentName)
+				&& !callExpressionSegment.Arguments.Any()
+				&& (callExpressionSegment.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Absent))
+				{
+					// The ScopeDefiningParentIfAny's Name will have come from a TempValueNameGenerator rather than VBScript source code, and as such it
+					// should not be passed through any VBScriptNameRewriter processing. Using a DoNotRenameNameToken means that, if the extension method
+					// GetMemberAccessTokenName is consistently used for VBScriptNameRewriter access, its name won't be altered.
+					callExpressionSegment = new CallExpressionSegment(
+						new[] { new DoNotRenameNameToken(scopeAccessInformation.ParentReturnValueNameIfAny.Name) }
+							.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
+						new Expression[0],
+						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
+					);
+				}
+			}
 
             var result = TranslateCallExpressionSegment(
                 _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
@@ -421,8 +455,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
 
             return (
-                scopeAccessInformation.Functions.Select(f => _nameRewriter(f).Name).Where(name => name == rewrittenName).Any() ||
-                scopeAccessInformation.Properties.Select(p => _nameRewriter(p).Name).Where(name => name == rewrittenName).Any()
+                scopeAccessInformation.Functions.Select(f => _nameRewriter.GetMemberAccessTokenName(f)).Where(name => name == rewrittenName).Any() ||
+                scopeAccessInformation.Properties.Select(p => _nameRewriter.GetMemberAccessTokenName(p)).Where(name => name == rewrittenName).Any()
             );
         }
 
@@ -471,7 +505,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
                     "new {0}({1})",
-                    _nameRewriter(newInstanceExpressionSegment.ClassName).Name,
+                    _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
                     _supportClassName.Name
                 ),
                 ExpressionReturnTypeOptions.Reference,
@@ -609,7 +643,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			if (onlyMemberAccessTokenAsName == null)
 				return null;
 
-			var rewrittenName = _nameRewriter(onlyMemberAccessTokenAsName).Name;
+			var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
 			if (IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation))
 				return null;
 

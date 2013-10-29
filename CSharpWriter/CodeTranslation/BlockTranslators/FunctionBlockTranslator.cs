@@ -30,10 +30,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+			var returnValueName = functionBlock.HasReturnValue ? _tempNameGenerator(new CSharpName("retVal")) : null;
 			var translationResult = TranslationResult.Empty.Add(
 				TranslateFunctionHeader(
 					functionBlock,
-					(functionBlock is FunctionBlock), // hasReturnValue (true for FunctionBlock, false for SubBlock)
+					returnValueName,
 					indentationDepth
 				)
 			);
@@ -42,12 +43,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					functionBlock.Statements.ToNonNullImmutableList(),
 					scopeAccessInformation.Extend(
                         functionBlock,
-                        _tempNameGenerator(new CSharpName("retVal")),
+                        returnValueName,
                         functionBlock.Statements.ToNonNullImmutableList()
                     ),
 					indentationDepth + 1
 				)
 			);
+			if (functionBlock.HasReturnValue)
+			{
+				// If this is an empty function then just render "return null" (TranslateFunctionHeader won't declare the return value reference) 
+				translationResult = translationResult.Add(
+					new TranslatedStatement(
+						string.Format(
+							"return {0};",
+							functionBlock.Statements.Any() ? returnValueName.Name : "null"
+						),
+						indentationDepth + 1
+					)
+				);
+			}
 			return translationResult.Add(
 				new TranslatedStatement("}", indentationDepth)
 			);
@@ -85,17 +99,19 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			);
 		}
 
-		private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, bool hasReturnValue, int indentationDepth)
+		private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, CSharpName returnValueNameIfAny, int indentationDepth)
 		{
 			if (functionBlock == null)
 				throw new ArgumentNullException("functionBlock");
+			if (functionBlock.HasReturnValue && (returnValueNameIfAny == null))
+				throw new ArgumentException("returnValueNameIfAny must not be null if functionBlock.HasReturnValue is true");
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
 			var content = new StringBuilder();
 			content.Append(functionBlock.IsPublic ? "public" : "private");
 			content.Append(" ");
-			content.Append(hasReturnValue ? "object" : "void");
+			content.Append(functionBlock.HasReturnValue ? "object" : "void");
 			content.Append(" ");
 			content.Append(_nameRewriter.GetMemberAccessTokenName(functionBlock.Name));
 			content.Append("(");
@@ -130,6 +146,19 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
             translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
+			if (functionBlock.HasReturnValue && functionBlock.Statements.Any())
+			{
+				translatedStatements.Add(new TranslatedStatement(
+					base.TranslateVariableDeclaration(
+						new VariableDeclaration(
+							new DoNotRenameNameToken(returnValueNameIfAny.Name),
+							VariableDeclarationScopeOptions.Private,
+							false
+						)
+					),
+					indentationDepth + 1
+				));
+			}
             return translatedStatements;
 		}
     }
