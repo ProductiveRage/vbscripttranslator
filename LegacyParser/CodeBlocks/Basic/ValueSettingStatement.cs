@@ -61,9 +61,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             // The Statement class' GenerateBaseSource has logic about rendering strings of tokens and rules about whitespace around
             // (or not around) particular tokens, so the content from this class is wrapped up as a Statement so that the method may
             // be re-used without copying any of it here
-            var tokensList = ValueToSet.Tokens.Concat(new[] { AtomToken.GetNewToken("=") }).Concat(Expression.Tokens).ToList();
+            var assignmentOperator = AtomToken.GetNewToken("=", ValueToSet.Tokens.Last().LineIndex);
+            var tokensList = ValueToSet.Tokens.Concat(new[] { assignmentOperator }).Concat(Expression.Tokens).ToList();
             if (ValueSetType == ValueSetTypeOptions.Set)
-                tokensList.Insert(0, AtomToken.GetNewToken("Set"));
+                tokensList.Insert(0, AtomToken.GetNewToken("Set", ValueToSet.Tokens.First().LineIndex));
 
             return (new Statement(tokensList, Statement.CallPrefixOptions.Absent)).GenerateBaseSource(indenter);
         }

@@ -13,7 +13,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     [Serializable]
     public class EscapedNameToken : NameToken
     {
-        public EscapedNameToken(string content) : base(content, WhiteSpaceBehaviourOptions.Allow)
+        public EscapedNameToken(string content, int lineIndex) : base(content, WhiteSpaceBehaviourOptions.Allow, lineIndex)
         {
             // Note that blank or whitespace-only are acceptable for this content so we can only check for null here
             if (string.IsNullOrWhiteSpace(content))

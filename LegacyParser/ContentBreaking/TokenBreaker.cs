@@ -23,18 +23,21 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             if (token == null)
                 throw new ArgumentNullException("token");
 
+            var lineIndex = token.LineIndex;
             var buffer = "";
             var content = token.Content;
             var tokens = new List<IToken>();
             for (var index = 0; index < content.Length; index++)
             {
                 var chr = content.Substring(index, 1);
+                if (chr == "\n")
+                    lineIndex++;
                 if ((chr != "\n") && WhiteSpaceChars.IndexOf(chr) != -1)
                 {
                     // If we've found a (non-line-return) whitespace character, push content retrieved from the token so far (if any), into a fresh token on the
                     // list and clear the buffer to accept following data.
                     if (buffer != "")
-                        tokens.Add(AtomToken.GetNewToken(buffer));
+                        tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
                     buffer = "";
                 }
                 else if (TokenBreakChars.IndexOf(chr) != -1)
@@ -55,15 +58,15 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     // If we've found another "break" character (which means a token split is identified, but that we want to keep the break character itself,
                     // unlike with whitespace breaks), then do similar to above.
                     if (buffer != "")
-                        tokens.Add(AtomToken.GetNewToken(buffer));
-                    tokens.Add(AtomToken.GetNewToken(chr));
+                        tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
+                    tokens.Add(AtomToken.GetNewToken(chr, lineIndex));
                     buffer = "";
                 }
                 else
                     buffer += chr;
             }
             if (buffer != "")
-                tokens.Add(AtomToken.GetNewToken(buffer));
+                tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
             
             // Handle ignore-line-return / end-of-statement combinations
             tokens = handleLineReturnCancels(tokens);

@@ -282,9 +282,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					// The ScopeDefiningParentIfAny's Name will have come from a TempValueNameGenerator rather than VBScript source code, and as such it
 					// should not be passed through any VBScriptNameRewriter processing. Using a DoNotRenameNameToken means that, if the extension method
 					// GetMemberAccessTokenName is consistently used for VBScriptNameRewriter access, its name won't be altered.
+                    var parentReturnValueNameToken = new DoNotRenameNameToken(
+                        scopeAccessInformation.ParentReturnValueNameIfAny.Name,
+                        callExpressionSegment.MemberAccessTokens.First().LineIndex
+                    );
 					callExpressionSegment = new CallExpressionSegment(
-						new[] { new DoNotRenameNameToken(scopeAccessInformation.ParentReturnValueNameIfAny.Name) }
-							.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
+						new[] { parentReturnValueNameToken }.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
 						new Expression[0],
 						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
 					);

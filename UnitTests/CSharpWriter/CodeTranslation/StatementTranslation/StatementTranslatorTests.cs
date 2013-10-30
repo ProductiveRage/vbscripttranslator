@@ -25,14 +25,14 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			var expression = new Expression(new[]
 			{
 				new CallExpressionSegment(
-					new[] { new NameToken("o") },
+					new[] { new NameToken("o", 0) },
 					new Expression[0],
 					CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
 				)
 			});
 			var expected = new TranslatedStatementContentDetails(
 				"_.VAL(o)",
-				new NonNullImmutableList<NameToken>(new[] { new NameToken("o") })
+				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
 			var scopeAccessInformation = ScopeAccessInformation.Empty;
 			Assert.Equal(
@@ -49,7 +49,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			var expression = new Expression(new[]
 			{
 				new CallExpressionSegment(
-					new[] { new NameToken("o") },
+					new[] { new NameToken("o", 0) },
 					new Expression[0],
 					CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
 				)
@@ -59,13 +59,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				null,
 				null,
 				new NonNullImmutableList<NameToken>(),
-				new NonNullImmutableList<NameToken>(new[] { new NameToken("o") }), // Functions
+				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) }), // Functions
 				new NonNullImmutableList<NameToken>(),
 				new NonNullImmutableList<NameToken>()
 			);
 			var expected = new TranslatedStatementContentDetails(
 				"o()",
-				new NonNullImmutableList<NameToken>(new[] { new NameToken("o") })
+				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
 			Assert.Equal(
 				expected,

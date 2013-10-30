@@ -9,7 +9,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private string content;
         public CommentStatement(string content)
         {
             if (content == null)
@@ -17,7 +16,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if (content.Contains("\n"))
                 throw new ArgumentException("The content may not include any line returns");
 
-            this.content = content.TrimEnd(); ;
+            Content = content.TrimEnd();
         }
 
         // =======================================================================================
@@ -27,10 +26,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// This will never be null or contain any line returns. It may be blank and may have leading whitespace (though it won't have
         /// any trailing whitespace).
         /// </summary>
-        public string Content
-        {
-            get { return this.content; }
-        }
+        public string Content { get; private set; }
 
         // =======================================================================================
         // VBScript BASE SOURCE RE-GENERATION
@@ -41,9 +37,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            if (this.content.Trim() == "")
+            if (Content.Trim() == "")
                 return "";
-            return indenter.Indent + "'" + this.content;
+            return indenter.Indent + "'" + Content;
         }
     }
 }

@@ -10,6 +10,6 @@ namespace VBScriptTranslator.StageTwoParser.Tokens
     [Serializable]
     public class MemberAccessorToken : MemberAccessorOrDecimalPointToken
     {
-        public MemberAccessorToken() : base(".") { }
+        public MemberAccessorToken(int lineIndex) : base(".", lineIndex) { }
     }
 }

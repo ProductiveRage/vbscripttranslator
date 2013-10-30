@@ -45,7 +45,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 {
                     tokens.AddRange(((IExpressionSegment)CallExpressionSegments.ElementAt(index)).AllTokens);
                     if (index < (numberOfExpressions - 1))
-                        tokens.Add(new MemberAccessorToken());
+                        tokens.Add(new MemberAccessorToken(tokens.Last().LineIndex));
                 }
                 return tokens;
 			}

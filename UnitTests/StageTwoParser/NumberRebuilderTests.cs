@@ -16,13 +16,13 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken(-1)
+                    new NumericValueToken(-1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new OperatorToken("-"),
-                        new NumericValueToken(1)
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -35,17 +35,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new OpenBrace(),
-                    new NumericValueToken(-1),
-                    new CloseBrace()
+                    new OpenBrace(0),
+                    new NumericValueToken(-1, 0),
+                    new CloseBrace(0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new OpenBrace(),
-                        new OperatorToken("-"),
-                        new NumericValueToken(1),
-                        new CloseBrace()
+                        new OpenBrace(0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0),
+                        new CloseBrace(0)
                     }
                 ),
                 new TokenSetComparer()
@@ -58,13 +58,13 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken(0.1)
+                    new NumericValueToken(0.1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NumericValueToken(1)
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -77,14 +77,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken(1.1)
+                    new NumericValueToken(1.1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new NumericValueToken(1),
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NumericValueToken(1)
+                        new NumericValueToken(1, 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -97,15 +97,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken(-1.1)
+                    new NumericValueToken(-1.1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new OperatorToken("-"),
-                        new NumericValueToken(1),
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NumericValueToken(1)
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -118,14 +118,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken(-0.1)
+                    new NumericValueToken(-0.1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new OperatorToken("-"),
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NumericValueToken(1)
+                        new OperatorToken("-", 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -138,17 +138,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1),
-                    new OperatorToken("+"),
-                    new NumericValueToken(-1)
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("+", 0),
+                    new NumericValueToken(-1, 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
                     {
-                        new NumericValueToken(1),
-                        new OperatorToken("+"),
-                        new OperatorToken("-"),
-                        new NumericValueToken(1)
+                        new NumericValueToken(1, 0),
+                        new OperatorToken("+", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()

@@ -14,9 +14,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new UnprocessedContentToken("strValue = "),
-                    new StringToken("Test string with \"quoted\" content"),
-                    new UnprocessedContentToken("\n")
+                    new UnprocessedContentToken("strValue = ", 0),
+                    new StringToken("Test string with \"quoted\" content", 0),
+                    new UnprocessedContentToken("\n", 0)
                 },
                 StringBreaker.SegmentString(
                     "strValue = \"Test string with \"\"quoted\"\" content\"\n"
@@ -34,8 +34,8 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new EscapedNameToken("[]"),
-                    new UnprocessedContentToken(" = 1")
+                    new EscapedNameToken("[]", 0),
+                    new UnprocessedContentToken(" = 1", 0)
                 },
                 StringBreaker.SegmentString(
                     "[] = 1"
@@ -53,11 +53,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new UnprocessedContentToken("Dim "),
-                    new EscapedNameToken("[]"),
-                    new UnprocessedContentToken(": "),
-                    new EscapedNameToken("[]"),
-                    new UnprocessedContentToken(" = 1")
+                    new UnprocessedContentToken("Dim ", 0),
+                    new EscapedNameToken("[]", 0),
+                    new UnprocessedContentToken(": ", 0),
+                    new EscapedNameToken("[]", 0),
+                    new UnprocessedContentToken(" = 1", 0)
                 },
                 StringBreaker.SegmentString(
                     "Dim []: [] = 1"
@@ -74,9 +74,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new UnprocessedContentToken("WScript.Echo 1"),
-                    new EndOfStatementSameLineToken(),
-                    new InlineCommentToken(" Test")
+                    new UnprocessedContentToken("WScript.Echo 1", 0),
+                    new EndOfStatementSameLineToken(0),
+                    new InlineCommentToken(" Test", 0)
                 },
                 StringBreaker.SegmentString(
                     "WScript.Echo 1 ' Test"
@@ -92,15 +92,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
         [Fact]
         public void InlineCommentsAreIdentifiedAsSuchWhenAfterMultipleLinesOfContent()
         {
-            // This 
             // The StringBreaker will insert an EndOfStatementSameLineToken between the UnprocessedContentToken and InlineCommentToken
             // since that the later processes rely on end-of-statement tokens, even before an inline comment
             Assert.Equal(
                 new IToken[]
                 {
-                    new UnprocessedContentToken("\nWScript.Echo 1"),
-                    new EndOfStatementSameLineToken(),
-                    new InlineCommentToken(" Test")
+                    new UnprocessedContentToken("\nWScript.Echo 1", 0),
+                    new EndOfStatementSameLineToken(0),
+                    new InlineCommentToken(" Test", 1)
                 },
                 StringBreaker.SegmentString(
                     "\nWScript.Echo 1 ' Test"
@@ -115,8 +114,8 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new CommentToken(" Test"),
-                    new UnprocessedContentToken("WScript.Echo 1")
+                    new CommentToken(" Test", 0),
+                    new UnprocessedContentToken("WScript.Echo 1", 0)
                 },
                 StringBreaker.SegmentString(
                     "REM Test\nWScript.Echo 1"
@@ -131,9 +130,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new UnprocessedContentToken("WScript.Echo 1"),
-                    new EndOfStatementSameLineToken(),
-                    new InlineCommentToken(" Test")
+                    new UnprocessedContentToken("WScript.Echo 1", 0),
+                    new EndOfStatementSameLineToken(0),
+                    new InlineCommentToken(" Test", 0)
                 },
                 StringBreaker.SegmentString(
                     "WScript.Echo 1 REM Test"

@@ -38,7 +38,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // Get raw variable content (one token if just variable, three tokens if array
             // without dimensions, four tokens if 1D array, etc..)
-            List<List<IToken>> variablesData = base.getEntryList(tokens, tokensConsumed, new EndOfStatementNewLineToken());
+            List<List<IToken>> variablesData = base.getEntryList(tokens, tokensConsumed, new EndOfStatementNewLineToken(tokens[tokensConsumed - 1].LineIndex));
             
             // Trim out the opening keyword(s)
             tokens.RemoveRange(0, tokensConsumed);
@@ -148,9 +148,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             }
 
             // Get name (if no other content, we're all done!)
-            string name = tokens[0].Content;
+            var nameToken = tokens[0];
             if (tokens.Count == 1)
-                return new DimStatement.DimVariable(new NameToken(name), null);
+                return new DimStatement.DimVariable(new NameToken(nameToken.Content, nameToken.LineIndex), null);
 
             // Ensure next token and last token are "(" and ")"
             if (tokens.Count == 2)
@@ -160,16 +160,16 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // If there were only three tokens, we're all done!
             if (tokens.Count == 3)
-                return new DimStatement.DimVariable(new NameToken(name), new List<Expression>());
+                return new DimStatement.DimVariable(new NameToken(nameToken.Content, nameToken.LineIndex), new List<Expression>());
 
             // Use base.getEntryList to be flexible and grab dimension declarations
             // as Statement instances
             List<Expression> dimensions = new List<Expression>();
-            List<List<IToken>> dimStatements = base.getEntryList(tokens, 2, AtomToken.GetNewToken(")"));
+            List<List<IToken>> dimStatements = base.getEntryList(tokens, 2, AtomToken.GetNewToken(")", nameToken.LineIndex));
             foreach (List<IToken> dimStatement in dimStatements)
                 dimensions.Add(new Expression(dimStatement));
 
-            return new DimStatement.DimVariable(new NameToken(name), dimensions);
+            return new DimStatement.DimVariable(new NameToken(nameToken.Content, nameToken.LineIndex), dimensions);
         }
     }
 }

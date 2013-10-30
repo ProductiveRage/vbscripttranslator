@@ -9,25 +9,30 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     [Serializable]
     public class StringToken : IToken
     {
-        private string content;
-        public StringToken(string content)
+        public StringToken(string content, int lineIndex)
         {
             if (content == null)
                 throw new ArgumentNullException("content");
-            this.content = content;
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
+
+            Content = content;
+            LineIndex = lineIndex;
         }
 
         /// <summary>
         /// This will not include the quotes in the value
         /// </summary>
-        public string Content
-        {
-            get { return this.content; }
-        }
+        public string Content { get; private set; }
+
+        /// <summary>
+        /// This will always be zero or greater
+        /// </summary>
+        public int LineIndex { get; private set; }
 
         public override string ToString()
         {
-            return base.ToString() + ":" + this.content;
+            return base.ToString() + ":" + Content;
         }
     }
 }

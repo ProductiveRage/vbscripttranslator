@@ -15,7 +15,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new[]
                 {
-                    new NameToken("Test")
+                    new NameToken("Test", 0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -30,10 +30,10 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new IToken[]
                 {
-                    new NameToken("Test"),
-                    new OpenBrace(),
-                    new NumericValueToken(1),
-                    new CloseBrace()
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new NumericValueToken(1, 0),
+                    new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -48,10 +48,10 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new IToken[]
                 {
-                    new NameToken("Test"),
-                    new OpenBrace(),
-                    new NumericValueToken(1),
-                    new CloseBrace()
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new NumericValueToken(1, 0),
+                    new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
@@ -68,12 +68,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 // Note that "(Test(1))" is not valid but the extra brackets are allowable when CALL is used
                 var tokens = new IToken[]
                 {
-                    new OpenBrace(),
-                    new NameToken("Test"),
-                    new OpenBrace(),
-                    new NumericValueToken(1),
-                    new CloseBrace(),
-                    new CloseBrace()
+                    new OpenBrace(0),
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new NumericValueToken(1, 0),
+                    new CloseBrace(0),
+                    new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
@@ -88,12 +88,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 var tokens = new IToken[]
                 {
-                    new NameToken("a"),
-                    new MemberAccessorOrDecimalPointToken("."),
-                    new NameToken("Test"),
-                    new OpenBrace(),
-                    new NumericValueToken(1),
-                    new CloseBrace()
+                    new NameToken("a", 0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new NumericValueToken(1, 0),
+                    new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -112,18 +112,18 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(
                     new IToken[]
                     {
-                        new NameToken("Test"),
-                        new NumericValueToken(1)
+                        new NameToken("Test", 0),
+                        new NumericValueToken(1, 0)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
                     new IToken[]
                     {
-                        new NameToken("Test"),
-                        new OpenBrace(),
-                        new NumericValueToken(1),
-                        new CloseBrace()
+                        new NameToken("Test", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(1, 0),
+                        new CloseBrace(0)
                     },
                     statement.BracketStandardisedTokens,
                     new TokenSetComparer()
@@ -136,22 +136,22 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(
                     new IToken[]
                     {
-                        new NameToken("a"),
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NameToken("Test"),
-                        new NumericValueToken(1)
+                        new NameToken("a", 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Test", 0),
+                        new NumericValueToken(1, 0)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
                 Assert.Equal(
                     new IToken[]
                     {
-                        new NameToken("a"),
-                        new MemberAccessorOrDecimalPointToken("."),
-                        new NameToken("Test"),
-                        new OpenBrace(),
-                        new NumericValueToken(1),
-                        new CloseBrace()
+                        new NameToken("a", 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Test", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(1, 0),
+                        new CloseBrace(0)
                     },
                     statement.BracketStandardisedTokens,
                     new TokenSetComparer()

@@ -22,7 +22,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
         public PartialNumberContent() : this(new IToken[0]) { }
 
         /// <summary>
-        /// This will never be null nor contain any null references. Any tokens in the 
+        /// This will never be null nor contain any null references. Any tokens in the - TODO: What 
         /// </summary>
         public IEnumerable<IToken> Tokens { get; private set; }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.Tokens;
@@ -30,7 +31,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                     throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
                 return new TokenProcessResult(
                     new PartialNumberContent(),
-                    new[] { new NumericValueToken(number.Value) },
+                    new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex) },
                     Common.GetDefaultProcessor(token)
                 );
             }
@@ -43,7 +44,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                     throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
                 return new TokenProcessResult(
                     new PartialNumberContent(),
-                    new[] { new NumericValueToken(number.Value), token },
+                    new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex), token },
                     Common.GetDefaultProcessor(token)
                 );
             }

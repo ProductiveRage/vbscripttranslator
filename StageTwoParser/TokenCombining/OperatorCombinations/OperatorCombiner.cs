@@ -81,7 +81,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                 );
                 if (combineTokens)
                 {
-                    comparisonRewrittenTokens.Add(AtomToken.GetNewToken(token.Content + nextToken.Content));
+                    comparisonRewrittenTokens.Add(AtomToken.GetNewToken(token.Content + nextToken.Content, token.LineIndex));
                     index++;
                     continue;
                 }
@@ -112,6 +112,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
+            if (!tokens.Any())
+                throw new ArgumentException("Empty tokens set specified - invalid");
 
             var isNegative = false;
             foreach (var token in tokens)
@@ -124,7 +126,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                 else if (token.Content != "+")
                     throw new ArgumentException("All tokens must be operators with content either \"-\" or \"+\"");
             }
-            return new OperatorToken(isNegative ? "-" : "+");
+            return new OperatorToken(isNegative ? "-" : "+", tokens.First().LineIndex);
         }
 
         private static bool IsTokenRedundant(IToken token, IToken previousTokenIfAny)

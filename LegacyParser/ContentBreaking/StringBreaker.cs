@@ -29,6 +29,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             var index = 0;
             var tokenContent = "";
             var tokens = new List<IToken>();
+            var lineIndex = 0;
+			var lineIndexForStartOfContent = 0;
             while (index < scriptContent.Length)
             {
                 var chr = scriptContent.Substring(index, 1);
@@ -61,8 +63,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         // If there has been any one the same line as this comment, then this is an inline comment
                         var contentAfterLastLineReturn = tokenContent.Split('\'').Last();
                         isInlineComment = (contentAfterLastLineReturn.Trim() != "");
-                        tokens.Add(new UnprocessedContentToken(tokenContent));
+                        tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
                         tokenContent = "";
+						lineIndexForStartOfContent = lineIndex;
                     }
                     else
                         isInlineComment = false;
@@ -86,7 +89,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         {
                             // StringToken CAN'T contain end-of-statement content so
                             // we'll definitely need an EndOfStatementNewLineToken
-                            tokens.Add(new EndOfStatementSameLineToken());
+							tokens.Add(new EndOfStatementSameLineToken(lineIndexForStartOfContent));
+							lineIndexForStartOfContent++;
                         }
                         else if (prevToken is UnprocessedContentToken)
                         {
@@ -96,17 +100,18 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
                                 tokens.Add(new UnprocessedContentToken(
-                                    prevToken.Content.TrimEnd('\t', ' ')
+                                    prevToken.Content.TrimEnd('\t', ' '),
+                                    prevToken.LineIndex
                                 ));
-                                tokens.Add(new EndOfStatementSameLineToken());
+                                tokens.Add(new EndOfStatementSameLineToken(prevToken.LineIndex));
                             }
                         }
                     }
                     var commentContent = scriptContent.Substring(index, breakPoint - index);
                     if (isInlineComment)
-                        tokens.Add(new InlineCommentToken(commentContent));
+						tokens.Add(new InlineCommentToken(commentContent, lineIndexForStartOfContent));
                     else
-                        tokens.Add(new CommentToken(commentContent));
+						tokens.Add(new CommentToken(commentContent, lineIndexForStartOfContent));
                     index = breakPoint;
                 }
 
@@ -116,8 +121,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     // Store any previous token content
                     if (tokenContent != "")
                     {
-                        tokens.Add(new UnprocessedContentToken(tokenContent));
+						tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
                         tokenContent = "";
+						lineIndex = lineIndexForStartOfContent;
                     }
 
                     // Try to grab string content
@@ -146,8 +152,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             else
                             {
                                 // Non-escaped quote: string end
-                                tokens.Add(new StringToken(tokenContent));
+								tokens.Add(new StringToken(tokenContent, lineIndexForStartOfContent));
                                 tokenContent = "";
+								lineIndexForStartOfContent = lineIndex;
                                 index = indexString;
                                 break;
                             }
@@ -164,8 +171,11 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 else if (chr == "[")
                 {
                     // Store any previous token content
-                    if (tokenContent != "")
-                        tokens.Add(new UnprocessedContentToken(tokenContent));
+					if (tokenContent != "")
+					{
+						tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
+						lineIndexForStartOfContent = lineIndex;
+					}
 
                     tokenContent = "[";
                     var indexString = index + 1;
@@ -177,8 +187,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         tokenContent += chr;
                         if (chr == "]")
                         {
-                            tokens.Add(AtomToken.GetNewToken(tokenContent));
+							tokens.Add(AtomToken.GetNewToken(tokenContent, lineIndexForStartOfContent));
                             tokenContent = "";
+							lineIndexForStartOfContent = lineIndex;
                             index = indexString;
                             break;
                         }
@@ -192,11 +203,13 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 
                 // Move to next character (if any)..
                 index++;
-            }
+				if (chr == "\n")
+					lineIndex++;
+			}
 
             // Don't let any unhandled content get away!
             if (tokenContent != "")
-                tokens.Add(new UnprocessedContentToken(tokenContent));
+				tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
 
             return tokens;
         }

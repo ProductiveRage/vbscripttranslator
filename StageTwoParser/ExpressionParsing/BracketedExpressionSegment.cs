@@ -34,10 +34,10 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 			{
 				var tokens = new List<IToken>
 				{
-					new OpenBrace()
+					new OpenBrace(Segments.First().AllTokens.First().LineIndex)
 				};
 				tokens.AddRange(Segments.SelectMany(s => s.AllTokens));
-				tokens.Add(new CloseBrace());
+                tokens.Add(new CloseBrace(Segments.Last().AllTokens.Last().LineIndex));
 				return tokens;
 			}
 		}

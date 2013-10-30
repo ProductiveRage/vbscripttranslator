@@ -8,7 +8,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// This inherits from AtomToken since a lot of processing would consider them the
         /// same token type while parsing the original content.
         /// </summary>
-        public LogicalOperatorToken(string content) : base(content)
+        public LogicalOperatorToken(string content, int lineIndex) : base(content, lineIndex)
         {
             // Do all this validation (again) here in case this constructor wasn't called
             // by the AtomToken.GetNewToken method
@@ -18,7 +18,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 throw new ArgumentException("Blank content specified for OperatorToken - invalid");
             if (!AtomToken.isLogicalOperator(content))
                 throw new ArgumentException("Invalid content specified - not a Logical Operator");
-            this.content = content;
         }
     }
 }

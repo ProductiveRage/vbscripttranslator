@@ -79,7 +79,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         {
             var tokensList = Tokens.ToList();
             if (CallPrefix == CallPrefixOptions.Present)
-                tokensList.Insert(0, AtomToken.GetNewToken("Call"));
+                tokensList.Insert(0, AtomToken.GetNewToken("Call", tokensList[0].LineIndex));
 
             var output = new StringBuilder();
             output.Append(indenter.Indent);
@@ -180,9 +180,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                         if (insertBracketsBeforeThisToken)
                         {
                             return tokenArray.Take(tokenIndex)
-                                .Concat(new[] { new OpenBrace() })
+                                .Concat(new[] { new OpenBrace(tokenArray.Skip(tokenIndex).First().LineIndex) })
                                 .Concat(tokenArray.Skip(tokenIndex))
-                                .Concat(new[] { new CloseBrace() });
+                                .Concat(new[] { new CloseBrace(tokenArray.Last().LineIndex) });
                         }
                     }
                 }

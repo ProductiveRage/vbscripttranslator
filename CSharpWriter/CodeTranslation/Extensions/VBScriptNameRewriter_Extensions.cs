@@ -20,7 +20,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (token == null)
                 throw new ArgumentNullException("token");
 
-            var nameToken = (token as NameToken) ?? new ForRenamingNameToken(token.Content);
+            var nameToken = (token as NameToken) ?? new ForRenamingNameToken(token.Content, token.LineIndex);
 			if (nameToken is DoNotRenameNameToken)
 				return nameToken.Content;
             return source(nameToken).Name;
@@ -32,7 +32,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
         /// </summary>
         private class ForRenamingNameToken : NameToken
         {
-            public ForRenamingNameToken(string content) : base(content, WhiteSpaceBehaviourOptions.Disallow) { }
+            public ForRenamingNameToken(string content, int lineIndex) : base(content, WhiteSpaceBehaviourOptions.Disallow, lineIndex) { }
         }
     }
 }

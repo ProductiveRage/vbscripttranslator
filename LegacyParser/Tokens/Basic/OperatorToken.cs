@@ -8,7 +8,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// <summary>
         /// This inherits from AtomToken since a lot of processing would consider them the same token type while parsing the original content.
         /// </summary>
-        public OperatorToken(string content) : base(content, WhiteSpaceBehaviourOptions.Disallow)
+        public OperatorToken(string content, int lineIndex) : base(content, WhiteSpaceBehaviourOptions.Disallow, lineIndex)
         {
             // Do all this validation (again) here in case this constructor wasn't called by the AtomToken.GetNewToken method
             if (content == null)
@@ -21,8 +21,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 throw new ArgumentException("This content indicates a LogicalOperatorToken but this instance is not of that type");
             if (AtomToken.isComparison(content) && (!(this is ComparisonOperatorToken)))
                 throw new ArgumentException("This content indicates a ComparisonOperatorToken but this instance is not of that type");
-
-            this.content = content;
         }
     }
 }

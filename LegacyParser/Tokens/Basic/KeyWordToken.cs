@@ -8,7 +8,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// This inherits from AtomToken since a lot of processing would consider them the
         /// same token type while parsing the original content.
         /// </summary>
-        public KeyWordToken(string content) : base(content, WhiteSpaceBehaviourOptions.Disallow)
+        public KeyWordToken(string content, int lineIndex)
+            : base(content, WhiteSpaceBehaviourOptions.Disallow, lineIndex)
         {
             // Do all this validation (again) here in case this constructor wasn't called by the AtomToken.GetNewToken method
             if (string.IsNullOrWhiteSpace(content))

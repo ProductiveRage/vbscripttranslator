@@ -96,7 +96,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             bool isPublic = (tokens[0].Content.ToUpper() != "PRIVATE");
             if (!(tokens[matchPatternLength] is AtomToken))
                 return null;
-            string funcName = tokens[matchPatternLength].Content;
+            var funcNameToken = tokens[matchPatternLength];
 
             // - Get parameters (if specified, they're optional in VBScript) and
             //   remove the tokens we've accounted for for the function header
@@ -153,25 +153,25 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             if ((blockType == BlockType.PublicSub)
             || (blockType == BlockType.PrivateSub))
-                return new SubBlock(isPublic, isDefault, new NameToken(funcName), parameters, blockContent);
+                return new SubBlock(isPublic, isDefault, new NameToken(funcNameToken.Content, funcNameToken.LineIndex), parameters, blockContent);
 
             else if ((blockType == BlockType.PublicFunction)
             || (blockType == BlockType.PublicDefaultFunction)
             || (blockType == BlockType.PrivateFunction))
-                return new FunctionBlock(isPublic, isDefault, new NameToken(funcName), parameters, blockContent);
+                return new FunctionBlock(isPublic, isDefault, new NameToken(funcNameToken.Content, funcNameToken.LineIndex), parameters, blockContent);
 
             else if ((blockType == BlockType.PublicPropertyGet)
             || (blockType == BlockType.PublicDefaultPropertyGet)
             || (blockType == BlockType.PrivatePropertyGet))
-                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Get, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcNameToken.Content, funcNameToken.LineIndex), PropertyBlock.PropertyType.Get, parameters, blockContent);
 
             else if ((blockType == BlockType.PublicPropertySet)
             || (blockType == BlockType.PrivatePropertySet))
-                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Set, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcNameToken.Content, funcNameToken.LineIndex), PropertyBlock.PropertyType.Set, parameters, blockContent);
 
             if ((blockType == BlockType.PublicPropertyLet)
             || (blockType == BlockType.PrivatePropertyLet))
-                return new PropertyBlock(isPublic, isDefault, new NameToken(funcName), PropertyBlock.PropertyType.Let, parameters, blockContent);
+                return new PropertyBlock(isPublic, isDefault, new NameToken(funcNameToken.Content, funcNameToken.LineIndex), PropertyBlock.PropertyType.Let, parameters, blockContent);
 
             else
                 throw new Exception("Unrecognised BlockType [" + blockType.ToString() + "] - how did this happen??");
@@ -216,7 +216,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                         List<IToken> paramTokens = getParamTokens(tokens, offset, out byRef, out name, out isArray);
                         if ((paramTokens == null) || (paramTokens.Count == 0))
                             throw new Exception("Unexpected content from getParamsToken");
-                        parameters.Add(new FunctionBlock.Parameter(byRef, new NameToken(name), isArray));
+                        parameters.Add(new FunctionBlock.Parameter(byRef, new NameToken(name, paramTokens[0].LineIndex), isArray));
                         offset += paramTokens.Count;
 
                         // Next token should be close bracket (handled above) or

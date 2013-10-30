@@ -5,6 +5,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     [Serializable]
     public class InlineCommentToken : CommentToken
     {
-        public InlineCommentToken(string content) : base(content) { }
+        public InlineCommentToken(string content, int lineIndex) : base(content, lineIndex) { }
     }
 }

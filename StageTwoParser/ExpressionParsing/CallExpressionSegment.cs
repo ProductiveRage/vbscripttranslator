@@ -84,19 +84,19 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				{
 					combinedTokens.Add(tokens[index]);
 					if (index < (tokens.Length - 1))
-						combinedTokens.Add(new MemberAccessorToken());
+						combinedTokens.Add(new MemberAccessorToken(combinedTokens.Last().LineIndex));
 				}
 				if (Arguments.Any())
 				{
-					combinedTokens.Add(new OpenBrace());
+                    combinedTokens.Add(new OpenBrace(combinedTokens.Last().LineIndex));
 					var arguments = Arguments.ToArray();
 					for (var index = 0; index < arguments.Length; index++)
 					{
 						combinedTokens.AddRange(arguments[index].AllTokens);
 						if (index < (arguments.Length - 1))
-							combinedTokens.Add(new ArgumentSeparatorToken(","));
+                            combinedTokens.Add(new ArgumentSeparatorToken(",", combinedTokens.Last().LineIndex));
 					}
-					combinedTokens.Add(new CloseBrace());
+                    combinedTokens.Add(new CloseBrace(combinedTokens.Last().LineIndex));
 				}
 				return combinedTokens;
 			}

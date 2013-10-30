@@ -39,7 +39,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             return new Statement(
                 new IToken[]
                 {
-                    new KeyWordToken("new"),
+                    new KeyWordToken("new", classNameToken.LineIndex),
                     classNameToken
                 },
                 Statement.CallPrefixOptions.Absent

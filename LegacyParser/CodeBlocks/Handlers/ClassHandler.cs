@@ -26,7 +26,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 return null;
             if (!(tokens[2] is AbstractEndOfStatementToken))
                 return null;
-            string className = tokens[1].Content;
+            var classNameToken = tokens[1];
             tokens.RemoveRange(0, 3);
 
             // Get function content
@@ -51,7 +51,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             }
 
             // Return Function code block instance
-            return new ClassBlock(new NameToken(className), functionContent);
+            return new ClassBlock(new NameToken(classNameToken.Content, classNameToken.LineIndex), functionContent);
         }
     }
 }

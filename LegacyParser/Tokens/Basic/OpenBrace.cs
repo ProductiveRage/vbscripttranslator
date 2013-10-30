@@ -8,6 +8,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// This inherits from AtomToken since a lot of processing would consider them the
         /// same token type while parsing the original content.
         /// </summary>
-        public OpenBrace() : base("(", WhiteSpaceBehaviourOptions.Disallow) { }
+        public OpenBrace(int lineIndex) : base("(", WhiteSpaceBehaviourOptions.Disallow, lineIndex) { }
     }
 }

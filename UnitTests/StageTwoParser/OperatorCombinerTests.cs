@@ -14,17 +14,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1),
-                    new OperatorToken("-"),
-                    new NumericValueToken(1)
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("-", 0),
+                    new NumericValueToken(1, 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1),
-                        new OperatorToken("+"),
-                        new OperatorToken("-"),
-                        new NumericValueToken(1)
+                        new NumericValueToken(1, 0),
+                        new OperatorToken("+", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -37,17 +37,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1),
-                    new OperatorToken("+"),
-                    new NumericValueToken(1)
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("+", 0),
+                    new NumericValueToken(1, 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1),
-                        new OperatorToken("-"),
-                        new OperatorToken("-"),
-                        new NumericValueToken(1)
+                        new NumericValueToken(1, 0),
+                        new OperatorToken("-", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -60,17 +60,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1),
-                    new OperatorToken("*"),
-                    new NumericValueToken(1)
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("*", 0),
+                    new NumericValueToken(1, 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1),
-                        new OperatorToken("*"),
-                        new OperatorToken("+"),
-                        new NumericValueToken(1)
+                        new NumericValueToken(1, 0),
+                        new OperatorToken("*", 0),
+                        new OperatorToken("+", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -83,17 +83,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(2),
-                    new ComparisonOperatorToken(">="),
-                    new NumericValueToken(1)
+                    new NumericValueToken(2, 0),
+                    new ComparisonOperatorToken(">=", 0),
+                    new NumericValueToken(1, 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(2),
-                        new ComparisonOperatorToken(">"),
-                        new ComparisonOperatorToken("="),
-                        new NumericValueToken(1)
+                        new NumericValueToken(2, 0),
+                        new ComparisonOperatorToken(">", 0),
+                        new ComparisonOperatorToken("=", 0),
+                        new NumericValueToken(1, 0)
                     }
                 ),
                 new TokenSetComparer()

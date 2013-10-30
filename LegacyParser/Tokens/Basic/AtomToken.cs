@@ -16,8 +16,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         // =======================================================================================
         // CLASS INITIALISATION - INTERNAL
         // =======================================================================================
-        protected string content;
-        protected AtomToken(string content, WhiteSpaceBehaviourOptions whiteSpaceBehaviour)
+        protected AtomToken(string content, WhiteSpaceBehaviourOptions whiteSpaceBehaviour, int lineIndex)
         {
             // Do all this validation AGAIN because we may re-use this from inheriting classes (eg. OperatorToken)
             if (content == null)
@@ -28,7 +27,11 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 throw new ArgumentException("Whitespace encountered in AtomToken - invalid");
             if (content == "")
                 throw new ArgumentException("Blank content specified for AtomToken - invalid");
-            this.content = content;
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
+
+            Content = content;
+            LineIndex = lineIndex;
         }
 
         protected enum WhiteSpaceBehaviourOptions
@@ -46,14 +49,16 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// null, non-blank and contain no whitespace - unless it's a single line-
         /// return)
         /// </summary>
-        public static IToken GetNewToken(string content)
+        public static IToken GetNewToken(string content, int lineIndex)
         {
             if (content == null)
                 throw new ArgumentNullException("content");
             if (content == "")
                 throw new ArgumentException("Blank content specified for AtomToken - invalid");
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
 
-            var recognisedType = TryToGetAsRecognisedType(content);
+            var recognisedType = TryToGetAsRecognisedType(content, lineIndex);
             if (recognisedType != null)
                 return recognisedType;
 
@@ -61,13 +66,13 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             {
                 if (!content.EndsWith("]"))
                     throw new ArgumentException("If content starts with a square bracket then it must have a closing bracket to indicate an escaped-name variable");
-                return new EscapedNameToken(content);
+                return new EscapedNameToken(content, lineIndex);
             }
 
             if (containsWhiteSpace(content))
                 throw new ArgumentException("Whitespace in an AtomToken - invalid");
 
-            return new NameToken(content);
+            return new NameToken(content, lineIndex);
         }
 
         /// <summary>
@@ -75,45 +80,47 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// separator or numeric value. If unable to match its type then it will return null - this should indicate the name of a function, property,
         /// variable, etc.. defined in the source code being processed.
         /// </summary>
-        protected static IToken TryToGetAsRecognisedType(string content)
+        protected static IToken TryToGetAsRecognisedType(string content, int lineIndex)
         {
             if (content == null)
                 throw new ArgumentNullException("content");
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
 
             if (content == "\n")
-                return new EndOfStatementNewLineToken();
+                return new EndOfStatementNewLineToken(lineIndex);
             if (content == ":")
-                return new EndOfStatementSameLineToken();
+                return new EndOfStatementSameLineToken(lineIndex);
 
             if (isMustHandleKeyWord(content) || isMiscKeyWord(content))
-                return new KeyWordToken(content);
+                return new KeyWordToken(content, lineIndex);
             if (isVBScriptFunction(content))
-                return new BuiltInFunctionToken(content);
+                return new BuiltInFunctionToken(content, lineIndex);
             if (isVBScriptValue(content))
-                return new BuiltInValueToken(content);
+                return new BuiltInValueToken(content, lineIndex);
             if (isLogicalOperator(content))
-                return new LogicalOperatorToken(content);
+                return new LogicalOperatorToken(content, lineIndex);
             if (isComparison(content))
-                return new ComparisonOperatorToken(content);
+                return new ComparisonOperatorToken(content, lineIndex);
             if (isOperator(content))
-                return new OperatorToken(content);
+                return new OperatorToken(content, lineIndex);
             if (isMemberAccessor(content))
-                return new MemberAccessorOrDecimalPointToken(content);
+                return new MemberAccessorOrDecimalPointToken(content, lineIndex);
             if (isArgumentSeparator(content))
-                return new ArgumentSeparatorToken(content);
+                return new ArgumentSeparatorToken(content, lineIndex);
             if (isOpenBrace(content))
-                return new OpenBrace();
+                return new OpenBrace(lineIndex);
             if (isCloseBrace(content))
-                return new CloseBrace();
+                return new CloseBrace(lineIndex);
 
             float numericValue;
             if (float.TryParse(content, out numericValue))
-                return new NumericValueToken(numericValue);
+                return new NumericValueToken(numericValue, lineIndex);
 			if (content.StartsWith("&h", StringComparison.InvariantCultureIgnoreCase))
 			{
 				int numericHexValue;
 				if (int.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
-					return new NumericValueToken(numericHexValue);
+					return new NumericValueToken(numericHexValue, lineIndex);
 			}
 
             return null;
@@ -385,10 +392,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// <summary>
         /// This will never be blank or null
         /// </summary>
-        public string Content
-        {
-            get { return this.content; }
-        }
+        public string Content { get; private set; }
+
+        /// <summary>
+        /// This will always be zero or greater
+        /// </summary>
+        public int LineIndex { get; private set; }
 
         /// <summary>
         /// Does this AtomContent describe a reserved VBScript keyword or operator?
@@ -398,16 +407,16 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             get
             {
                 return
-                    isMustHandleKeyWord(this.content) ||
-                    isMiscKeyWord(this.content) ||
-                    isComparison(this.content) ||
-                    isOperator(this.content) ||
-                    isMemberAccessor(this.content) ||
-                    isArgumentSeparator(this.content) ||
-                    isOpenBrace(this.content) ||
-                    isCloseBrace(this.content) ||
-                    isVBScriptFunction(this.content) ||
-                    isVBScriptValue(this.content);
+                    isMustHandleKeyWord(Content) ||
+                    isMiscKeyWord(Content) ||
+                    isComparison(Content) ||
+                    isOperator(Content) ||
+                    isMemberAccessor(Content) ||
+                    isArgumentSeparator(Content) ||
+                    isOpenBrace(Content) ||
+                    isCloseBrace(Content) ||
+                    isVBScriptFunction(Content) ||
+                    isVBScriptValue(Content);
             }
         }
 
@@ -417,7 +426,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         public bool IsMustHandleKeyWord
         {
-            get { return isMustHandleKeyWord(this.content); }
+            get { return isMustHandleKeyWord(Content); }
         }
 
         /// <summary>
@@ -425,7 +434,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         public bool IsVBScriptFunction
         {
-            get { return isVBScriptFunction(this.content); }
+            get { return isVBScriptFunction(Content); }
         }
 
         /// <summary>
@@ -433,12 +442,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         public bool IsVBScriptValue
         {
-            get { return isVBScriptValue(this.content); }
+            get { return isVBScriptValue(Content); }
         }
 
         public override string ToString()
         {
-            return base.ToString() + ":" + this.content;
+            return base.ToString() + ":" + Content;
         }
     }
 }

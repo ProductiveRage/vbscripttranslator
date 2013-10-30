@@ -39,7 +39,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 throw new ArgumentException("Invalid content - variable name is not AtomToken");
 
             // Grab loop variable name
-            string loopVar = tokens[2].Content;
+            var loopVarToken = tokens[2];
 
             // Grab loop "base" (the collection to be looped through)
             List<IToken> loopSrc = getExpressionContent(tokens, 4);
@@ -52,7 +52,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             // Get block content
             var blockContent = getForBlockContent(tokens);
             return new ForEachBlock(
-                new NameToken(loopVar),
+                new NameToken(loopVarToken.Content, loopVarToken.LineIndex),
                 new Expression(loopSrc),
                 blockContent
             );
@@ -71,7 +71,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 throw new ArgumentException("Invalid content - variable name is not AtomToken");
 
             // Grab loop variable name
-            string loopVar = tokens[1].Content;
+            var loopVarToken = tokens[1];
 
             // Grab "from" expression
             List<IToken> loopFrom = getExpressionContent(tokens, 3, "TO");
@@ -106,7 +106,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             
             // All done!
             return new ForBlock(
-                new NameToken(loopVar),
+                new NameToken(loopVarToken.Content, loopVarToken.LineIndex),
                 new Expression(loopFrom),
                 new Expression(loopTo),
                 (stepExpr == null ? null : new Expression(stepExpr)),

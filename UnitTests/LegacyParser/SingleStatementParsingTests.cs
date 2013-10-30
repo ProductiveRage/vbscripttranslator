@@ -19,12 +19,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new Statement(
                         new IToken[]
                         {
-                            new NameToken("WScript"),
-                            new MemberAccessorOrDecimalPointToken("."),
-                            new NameToken("Echo"),
-                            new NumericValueToken(1),
-                            new MemberAccessorOrDecimalPointToken("."),
-                            new NumericValueToken(1)
+                            new NameToken("WScript", 0),
+                            new MemberAccessorOrDecimalPointToken(".", 0),
+                            new NameToken("Echo", 0),
+                            new NumericValueToken(1, 0),
+                            new MemberAccessorOrDecimalPointToken(".", 0),
+                            new NumericValueToken(1, 0)
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -43,14 +43,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new Statement(
                         new IToken[]
                         {
-                            new NameToken("WScript"),
-                            new MemberAccessorOrDecimalPointToken("."),
-                            new NameToken("Echo"),
-                            new OpenBrace(),
-                            new NumericValueToken(1),
-                            new MemberAccessorOrDecimalPointToken("."),
-                            new NumericValueToken(1),
-                            new CloseBrace()
+                            new NameToken("WScript", 0),
+                            new MemberAccessorOrDecimalPointToken(".", 0),
+                            new NameToken("Echo", 0),
+                            new OpenBrace(0),
+                            new NumericValueToken(1, 0),
+                            new MemberAccessorOrDecimalPointToken(".", 0),
+                            new NumericValueToken(1, 0),
+                            new CloseBrace(0)
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -69,11 +69,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new Expression(new[]
                         {
-                            new NameToken("a"),
+                            new NameToken("a", 0),
                         }),
                         new Expression(new[]
                         {
-                            new BuiltInValueToken("Nothing"),
+                            new BuiltInValueToken("Nothing", 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -92,16 +92,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new Expression(new IToken[]
                         {
-                            new NameToken("a"),
-                            new OpenBrace(),
-                            new NumericValueToken(0),
-                            new ArgumentSeparatorToken(","),
-                            new NumericValueToken(0),
-                            new CloseBrace(),
+                            new NameToken("a", 0),
+                            new OpenBrace(0),
+                            new NumericValueToken(0, 0),
+                            new ArgumentSeparatorToken(",", 0),
+                            new NumericValueToken(0, 0),
+                            new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new NumericValueToken(1),
+                            new NumericValueToken(1, 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -120,16 +120,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new Expression(new IToken[]
                         {
-                            new NameToken("a"),
-                            new OpenBrace(),
-                            new NumericValueToken(0),
-                            new ArgumentSeparatorToken(","),
-                            new NumericValueToken(0),
-                            new CloseBrace(),
+                            new NameToken("a", 0),
+                            new OpenBrace(0),
+                            new NumericValueToken(0, 0),
+                            new ArgumentSeparatorToken(",", 0),
+                            new NumericValueToken(0, 0),
+                            new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new NumericValueToken(1),
+                            new NumericValueToken(1, 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -148,16 +148,16 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new Expression(new IToken[]
                         {
-                            new NameToken("a"),
-                            new OpenBrace(),
-                            new NumericValueToken(0),
-                            new ArgumentSeparatorToken(","),
-                            new NumericValueToken(0),
-                            new CloseBrace(),
+                            new NameToken("a", 0),
+                            new OpenBrace(0),
+                            new NumericValueToken(0, 0),
+                            new ArgumentSeparatorToken(",", 0),
+                            new NumericValueToken(0, 0),
+                            new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new BuiltInValueToken("Nothing"),
+                            new BuiltInValueToken("Nothing", 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )
@@ -176,21 +176,21 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new ValueSettingStatement(
                         new Expression(new IToken[]
                         {
-                            new NameToken("a"),
-                            new OpenBrace(),
-                            new NameToken("GetValue"),
-                            new OpenBrace(),
-                            new NumericValueToken(1),
-                            new ArgumentSeparatorToken(","),
-                            new NumericValueToken(3),
-                            new CloseBrace(),
-                            new ArgumentSeparatorToken(","),
-                            new NumericValueToken(0),
-                            new CloseBrace(),
+                            new NameToken("a", 0),
+                            new OpenBrace(0),
+                            new NameToken("GetValue", 0),
+                            new OpenBrace(0),
+                            new NumericValueToken(1, 0),
+                            new ArgumentSeparatorToken(",", 0),
+                            new NumericValueToken(3, 0),
+                            new CloseBrace(0),
+                            new ArgumentSeparatorToken(",", 0),
+                            new NumericValueToken(0, 0),
+                            new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new BuiltInValueToken("Nothing"),
+                            new BuiltInValueToken("Nothing", 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Set
                     )

@@ -45,9 +45,9 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
                 if (numericValue == null)
                     rebuiltTokens.AddRange(numberContent.Tokens);
                 else
-                    rebuiltTokens.Add(new NumericValueToken(numericValue.Value));
+                    rebuiltTokens.Add(new NumericValueToken(numericValue.Value, numberContent.Tokens.First().LineIndex));
             }
-            return rebuiltTokens.Select(t => (t is MemberAccessorOrDecimalPointToken) ? new MemberAccessorToken() : t);
+            return rebuiltTokens.Select(t => (t is MemberAccessorOrDecimalPointToken) ? new MemberAccessorToken(t.LineIndex) : t);
         }
     }
 }

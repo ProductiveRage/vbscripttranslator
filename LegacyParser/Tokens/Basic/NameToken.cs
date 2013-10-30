@@ -8,9 +8,9 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     [Serializable]
     public class NameToken : AtomToken
     {
-        public NameToken(string content) : this(content, WhiteSpaceBehaviourOptions.Disallow) { }
+        public NameToken(string content, int lineIndex) : this(content, WhiteSpaceBehaviourOptions.Disallow, lineIndex) { }
 
-        protected NameToken(string content, WhiteSpaceBehaviourOptions whiteSpaceBehaviour) : base(content, whiteSpaceBehaviour)
+        protected NameToken(string content, WhiteSpaceBehaviourOptions whiteSpaceBehaviour, int lineIndex) : base(content, whiteSpaceBehaviour, lineIndex)
         {
             // If this constructor is being called from a type derived from NameToken (eg. EscapedNameToken) then assume that all validation has been
             // performed in its constructor. If this constructor is being called to instantiate a new NameToken (and NOT a class derived from it) then
@@ -20,7 +20,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             // great design decision).
             if (this.GetType() == typeof(NameToken))
             {
-                var recognisedType = TryToGetAsRecognisedType(content);
+                var recognisedType = TryToGetAsRecognisedType(content, lineIndex);
                 if (recognisedType != null)
                     throw new ArgumentException("Invalid content for a NameToken");
             }

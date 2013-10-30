@@ -92,7 +92,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 {
                     // Try to grab value(s) for CASE block
                     // - Get lists of tokens (may be multiple values, may be ELSE..)
-                    List<List<IToken>> exprValues = base.getEntryList(tokens, 1, new EndOfStatementNewLineToken());
+                    List<List<IToken>> exprValues = base.getEntryList(tokens, 1, new EndOfStatementNewLineToken(tokens[0].LineIndex));
                     
                     // - Remove the CASE token
                     tokens.RemoveRange(0, 1);

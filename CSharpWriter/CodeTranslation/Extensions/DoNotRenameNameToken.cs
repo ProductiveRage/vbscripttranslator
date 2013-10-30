@@ -10,7 +10,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
 	/// </summary>
 	public class DoNotRenameNameToken : NameToken
 	{
-		public DoNotRenameNameToken(string content) : base(content, WhiteSpaceBehaviourOptions.Allow)
+		public DoNotRenameNameToken(string content, int lineIndex) : base(content, WhiteSpaceBehaviourOptions.Allow, lineIndex)
 		{
 			if (string.IsNullOrWhiteSpace(content))
 				throw new ArgumentException("Null/blank content specified");

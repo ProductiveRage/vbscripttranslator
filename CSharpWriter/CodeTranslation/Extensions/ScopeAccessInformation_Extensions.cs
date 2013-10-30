@@ -106,8 +106,21 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 .AddRange(scopeInformation.Functions)
                 .AddRange(scopeInformation.Properties)
                 .AddRange(scopeInformation.Variables);
+            if (scopeInformation.ScopeDefiningParentIfAny != null)
+            {
+                declaredReferences = declaredReferences.AddRange(
+                    scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions
+                );
+            }
             if (scopeInformation.ParentReturnValueNameIfAny != null)
-                declaredReferences = declaredReferences.Add(new DoNotRenameNameToken(scopeInformation.ParentReturnValueNameIfAny.Name));
+            {
+                declaredReferences = declaredReferences.Add(
+                    new DoNotRenameNameToken(
+                        scopeInformation.ParentReturnValueNameIfAny.Name,
+                        scopeInformation.ScopeDefiningParentIfAny.Name.LineIndex
+                    )
+                );
+            }
             return variablesAccessed
                 .Where(v => !declaredReferences.Any(r => r.Content.Equals(v.Content, StringComparison.InvariantCultureIgnoreCase)))
                 .ToNonNullImmutableList();

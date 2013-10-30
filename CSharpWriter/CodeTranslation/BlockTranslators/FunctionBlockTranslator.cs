@@ -152,7 +152,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				translatedStatements.Add(new TranslatedStatement(
 					base.TranslateVariableDeclaration(
 						new VariableDeclaration(
-							new DoNotRenameNameToken(returnValueNameIfAny.Name),
+							new DoNotRenameNameToken(
+                                returnValueNameIfAny.Name,
+                                functionBlock.Name.LineIndex
+                            ),
 							VariableDeclarationScopeOptions.Private,
 							false
 						)

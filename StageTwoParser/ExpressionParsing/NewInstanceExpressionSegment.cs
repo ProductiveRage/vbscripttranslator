@@ -29,7 +29,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 			{
                 return new IToken[]
                 {
-                    new KeyWordToken("new"),
+                    new KeyWordToken("new", ClassName.LineIndex),
                     ClassName
                 };
 			}
