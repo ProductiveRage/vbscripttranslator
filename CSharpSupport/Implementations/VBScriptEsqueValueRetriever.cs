@@ -139,10 +139,23 @@ namespace CSharpSupport.Implementations
             return Invoke(target, finalMemberAccessor, argumentsArray);
         }
 
-        private object Invoke(object target, string optionalName, IEnumerable<object> arguments)
-        {
-            if (target == null)
-                throw new ArgumentNullException("target");
+		private object Invoke(object target, string optionalName, IEnumerable<object> arguments)
+		{
+			if (target == null)
+				throw new ArgumentNullException("target");
+			if (arguments == null)
+				throw new ArgumentNullException("arguments");
+
+			var invoker = GenerateInvoker(target, optionalName, arguments);
+			return invoker(target, arguments);
+		}
+
+		private delegate object Invoker(object target, IEnumerable<object> arguments);
+
+		private Invoker GenerateInvoker(object target, string optionalName, IEnumerable<object> arguments)
+		{
+			if (target == null)
+				throw new ArgumentNullException("target");
 
             var argumentsArray = arguments.ToArray();
             var errorMessageMemberDescription = (optionalName == null) ? "default member" : ("member \"" + optionalName + "\"");
@@ -169,35 +182,41 @@ namespace CSharpSupport.Implementations
                         throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
                     }
                 }
-                try
-                {
-                    return IDispatchAccess.Invoke<object>(
-                        target,
-                        IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
-                        dispId,
-                        argumentsArray
-                    );
-                }
-                catch (Exception e)
-                {
-                    throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
-                }
-            }
+				return (invokeTarget, invokeArguments) =>
+				{
+					try
+					{
+						return IDispatchAccess.Invoke<object>(
+							invokeTarget,
+							IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
+							dispId,
+							invokeArguments.ToArray()
+						);
+					}
+					catch (Exception e)
+					{
+						throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
+					}
+				};
+			}
 
-            var possibleMethods = (optionalName == null)
-                ? GetDefaultMethods(target.GetType(), argumentsArray.Length)
-                : GetNamedMethods(target.GetType(), optionalName, argumentsArray.Length);
-            if (!possibleMethods.Any())
-                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
-            try
-            {
-                return possibleMethods.First().Invoke(target, argumentsArray);
-            }
-            catch (Exception e)
-            {
-                throw new ArgumentException("Error executing " + errorMessageMemberDescription + ": " + e.GetBaseException(), e);
-            }
-        }
+			var possibleMethods = (optionalName == null)
+				? GetDefaultMethods(target.GetType(), argumentsArray.Length)
+				: GetNamedMethods(target.GetType(), optionalName, argumentsArray.Length);
+			if (!possibleMethods.Any())
+				throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+			return (invokeTarget, invokeArguments) =>
+			{
+				try
+				{
+					return possibleMethods.First().Invoke(invokeTarget, invokeArguments.ToArray());
+				}
+				catch (Exception e)
+				{
+					throw new ArgumentException("Error executing " + errorMessageMemberDescription + ": " + e.GetBaseException(), e);
+				}
+			};
+		}
 
         private IEnumerable<int> GetArgumentsAsArrayIndexSet(IEnumerable<object> arguments)
         {
