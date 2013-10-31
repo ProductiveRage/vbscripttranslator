@@ -10,6 +10,10 @@ namespace CSharpSupport.Implementations
 {
     public class VBScriptEsqueValueRetriever : IAccessValuesUsingVBScriptRules
     {
+		// It's feasible that access to the invoker cacher will need to support multi-threaded access depending upon the application in question, so the
+		// ConcurrentDictionary seems like a good choice. The most common cases I'm envisaging are for the cache to be built up as various execution paths
+		// are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
+		// once this situation is reached.
         private readonly Func<string, string> _nameRewriter;
 		private readonly ConcurrentDictionary<InvokerCacheKey, Invoker> _invokerCache;
 		public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
