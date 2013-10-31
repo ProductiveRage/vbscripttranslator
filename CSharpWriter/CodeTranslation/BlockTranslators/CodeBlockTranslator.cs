@@ -311,17 +311,19 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
+			var undeclaredVariables = scopeAccessInformation.GetUndeclaredVariables(
+				translatedStatementContentDetails.VariablesAccesed
+			);
+			foreach (var undeclaredVariable in undeclaredVariables)
+				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
 			return
                 translationResult.Add(
 				    new TranslatedStatement(
                         translatedStatementContentDetails.TranslatedContent + ";",
 					    indentationDepth
 				    )
-			    ).Add(
-                    scopeAccessInformation.GetUndeclaredVariables(
-                        translatedStatementContentDetails.VariablesAccesed
-                    )
-                );
+			    )
+				.Add(undeclaredVariables);
 		}
 
 		protected TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -331,17 +333,19 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
+			var undeclaredVariables = scopeAccessInformation.GetUndeclaredVariables(
+				translatedValueSettingStatementContentDetails.VariablesAccesed
+			);
+			foreach (var undeclaredVariable in undeclaredVariables)
+				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
 			return
 				translationResult.Add(
 					new TranslatedStatement(
 						translatedValueSettingStatementContentDetails.TranslatedContent + ";",
 						indentationDepth
 					)
-				).Add(
-					scopeAccessInformation.GetUndeclaredVariables(
-						translatedValueSettingStatementContentDetails.VariablesAccesed
-					)
-				);
+				)
+				.Add(undeclaredVariables);
 		}
 
         protected string TranslateVariableDeclaration(VariableDeclaration variableDeclaration)
