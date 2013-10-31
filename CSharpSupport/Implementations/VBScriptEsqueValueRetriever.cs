@@ -1,7 +1,9 @@
 ﻿using CSharpSupport.Attributes;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace CSharpSupport.Implementations
@@ -9,12 +11,14 @@ namespace CSharpSupport.Implementations
     public class VBScriptEsqueValueRetriever : IAccessValuesUsingVBScriptRules
     {
         private readonly Func<string, string> _nameRewriter;
-        public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
+		private readonly ConcurrentDictionary<InvokerCacheKey, Invoker> _invokerCache;
+		public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
         {
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
             _nameRewriter = nameRewriter;
+			_invokerCache = new ConcurrentDictionary<InvokerCacheKey, Invoker>();
         }
 
         /// <summary>
@@ -146,11 +150,18 @@ namespace CSharpSupport.Implementations
 			if (arguments == null)
 				throw new ArgumentNullException("arguments");
 
-			var invoker = GenerateInvoker(target, optionalName, arguments);
-			return invoker(target, arguments);
+			var argumentsArray = arguments.ToArray();
+			var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
+			Invoker invoker;
+			if (!_invokerCache.TryGetValue(cacheKey, out invoker))
+			{
+				invoker = GenerateInvoker(target, optionalName, argumentsArray);
+				_invokerCache.TryAdd(cacheKey, invoker);
+			}
+			return invoker(target, argumentsArray);
 		}
 
-		private delegate object Invoker(object target, IEnumerable<object> arguments);
+		private delegate object Invoker(object target, object[] arguments);
 
 		private Invoker GenerateInvoker(object target, string optionalName, IEnumerable<object> arguments)
 		{
@@ -205,17 +216,55 @@ namespace CSharpSupport.Implementations
 				: GetNamedMethods(target.GetType(), optionalName, argumentsArray.Length);
 			if (!possibleMethods.Any())
 				throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
-			return (invokeTarget, invokeArguments) =>
-			{
-				try
+
+			var method = possibleMethods.First();
+			var targetParameter = Expression.Parameter(typeof(object), "target");
+			var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
+			var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
+			return Expression.Lambda<Invoker>(
+
+				Expression.TryCatch(
+
+					Expression.Call(
+						Expression.Convert(targetParameter, target.GetType()),
+						method,
+						method.GetParameters().Select((arg, index) =>
+							Expression.Convert(
+								Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
+								arg.ParameterType
+							)
+						)
+					),
+
+					// throw new ArgumentException("Error executing " + errorMessageMemberDescription + ": " + e.GetBaseException(), e);
+					Expression.Catch(
+						exceptionParameter,
+						Expression.Throw(
+							Expression.New(
+								typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(Exception) }),
+								Expression.Call(
+									typeof(string).GetMethod("Concat", new[] { typeof(object), typeof(object) }),
+									Expression.Constant("Error executing " + errorMessageMemberDescription + ": "),
+									Expression.Call(
+										exceptionParameter,
+										typeof(Exception).GetMethod("GetBaseException")
+									)
+								),
+								exceptionParameter
+							),
+							// This is indicates the return type that would be expected if an exception wasn't thrown (to avoid a "Body of catch must
+							// have the same type as body of try" error - since the Call expression above returns a value, if type object)
+							typeof(object)
+						)
+					)
+
+				),
+				new[]
 				{
-					return possibleMethods.First().Invoke(invokeTarget, invokeArguments.ToArray());
+					targetParameter,
+					argumentsParameter
 				}
-				catch (Exception e)
-				{
-					throw new ArgumentException("Error executing " + errorMessageMemberDescription + ": " + e.GetBaseException(), e);
-				}
-			};
+			).Compile();
 		}
 
         private IEnumerable<int> GetArgumentsAsArrayIndexSet(IEnumerable<object> arguments)
@@ -381,5 +430,57 @@ namespace CSharpSupport.Implementations
         {
             return ((o == null) || (o is ValueType) || (o is string));
         }
-    }
+
+		private sealed class InvokerCacheKey
+		{
+			private readonly int _hashCode;
+			public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments)
+			{
+				if (targetType == null)
+					throw new ArgumentNullException("targetType");
+				if (numberOfArguments < 0)
+					throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
+
+				TargetType = targetType;
+				OptionalName = optionalName;
+				NumberOfArguments = numberOfArguments;
+
+				_hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString()).GetHashCode();
+			}
+
+			/// <summary>
+			/// This will never be null
+			/// </summary>
+			public object TargetType { get; private set; }
+
+			/// <summary>
+			/// This is optional and may be null
+			/// </summary>
+			public string OptionalName { get; private set; }
+
+			/// <summary>
+			/// This will always be zero or greater
+			/// </summary>
+			public int NumberOfArguments { get; private set; }
+
+			public override int GetHashCode()
+			{
+				return _hashCode;
+			}
+
+			public override bool Equals(object obj)
+			{
+				if (obj == null)
+					throw new ArgumentNullException("obj");
+				var cacheKey = obj as InvokerCacheKey;
+				if (cacheKey == null)
+					return false;
+				return (
+					(TargetType == cacheKey.TargetType) &&
+					(OptionalName == cacheKey.OptionalName) &&
+					(NumberOfArguments == cacheKey.NumberOfArguments)
+				);
+			}
+		}
+	}
 }
