@@ -10,19 +10,19 @@ namespace CSharpSupport.Implementations
 {
     public class VBScriptEsqueValueRetriever : IAccessValuesUsingVBScriptRules
     {
-		// It's feasible that access to the invoker cacher will need to support multi-threaded access depending upon the application in question, so the
-		// ConcurrentDictionary seems like a good choice. The most common cases I'm envisaging are for the cache to be built up as various execution paths
-		// are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
-		// once this situation is reached.
+        // It's feasible that access to the invoker cacher will need to support multi-threaded access depending upon the application in question, so the
+        // ConcurrentDictionary seems like a good choice. The most common cases I'm envisaging are for the cache to be built up as various execution paths
+        // are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
+        // once this situation is reached.
         private readonly Func<string, string> _nameRewriter;
-		private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _invokerCache;
-		public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
+        private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _invokerCache;
+        public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
         {
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
             _nameRewriter = nameRewriter;
-			_invokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
+            _invokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace CSharpSupport.Implementations
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
         /// side of a SET assignment)
         /// </summary>
-		public object OBJ(object o)
+        public object OBJ(object o)
         {
             if ((o == null) || IsVBScriptValueType(o))
                 throw new Exception("Object expected (SET-assignment-derived statement requires a non-value-type)");
@@ -128,30 +128,129 @@ namespace CSharpSupport.Implementations
             return InvokeGetter(target, finalMemberAccessor, argumentsArray);
         }
 
+        /// <summary>
+        /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
+        /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
+        /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
+        /// possible (in that case, a straight assignment should be generated - no call to SET required).
+        /// </summary>
+        public void SET(object target, string optionalMemberAccessor, IEnumerable<object> arguments, object value)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
 
-		private object InvokeGetter(object target, string optionalName, IEnumerable<object> arguments)
-		{
-			if (target == null)
-				throw new ArgumentNullException("target");
-			if (arguments == null)
-				throw new ArgumentNullException("arguments");
+            var argumentsArray = arguments.ToArray();
+            if ((optionalMemberAccessor == null) && !argumentsArray.Any())
+                throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
-			var argumentsArray = arguments.ToArray();
-			var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
-			GetInvoker invoker;
-			if (!_invokerCache.TryGetValue(cacheKey, out invoker))
-			{
-				invoker = GenerateGetInvoker(target, optionalName, argumentsArray);
-				_invokerCache.TryAdd(cacheKey, invoker);
-			}
-			return invoker(target, argumentsArray);
-		}
+            // TODO: After it works functionally, integrate set-invoker caching
 
-		private delegate object GetInvoker(object target, object[] arguments);
-		private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments)
-		{
-			if (target == null)
-				throw new ArgumentNullException("target");
+            var errorMessageMemberDescription = (optionalMemberAccessor == null) ? "default member" : ("member \"" + optionalMemberAccessor + "\"");
+            if (argumentsArray.Length == 0)
+                errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
+            else
+                errorMessageMemberDescription += " that will accept " + argumentsArray.Length + " argument(s)";
+
+            if (IDispatchAccess.ImplementsIDispatch(target))
+            {
+                int dispId;
+                if (optionalMemberAccessor == null)
+                    dispId = 0;
+                else
+                {
+                    try
+                    {
+                        // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+                        // VBScript source that we may have rewritten
+                        dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
+                    }
+                }
+                try
+                {
+                    IDispatchAccess.Invoke<object>(
+                        target,
+                        IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
+                        dispId,
+                        argumentsArray.Concat(new[] { value }).ToArray()
+                    );
+                    return;
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
+                }
+            }
+
+            // If there are no member accessors but there are arguments then firstly attempt array access, this is the only time that array access is acceptable
+            // (o.Names(0) is not allowed by VBScript if the "Names" property is an array, it will only work if Names is a Function or indexed Property and since
+            // we're attempting a set here, it will only work if it's an indexed Property)
+            var targetType = target.GetType();
+            if ((optionalMemberAccessor == null) && targetType.IsArray)
+            {
+                if (targetType.GetArrayRank() != argumentsArray.Length)
+                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
+                try
+                {
+                    ((Array)target).SetValue(
+                        value,
+                        argumentsArray.Cast<int>().ToArray()
+                    );
+                    return;
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("Error accessing array with specified indexes: " + e.GetBaseException(), e);
+                }
+            }
+
+            MethodInfo setter;
+            if (optionalMemberAccessor != null)
+            {
+                // If there is a non-null optionalMemberAccessor but no arguments then try setting the non-indexed property, no defaults considered.
+                // If there is a non-null optionalMemberAccessor and there are arguments then no defaults are considered and the member accessor
+                // must be an indexed property, it can not be an array (see note above about the only place that array access is permitted).
+                setter = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length).FirstOrDefault();
+            }
+            else
+            {
+                // Try accessing a default indexed property (either a a native C# property or a method with IsDefault and TranslatedProperty attributes)
+                setter = GetDefaultSetMethods(targetType, argumentsArray.Length).FirstOrDefault();
+            }
+            if (setter == null)
+                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+
+            setter.Invoke(target, argumentsArray.Concat(new[] { value }).ToArray());
+        }
+
+        private object InvokeGetter(object target, string optionalName, IEnumerable<object> arguments)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
+
+            var argumentsArray = arguments.ToArray();
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
+            GetInvoker invoker;
+            if (!_invokerCache.TryGetValue(cacheKey, out invoker))
+            {
+                invoker = GenerateGetInvoker(target, optionalName, argumentsArray);
+                _invokerCache.TryAdd(cacheKey, invoker);
+            }
+            return invoker(target, argumentsArray);
+        }
+
+        private delegate object GetInvoker(object target, object[] arguments);
+        private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
 
             var argumentsArray = arguments.ToArray();
             var targetType = target.GetType();
@@ -164,32 +263,32 @@ namespace CSharpSupport.Implementations
                 var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
                 var arrayAccessExceptionParameter = Expression.Parameter(typeof(Exception), "e");
                 return Expression.Lambda<GetInvoker>(
-				    Expression.TryCatch(
+                    Expression.TryCatch(
                         Expression.Convert(
                             Expression.ArrayAccess(
                                 Expression.Convert(arrayTargetParameter, targetType),
                                 Enumerable.Range(0, argumentsArray.Length).Select(index =>
                                     GetVBScriptStyleArrayIndexParsingExpression(
 								        Expression.ArrayAccess(indexesParameter, Expression.Constant(index))
-							        )
-						        )
+                                    )
+                                )
                             ),
                             typeof(object) // Without this we may get an "Expression of type 'System.Int32' cannot be used for return type 'System.Object'" or similar
                         ),
                         Expression.Catch(
-						    arrayAccessExceptionParameter,
+                            arrayAccessExceptionParameter,
                             Expression.Throw(
                                 GetNewArgumentException("Error accessing array with specified indexes (likely a non-numeric array index/argument or index-out-of-bounds)", arrayAccessExceptionParameter),
-							    typeof(object)
-						    )
+                                typeof(object)
+                            )
                         )
                     ),
-			        new[]
+                    new[]
 			        {
 				        arrayTargetParameter,
 				        indexesParameter
 			        }
-		        ).Compile();
+                ).Compile();
             }
 
             var errorMessageMemberDescription = (optionalName == null) ? "default member" : ("member \"" + optionalName + "\"");
@@ -216,67 +315,67 @@ namespace CSharpSupport.Implementations
                         throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
                     }
                 }
-				return (invokeTarget, invokeArguments) =>
-				{
-					try
-					{
-						return IDispatchAccess.Invoke<object>(
-							invokeTarget,
-							IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
-							dispId,
-							invokeArguments.ToArray()
-						);
-					}
-					catch (Exception e)
-					{
-						throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
-					}
-				};
-			}
+                return (invokeTarget, invokeArguments) =>
+                {
+                    try
+                    {
+                        return IDispatchAccess.Invoke<object>(
+                            invokeTarget,
+                            IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
+                            dispId,
+                            invokeArguments.ToArray()
+                        );
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
+                    }
+                };
+            }
 
-			var possibleMethods = (optionalName == null)
-				? GetDefaultGetMethods(targetType, argumentsArray.Length)
+            var possibleMethods = (optionalName == null)
+                ? GetDefaultGetMethods(targetType, argumentsArray.Length)
                 : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
-			if (!possibleMethods.Any())
-				throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+            if (!possibleMethods.Any())
+                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
 
-			var method = possibleMethods.First();
-			var targetParameter = Expression.Parameter(typeof(object), "target");
-			var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
-			var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
-			return Expression.Lambda<GetInvoker>(
+            var method = possibleMethods.First();
+            var targetParameter = Expression.Parameter(typeof(object), "target");
+            var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
+            var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
+            return Expression.Lambda<GetInvoker>(
 
-				Expression.TryCatch(
+                Expression.TryCatch(
 
-					Expression.Call(
+                    Expression.Call(
                         Expression.Convert(targetParameter, targetType),
-						method,
-						method.GetParameters().Select((arg, index) =>
-							Expression.Convert(
-								Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
-								arg.ParameterType
-							)
-						)
-					),
+                        method,
+                        method.GetParameters().Select((arg, index) =>
+                            Expression.Convert(
+                                Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
+                                arg.ParameterType
+                            )
+                        )
+                    ),
 
                     // The Throw requires a return type to be specified since the Try block has a return type - without
-                    // this a runtime "Body of catch must have the same type as body of try" exception will be raised
+                // this a runtime "Body of catch must have the same type as body of try" exception will be raised
                     Expression.Catch(
-						exceptionParameter,
+                        exceptionParameter,
                         Expression.Throw(
                             GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter),
-							typeof(object)
-						)
-					)
+                            typeof(object)
+                        )
+                    )
 
-				),
-				new[]
+                ),
+                new[]
 				{
 					targetParameter,
 					argumentsParameter
 				}
-			).Compile();
-		}
+            ).Compile();
+        }
 
         /// <summary>
         /// VBScript expects integer array index values but will accept fractional values or even strings representing integers or fractional values.
@@ -349,18 +448,18 @@ namespace CSharpSupport.Implementations
             if (exceptionParameter == null)
                 throw new ArgumentNullException("exceptionParameter");
 
-			return Expression.New(
-				typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(Exception) }),
-				Expression.Call(
-					typeof(string).GetMethod("Concat", new[] { typeof(object), typeof(object) }),
-					Expression.Constant(message.Trim() + ": "),
-					Expression.Call(
-						exceptionParameter,
-						typeof(Exception).GetMethod("GetBaseException")
-					)
-				),
-				exceptionParameter
-			);
+            return Expression.New(
+                typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(Exception) }),
+                Expression.Call(
+                    typeof(string).GetMethod("Concat", new[] { typeof(object), typeof(object) }),
+                    Expression.Constant(message.Trim() + ": "),
+                    Expression.Call(
+                        exceptionParameter,
+                        typeof(Exception).GetMethod("GetBaseException")
+                    )
+                ),
+                exceptionParameter
+            );
         }
 
         private int ApplyVBScriptIndexLogicToNonIntegerValue(double value)
@@ -399,6 +498,16 @@ namespace CSharpSupport.Implementations
             return GetGetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
         }
 
+        private IEnumerable<MethodInfo> GetDefaultSetMethods(Type type, int numberOfArguments)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+            if (numberOfArguments < 0)
+                throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
+
+            return GetSetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
+        }
+
         private IEnumerable<MethodInfo> GetNamedGetMethods(Type type, string name, int numberOfArguments)
         {
             if (type == null)
@@ -417,6 +526,27 @@ namespace CSharpSupport.Implementations
                 )
                 .Concat(
                     GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
+                );
+        }
+
+        private IEnumerable<MethodInfo> GetNamedSetMethods(Type type, string name, int numberOfArguments)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Null/blank name specified");
+            if (numberOfArguments < 0)
+                throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
+
+            // There the nameRewriter WILL be considered in case it's trying to access classes we've translated. However, there's also a chance that
+            // we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedGetMethods will try to match using the nameRewriter first and
+            // then fallback to a perfect match non-rewritten name and finally to a case-insensitive match to a non-rewritten name.
+            return GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
+                .Concat(
+                    GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
+                )
+                .Concat(
+                    GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
                 );
         }
 
@@ -461,6 +591,45 @@ namespace CSharpSupport.Implementations
                 );
         }
 
+        private IEnumerable<MethodInfo> GetSetMethods(
+            Type type,
+            string optionalName,
+            DefaultMemberBehaviourOptions defaultMemberBehaviour,
+            MemberNameMatchBehaviourOptions memberNameMatchBehaviour,
+            int numberOfArguments)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+            if (!Enum.IsDefined(typeof(DefaultMemberBehaviourOptions), defaultMemberBehaviour))
+                throw new ArgumentOutOfRangeException("defaultMemberBehaviour");
+            if (!Enum.IsDefined(typeof(MemberNameMatchBehaviourOptions), memberNameMatchBehaviour))
+                throw new ArgumentOutOfRangeException("memberNameMatchBehaviour");
+            if (numberOfArguments < 0)
+                throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
+
+            var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
+            return
+                type.GetMethods()
+                    .Where(m => nameMatcher(m.Name))
+                    .Where(m => m.GetParameters().Length == (numberOfArguments + 1)) // Method takes property arguments plus one for the value
+                    .Where(m => m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is TranslatedProperty))
+                    .Where(m =>
+                        (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
+                        (m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
+                    )
+                .Concat(
+                    type.GetProperties()
+                        .Where(p => p.CanWrite)
+                        .Where(p => nameMatcher(p.Name))
+                        .Where(p => p.GetIndexParameters().Length == numberOfArguments)
+                        .Where(p =>
+                            (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
+                            (p.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
+                        )
+                        .Select(p => p.GetSetMethod())
+                );
+        }
+
         private Predicate<string> GetNameMatcher(string name, MemberNameMatchBehaviourOptions memberNameMatchBehaviour)
         {
             if (name == null)
@@ -501,56 +670,56 @@ namespace CSharpSupport.Implementations
             return ((o == null) || (o is ValueType) || (o is string));
         }
 
-		private sealed class InvokerCacheKey
-		{
-			private readonly int _hashCode;
-			public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments)
-			{
-				if (targetType == null)
-					throw new ArgumentNullException("targetType");
-				if (numberOfArguments < 0)
-					throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
+        private sealed class InvokerCacheKey
+        {
+            private readonly int _hashCode;
+            public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments)
+            {
+                if (targetType == null)
+                    throw new ArgumentNullException("targetType");
+                if (numberOfArguments < 0)
+                    throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
-				TargetType = targetType;
-				OptionalName = optionalName;
-				NumberOfArguments = numberOfArguments;
+                TargetType = targetType;
+                OptionalName = optionalName;
+                NumberOfArguments = numberOfArguments;
 
-				_hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString()).GetHashCode();
-			}
+                _hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString()).GetHashCode();
+            }
 
-			/// <summary>
-			/// This will never be null
-			/// </summary>
-			public object TargetType { get; private set; }
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public object TargetType { get; private set; }
 
-			/// <summary>
-			/// This is optional and may be null
-			/// </summary>
-			public string OptionalName { get; private set; }
+            /// <summary>
+            /// This is optional and may be null
+            /// </summary>
+            public string OptionalName { get; private set; }
 
-			/// <summary>
-			/// This will always be zero or greater
-			/// </summary>
-			public int NumberOfArguments { get; private set; }
+            /// <summary>
+            /// This will always be zero or greater
+            /// </summary>
+            public int NumberOfArguments { get; private set; }
 
-			public override int GetHashCode()
-			{
-				return _hashCode;
-			}
+            public override int GetHashCode()
+            {
+                return _hashCode;
+            }
 
-			public override bool Equals(object obj)
-			{
-				if (obj == null)
-					throw new ArgumentNullException("obj");
-				var cacheKey = obj as InvokerCacheKey;
-				if (cacheKey == null)
-					return false;
-				return (
-					(TargetType == cacheKey.TargetType) &&
-					(OptionalName == cacheKey.OptionalName) &&
-					(NumberOfArguments == cacheKey.NumberOfArguments)
-				);
-			}
-		}
-	}
+            public override bool Equals(object obj)
+            {
+                if (obj == null)
+                    throw new ArgumentNullException("obj");
+                var cacheKey = obj as InvokerCacheKey;
+                if (cacheKey == null)
+                    return false;
+                return (
+                    (TargetType == cacheKey.TargetType) &&
+                    (OptionalName == cacheKey.OptionalName) &&
+                    (NumberOfArguments == cacheKey.NumberOfArguments)
+                );
+            }
+        }
+    }
 }

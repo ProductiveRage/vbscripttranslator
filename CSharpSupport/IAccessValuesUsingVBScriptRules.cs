@@ -11,6 +11,14 @@ namespace CSharpSupport
         /// argument which was the result of the first call.
         /// </summary>
         object CALL(object target, IEnumerable<string> members, params object[] arguments);
+        
+        /// <summary>
+        /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
+        /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
+        /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
+        /// possible (in that case, a straight assignment should be generated - no call to SET required).
+        /// </summary>
+        void SET(object target, string optionalMemberAccessor, IEnumerable<object> arguments, object value);
 
         /// <summary>
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is
