@@ -15,14 +15,14 @@ namespace CSharpSupport.Implementations
 		// are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
 		// once this situation is reached.
         private readonly Func<string, string> _nameRewriter;
-		private readonly ConcurrentDictionary<InvokerCacheKey, Invoker> _invokerCache;
+		private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _invokerCache;
 		public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
         {
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
             _nameRewriter = nameRewriter;
-			_invokerCache = new ConcurrentDictionary<InvokerCacheKey, Invoker>();
+			_invokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace CSharpSupport.Implementations
             if (o == null)
                 throw new Exception("Object expected (failed trying to extract value type data from null reference)");
 
-            var defaultValueFromObject = Invoke(o, null, new object[0]);
+            var defaultValueFromObject = InvokeGetter(o, null, new object[0]);
             if (IsVBScriptValueType(defaultValueFromObject))
                 return defaultValueFromObject;
 
@@ -112,26 +112,7 @@ namespace CSharpSupport.Implementations
             // 3. If it's not an IDispatch reference, then the arguments will be passed to a method or indexed property that will accept them,
             //    taking into account the IsDefault attribute
             if (!memberAccessorsArray.Any() && argumentsArray.Any())
-            {
-                var targetType = target.GetType();
-                if (targetType.IsArray)
-                {
-                    if (targetType.GetArrayRank() != argumentsArray.Length)
-                        throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
-                    try
-                    {
-                        return ((Array)target).GetValue(
-                            GetArgumentsAsArrayIndexSet(argumentsArray).ToArray()
-                        );
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ArgumentException("Error accessing array with specified indexes: " + e.GetBaseException(), e);
-                    }
-                }
-                else
-                    return Invoke(target, null, argumentsArray);
-            }
+                return InvokeGetter(target, null, argumentsArray);
 
             // If there are member accessors but no arguments then we walk down each member accessor, no defaults are considered
             if (!argumentsArray.Any())
@@ -144,10 +125,11 @@ namespace CSharpSupport.Implementations
             var finalMemberAccessor = memberAccessorsArray[memberAccessorsArray.Length - 1];
             if (target == null)
                 throw new ArgumentException("Unable to access member \"" + finalMemberAccessor + "\" on null reference");
-            return Invoke(target, finalMemberAccessor, argumentsArray);
+            return InvokeGetter(target, finalMemberAccessor, argumentsArray);
         }
 
-		private object Invoke(object target, string optionalName, IEnumerable<object> arguments)
+
+		private object InvokeGetter(object target, string optionalName, IEnumerable<object> arguments)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
@@ -156,23 +138,62 @@ namespace CSharpSupport.Implementations
 
 			var argumentsArray = arguments.ToArray();
 			var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
-			Invoker invoker;
+			GetInvoker invoker;
 			if (!_invokerCache.TryGetValue(cacheKey, out invoker))
 			{
-				invoker = GenerateInvoker(target, optionalName, argumentsArray);
+				invoker = GenerateGetInvoker(target, optionalName, argumentsArray);
 				_invokerCache.TryAdd(cacheKey, invoker);
 			}
 			return invoker(target, argumentsArray);
 		}
 
-		private delegate object Invoker(object target, object[] arguments);
-
-		private Invoker GenerateInvoker(object target, string optionalName, IEnumerable<object> arguments)
+		private delegate object GetInvoker(object target, object[] arguments);
+		private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
 
             var argumentsArray = arguments.ToArray();
+            var targetType = target.GetType();
+            if (targetType.IsArray)
+            {
+                if (targetType.GetArrayRank() != argumentsArray.Length)
+                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
+
+                // TODO: Incorporate crazy VBScript logic into argument casting
+                var arrayTargetParameter = Expression.Parameter(typeof(object), "target");
+                var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
+                var arrayAccessExceptionParameter = Expression.Parameter(typeof(Exception), "e");
+                return Expression.Lambda<GetInvoker>(
+				    Expression.TryCatch(
+                        Expression.Convert(
+                            Expression.ArrayAccess(
+                                Expression.Convert(arrayTargetParameter, targetType),
+                                Enumerable.Range(0, argumentsArray.Length).Select(index =>
+							        Expression.Convert(
+								        Expression.ArrayAccess(indexesParameter, Expression.Constant(index)),
+								        typeof(int)
+							        )
+						        )
+                            ),
+                            typeof(object) // Without this we may get an "Expression of type 'System.Int32' cannot be used for return type 'System.Object'" or similar
+                        ),
+                        Expression.Catch(
+						    arrayAccessExceptionParameter,
+                            Expression.Throw(
+                                GetNewArgumentException("Error accessing array with specified indexes (likely a non-numeric array index/argument)", arrayAccessExceptionParameter),
+							    typeof(object)
+						    )
+                        )
+                    ),
+			        new[]
+			        {
+				        arrayTargetParameter,
+				        indexesParameter
+			        }
+		        ).Compile();
+            }
+
             var errorMessageMemberDescription = (optionalName == null) ? "default member" : ("member \"" + optionalName + "\"");
             if (argumentsArray.Length == 0)
                 errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
@@ -216,8 +237,8 @@ namespace CSharpSupport.Implementations
 			}
 
 			var possibleMethods = (optionalName == null)
-				? GetDefaultMethods(target.GetType(), argumentsArray.Length)
-				: GetNamedMethods(target.GetType(), optionalName, argumentsArray.Length);
+				? GetDefaultGetMethods(targetType, argumentsArray.Length)
+                : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
 			if (!possibleMethods.Any())
 				throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
 
@@ -225,12 +246,12 @@ namespace CSharpSupport.Implementations
 			var targetParameter = Expression.Parameter(typeof(object), "target");
 			var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
 			var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
-			return Expression.Lambda<Invoker>(
+			return Expression.Lambda<GetInvoker>(
 
 				Expression.TryCatch(
 
 					Expression.Call(
-						Expression.Convert(targetParameter, target.GetType()),
+                        Expression.Convert(targetParameter, targetType),
 						method,
 						method.GetParameters().Select((arg, index) =>
 							Expression.Convert(
@@ -240,24 +261,12 @@ namespace CSharpSupport.Implementations
 						)
 					),
 
-					// throw new ArgumentException("Error executing " + errorMessageMemberDescription + ": " + e.GetBaseException(), e);
-					Expression.Catch(
+                    // The Throw requires a return type to be specified since the Try block has a return type - without
+                    // this a runtime "Body of catch must have the same type as body of try" exception will be raised
+                    Expression.Catch(
 						exceptionParameter,
-						Expression.Throw(
-							Expression.New(
-								typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(Exception) }),
-								Expression.Call(
-									typeof(string).GetMethod("Concat", new[] { typeof(object), typeof(object) }),
-									Expression.Constant("Error executing " + errorMessageMemberDescription + ": "),
-									Expression.Call(
-										exceptionParameter,
-										typeof(Exception).GetMethod("GetBaseException")
-									)
-								),
-								exceptionParameter
-							),
-							// This is indicates the return type that would be expected if an exception wasn't thrown (to avoid a "Body of catch must
-							// have the same type as body of try" error - since the Call expression above returns a value, if type object)
+                        Expression.Throw(
+                            GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter),
 							typeof(object)
 						)
 					)
@@ -271,36 +280,25 @@ namespace CSharpSupport.Implementations
 			).Compile();
 		}
 
-        private IEnumerable<int> GetArgumentsAsArrayIndexSet(IEnumerable<object> arguments)
+        private Expression GetNewArgumentException(string message, ParameterExpression exceptionParameter)
         {
-            if (arguments == null)
-                throw new ArgumentNullException("arguments");
+            if (string.IsNullOrWhiteSpace(message))
+                throw new ArgumentException("Null/blank message specified");
+            if (exceptionParameter == null)
+                throw new ArgumentNullException("exceptionParameter");
 
-            var indexes = new List<int>();
-            foreach (var argument in arguments)
-            {
-                if (argument is int)
-                {
-                    indexes.Add((int)argument);
-                    continue;
-                }
-                if (argument is double)
-                {
-                    indexes.Add(ApplyVBScriptIndexLogicToNonIntegerValue((double)argument));
-                    continue;
-                }
-                if (argument != null)
-                {
-                    double value;
-                    if (double.TryParse(argument.ToString(), out value))
-                    {
-                        indexes.Add(ApplyVBScriptIndexLogicToNonIntegerValue(value));
-                        continue;
-                    }
-                }
-                throw new ArgumentException("Invalid array index: " + argument.ToString() + " (" + argument.GetType() + ")");
-            }
-            return indexes;
+			return Expression.New(
+				typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(Exception) }),
+				Expression.Call(
+					typeof(string).GetMethod("Concat", new[] { typeof(object), typeof(object) }),
+					Expression.Constant(message.Trim() + ": "),
+					Expression.Call(
+						exceptionParameter,
+						typeof(Exception).GetMethod("GetBaseException")
+					)
+				),
+				exceptionParameter
+			);
         }
 
         private int ApplyVBScriptIndexLogicToNonIntegerValue(double value)
@@ -324,22 +322,22 @@ namespace CSharpSupport.Implementations
                 if (target == null)
                     throw new ArgumentException("Unable to access member \"" + memberAccessor + "\" on null reference");
 
-                target = Invoke(target, memberAccessor, new object[0]);
+                target = InvokeGetter(target, memberAccessor, new object[0]);
             }
             return target;
         }
 
-        private IEnumerable<MethodInfo> GetDefaultMethods(Type type, int numberOfArguments)
+        private IEnumerable<MethodInfo> GetDefaultGetMethods(Type type, int numberOfArguments)
         {
             if (type == null)
                 throw new ArgumentNullException("type");
             if (numberOfArguments < 0)
                 throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
-            return GetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
+            return GetGetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
         }
 
-        private IEnumerable<MethodInfo> GetNamedMethods(Type type, string name, int numberOfArguments)
+        private IEnumerable<MethodInfo> GetNamedGetMethods(Type type, string name, int numberOfArguments)
         {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -349,19 +347,19 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
             // There the nameRewriter WILL be considered in case it's trying to access classes we've translated. However, there's also a chance that
-            // we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedMethods will try to match using the nameRewriter first and
+            // we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedGetMethods will try to match using the nameRewriter first and
             // then fallback to a perfect match non-rewritten name and finally to a case-insensitive match to a non-rewritten name.
             // TODO: Should all ComVisible classes that this might apply to implement IDispatch and so make this unnecessary?
-            return GetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
+            return GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
                 .Concat(
-                    GetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
+                    GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
                 )
                 .Concat(
-                    GetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
+                    GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
                 );
         }
 
-        private IEnumerable<MethodInfo> GetMethods(
+        private IEnumerable<MethodInfo> GetGetMethods(
             Type type,
             string optionalName,
             DefaultMemberBehaviourOptions defaultMemberBehaviour,
@@ -372,27 +370,15 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("type");
             if (!Enum.IsDefined(typeof(DefaultMemberBehaviourOptions), defaultMemberBehaviour))
                 throw new ArgumentOutOfRangeException("defaultMemberBehaviour");
+            if (!Enum.IsDefined(typeof(MemberNameMatchBehaviourOptions), memberNameMatchBehaviour))
+                throw new ArgumentOutOfRangeException("memberNameMatchBehaviour");
             if (numberOfArguments < 0)
                 throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
-
-            Predicate<string> nameMatcher;
-            if (optionalName == null)
-                nameMatcher = name => true;
-            else if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.CaseInsensitive)
-                nameMatcher = name => name.Equals(optionalName, StringComparison.InvariantCultureIgnoreCase);
-            else if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.Precise)
-                nameMatcher = name => name.Equals(optionalName, StringComparison.InvariantCultureIgnoreCase);
-            else if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.UseNameRewriter)
-            {
-                var rewritterName = _nameRewriter(optionalName);
-                nameMatcher = name => name == rewritterName;
-            }
-            else
-                throw new ArgumentOutOfRangeException("memberNameMatchBehaviour");
 
             // Note: Considered filtering out methods that have a void ReturnType but then we wouldn't be able to call functions that originated from
             // VBScript SUBSs, which would be a problem! Null will be returned if the method is successfully invoked, if the method's ReturnType is
             // void. Valid source script would never try to access the value returned since a SUB never returns a value.
+            var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
             return
                 type.GetMethods()
                     .Where(m => nameMatcher(m.Name))
@@ -412,6 +398,25 @@ namespace CSharpSupport.Implementations
                         )
                         .Select(p => p.GetGetMethod())
                 );
+        }
+
+        private Predicate<string> GetNameMatcher(string name, MemberNameMatchBehaviourOptions memberNameMatchBehaviour)
+        {
+            if (name == null)
+                throw new ArgumentNullException("name");
+            if (!Enum.IsDefined(typeof(MemberNameMatchBehaviourOptions), memberNameMatchBehaviour))
+                throw new ArgumentOutOfRangeException("memberNameMatchBehaviour");
+
+            if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.CaseInsensitive)
+                return n => n.Equals(name, StringComparison.InvariantCultureIgnoreCase);
+            if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.Precise)
+                return n => n.Equals(name, StringComparison.InvariantCultureIgnoreCase);
+            if (memberNameMatchBehaviour == MemberNameMatchBehaviourOptions.UseNameRewriter)
+            {
+                var rewritterName = _nameRewriter(name);
+                return n => n == rewritterName;
+            }
+            throw new ArgumentOutOfRangeException("memberNameMatchBehaviour");
         }
 
         private enum DefaultMemberBehaviourOptions
