@@ -1,7 +1,7 @@
 ﻿using CSharpSupport.Attributes;
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -160,7 +160,6 @@ namespace CSharpSupport.Implementations
                 if (targetType.GetArrayRank() != argumentsArray.Length)
                     throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
 
-                // TODO: Incorporate crazy VBScript logic into argument casting
                 var arrayTargetParameter = Expression.Parameter(typeof(object), "target");
                 var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
                 var arrayAccessExceptionParameter = Expression.Parameter(typeof(Exception), "e");
@@ -170,9 +169,8 @@ namespace CSharpSupport.Implementations
                             Expression.ArrayAccess(
                                 Expression.Convert(arrayTargetParameter, targetType),
                                 Enumerable.Range(0, argumentsArray.Length).Select(index =>
-							        Expression.Convert(
-								        Expression.ArrayAccess(indexesParameter, Expression.Constant(index)),
-								        typeof(int)
+                                    GetVBScriptStyleArrayIndexParsingExpression(
+								        Expression.ArrayAccess(indexesParameter, Expression.Constant(index))
 							        )
 						        )
                             ),
@@ -181,7 +179,7 @@ namespace CSharpSupport.Implementations
                         Expression.Catch(
 						    arrayAccessExceptionParameter,
                             Expression.Throw(
-                                GetNewArgumentException("Error accessing array with specified indexes (likely a non-numeric array index/argument)", arrayAccessExceptionParameter),
+                                GetNewArgumentException("Error accessing array with specified indexes (likely a non-numeric array index/argument or index-out-of-bounds)", arrayAccessExceptionParameter),
 							    typeof(object)
 						    )
                         )
@@ -280,6 +278,70 @@ namespace CSharpSupport.Implementations
 			).Compile();
 		}
 
+        /// <summary>
+        /// VBScript expects integer array index values but will accept fractional values or even strings representing integers or fractional values.
+        /// Any fractional values are rounded to the closest even number (so 1.5 rounds to 1, 2.5 also rounds to 2, 3.5 rounds to 4, etc..)
+        /// </summary>
+        private Expression GetVBScriptStyleArrayIndexParsingExpression(Expression index)
+        {
+            if (index == null)
+                throw new ArgumentNullException("index");
+
+            var returnValueParameter = Expression.Parameter(typeof(int), "retVal");
+            return Expression.Block(
+                typeof(int),
+                new[] { returnValueParameter },
+                Expression.IfThenElse(
+                    Expression.TypeIs(index, typeof(int)),
+                    Expression.Assign(
+                        returnValueParameter,
+                        Expression.Convert(
+                            index,
+                            typeof(int)
+                        )
+                    ),
+                    Expression.IfThenElse(
+                        Expression.TypeIs(index, typeof(double)),
+                        Expression.Assign(
+                            returnValueParameter,
+                            Expression.Convert(
+                                Expression.Call(
+                                    null,
+                                    typeof(Math).GetMethod("Round", new[] { typeof(double), typeof(MidpointRounding) }),
+                                    Expression.Convert(
+                                        index,
+                                        typeof(double)
+                                    ),
+                                    Expression.Constant(MidpointRounding.ToEven)
+                                ),
+                                typeof(int)
+                            )
+                        ),
+                        Expression.Assign(
+                            returnValueParameter,
+                            Expression.Convert(
+                                Expression.Call(
+                                    null,
+                                    typeof(Math).GetMethod("Round", new[] { typeof(double), typeof(MidpointRounding) }),
+                                    Expression.Call(
+                                        null,
+                                        typeof(double).GetMethod("Parse", new[] { typeof(string) }),
+                                        Expression.Call(
+                                            index,
+                                            typeof(object).GetMethod("ToString")
+                                        )
+                                    ),
+                                    Expression.Constant(MidpointRounding.ToEven)
+                                ),
+                                typeof(int)
+                            )
+                        )
+                    )
+                ),
+                returnValueParameter
+            );
+        }
+
         private Expression GetNewArgumentException(string message, ParameterExpression exceptionParameter)
         {
             if (string.IsNullOrWhiteSpace(message))
@@ -349,7 +411,6 @@ namespace CSharpSupport.Implementations
             // There the nameRewriter WILL be considered in case it's trying to access classes we've translated. However, there's also a chance that
             // we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedGetMethods will try to match using the nameRewriter first and
             // then fallback to a perfect match non-rewritten name and finally to a case-insensitive match to a non-rewritten name.
-            // TODO: Should all ComVisible classes that this might apply to implement IDispatch and so make this unnecessary?
             return GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
                 .Concat(
                     GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
