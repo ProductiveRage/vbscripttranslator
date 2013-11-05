@@ -15,14 +15,16 @@ namespace CSharpSupport.Implementations
         // are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
         // once this situation is reached.
         private readonly Func<string, string> _nameRewriter;
-        private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _invokerCache;
+        private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _getInvokerCache;
+        private readonly ConcurrentDictionary<InvokerCacheKey, SetInvoker> _setInvokerCache;
         public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
         {
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
             _nameRewriter = nameRewriter;
-            _invokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
+            _getInvokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
+            _setInvokerCache = new ConcurrentDictionary<InvokerCacheKey, SetInvoker>();
         }
 
         /// <summary>
@@ -145,87 +147,14 @@ namespace CSharpSupport.Implementations
             if ((optionalMemberAccessor == null) && !argumentsArray.Any())
                 throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
-            // TODO: After it works functionally, integrate set-invoker caching
-
-            var errorMessageMemberDescription = (optionalMemberAccessor == null) ? "default member" : ("member \"" + optionalMemberAccessor + "\"");
-            if (argumentsArray.Length == 0)
-                errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
-            else
-                errorMessageMemberDescription += " that will accept " + argumentsArray.Length + " argument(s)";
-
-            if (IDispatchAccess.ImplementsIDispatch(target))
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, argumentsArray.Length);
+            SetInvoker invoker;
+            if (!_setInvokerCache.TryGetValue(cacheKey, out invoker))
             {
-                int dispId;
-                if (optionalMemberAccessor == null)
-                    dispId = 0;
-                else
-                {
-                    try
-                    {
-                        // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
-                        // VBScript source that we may have rewritten
-                        dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
-                    }
-                }
-                try
-                {
-                    IDispatchAccess.Invoke<object>(
-                        target,
-                        IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
-                        dispId,
-                        argumentsArray.Concat(new[] { value }).ToArray()
-                    );
-                    return;
-                }
-                catch (Exception e)
-                {
-                    throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
-                }
+                invoker = GenerateSetInvoker(target, optionalMemberAccessor, argumentsArray);
+                _setInvokerCache.TryAdd(cacheKey, invoker);
             }
-
-            // If there are no member accessors but there are arguments then firstly attempt array access, this is the only time that array access is acceptable
-            // (o.Names(0) is not allowed by VBScript if the "Names" property is an array, it will only work if Names is a Function or indexed Property and since
-            // we're attempting a set here, it will only work if it's an indexed Property)
-            var targetType = target.GetType();
-            if ((optionalMemberAccessor == null) && targetType.IsArray)
-            {
-                if (targetType.GetArrayRank() != argumentsArray.Length)
-                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
-                try
-                {
-                    ((Array)target).SetValue(
-                        value,
-                        argumentsArray.Cast<int>().ToArray()
-                    );
-                    return;
-                }
-                catch (Exception e)
-                {
-                    throw new ArgumentException("Error accessing array with specified indexes: " + e.GetBaseException(), e);
-                }
-            }
-
-            MethodInfo setter;
-            if (optionalMemberAccessor != null)
-            {
-                // If there is a non-null optionalMemberAccessor but no arguments then try setting the non-indexed property, no defaults considered.
-                // If there is a non-null optionalMemberAccessor and there are arguments then no defaults are considered and the member accessor
-                // must be an indexed property, it can not be an array (see note above about the only place that array access is permitted).
-                setter = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length).FirstOrDefault();
-            }
-            else
-            {
-                // Try accessing a default indexed property (either a a native C# property or a method with IsDefault and TranslatedProperty attributes)
-                setter = GetDefaultSetMethods(targetType, argumentsArray.Length).FirstOrDefault();
-            }
-            if (setter == null)
-                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
-
-            setter.Invoke(target, argumentsArray.Concat(new[] { value }).ToArray());
+            invoker(target, argumentsArray, value);
         }
 
         private object InvokeGetter(object target, string optionalName, IEnumerable<object> arguments)
@@ -238,10 +167,10 @@ namespace CSharpSupport.Implementations
             var argumentsArray = arguments.ToArray();
             var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
             GetInvoker invoker;
-            if (!_invokerCache.TryGetValue(cacheKey, out invoker))
+            if (!_getInvokerCache.TryGetValue(cacheKey, out invoker))
             {
                 invoker = GenerateGetInvoker(target, optionalName, argumentsArray);
-                _invokerCache.TryAdd(cacheKey, invoker);
+                _getInvokerCache.TryAdd(cacheKey, invoker);
             }
             return invoker(target, argumentsArray);
         }
@@ -251,6 +180,8 @@ namespace CSharpSupport.Implementations
         {
             if (target == null)
                 throw new ArgumentNullException("target");
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
 
             var argumentsArray = arguments.ToArray();
             var targetType = target.GetType();
@@ -278,7 +209,10 @@ namespace CSharpSupport.Implementations
                         Expression.Catch(
                             arrayAccessExceptionParameter,
                             Expression.Throw(
-                                GetNewArgumentException("Error accessing array with specified indexes (likely a non-numeric array index/argument or index-out-of-bounds)", arrayAccessExceptionParameter),
+                                GetNewArgumentException(
+                                    "Error accessing array with specified indexes (likely a non-numeric array index/argument or index-out-of-bounds)",
+                                    arrayAccessExceptionParameter
+                                ),
                                 typeof(object)
                             )
                         )
@@ -359,7 +293,7 @@ namespace CSharpSupport.Implementations
                     ),
 
                     // The Throw requires a return type to be specified since the Try block has a return type - without
-                // this a runtime "Body of catch must have the same type as body of try" exception will be raised
+                    // this a runtime "Body of catch must have the same type as body of try" exception will be raised
                     Expression.Catch(
                         exceptionParameter,
                         Expression.Throw(
@@ -373,6 +307,164 @@ namespace CSharpSupport.Implementations
 				{
 					targetParameter,
 					argumentsParameter
+				}
+            ).Compile();
+        }
+
+        private delegate void SetInvoker(object target, object[] arguments, object value);
+        private SetInvoker GenerateSetInvoker(object target, string optionalMemberAccessor, IEnumerable<object> arguments)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
+
+            // If there are no member accessors but there are arguments then firstly attempt array access, this is the only time that array access is acceptable
+            // (o.Names(0) is not allowed by VBScript if the "Names" property is an array, it will only work if Names is a Function or indexed Property and since
+            // we're attempting a set here, it will only work if it's an indexed Property)
+            var argumentsArray = arguments.ToArray();
+            var targetType = target.GetType();
+            if ((optionalMemberAccessor == null) && targetType.IsArray)
+            {
+                if (targetType.GetArrayRank() != argumentsArray.Length)
+                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
+
+                // Without the targetType.GetElementType() specified for the Expression.Catch, a "Body of catch must have the same type as body of try" exception
+                // will be raised. Since I would have expected the try block to return nothing (void) I'm not quite sure why this is.
+                var arrayTargetParameter = Expression.Parameter(typeof(object), "target");
+                var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
+                var arrayAccessExceptionParameter = Expression.Parameter(typeof(Exception), "e");
+                var arrayValueParameter = Expression.Parameter(typeof(object), "value");
+                return Expression.Lambda<SetInvoker>(
+                    Expression.TryCatch(
+                        Expression.Assign(
+                            Expression.ArrayAccess(
+                                Expression.Convert(arrayTargetParameter, targetType),
+                                Enumerable.Range(0, argumentsArray.Length).Select(index =>
+                                    GetVBScriptStyleArrayIndexParsingExpression(
+                                        Expression.ArrayAccess(indexesParameter, Expression.Constant(index))
+                                    )
+                                )
+                            ),
+                            Expression.Convert(
+                                arrayValueParameter,
+                                targetType.GetElementType()
+                            )
+                        ),
+                        Expression.Catch(
+                            arrayAccessExceptionParameter,
+                            Expression.Throw(
+                                GetNewArgumentException(
+                                    "Error accessing array with specified indexes (likely a non-numeric array index/argument or index-out-of-bounds)",
+                                    arrayAccessExceptionParameter
+                                ),
+                                targetType.GetElementType()
+                            )
+                        )
+                    ),
+                    new[]
+			        {
+				        arrayTargetParameter,
+				        indexesParameter,
+                        arrayValueParameter
+			        }
+                ).Compile();
+            }
+
+            var errorMessageMemberDescription = (optionalMemberAccessor == null) ? "default member" : ("member \"" + optionalMemberAccessor + "\"");
+            if (argumentsArray.Length == 0)
+                errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
+            else
+                errorMessageMemberDescription += " that will accept " + argumentsArray.Length + " argument(s)";
+
+            if (IDispatchAccess.ImplementsIDispatch(target))
+            {
+                int dispId;
+                if (optionalMemberAccessor == null)
+                    dispId = 0;
+                else
+                {
+                    try
+                    {
+                        // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+                        // VBScript source that we may have rewritten
+                        dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
+                    }
+                }
+                return (invokeTarget, invokeArguments, value) =>
+                {
+                    try
+                    {
+                        IDispatchAccess.Invoke<object>(
+                            target,
+                            IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
+                            dispId,
+                            argumentsArray.Concat(new[] { value }).ToArray()
+                        );
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
+                    }
+                };
+            }
+
+            MethodInfo method;
+            if (optionalMemberAccessor != null)
+            {
+                // If there is a non-null optionalMemberAccessor but no arguments then try setting the non-indexed property, no defaults considered.
+                // If there is a non-null optionalMemberAccessor and there are arguments then no defaults are considered and the member accessor
+                // must be an indexed property, it can not be an array (see note above about the only place that array access is permitted).
+                method = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length).FirstOrDefault();
+            }
+            else
+            {
+                // Try accessing a default indexed property (either a a native C# property or a method with IsDefault and TranslatedProperty attributes)
+                method = GetDefaultSetMethods(targetType, argumentsArray.Length).FirstOrDefault();
+            }
+            if (method == null)
+                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+
+            var targetParameter = Expression.Parameter(typeof(object), "target");
+            var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
+            var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
+            var valueParameter = Expression.Parameter(typeof(object), "value");
+            return Expression.Lambda<SetInvoker>(
+
+                Expression.TryCatch(
+
+                    Expression.Call(
+                        Expression.Convert(targetParameter, targetType),
+                        method,
+                        method.GetParameters().Select((arg, index) =>
+                        {
+                            // The method will have one more parameter than there are arguments since the last parameter is the value to set to
+                            return Expression.Convert(
+                                (index == argumentsArray.Length)
+                                    ? (Expression)valueParameter
+                                    : Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
+                                arg.ParameterType
+                            );
+                        })
+                    ),
+
+                    Expression.Catch(
+                        exceptionParameter,
+                        Expression.Throw(
+                            GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter)
+                        )
+                    )
+
+                ),
+                new[]
+				{
+					targetParameter,
+					argumentsParameter,
+                    valueParameter
 				}
             ).Compile();
         }
