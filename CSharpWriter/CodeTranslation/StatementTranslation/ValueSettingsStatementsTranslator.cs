@@ -14,17 +14,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 	public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
     {
 		private readonly CSharpName _supportClassName;
+        private readonly CSharpName _envClassName;
 		private readonly VBScriptNameRewriter _nameRewriter;
 		private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
 		public ValueSettingsStatementsTranslator(
             CSharpName supportClassName,
+            CSharpName envClassName,
             VBScriptNameRewriter nameRewriter,
             ITranslateIndividualStatements statementTranslator,
             ILogInformation logger)
 		{
 			if (supportClassName == null)
 				throw new ArgumentNullException("supportClassName");
+            if (envClassName == null)
+                throw new ArgumentNullException("envClassName");
+
 			if (nameRewriter == null)
 				throw new ArgumentNullException("nameRewriter");
 			if (statementTranslator == null)
@@ -33,6 +38,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("logger");
 
 			_supportClassName = supportClassName;
+            _envClassName = envClassName;
 			_nameRewriter = nameRewriter;
 			_statementTranslator = statementTranslator;
             _logger = logger;
@@ -99,9 +105,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
 					rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
 				);
-				return new ValueSettingStatementAssigmentFormatDetails(
+                // TODO: Explain.. If !isSingleTokenSettingParentScopeReturnValue and "rewrittenFirstMemberAccessor" is an undeclared variable then prepend it with "env."
+                return new ValueSettingStatementAssigmentFormatDetails(
 					translatedExpression => string.Format(
-						"{0} = {1}",
+						"{0}{1} = {2}",
+                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor) ? "" : "__.", // TODO: Add _envClassName value
 						isSingleTokenSettingParentScopeReturnValue
 							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
 							: rewrittenFirstMemberAccessor,
@@ -181,16 +189,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 				arguments = callExpressionSegments[0].Arguments;
 
-				// If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
-				// replacement so that the return value reference is updated.
-				// TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-				// the replacement (in order to be consistent with VBScript's runtime behaviour)
-				var isSingleTokenSettingParentScopeReturnValue = (
-					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-					targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
-				);
-				if (isSingleTokenSettingParentScopeReturnValue)
-					targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                // TODO: Explain..
+                if (!scopeAccessInformation.IsDeclaredReference(targetAccessor))
+                    targetAccessor = _envClassName.Name + "." + targetAccessor;
+                else
+                {
+                    // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
+                    // replacement so that the return value reference is updated.
+                    // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+                    // the replacement (in order to be consistent with VBScript's runtime behaviour)
+                    var isSingleTokenSettingParentScopeReturnValue = (
+                        (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
+                        targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
+                    );
+                    if (isSingleTokenSettingParentScopeReturnValue)
+                        targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                }
 			}
 			else
 			{
@@ -224,6 +238,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
 
 			// Note: The translatedExpression will already account for whether the statement is of type LET or SET
+            // TODO: Explain.. If "targetAccessor" is an undeclared variable then prepend it with "env."
 			return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",

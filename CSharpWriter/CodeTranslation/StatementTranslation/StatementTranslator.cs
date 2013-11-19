@@ -18,10 +18,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
     public class StatementTranslator : ITranslateIndividualStatements
     {
         private readonly CSharpName _supportClassName;
+        private readonly CSharpName _envClassName;
         private readonly VBScriptNameRewriter _nameRewriter;
         private readonly TempValueNameGenerator _tempNameGenerator;
         private readonly ILogInformation _logger;
-        public StatementTranslator(CSharpName supportClassName, VBScriptNameRewriter nameRewriter, TempValueNameGenerator tempNameGenerator, ILogInformation logger)
+        public StatementTranslator(
+            CSharpName supportClassName,
+            CSharpName envClassName,
+            VBScriptNameRewriter nameRewriter,
+            TempValueNameGenerator tempNameGenerator,
+            ILogInformation logger)
         {
             if (supportClassName == null)
                 throw new ArgumentNullException("supportClassName");
@@ -33,6 +39,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("logger");
 
             _supportClassName = supportClassName;
+            _envClassName = envClassName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _logger = logger;
@@ -396,8 +403,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
-                "{0}.CALL({1}",
+                "{0}.CALL({1}{2}",
                 _supportClassName.Name,
+                scopeAccessInformation.IsDeclaredReference(targetName) ? "" : string.Format("{0}.", _envClassName.Name),
                 targetName
             );
 

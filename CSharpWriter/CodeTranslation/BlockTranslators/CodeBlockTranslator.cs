@@ -12,13 +12,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     public abstract class CodeBlockTranslator
     {
 		protected readonly CSharpName _supportClassName;
-		protected readonly VBScriptNameRewriter _nameRewriter;
+        protected readonly CSharpName _envClassName;
+        protected readonly VBScriptNameRewriter _nameRewriter;
 		protected readonly TempValueNameGenerator _tempNameGenerator;
 		private readonly ITranslateIndividualStatements _statementTranslator;
 		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(
             CSharpName supportClassName,
+            CSharpName envClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
@@ -27,6 +29,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         {
             if (supportClassName == null)
                 throw new ArgumentNullException("supportClassName");
+            if (envClassName == null)
+                throw new ArgumentNullException("envClassName");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
             if (tempNameGenerator == null)
@@ -39,6 +43,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("logger");
 
             _supportClassName = supportClassName;
+            _envClassName = envClassName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _statementTranslator = statementTranslator;
@@ -118,6 +123,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 			var codeBlockTranslator = new ClassBlockTranslator(
                 _supportClassName,
+                _envClassName,
                 _nameRewriter,
                 _tempNameGenerator,
                 _statementTranslator,
@@ -153,7 +159,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 								lastTranslatedStatement.IndentationDepth
 							)),
 						translationResult.ExplicitVariableDeclarations,
-						translationResult.UndeclaredVariablesAccessed
+						translationResult.EnvironmentVariablesAccessed
 					);
 					return translationResult;
 				}
@@ -245,6 +251,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 			var codeBlockTranslator = new FunctionBlockTranslator(
                 _supportClassName,
+                _envClassName,
                 _nameRewriter,
                 _tempNameGenerator,
                 _statementTranslator,
@@ -311,11 +318,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
-			var undeclaredVariables = scopeAccessInformation.GetUndeclaredVariables(
-				translatedStatementContentDetails.VariablesAccesed
-			);
-			foreach (var undeclaredVariable in undeclaredVariables)
-				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
+            var undeclaredVariables = translatedStatementContentDetails.VariablesAccesed.Where(v => !scopeAccessInformation.IsDeclaredReference(v));
+            foreach (var undeclaredVariable in undeclaredVariables)
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
 			return
                 translationResult.Add(
 				    new TranslatedStatement(
@@ -333,10 +338,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
-			var undeclaredVariables = scopeAccessInformation.GetUndeclaredVariables(
-				translatedValueSettingStatementContentDetails.VariablesAccesed
-			);
-			foreach (var undeclaredVariable in undeclaredVariables)
+            var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccesed.Where(v => !scopeAccessInformation.IsDeclaredReference(v));
+            foreach (var undeclaredVariable in undeclaredVariables)
 				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
 			return
 				translationResult.Add(
@@ -376,7 +379,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					.ToNonNullImmutableList()
 					.AddRange(translationResult.TranslatedStatements),
 				new NonNullImmutableList<VariableDeclaration>(),
-				translationResult.UndeclaredVariablesAccessed
+				translationResult.EnvironmentVariablesAccessed
 			);
 		}
     }

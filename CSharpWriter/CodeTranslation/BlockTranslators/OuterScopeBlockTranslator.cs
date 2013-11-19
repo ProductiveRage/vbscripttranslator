@@ -15,11 +15,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     {
 		public OuterScopeBlockTranslator(
             CSharpName supportClassName,
+            CSharpName envClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
             ITranslateValueSettingsStatements valueSettingStatementTranslator,
-            ILogInformation logger) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            ILogInformation logger) : base(supportClassName, envClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
         {
@@ -33,7 +34,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 0
             );
             translationResult = FlushExplicitVariableDeclarations(translationResult, 0);
-            translationResult = FlushUndeclaredVariableDeclarations(translationResult, 0);
+            // TODO: Remove this - translationResult = FlushUndeclaredVariableDeclarations(translationResult, 0);
             return translationResult.TranslatedStatements;
         }
 
@@ -101,38 +102,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			foreach (var removeIndex in removeAtLocations.Distinct().OrderByDescending(i => i))
 				blocks = blocks.RemoveAt(removeIndex);
 			return blocks;
-		}
-
-		/// <summary>
-		/// This should only performed at the outer layer (and so no ParentConstructTypeOptions value is required, it is assumed to be None)
-		/// </summary>
-		private TranslationResult FlushUndeclaredVariableDeclarations(TranslationResult translationResult, int indentationDepth)
-		{
-			if (translationResult == null)
-				throw new ArgumentNullException("translationResult");
-			if (indentationDepth < 0)
-				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
-
-			return new TranslationResult(
-				translationResult.UndeclaredVariablesAccessed
-					.Select(v =>
-						 new TranslatedStatement(
-							base.TranslateVariableDeclaration(
-								// Undeclared variables will be specified as non-array types initially (hence the false
-								// value for the isArray argument if the VariableDeclaration constructor call below)
-								new VariableDeclaration(v, VariableDeclarationScopeOptions.Public, false)
-							),
-							indentationDepth
-						)
-					)
-                    .GroupBy(s => s.Content).Select(group => group.First()) // Lazy way to do distinct
-                    .OrderBy(s => s.Content)
-					.ToNonNullImmutableList()
-                    .Add(new TranslatedStatement("", indentationDepth)) // Blank line between inject variable declarations and the rest of the generated code
-					.AddRange(translationResult.TranslatedStatements),
-				translationResult.ExplicitVariableDeclarations,
-				new NonNullImmutableList<NameToken>()
-			);
 		}
 	}
 }

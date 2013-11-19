@@ -1,5 +1,6 @@
 ﻿using CSharpWriter.Lists;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
@@ -90,40 +91,54 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// Filter a set of NameTokens to only those that have not been declared in the specified scope
+        /// TODO
         /// </summary>
-        public static NonNullImmutableList<NameToken> GetUndeclaredVariables(this ScopeAccessInformation scopeInformation, NonNullImmutableList<NameToken> variablesAccessed)
+        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string targetName)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (variablesAccessed == null)
-                throw new ArgumentNullException("memberCallVariablesAccessed");
+            if (string.IsNullOrWhiteSpace(targetName))
+                throw new ArgumentException("Null/blank targetName specified");
 
-            // TODO: If the scopeDefiningParentIfAny is a FUNCTION or PROPERTY then it will have a return value variable defined which needs to be included in
-            // this declaredReferences set
-            var declaredReferences =
-                scopeInformation.Classes
-                .AddRange(scopeInformation.Functions)
-                .AddRange(scopeInformation.Properties)
-                .AddRange(scopeInformation.Variables);
+            return IsDeclaredReference(scopeInformation, new DoNotRenameNameToken(targetName, 0));
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, NameToken target)
+        {
+            if (scopeInformation == null)
+                throw new ArgumentNullException("scopeInformation");
+            if (target == null)
+                throw new ArgumentNullException("target");
+
+            var nameSets = new NonNullImmutableList<NonNullImmutableList<NameToken>>(new[]
+            {
+                scopeInformation.Classes,
+                scopeInformation.Functions,
+                scopeInformation.Properties,
+                scopeInformation.Variables
+            });
             if (scopeInformation.ScopeDefiningParentIfAny != null)
             {
-                declaredReferences = declaredReferences.AddRange(
-                    scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions
+                nameSets = nameSets.Add(
+                    scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions.ToNonNullImmutableList()
                 );
             }
             if (scopeInformation.ParentReturnValueNameIfAny != null)
             {
-                declaredReferences = declaredReferences.Add(
-                    new DoNotRenameNameToken(
-                        scopeInformation.ParentReturnValueNameIfAny.Name,
-                        scopeInformation.ScopeDefiningParentIfAny.Name.LineIndex
-                    )
+                nameSets = nameSets.Add(
+                    new NonNullImmutableList<NameToken>(new[]
+                    {
+                        new DoNotRenameNameToken(
+                            scopeInformation.ParentReturnValueNameIfAny.Name,
+                            scopeInformation.ScopeDefiningParentIfAny.Name.LineIndex
+                        )
+                    })
                 );
             }
-            return variablesAccessed
-                .Where(v => !declaredReferences.Any(r => r.Content.Equals(v.Content, StringComparison.InvariantCultureIgnoreCase)))
-                .ToNonNullImmutableList();
+            return nameSets.Any(nameSet => nameSet.Any(name => name.Content.Equals(target.Content, StringComparison.InvariantCultureIgnoreCase)));
         }
     }
 }

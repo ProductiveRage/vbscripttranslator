@@ -17,7 +17,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return new TranslationResult(
                 source.TranslatedStatements.Add(toAdd),
                 source.ExplicitVariableDeclarations,
-                source.UndeclaredVariablesAccessed
+                source.EnvironmentVariablesAccessed
             );
         }
 
@@ -31,7 +31,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return new TranslationResult(
                 source.TranslatedStatements.AddRange(toAdd),
                 source.ExplicitVariableDeclarations,
-                source.UndeclaredVariablesAccessed
+                source.EnvironmentVariablesAccessed
             );
         }
 
@@ -45,7 +45,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return new TranslationResult(
                 source.TranslatedStatements.AddRange(toAdd.TranslatedStatements),
                 source.ExplicitVariableDeclarations.AddRange(toAdd.ExplicitVariableDeclarations),
-                source.UndeclaredVariablesAccessed.AddRange(toAdd.UndeclaredVariablesAccessed)
+                source.EnvironmentVariablesAccessed.AddRange(toAdd.EnvironmentVariablesAccessed)
             );
         }
 
@@ -59,7 +59,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return new TranslationResult(
                 source.TranslatedStatements,
                 source.ExplicitVariableDeclarations.AddRange(toAdd.ToNonNullImmutableList()),
-                source.UndeclaredVariablesAccessed
+                source.EnvironmentVariablesAccessed
             );
         }
 
@@ -73,7 +73,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return new TranslationResult(
                 source.TranslatedStatements,
                 source.ExplicitVariableDeclarations,
-                source.UndeclaredVariablesAccessed.AddRange(toAdd.ToNonNullImmutableList())
+                source.EnvironmentVariablesAccessed.AddRange(toAdd.ToNonNullImmutableList())
             );
         }
     }

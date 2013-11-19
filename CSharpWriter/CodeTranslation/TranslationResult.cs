@@ -9,18 +9,18 @@ namespace CSharpWriter.CodeTranslation
         public TranslationResult(
             NonNullImmutableList<TranslatedStatement> translatedStatements,
             NonNullImmutableList<VariableDeclaration> explicitVariableDeclarations,
-            NonNullImmutableList<NameToken> undeclaredVariablesAccessed)
+            NonNullImmutableList<NameToken> environmentVariablesAccessed)
         {
             if (translatedStatements == null)
                 throw new ArgumentNullException("translatedStatements");
             if (explicitVariableDeclarations == null)
                 throw new ArgumentNullException("explicitVariableDeclarations");
-            if (undeclaredVariablesAccessed == null)
-                throw new ArgumentNullException("undeclaredVariablesAccessed");
+            if (environmentVariablesAccessed == null)
+                throw new ArgumentNullException("environmentVariablesAccessed");
 
             TranslatedStatements = translatedStatements;
             ExplicitVariableDeclarations = explicitVariableDeclarations;
-            UndeclaredVariablesAccessed = undeclaredVariablesAccessed;
+            EnvironmentVariablesAccessed = environmentVariablesAccessed;
         }
 
         public static TranslationResult Empty
@@ -46,8 +46,8 @@ namespace CSharpWriter.CodeTranslation
         public NonNullImmutableList<VariableDeclaration> ExplicitVariableDeclarations { get; private set; }
 
         /// <summary>
-        /// This will never be null
+        /// This will never be null - TODO: Explain name
         /// </summary>
-        public NonNullImmutableList<NameToken> UndeclaredVariablesAccessed { get; private set; }
+        public NonNullImmutableList<NameToken> EnvironmentVariablesAccessed { get; private set; }
     }
 }

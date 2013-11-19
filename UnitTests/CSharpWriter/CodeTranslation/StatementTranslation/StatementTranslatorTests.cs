@@ -77,15 +77,17 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		private static StatementTranslator GetDefaultStatementTranslator()
 		{
 			return new StatementTranslator(
-				DefaultSupportClassName,
-				DefaultNameRewriter,
+                DefaultSupportClassName,
+                DefaultSupportEnvName,
+                DefaultNameRewriter,
 				GetDefaultTempValueNameGenerator(),
                 new NullLogger()
 			);
 		}
 
-		private static CSharpName DefaultSupportClassName = new CSharpName("_");
-		private static VBScriptNameRewriter DefaultNameRewriter = nameToken => new CSharpName(nameToken.Content.ToLower());
+        private static CSharpName DefaultSupportClassName = new CSharpName("_");
+        private static CSharpName DefaultSupportEnvName = new CSharpName("__");
+        private static VBScriptNameRewriter DefaultNameRewriter = nameToken => new CSharpName(nameToken.Content.ToLower());
 		private static TempValueNameGenerator GetDefaultTempValueNameGenerator()
 		{
 			var index = 0;

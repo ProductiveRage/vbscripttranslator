@@ -17,11 +17,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     {
 		public ClassBlockTranslator(
             CSharpName supportClassName,
+            CSharpName envClassName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
 			ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
-            ILogInformation logger) : base(supportClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            ILogInformation logger) : base(supportClassName, envClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
 		public TranslationResult Translate(ClassBlock classBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -90,18 +91,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
 			return new[]
             {
-                // TODO: Stupid to use the IProvideVBScriptCompatFunctionality's full name, a using statement will
-                // have to be used since extension methods for that interface are assumed to be available elsewhere
-                new TranslatedStatement("[System.Runtime.InteropServices.ComVisible(true)]", indentationDepth),
+                new TranslatedStatement("[ComVisible(true)]", indentationDepth),
                 new TranslatedStatement("[" + typeof(SourceClassName).FullName + "(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).FullName + " " + _supportClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("public " + className + "(" + typeof(IProvideVBScriptCompatFunctionality).FullName + " compatLayer)" + inheritance, indentationDepth + 1),
+                new TranslatedStatement("private readonly IProvideVBScriptCompatFunctionality " + _supportClassName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly object " + _envClassName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("public " + className + "(IProvideVBScriptCompatFunctionality compatLayer, object env)" + inheritance, indentationDepth + 1),
                 new TranslatedStatement("{", indentationDepth + 1),
                 new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
-                new TranslatedStatement("throw new ArgumentNullException(compatLayer)", indentationDepth + 3),
+                new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\")", indentationDepth + 3),
+                new TranslatedStatement("if (env == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(\"env\")", indentationDepth + 3),
                 new TranslatedStatement("this." + _supportClassName.Name + " = compatLayer;", indentationDepth + 2),
+                new TranslatedStatement("this." + _envClassName.Name + " = env;", indentationDepth + 2),
                 new TranslatedStatement("}", indentationDepth + 1),
                 new TranslatedStatement("", indentationDepth + 1)
             };
