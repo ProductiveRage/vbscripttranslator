@@ -34,7 +34,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 0
             );
             translationResult = FlushExplicitVariableDeclarations(translationResult, 0);
-            // TODO: Remove this - translationResult = FlushUndeclaredVariableDeclarations(translationResult, 0);
             return translationResult.TranslatedStatements;
         }
 

@@ -22,7 +22,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            blocks = blocks.FlattenAllAccessibleBlockLevelCodeBlocks();
+            blocks = FlattenAllAccessibleBlockLevelCodeBlocks(blocks);
             var variables = scopeInformation.Variables.AddRange(
                 blocks
                     .Where(b => b is DimStatement) // This covers DIM, REDIM, PRIVATE and PUBLIC (they may all be considered the same for these purposes)
@@ -58,6 +58,37 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
+        private static NonNullImmutableList<ICodeBlock> FlattenAllAccessibleBlockLevelCodeBlocks(NonNullImmutableList<ICodeBlock> blocks)
+        {
+            if (blocks == null)
+                throw new ArgumentNullException("blocks");
+
+            var flattenedBlocks = new NonNullImmutableList<ICodeBlock>();
+            foreach (var block in blocks)
+            {
+                flattenedBlocks = flattenedBlocks.Add(block);
+
+                var parentBlock = block as IHaveNestedContent;
+                if (parentBlock == null)
+                    continue;
+
+                if (parentBlock is IDefineScope)
+                {
+                    // If this defines scope then we can't expand the current scope by drilling into it - eg. if the current block
+                    // is a class then it has nested statements but we can't access them directly (we can't call a function on a
+                    // class without calling it on an instance of that class)
+                    continue;
+                }
+
+                flattenedBlocks = flattenedBlocks.AddRange(
+                    FlattenAllAccessibleBlockLevelCodeBlocks(
+                        parentBlock.AllExecutableBlocks.ToNonNullImmutableList()
+                    )
+                );
+            }
+            return flattenedBlocks;
+        }
+
         /// <summary>
         /// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is a convenience
         /// method to save having to specify it explicitly for both
@@ -91,7 +122,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// TODO
+        /// Does the specified target exist in the current scope (as a function name, property, class, etc..)
         /// </summary>
         public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string targetName)
         {
@@ -99,19 +130,6 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("scopeInformation");
             if (string.IsNullOrWhiteSpace(targetName))
                 throw new ArgumentException("Null/blank targetName specified");
-
-            return IsDeclaredReference(scopeInformation, new DoNotRenameNameToken(targetName, 0));
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, NameToken target)
-        {
-            if (scopeInformation == null)
-                throw new ArgumentNullException("scopeInformation");
-            if (target == null)
-                throw new ArgumentNullException("target");
 
             var nameSets = new NonNullImmutableList<NonNullImmutableList<NameToken>>(new[]
             {
@@ -138,7 +156,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     })
                 );
             }
-            return nameSets.Any(nameSet => nameSet.Any(name => name.Content.Equals(target.Content, StringComparison.InvariantCultureIgnoreCase)));
+            return nameSets.Any(nameSet => nameSet.Any(name => name.Content.Equals(targetName, StringComparison.InvariantCultureIgnoreCase)));
         }
     }
 }

@@ -53,7 +53,6 @@
     <Compile Include="CodeTranslation\StatementTranslation\StatementTranslator.cs" />
     <Compile Include="CodeTranslation\TranslationDelegates.cs" />
     <Compile Include="CodeTranslation\Extensions\TranslationResult_Extensions.cs" />
-    <Compile Include="CodeTranslation\Extensions\NonNullImmutableListICodeBlock_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Extensions.cs" />
     <Compile Include="CodeTranslation\ScopeAccessInformation.cs" />
     <Compile Include="CodeTranslation\ExplicitVariableDeclaration.cs" />

@@ -105,11 +105,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
 					rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
 				);
-                // TODO: Explain.. If !isSingleTokenSettingParentScopeReturnValue and "rewrittenFirstMemberAccessor" is an undeclared variable then prepend it with "env."
+
+                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envClassName (this is a reference that should
+                // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
                 return new ValueSettingStatementAssigmentFormatDetails(
 					translatedExpression => string.Format(
 						"{0}{1} = {2}",
-                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor) ? "" : "__.", // TODO: Add _envClassName value
+                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor) ? "" : string.Format("{0}.", _envClassName.Name),
 						isSingleTokenSettingParentScopeReturnValue
 							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
 							: rewrittenFirstMemberAccessor,
@@ -189,7 +191,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 				arguments = callExpressionSegments[0].Arguments;
 
-                // TODO: Explain..
+                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envClassName (this is a reference that should
+                // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
                 if (!scopeAccessInformation.IsDeclaredReference(targetAccessor))
                     targetAccessor = _envClassName.Name + "." + targetAccessor;
                 else
@@ -237,8 +240,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			//   need to make a note explaining how/why
 			var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
 
-			// Note: The translatedExpression will already account for whether the statement is of type LET or SET
-            // TODO: Explain.. If "targetAccessor" is an undeclared variable then prepend it with "env."
+            // Note: The translatedExpression will already account for whether the statement is of type LET or SET
 			return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",

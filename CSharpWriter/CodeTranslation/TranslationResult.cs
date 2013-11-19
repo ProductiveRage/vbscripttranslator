@@ -46,7 +46,8 @@ namespace CSharpWriter.CodeTranslation
         public NonNullImmutableList<VariableDeclaration> ExplicitVariableDeclarations { get; private set; }
 
         /// <summary>
-        /// This will never be null - TODO: Explain name
+        /// This will never be null (this is a set of all variables that are referenced but never declared, in order to deal with this in the translated
+        /// C# code an environment reference is maintained and passed between classes which makes these references available as properties)
         /// </summary>
         public NonNullImmutableList<NameToken> EnvironmentVariablesAccessed { get; private set; }
     }

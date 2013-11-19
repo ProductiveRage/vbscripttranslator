@@ -197,7 +197,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (newInstanceExpressionSegment != null)
                 return Translate(newInstanceExpressionSegment);
 
-            throw new NotImplementedException(); // TODO
+            throw new NotSupportedException("Unsupported segment type: " + segment.GetType());
         }
 
         private TranslatedStatementContentDetailsWithContentType Translate(BracketedExpressionSegment bracketedExpressionSegment)
@@ -571,10 +571,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
         }
 
-		private string ApplyReturnTypeGuarantee(string translatedContent, ExpressionReturnTypeOptions contentType, ExpressionReturnTypeOptions requiredReturnType)
+		private string ApplyReturnTypeGuarantee(string translatedContent, ExpressionReturnTypeOptions contentType, ExpressionReturnTypeOptions requiredReturnType, int lineIndex)
 		{
 			if (string.IsNullOrWhiteSpace(translatedContent))
 				throw new ArgumentException("Null/blank translatedContent specified");
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
 
 			switch(requiredReturnType)
 			{
@@ -599,9 +601,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // recorded, which is hopefully a reasonable compromise).
 					if (contentType == ExpressionReturnTypeOptions.Reference)
 						return translatedContent;
-                    // TODO: if ((contentType == ExpressionReturnTypeOptions.Boolean) || (contentType == ExpressionReturnTypeOptions.Value))
-                    // TODO:     _logger.Warning("
-                    // TODO: Warn for contentType = None as well?
+                    if ((contentType == ExpressionReturnTypeOptions.Boolean)
+                    || (contentType == ExpressionReturnTypeOptions.None)
+                    || (contentType == ExpressionReturnTypeOptions.Value))
+                        _logger.Warning("Request for an object reference at line " + (lineIndex + 1) + " but data type is " + contentType);
 					return string.Format(
 						"{0}.OBJ({1})",
 						_supportClassName.Name,
