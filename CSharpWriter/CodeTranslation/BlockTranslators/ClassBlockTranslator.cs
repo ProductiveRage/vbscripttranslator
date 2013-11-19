@@ -90,6 +90,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
 			return new[]
             {
+                // TODO: Stupid to use the IProvideVBScriptCompatFunctionality's full name, a using statement will
+                // have to be used since extension methods for that interface are assumed to be available elsewhere
                 new TranslatedStatement("[System.Runtime.InteropServices.ComVisible(true)]", indentationDepth),
                 new TranslatedStatement("[" + typeof(SourceClassName).FullName + "(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
                 new TranslatedStatement("public class " + className, indentationDepth),
