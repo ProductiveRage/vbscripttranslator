@@ -115,7 +115,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new IToken[]
                 {
                     new CommentToken(" Test", 0),
-                    new UnprocessedContentToken("WScript.Echo 1", 0)
+                    new UnprocessedContentToken("WScript.Echo 1", 1)
                 },
                 StringBreaker.SegmentString(
                     "REM Test\nWScript.Echo 1"

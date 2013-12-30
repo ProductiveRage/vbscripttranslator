@@ -106,7 +106,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				    ApplyReturnTypeGuarantee(
     					result.TranslatedContent,
 					    result.ContentType,
-					    returnRequirements
+					    returnRequirements,
+                        segments[0].AllTokens.First().LineIndex
                     ),
                     result.VariablesAccesed
 				);
@@ -124,7 +125,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             result.TranslatedContent
 					    ),
 					    ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
-					    returnRequirements
+					    returnRequirements,
+                        segments[0].AllTokens.First().LineIndex
                     ),
                     result.VariablesAccesed
 				);
@@ -142,7 +144,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         resultRight.TranslatedContent
 				    ),
 				    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
-				    returnRequirements
+				    returnRequirements,
+                    segments[0].AllTokens.First().LineIndex
                 ),
                 resultLeft.VariablesAccesed.AddRange(resultRight.VariablesAccesed)
             );

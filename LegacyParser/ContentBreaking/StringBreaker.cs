@@ -65,7 +65,6 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         isInlineComment = (contentAfterLastLineReturn.Trim() != "");
                         tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
                         tokenContent = "";
-						lineIndexForStartOfContent = lineIndex;
                     }
                     else
                         isInlineComment = false;
@@ -78,6 +77,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     //   String we'll definitely need an end-of-statement, if the
                     //   previous was Unprocessed, we only need end-of-statement
                     //   if the content didn't end with a line-return)
+                    lineIndexForStartOfContent = lineIndex;
                     index++;
                     int breakPoint = scriptContent.IndexOf("\n", index);
                     if (breakPoint == -1)
@@ -113,6 +113,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     else
 						tokens.Add(new CommentToken(commentContent, lineIndexForStartOfContent));
                     index = breakPoint;
+                    lineIndex++;
+                    lineIndexForStartOfContent = lineIndex;
                 }
 
                 // Check for string content
@@ -123,10 +125,10 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     {
 						tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
                         tokenContent = "";
-						lineIndex = lineIndexForStartOfContent;
                     }
 
                     // Try to grab string content
+                    lineIndexForStartOfContent = lineIndex;
                     var indexString = index + 1;
                     while (true)
                     {
@@ -172,11 +174,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 {
                     // Store any previous token content
 					if (tokenContent != "")
-					{
 						tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
-						lineIndexForStartOfContent = lineIndex;
-					}
 
+                    lineIndexForStartOfContent = lineIndex;
                     tokenContent = "[";
                     var indexString = index + 1;
                     while (true)
