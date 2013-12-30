@@ -36,16 +36,18 @@ namespace Tester
             // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
             var random = new Random();
             var supportClassName = new CSharpName("_");
+            var envClassName = new CSharpName("__");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
             TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
             var logger = new ConsoleLogger();
-            var statementTranslator = new StatementTranslator(supportClassName, nameRewriter, tempNameGenerator, logger);
+            var statementTranslator = new StatementTranslator(supportClassName, envClassName, nameRewriter, tempNameGenerator, logger);
             var codeBlockTranslator = new OuterScopeBlockTranslator(
                 supportClassName,
+                envClassName,
                 nameRewriter,
                 tempNameGenerator,
                 statementTranslator,
-                new ValueSettingsStatementsTranslator(supportClassName, nameRewriter, statementTranslator, logger),
+                new ValueSettingsStatementsTranslator(supportClassName, envClassName, nameRewriter, statementTranslator, logger),
                 logger
             );
 
