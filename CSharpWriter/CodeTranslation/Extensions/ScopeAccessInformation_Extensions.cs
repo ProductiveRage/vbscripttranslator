@@ -151,8 +151,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// TODO
-        /// Does the specified target exist in the current scope (as a function name, property, class, etc..)
+        /// Try to retrieve information about a name token (that has been passed through the specified nameRewriter). If there is nothing matching it in the
+        /// current scope then null will be returned.
         /// </summary>
         public static DeclaredReferenceDetails TryToGetDeclaredReferenceDetails(
             this ScopeAccessInformation scopeInformation,

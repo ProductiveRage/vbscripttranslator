@@ -482,23 +482,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			);
         }
 
-        /// <summary>
-        /// The rewrittenName should be a name already passed through the nameRewriter that we have reference to, the names in the ScopeAccessInformation
-        /// will not have been passed through this
-        /// </summary>
-        private bool IsFunctionOrPropertyInScope(string rewrittenName, ScopeAccessInformation scopeAccessInformation)
-        {
-            if (string.IsNullOrWhiteSpace(rewrittenName))
-                throw new ArgumentException("Null/blank rewrittenName specified");
-            if (scopeAccessInformation == null)
-                throw new ArgumentNullException("scopeAccessInformation");
-
-            return (
-                scopeAccessInformation.Functions.Select(f => _nameRewriter.GetMemberAccessTokenName(f)).Where(name => name == rewrittenName).Any() ||
-                scopeAccessInformation.Properties.Select(p => _nameRewriter.GetMemberAccessTokenName(p)).Where(name => name == rewrittenName).Any()
-            );
-        }
-
         private TranslatedStatementContentDetailsWithContentType Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callSetExpressionSegment == null)
@@ -652,7 +635,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			}
 		}
 
-		private TranslatedStatementContentDetails TryToGetShortCutStatementResponse(Expression expression, ScopeAccessInformation scopeAccessInformation, ExpressionReturnTypeOptions returnRequirements)
+		private TranslatedStatementContentDetails TryToGetShortCutStatementResponse(
+            Expression expression,
+            ScopeAccessInformation scopeAccessInformation,
+            ExpressionReturnTypeOptions returnRequirements)
 		{
 			if (expression == null)
 				throw new ArgumentNullException("expression");
@@ -693,9 +679,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			if (onlyMemberAccessTokenAsName == null)
 				return null;
 
-			var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
-			if (IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation)) // TODO: Try to get rid of this
-				return null;
+			// If this is a function of property then we can't consider it for this shortcut
+            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
+            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+            if (targetReferenceDetailsIfAvailable != null)
+            {
+                if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
+                || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
+                    return null;
+            }
 
 			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
 			// return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
