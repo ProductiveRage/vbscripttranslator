@@ -13,22 +13,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
 	public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
     {
-		private readonly CSharpName _supportClassName;
-        private readonly CSharpName _envClassName;
+		private readonly CSharpName _supportRefName;
+        private readonly CSharpName _envRefName;
 		private readonly VBScriptNameRewriter _nameRewriter;
 		private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
 		public ValueSettingsStatementsTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
             VBScriptNameRewriter nameRewriter,
             ITranslateIndividualStatements statementTranslator,
             ILogInformation logger)
 		{
-			if (supportClassName == null)
-				throw new ArgumentNullException("supportClassName");
-            if (envClassName == null)
-                throw new ArgumentNullException("envClassName");
+			if (supportRefName == null)
+				throw new ArgumentNullException("supportRefName");
+            if (envRefName == null)
+                throw new ArgumentNullException("envRefName");
 
 			if (nameRewriter == null)
 				throw new ArgumentNullException("nameRewriter");
@@ -37,8 +37,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
-			_supportClassName = supportClassName;
-            _envClassName = envClassName;
+			_supportRefName = supportRefName;
+            _envRefName = envRefName;
 			_nameRewriter = nameRewriter;
 			_statementTranslator = statementTranslator;
             _logger = logger;
@@ -106,12 +106,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
 				);
 
-                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envClassName (this is a reference that should
+                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
                 return new ValueSettingStatementAssigmentFormatDetails(
 					translatedExpression => string.Format(
 						"{0}{1} = {2}",
-                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor) ? "" : string.Format("{0}.", _envClassName.Name),
+                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor, _nameRewriter) ? "" : string.Format("{0}.", _envRefName.Name),
 						isSingleTokenSettingParentScopeReturnValue
 							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
 							: rewrittenFirstMemberAccessor,
@@ -191,10 +191,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 				arguments = callExpressionSegments[0].Arguments;
 
-                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envClassName (this is a reference that should
+                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
-                if (!scopeAccessInformation.IsDeclaredReference(targetAccessor))
-                    targetAccessor = _envClassName.Name + "." + targetAccessor;
+                if (!scopeAccessInformation.IsDeclaredReference(targetAccessor, _nameRewriter))
+                    targetAccessor = _envRefName.Name + "." + targetAccessor;
                 else
                 {
                     // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
@@ -244,7 +244,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",
-					_supportClassName.Name,
+					_supportRefName.Name,
 					targetAccessor,
 					(optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
 					arguments.Any()

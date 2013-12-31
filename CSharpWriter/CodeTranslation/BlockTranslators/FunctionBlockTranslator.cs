@@ -15,13 +15,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     public class FunctionBlockTranslator : CodeBlockTranslator
     {
         public FunctionBlockTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
 			ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
-            ILogInformation logger) : base(supportClassName, envClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            ILogInformation logger)
+            : base(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
 		public TranslationResult Translate(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -46,7 +48,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					scopeAccessInformation.Extend(
                         functionBlock,
                         returnValueName,
-                        functionBlock.Statements.ToNonNullImmutableList()
+                        functionBlock.Statements.ToNonNullImmutableList(),
+                        scopeAccessInformation.ScopeLocation
                     ),
 					indentationDepth + 1
 				)

@@ -14,24 +14,35 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     public class OuterScopeBlockTranslator : CodeBlockTranslator
     {
 		public OuterScopeBlockTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
             ITranslateValueSettingsStatements valueSettingStatementTranslator,
-            ILogInformation logger) : base(supportClassName, envClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            ILogInformation logger)
+            : base(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
         {
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-			blocks = RemoveDuplicateFunctions(blocks);
+            // Note: There is no need to check for identically-named classes since that would cause a "Name Redefined" error even if Option Explicit was not enabled
+            blocks = RemoveDuplicateFunctions(blocks);
+
+            // TODO: Get all non-class code blocks together (including functions), wrapping it into a static "Program" class / function (allow t to be specified through
+            // constructor argument?) with static functions for the function code blocks and an "env" object with all of the required properties specified on it (?)
+            var classBlocks = blocks.Where(block => block is ClassBlock);
+            var otherBlocks = blocks.Where(block => !(block is ClassBlock));
+
+            //var environmentClassBlock = GetEnvironmentClassBlock(blocks);
+
 			var translationResult = Translate(
                 blocks,
-                ScopeAccessInformation.Empty.Extend(null, blocks),
-                0
+                ScopeAccessInformation.Empty.Extend(null, blocks, ScopeLocationOptions.OutermostScope),
+                1 // indentationDepth
             );
             translationResult = FlushExplicitVariableDeclarations(translationResult, 0);
             return translationResult.TranslatedStatements;

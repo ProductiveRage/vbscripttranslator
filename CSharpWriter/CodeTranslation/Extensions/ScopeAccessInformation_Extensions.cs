@@ -15,22 +15,29 @@ namespace CSharpWriter.CodeTranslation.Extensions
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
             CSharpName parentReturnValueNameIfAny,
-            NonNullImmutableList<ICodeBlock> blocks)
+            NonNullImmutableList<ICodeBlock> blocks,
+            ScopeLocationOptions blocksScopeLocation)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
+            if (!Enum.IsDefined(typeof(ScopeLocationOptions), blocksScopeLocation))
+                throw new ArgumentOutOfRangeException("blocksScopeLocation");
 
             blocks = FlattenAllAccessibleBlockLevelCodeBlocks(blocks);
             var variables = scopeInformation.Variables.AddRange(
                 blocks
                     .Where(b => b is DimStatement) // This covers DIM, REDIM, PRIVATE and PUBLIC (they may all be considered the same for these purposes)
                     .Cast<DimStatement>()
-                    .SelectMany(d => d.Variables.Select(v => v.Name))
+                    .SelectMany(d => d.Variables.Select(v => new ScopedNameToken(v.Name.Content, v.Name.LineIndex, blocksScopeLocation)))
             );
             if (scopeDefiningParentIfAny != null)
-                variables = variables.AddRange(scopeDefiningParentIfAny.ExplicitScopeAdditions);
+            {
+                variables = variables.AddRange(
+                    scopeDefiningParentIfAny.ExplicitScopeAdditions.Select(v => new ScopedNameToken(v.Content, v.LineIndex, blocksScopeLocation))
+                );
+            }
 
             return new ScopeAccessInformation(
 				parentIfAny,
@@ -40,21 +47,22 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     blocks
                         .Where(b => b is ClassBlock)
                         .Cast<ClassBlock>()
-                        .Select(c => c.Name)
+                        .Select(c => new ScopedNameToken(c.Name.Content, c.Name.LineIndex, ScopeLocationOptions.OutermostScope)) // These are always OutermostScope
                 ),
                 scopeInformation.Functions.AddRange(
                     blocks
                         .Where(b => (b is FunctionBlock) || (b is SubBlock))
                         .Cast<AbstractFunctionBlock>()
-                        .Select(f => f.Name)
+                        .Select(b => new ScopedNameToken(b.Name.Content, b.Name.LineIndex, blocksScopeLocation))
                 ),
                 scopeInformation.Properties.AddRange(
                     blocks
                         .Where(b => b is PropertyBlock)
                         .Cast<PropertyBlock>()
-                        .Select(p => p.Name)
+                        .Select(p => new ScopedNameToken(p.Name.Content, p.Name.LineIndex, ScopeLocationOptions.WithinClass)) // These are always WithinClass
                 ),
-                variables
+                variables,
+                blocksScopeLocation
             );
         }
 
@@ -97,66 +105,121 @@ namespace CSharpWriter.CodeTranslation.Extensions
             this ScopeAccessInformation scopeInformation,
             IDefineScope parentIfAny,
             CSharpName parentReturnValueNameIfAny,
-            NonNullImmutableList<ICodeBlock> blocks)
+            NonNullImmutableList<ICodeBlock> blocks,
+            ScopeLocationOptions blocksScopeLocation)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
+            if (!Enum.IsDefined(typeof(ScopeLocationOptions), blocksScopeLocation))
+                throw new ArgumentOutOfRangeException("blocksScopeLocation");
 
-            return Extend(scopeInformation, parentIfAny, parentIfAny, parentReturnValueNameIfAny, blocks);
+            return Extend(scopeInformation, parentIfAny, parentIfAny, parentReturnValueNameIfAny, blocks, blocksScopeLocation);
         }
 
         /// <summary>
         /// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is a convenience
         /// method to save having to specify it explicitly for both (for cases where the parent scope - if any - does not have a return value)
         /// </summary>
-        public static ScopeAccessInformation Extend(this ScopeAccessInformation scopeInformation, IDefineScope parentIfAny, NonNullImmutableList<ICodeBlock> blocks)
+        public static ScopeAccessInformation Extend(
+            this ScopeAccessInformation scopeInformation,
+            IDefineScope parentIfAny,
+            NonNullImmutableList<ICodeBlock> blocks,
+            ScopeLocationOptions blocksScopeLocation)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
+            if (!Enum.IsDefined(typeof(ScopeLocationOptions), blocksScopeLocation))
+                throw new ArgumentOutOfRangeException("blocksScopeLocation");
 
-            return Extend(scopeInformation, parentIfAny, null, blocks);
+            return Extend(scopeInformation, parentIfAny, null, blocks, blocksScopeLocation);
         }
 
-        /// <summary>
-        /// Does the specified target exist in the current scope (as a function name, property, class, etc..)
-        /// </summary>
-        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string targetName)
+        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string rewrittenTargetName, VBScriptNameRewriter nameRewriter)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (string.IsNullOrWhiteSpace(targetName))
-                throw new ArgumentException("Null/blank targetName specified");
+            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
+                throw new ArgumentException("Null/blank rewrittenTargetName specified");
+            if (nameRewriter == null)
+                throw new ArgumentNullException("nameRewriter");
 
-            var nameSets = new NonNullImmutableList<NonNullImmutableList<NameToken>>(new[]
-            {
-                scopeInformation.Classes,
-                scopeInformation.Functions,
-                scopeInformation.Properties,
-                scopeInformation.Variables
-            });
+            return TryToGetDeclaredReferenceDetails(scopeInformation, rewrittenTargetName, nameRewriter) != null;
+        }
+
+        /// <summary>
+        /// TODO
+        /// Does the specified target exist in the current scope (as a function name, property, class, etc..)
+        /// </summary>
+        public static DeclaredReferenceDetails TryToGetDeclaredReferenceDetails(
+            this ScopeAccessInformation scopeInformation,
+            string rewrittenTargetName,
+            VBScriptNameRewriter nameRewriter)
+        {
+            if (scopeInformation == null)
+                throw new ArgumentNullException("scopeInformation");
+            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
+                throw new ArgumentException("Null/blank targetName specified");
+            if (nameRewriter == null)
+                throw new ArgumentNullException("nameRewriter");
+
             if (scopeInformation.ScopeDefiningParentIfAny != null)
             {
-                nameSets = nameSets.Add(
-                    scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions.ToNonNullImmutableList()
-                );
+                if (scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions.Any(t => nameRewriter.GetMemberAccessTokenName(t) == rewrittenTargetName))
+                {
+                    // ExplicitScopeAdditions should be things such as function arguments, so they will share the same ScopeLocation as the
+                    // current scopeInformation reference
+                    return new DeclaredReferenceDetails(DeclaredReferenceDetails.ReferenceTypeOptions.Variable, scopeInformation.ScopeLocation);
+                }
             }
-            if (scopeInformation.ParentReturnValueNameIfAny != null)
+
+            var scopedNameTokens =
+                scopeInformation.Classes.Select(t => Tuple.Create(t, DeclaredReferenceDetails.ReferenceTypeOptions.Class))
+                .Concat(scopeInformation.Functions.Select(t => Tuple.Create(t, DeclaredReferenceDetails.ReferenceTypeOptions.Function)))
+                .Concat(scopeInformation.Properties.Select(t => Tuple.Create(t, DeclaredReferenceDetails.ReferenceTypeOptions.Property)))
+                .Concat(scopeInformation.Variables.Select(t => Tuple.Create(t, DeclaredReferenceDetails.ReferenceTypeOptions.Variable)));
+            
+            var firstClassScopedMatch = scopedNameTokens
+                .Where(t => t.Item1.ScopeLocation == ScopeLocationOptions.WithinClass)
+                .FirstOrDefault(t => nameRewriter.GetMemberAccessTokenName(t.Item1) == rewrittenTargetName);
+            if (firstClassScopedMatch != null)
+                return new DeclaredReferenceDetails(firstClassScopedMatch.Item2, firstClassScopedMatch.Item1.ScopeLocation);
+            
+            var firstOutermostScopedMatch = scopedNameTokens
+                .Where(t => t.Item1.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                .FirstOrDefault(t => nameRewriter.GetMemberAccessTokenName(t.Item1) == rewrittenTargetName);
+            if (firstOutermostScopedMatch != null)
+                return new DeclaredReferenceDetails(firstOutermostScopedMatch.Item2, firstOutermostScopedMatch.Item1.ScopeLocation);
+            
+            return null;
+        }
+
+        public class DeclaredReferenceDetails
+        {
+            public DeclaredReferenceDetails(ReferenceTypeOptions referenceType, ScopeLocationOptions scopeLocation)
             {
-                nameSets = nameSets.Add(
-                    new NonNullImmutableList<NameToken>(new[]
-                    {
-                        new DoNotRenameNameToken(
-                            scopeInformation.ParentReturnValueNameIfAny.Name,
-                            scopeInformation.ScopeDefiningParentIfAny.Name.LineIndex
-                        )
-                    })
-                );
+                if (!Enum.IsDefined(typeof(ReferenceTypeOptions), referenceType))
+                    throw new ArgumentOutOfRangeException("referenceType");
+                if (!Enum.IsDefined(typeof(ScopeLocationOptions), scopeLocation))
+                    throw new ArgumentOutOfRangeException("scopeLocation");
+
+                ReferenceType = referenceType;
+                ScopeLocation = scopeLocation;
             }
-            return nameSets.Any(nameSet => nameSet.Any(name => name.Content.Equals(targetName, StringComparison.InvariantCultureIgnoreCase)));
+
+            public ReferenceTypeOptions ReferenceType { get; private set; }
+            public ScopeLocationOptions ScopeLocation { get; private set; }
+
+            public enum ReferenceTypeOptions
+            {
+                Class,
+                Function,
+                Property,
+                Variable
+            }
         }
     }
 }

@@ -11,10 +11,11 @@ namespace CSharpWriter.CodeTranslation
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
             CSharpName parentReturnValueNameIfAny,
-            NonNullImmutableList<NameToken> classes,
-            NonNullImmutableList<NameToken> functions,
-            NonNullImmutableList<NameToken> properties,
-            NonNullImmutableList<NameToken> variables)
+            NonNullImmutableList<ScopedNameToken> classes,
+            NonNullImmutableList<ScopedNameToken> functions,
+            NonNullImmutableList<ScopedNameToken> properties,
+            NonNullImmutableList<ScopedNameToken> variables,
+            ScopeLocationOptions scopeLocation)
         {
             if (classes == null)
                 throw new ArgumentNullException("classes");
@@ -24,6 +25,8 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("properties");
             if (variables == null)
                 throw new ArgumentNullException("variables");
+            if (!Enum.IsDefined(typeof(ScopeLocationOptions), scopeLocation))
+                throw new ArgumentOutOfRangeException("scopeLocation");
 
 			if ((parentIfAny == null) && (scopeDefiningParentIfAny != null))
 				throw new ArgumentException("If scopeDefiningParentIfAny is non-null then parentIfAny must be");
@@ -35,6 +38,7 @@ namespace CSharpWriter.CodeTranslation
             Functions = functions;
             Properties = properties;
             Variables = variables;
+            ScopeLocation = scopeLocation;
         }
 
         public static ScopeAccessInformation Empty
@@ -45,10 +49,11 @@ namespace CSharpWriter.CodeTranslation
                     null,
 					null,
                     null,
-                    new NonNullImmutableList<NameToken>(),
-                    new NonNullImmutableList<NameToken>(),
-                    new NonNullImmutableList<NameToken>(),
-                    new NonNullImmutableList<NameToken>()
+                    new NonNullImmutableList<ScopedNameToken>(),
+                    new NonNullImmutableList<ScopedNameToken>(),
+                    new NonNullImmutableList<ScopedNameToken>(),
+                    new NonNullImmutableList<ScopedNameToken>(),
+                    ScopeLocationOptions.OutermostScope
                 );
             }
         }
@@ -75,21 +80,23 @@ namespace CSharpWriter.CodeTranslation
         /// <summary>
         /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> Classes { get; private set; }
+        public NonNullImmutableList<ScopedNameToken> Classes { get; private set; }
 
         /// <summary>
         /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> Functions { get; private set; }
+        public NonNullImmutableList<ScopedNameToken> Functions { get; private set; }
 
         /// <summary>
         /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> Properties { get; private set; }
+        public NonNullImmutableList<ScopedNameToken> Properties { get; private set; }
 
         /// <summary>
         /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> Variables { get; private set; }
+        public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
+
+        public ScopeLocationOptions ScopeLocation { get; private set; }
     }
 }

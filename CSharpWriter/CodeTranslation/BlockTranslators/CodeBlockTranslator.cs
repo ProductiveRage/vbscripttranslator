@@ -11,26 +11,28 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public abstract class CodeBlockTranslator
     {
-		protected readonly CSharpName _supportClassName;
-        protected readonly CSharpName _envClassName;
+        protected readonly CSharpName _supportRefName, _envRefName, _outerRefName;
         protected readonly VBScriptNameRewriter _nameRewriter;
 		protected readonly TempValueNameGenerator _tempNameGenerator;
 		private readonly ITranslateIndividualStatements _statementTranslator;
 		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
             ILogInformation logger)
         {
-            if (supportClassName == null)
-                throw new ArgumentNullException("supportClassName");
-            if (envClassName == null)
-                throw new ArgumentNullException("envClassName");
+            if (supportRefName == null)
+                throw new ArgumentNullException("supportRefName");
+            if (envRefName == null)
+                throw new ArgumentNullException("envRefName");
+            if (outerRefName == null)
+                throw new ArgumentNullException("outerRefName");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
             if (tempNameGenerator == null)
@@ -42,8 +44,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
-            _supportClassName = supportClassName;
-            _envClassName = envClassName;
+            _supportRefName = supportRefName;
+            _envRefName = envRefName;
+            _outerRefName = outerRefName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _statementTranslator = statementTranslator;
@@ -122,8 +125,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			var codeBlockTranslator = new ClassBlockTranslator(
-                _supportClassName,
-                _envClassName,
+                _supportRefName,
+                _envRefName,
+                _outerRefName,
                 _nameRewriter,
                 _tempNameGenerator,
                 _statementTranslator,
@@ -250,8 +254,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			var codeBlockTranslator = new FunctionBlockTranslator(
-                _supportClassName,
-                _envClassName,
+                _supportRefName,
+                _envRefName,
+                _outerRefName,
                 _nameRewriter,
                 _tempNameGenerator,
                 _statementTranslator,
@@ -318,9 +323,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
-            var undeclaredVariables = translatedStatementContentDetails.VariablesAccesed.Where(v => !scopeAccessInformation.IsDeclaredReference(v.Content));
+            var undeclaredVariables = translatedStatementContentDetails.VariablesAccesed
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
-                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 			return
                 translationResult.Add(
 				    new TranslatedStatement(
@@ -338,9 +344,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
-            var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccesed.Where(v => !scopeAccessInformation.IsDeclaredReference(v.Content));
+            var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccesed
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
-				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + undeclaredVariable.LineIndex + ")");
+				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 			return
 				translationResult.Add(
 					new TranslatedStatement(
@@ -363,18 +370,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
         }
 
-		protected TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepth)
+        protected TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepthForExplicitVariableDeclarations)
 		{
 			// TODO: Consider trying to insert the content after any comments or blank lines?
 			if (translationResult == null)
 				throw new ArgumentNullException("translationResult");
-			if (indentationDepth < 0)
-				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
+            if (indentationDepthForExplicitVariableDeclarations < 0)
+                throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
 
 			return new TranslationResult(
 				translationResult.ExplicitVariableDeclarations
 					.Select(v =>
-						 new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepth)
+                         new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepthForExplicitVariableDeclarations)
 					)
 					.ToNonNullImmutableList()
 					.AddRange(translationResult.TranslatedStatements),

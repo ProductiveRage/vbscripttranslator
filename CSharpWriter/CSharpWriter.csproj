@@ -36,11 +36,13 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CodeTranslation\ScopeLocationOptions.cs" />
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\DoNotRenameNameToken.cs" />
     <Compile Include="CodeTranslation\Extensions\ITranslateIndividualStatements_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\PropertyBlock_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
+    <Compile Include="CodeTranslation\ScopedNameToken.cs" />
     <Compile Include="CodeTranslation\StatementTranslation\ValueSettingsStatementsTranslator.cs" />
     <Compile Include="CodeTranslation\StatementTranslation\ITranslateValueSettingsStatements.cs" />
     <Compile Include="CodeTranslation\StatementTranslation\ITranslateIndividualStatements.cs" />

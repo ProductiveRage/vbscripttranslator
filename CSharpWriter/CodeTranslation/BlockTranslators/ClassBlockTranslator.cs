@@ -16,13 +16,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     public class ClassBlockTranslator : CodeBlockTranslator
     {
 		public ClassBlockTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
 			ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
-            ILogInformation logger) : base(supportClassName, envClassName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            ILogInformation logger)
+            : base(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
 		public TranslationResult Translate(ClassBlock classBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -40,7 +42,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			translationResult = translationResult.Add(
 				Translate(
 					classBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
+					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList(), ScopeLocationOptions.WithinClass),
 					indentationDepth + 1
 				)
 			);
@@ -92,19 +94,31 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			return new[]
             {
                 new TranslatedStatement("[ComVisible(true)]", indentationDepth),
-                new TranslatedStatement("[" + typeof(SourceClassName).FullName + "(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
+                new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
                 new TranslatedStatement("public class " + className, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly IProvideVBScriptCompatFunctionality " + _supportClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("private readonly object " + _envClassName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("public " + className + "(IProvideVBScriptCompatFunctionality compatLayer, object env)" + inheritance, indentationDepth + 1),
+                new TranslatedStatement("private readonly IProvideVBScriptCompatFunctionality " + _supportRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly EnvironmentReferences " + _envRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly OuterReferences " + _outerRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement(
+                    string.Format(
+                        "public {0}(IProvideVBScriptCompatFunctionality compatLayer, EnvironmentReferences env, OuterReferences outer){2}",
+                        className,
+                        _outerRefName.Name,
+                        inheritance
+                    ),
+                    indentationDepth + 1
+                ),
                 new TranslatedStatement("{", indentationDepth + 1),
                 new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
                 new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\")", indentationDepth + 3),
                 new TranslatedStatement("if (env == null)", indentationDepth + 2),
                 new TranslatedStatement("throw new ArgumentNullException(\"env\")", indentationDepth + 3),
-                new TranslatedStatement("this." + _supportClassName.Name + " = compatLayer;", indentationDepth + 2),
-                new TranslatedStatement("this." + _envClassName.Name + " = env;", indentationDepth + 2),
+                new TranslatedStatement("if (outer == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(\"outer\")", indentationDepth + 3),
+                new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
+                new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
+                new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2),
                 new TranslatedStatement("}", indentationDepth + 1),
                 new TranslatedStatement("", indentationDepth + 1)
             };

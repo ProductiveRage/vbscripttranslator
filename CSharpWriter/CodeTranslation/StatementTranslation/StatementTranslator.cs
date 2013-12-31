@@ -17,29 +17,32 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
     // TODO: Ensure the nameRewriter isn't being used anywhere it shouldn't - it shouldn't rename methods of COM components, for example
     public class StatementTranslator : ITranslateIndividualStatements
     {
-        private readonly CSharpName _supportClassName;
-        private readonly CSharpName _envClassName;
+        private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
         private readonly VBScriptNameRewriter _nameRewriter;
         private readonly TempValueNameGenerator _tempNameGenerator;
         private readonly ILogInformation _logger;
         public StatementTranslator(
-            CSharpName supportClassName,
-            CSharpName envClassName,
+            CSharpName supportRefName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ILogInformation logger)
         {
-            if (supportClassName == null)
-                throw new ArgumentNullException("supportClassName");
+            if (supportRefName == null)
+                throw new ArgumentNullException("supportRefName");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+            if (outerRefName == null)
+                throw new ArgumentNullException("outerRefName");
             if (tempNameGenerator == null)
                 throw new ArgumentNullException("tempNameGenerator");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
-            _supportClassName = supportClassName;
-            _envClassName = envClassName;
+            _supportRefName = supportRefName;
+            _envRefName = envRefName;
+            _outerRefName = outerRefName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _logger = logger;
@@ -120,7 +123,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     ApplyReturnTypeGuarantee(
 					    string.Format(
 						    "{0}.{1}({2})",
-						    _supportClassName.Name,
+						    _supportRefName.Name,
 						    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                             result.TranslatedContent
 					    ),
@@ -138,7 +141,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 ApplyReturnTypeGuarantee(
 				    string.Format(
 					    "{0}.{1}({2}, {3})",
-					    _supportClassName.Name,
+					    _supportRefName.Name,
                         GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                         resultLeft.TranslatedContent,
                         resultRight.TranslatedContent
@@ -198,7 +201,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var newInstanceExpressionSegment = segment as NewInstanceExpressionSegment;
             if (newInstanceExpressionSegment != null)
-                return Translate(newInstanceExpressionSegment);
+                return Translate(newInstanceExpressionSegment, scopeAccessInformation.ScopeLocation);
 
             throw new NotSupportedException("Unsupported segment type: " + segment.GetType());
         }
@@ -222,7 +225,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 return new TranslatedStatementContentDetailsWithContentType(
 					string.Format(
 						"{0}.ERR",
-						_supportClassName.Name
+						_supportRefName.Name
 					),
 					ExpressionReturnTypeOptions.Reference,
                     new NonNullImmutableList<NameToken>()
@@ -235,7 +238,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
 						"{0}.Constants.Nothing",
-						_supportClassName.Name
+						_supportRefName.Name
 					),
 					ExpressionReturnTypeOptions.Reference,
                     new NonNullImmutableList<NameToken>()
@@ -252,7 +255,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			return new TranslatedStatementContentDetailsWithContentType(
 				string.Format(
 					"{0}.Constants.{1}",
-					_supportClassName.Name,
+					_supportRefName.Name,
 					constantProperty.Name
 				),
 				ExpressionReturnTypeOptions.Value,
@@ -344,38 +347,55 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Any(a => a == null))
                 throw new ArgumentException("Null reference encountered in arguments set");
 
+            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
+            string nameOfTargetContainerIfRequired;
+            if (targetReferenceDetailsIfAvailable == null)
+                nameOfTargetContainerIfRequired = _envRefName.Name;
+            else if ((targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+            && (scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinClass))
+                nameOfTargetContainerIfRequired = _outerRefName.Name;
+            else
+                nameOfTargetContainerIfRequired = null;
+
             // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
             // out by looking into the scope access information
             if (targetMemberAccessTokensArray.Length == 0)
             {
-                // Note: The caller should have passed the targetName through a VBScript Name Rewriter but the scope access information values won't
-                // have been so we need to consider this when looking for a match in its data
-                if (IsFunctionOrPropertyInScope(targetName, scopeAccessInformation))
+                if (targetReferenceDetailsIfAvailable != null)
                 {
-                    var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
-                    var memberCallContent = new StringBuilder();
-                    memberCallContent.Append(targetName);
-                    memberCallContent.Append("(");
-                    for (var index = 0; index < argumentsArray.Length; index++)
+                    if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
+                    || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
                     {
-                        var translatedMemberCallArgumentContent = Translate(
-                            argumentsArray[index],
-                            scopeAccessInformation,
-                            ExpressionReturnTypeOptions.NotSpecified
+                        var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
+                        var memberCallContent = new StringBuilder();
+                        if (nameOfTargetContainerIfRequired != null)
+                        {
+                            memberCallContent.Append(nameOfTargetContainerIfRequired);
+                            memberCallContent.Append(".");
+                        }
+                        memberCallContent.Append(targetName);
+                        memberCallContent.Append("(");
+                        for (var index = 0; index < argumentsArray.Length; index++)
+                        {
+                            var translatedMemberCallArgumentContent = Translate(
+                                argumentsArray[index],
+                                scopeAccessInformation,
+                                ExpressionReturnTypeOptions.NotSpecified
+                            );
+                            memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
+                                translatedMemberCallArgumentContent.VariablesAccesed
+                            );
+                            memberCallContent.Append(translatedMemberCallArgumentContent.TranslatedContent);
+                            if (index < (argumentsArray.Length - 1))
+                                memberCallContent.Append(", ");
+                        }
+                        memberCallContent.Append(")");
+                        return new TranslatedStatementContentDetailsWithContentType(
+                            memberCallContent.ToString(),
+                            ExpressionReturnTypeOptions.NotSpecified,
+                            memberCallVariablesAccessed
                         );
-                        memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
-                            translatedMemberCallArgumentContent.VariablesAccesed
-                        );
-                        memberCallContent.Append(translatedMemberCallArgumentContent.TranslatedContent);
-                        if (index < (argumentsArray.Length - 1))
-                            memberCallContent.Append(", ");
                     }
-                    memberCallContent.Append(")");
-                    return new TranslatedStatementContentDetailsWithContentType(
-                        memberCallContent.ToString(),
-                        ExpressionReturnTypeOptions.NotSpecified,
-                        memberCallVariablesAccessed
-                    );
                 }
             }
 
@@ -407,8 +427,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}{2}",
-                _supportClassName.Name,
-                scopeAccessInformation.IsDeclaredReference(targetName) ? "" : string.Format("{0}.", _envClassName.Name),
+                _supportRefName.Name,
+                (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired),
                 targetName
             );
 
@@ -516,16 +536,20 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             );
         }
 
-        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment)
+        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment, ScopeLocationOptions scopeLocation)
         {
             if (newInstanceExpressionSegment == null)
                 throw new ArgumentNullException("newInstanceExpressionSegment");
+            if (!Enum.IsDefined(typeof(ScopeLocationOptions), scopeLocation))
+                throw new ArgumentOutOfRangeException("scopeLocation");
 
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
-                    "new {0}({1})",
+                    "new {0}({1}, {2}, {3})",
                     _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
-                    _supportClassName.Name
+                    _supportRefName.Name,
+                    _envRefName.Name,
+                    (scopeLocation == ScopeLocationOptions.OutermostScope) ? "this" : _outerRefName.Name
                 ),
                 ExpressionReturnTypeOptions.Reference,
                 new NonNullImmutableList<NameToken>()
@@ -586,7 +610,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				case ExpressionReturnTypeOptions.Boolean:
 					return string.Format(
 						"{0}.IF({1})",
-						_supportClassName.Name,
+						_supportRefName.Name,
 						translatedContent
 					);
 
@@ -610,7 +634,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         _logger.Warning("Request for an object reference at line " + (lineIndex + 1) + " but data type is " + contentType);
 					return string.Format(
 						"{0}.OBJ({1})",
-						_supportClassName.Name,
+						_supportRefName.Name,
 						translatedContent
 					);
 
@@ -619,7 +643,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 						return translatedContent;
 					return string.Format(
 						"{0}.VAL({1})",
-						_supportClassName.Name,
+						_supportRefName.Name,
 						translatedContent
 					);
 
@@ -670,7 +694,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				return null;
 
 			var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
-			if (IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation))
+			if (IsFunctionOrPropertyInScope(rewrittenName, scopeAccessInformation)) // TODO: Try to get rid of this
 				return null;
 
 			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
@@ -680,7 +704,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			return new TranslatedStatementContentDetails(
 				string.Format(
 					"{0}.VAL({1})",
-					_supportClassName.Name,
+					_supportRefName.Name,
 					rewrittenName
 				),
 				new NonNullImmutableList<NameToken>(new[] { onlyMemberAccessTokenAsName })

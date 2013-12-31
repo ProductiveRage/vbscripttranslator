@@ -58,10 +58,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				null,
 				null,
 				null,
-				new NonNullImmutableList<NameToken>(),
-				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) }), // Functions
-				new NonNullImmutableList<NameToken>(),
-				new NonNullImmutableList<NameToken>()
+                new NonNullImmutableList<ScopedNameToken>(),
+                new NonNullImmutableList<ScopedNameToken>(new[] { new ScopedNameToken("o", 0, ScopeLocationOptions.OutermostScope) }), // Functions
+                new NonNullImmutableList<ScopedNameToken>(),
+                new NonNullImmutableList<ScopedNameToken>(),
+                ScopeLocationOptions.OutermostScope
 			);
 			var expected = new TranslatedStatementContentDetails(
 				"o()",
@@ -77,16 +78,18 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		private static StatementTranslator GetDefaultStatementTranslator()
 		{
 			return new StatementTranslator(
-                DefaultSupportClassName,
+                DefaultsupportRefName,
                 DefaultSupportEnvName,
+                DefaultOuterScopeName,
                 DefaultNameRewriter,
 				GetDefaultTempValueNameGenerator(),
                 new NullLogger()
 			);
 		}
 
-        private static CSharpName DefaultSupportClassName = new CSharpName("_");
+        private static CSharpName DefaultsupportRefName = new CSharpName("_");
         private static CSharpName DefaultSupportEnvName = new CSharpName("__");
+        private static CSharpName DefaultOuterScopeName = new CSharpName("_outer");
         private static VBScriptNameRewriter DefaultNameRewriter = nameToken => new CSharpName(nameToken.Content.ToLower());
 		private static TempValueNameGenerator GetDefaultTempValueNameGenerator()
 		{
