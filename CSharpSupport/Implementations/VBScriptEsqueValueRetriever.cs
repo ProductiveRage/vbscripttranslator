@@ -82,7 +82,8 @@ namespace CSharpSupport.Implementations
         /// named member "Test", "a.Test(0)" has target "a", named member "Test" and a single argument "0". The expression "a(Test(0))" would
         /// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
         /// argument which was the result of the first call. A null target is only acceptable if there are no member or arguments
-        /// specified, in which null will be returned.
+        /// specified, in which null will be returned. A null arguments array set is invalid but any null elements ARE valid
+        /// since arguments in method calls may be null.
         /// </summary>
         public object CALL(object target, IEnumerable<string> members, params object[] arguments)
         {
@@ -95,9 +96,8 @@ namespace CSharpSupport.Implementations
             if (memberAccessorsArray.Any(m => string.IsNullOrWhiteSpace(m)))
                 throw new ArgumentException("Null/blank value in members set");
 
+            // Note: Null is valid for any individual argument
             var argumentsArray = arguments.ToArray();
-            if (argumentsArray.Any(a => a == null))
-                throw new ArgumentException("Null reference encountered in arguments set");
 
             // If there are no member accessor or arguments then just return the object directly (if the caller wants this to be a value type
             // then they'll have to use VAL to try to apply that requirement). This is the only case in which it's acceptable for target to
