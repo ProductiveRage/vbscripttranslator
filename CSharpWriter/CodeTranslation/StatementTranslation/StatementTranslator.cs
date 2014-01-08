@@ -409,7 +409,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             // The "master" CALL method signature is
             //
-            //   CALL(object target, IEnumerable<string> members, params object[] arguments)
+            //   CALL(object target, IEnumerable<string> members, object[] arguments)
             //
             // (the arguments set is passed as an array as VBScript parameters are, by default, by-ref and so all of the arguments have to be
             // passed in this manner in case any of them need to be access in this manner).
@@ -417,11 +417,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // However, there are alternate signatures to try to make the most common calls easier to read - eg.
             //
             //   CALL(object)
-            //   CALL(object, params object[] arguments)
-            //   CALL(object, string member1, params object[] arguments)
-            //   CALL(object, string member1, string member2, params object[] arguments)
+            //   CALL(object, object[] arguments)
+            //   CALL(object, string member1, object[] arguments)
+            //   CALL(object, string member1, string member2, object[] arguments)
             //   ..
-            //   CALL(object, string member1, string member2, string member3, string member4, string member5, params object[] arguments)
+            //   CALL(object, string member1, string member2, string member3, string member4, string member5, object[] arguments)
             //
             // The maximum number of member access tokens (where only the targetMemberAccessTokens are considered, not the initial targetName
             // token) that may use one of these alternate signatures is stored in a constant in the IProvideVBScriptCompatFunctionality
@@ -462,8 +462,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                if (!ableToUseShorthandCallSignature)
-                    callExpressionContent.Append("new object[] { ");
+                callExpressionContent.Append("new object[] { ");
                 for (var index = 0; index < argumentsArray.Length; index++)
                 {
                     var translatedCallExpressionArgumentContent = Translate(
@@ -478,8 +477,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if (index < (argumentsArray.Length - 1))
                         callExpressionContent.Append(", ");
                 }
-                if (!ableToUseShorthandCallSignature)
-                    callExpressionContent.Append(" }");
+                callExpressionContent.Append(" }");
             }
 
             callExpressionContent.Append(")");
