@@ -351,9 +351,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             string nameOfTargetContainerIfRequired;
             if (targetReferenceDetailsIfAvailable == null)
                 nameOfTargetContainerIfRequired = _envRefName.Name;
-            else if ((targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
-            && (scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinClass))
+            else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+            {
+                // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
+                // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
+                // references in an identical manner to the class functions (and properties) so the outerRefName should used every time that an
+                // OutermostScope reference is accessed
                 nameOfTargetContainerIfRequired = _outerRefName.Name;
+            }
             else
                 nameOfTargetContainerIfRequired = null;
 
@@ -366,6 +371,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
                     || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
                     {
+                        // TODO: When generating function calls, VBScript will throw runtime exceptions for invalid argument counts (or allow the error to
+                        // be swallowed if wrapped in On Error Resume Next). To replicate this perfectly, this code could be changed to wrap the call in
+                        // a .CALL call). It might be better to just log a warning and generate non-compiling translated code(?).
                         var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
                         var memberCallContent = new StringBuilder();
                         if (nameOfTargetContainerIfRequired != null)
@@ -532,7 +540,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
                     _supportRefName.Name,
                     _envRefName.Name,
-                    (scopeLocation == ScopeLocationOptions.OutermostScope) ? "this" : _outerRefName.Name
+                    _outerRefName.Name
                 ),
                 ExpressionReturnTypeOptions.Reference,
                 new NonNullImmutableList<NameToken>()
@@ -687,7 +695,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
                 || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
                     return null;
+                
+                if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                    rewrittenName = _outerRefName.Name + "." + rewrittenName;
             }
+            else
+                rewrittenName = _envRefName.Name + "." + rewrittenName;
 
 			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
 			// return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance

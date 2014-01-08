@@ -11,7 +11,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public abstract class CodeBlockTranslator
     {
-        protected readonly CSharpName _supportRefName, _envRefName, _outerRefName;
+        protected readonly CSharpName _supportRefName, _envClassName, _envRefName, _outerClassName, _outerRefName;
         protected readonly VBScriptNameRewriter _nameRewriter;
 		protected readonly TempValueNameGenerator _tempNameGenerator;
 		private readonly ITranslateIndividualStatements _statementTranslator;
@@ -19,7 +19,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(
             CSharpName supportRefName,
+            CSharpName envClassName,
             CSharpName envRefName,
+            CSharpName outerClassName,
             CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
@@ -29,8 +31,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         {
             if (supportRefName == null)
                 throw new ArgumentNullException("supportRefName");
+            if (envClassName == null)
+                throw new ArgumentNullException("envClassName");
             if (envRefName == null)
                 throw new ArgumentNullException("envRefName");
+            if (outerClassName == null)
+                throw new ArgumentNullException("outerClassName");
             if (outerRefName == null)
                 throw new ArgumentNullException("outerRefName");
             if (nameRewriter == null)
@@ -45,7 +51,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("logger");
 
             _supportRefName = supportRefName;
+            _envClassName = envClassName;
             _envRefName = envRefName;
+            _outerClassName = outerClassName;
             _outerRefName = outerRefName;
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
@@ -126,7 +134,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 			var codeBlockTranslator = new ClassBlockTranslator(
                 _supportRefName,
+                _envClassName, 
                 _envRefName,
+                _outerClassName,
                 _outerRefName,
                 _nameRewriter,
                 _tempNameGenerator,
@@ -255,7 +265,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 			var codeBlockTranslator = new FunctionBlockTranslator(
                 _supportRefName,
+                _envClassName, 
                 _envRefName,
+                _outerClassName,
                 _outerRefName,
                 _nameRewriter,
                 _tempNameGenerator,
@@ -322,6 +334,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (statementBlock == null)
 				return null;
 
+            // TODO: Differentiate between undeclared variables and functions (and classes?)
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccesed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
@@ -343,7 +356,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (valueSettingStatement == null)
 				return null;
 
-			var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
+            // TODO: Differentiate between undeclared variables and functions (and classes?)
+            var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccesed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)

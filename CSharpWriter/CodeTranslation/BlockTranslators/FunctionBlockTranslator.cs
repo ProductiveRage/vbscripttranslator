@@ -16,14 +16,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     {
         public FunctionBlockTranslator(
             CSharpName supportRefName,
+            CSharpName envClassName,
             CSharpName envRefName,
+            CSharpName outerClassName,
             CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
 			ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
             ILogInformation logger)
-            : base(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
 
 		public TranslationResult Translate(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{

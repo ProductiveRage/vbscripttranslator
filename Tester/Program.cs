@@ -35,21 +35,31 @@ namespace Tester
             // This is just a very simple configuration of the CodeBlockTranslator, its name generation implementations are not robust in
             // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
             var random = new Random();
+            var startClassName = new CSharpName("TranslatedProgram");
+            var startMethodName = new CSharpName("Go");
             var supportRefName = new CSharpName("_");
-            var envRefName = new CSharpName("__");
+            var envClassName = new CSharpName("EnvironmentReferences");
+            var envRefName = new CSharpName("_env");
+            var outerClassName = new CSharpName("GlobalReferences");
             var outerRefName = new CSharpName("_outer");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
             TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
-            var logger = new ConsoleLogger();
+            var logger = new CSharpCommentMakingLogger(
+                new ConsoleLogger()
+            );
             var statementTranslator = new StatementTranslator(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, logger);
             var codeBlockTranslator = new OuterScopeBlockTranslator(
+                startClassName,
+                startMethodName,
                 supportRefName,
+                envClassName,
                 envRefName,
+                outerClassName,
                 outerRefName,
                 nameRewriter,
                 tempNameGenerator,
                 statementTranslator,
-                new ValueSettingsStatementsTranslator(supportRefName, envRefName, nameRewriter, statementTranslator, logger),
+                new ValueSettingsStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
                 logger
             );
 
@@ -60,6 +70,28 @@ namespace Tester
                 "\n",
                 translatedCode1.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
             );
+        }
+
+        /// <summary>
+        /// This will wrap log messages in C# comments (ensuring that there is no closing-comment symbol in the content which would invalidate the
+        /// output as a comment). If a ConsoleLogger is used and the translated program content is sent to the console then this allows all of the
+        /// output to be copy-pasted into a C# file for testing. Pretty rough and ready but can make things a little easier!
+        /// </summary>
+        private class CSharpCommentMakingLogger : ILogInformation
+        {
+            private readonly ILogInformation _logger;
+            public CSharpCommentMakingLogger(ILogInformation logger)
+            {
+                if (logger == null)
+                    throw new ArgumentNullException("logger");
+                _logger = logger;
+            }
+            public void Warning(string content)
+            {
+                if (!string.IsNullOrWhiteSpace(content))
+                    content = "/* " + content.Replace("*/", "*") + " */";
+                _logger.Warning(content);
+            }
         }
 
         private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent)

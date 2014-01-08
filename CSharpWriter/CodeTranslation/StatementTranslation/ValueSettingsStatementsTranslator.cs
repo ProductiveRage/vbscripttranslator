@@ -13,14 +13,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
 	public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
     {
-		private readonly CSharpName _supportRefName;
-        private readonly CSharpName _envRefName;
+		private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
 		private readonly VBScriptNameRewriter _nameRewriter;
 		private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
 		public ValueSettingsStatementsTranslator(
             CSharpName supportRefName,
             CSharpName envRefName,
+            CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             ITranslateIndividualStatements statementTranslator,
             ILogInformation logger)
@@ -29,7 +29,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				throw new ArgumentNullException("supportRefName");
             if (envRefName == null)
                 throw new ArgumentNullException("envRefName");
-
+            if (outerRefName == null)
+                throw new ArgumentNullException("outerRefName");
 			if (nameRewriter == null)
 				throw new ArgumentNullException("nameRewriter");
 			if (statementTranslator == null)
@@ -39,6 +40,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
 			_supportRefName = supportRefName;
             _envRefName = envRefName;
+            _outerRefName = outerRefName;
 			_nameRewriter = nameRewriter;
 			_statementTranslator = statementTranslator;
             _logger = logger;
@@ -108,10 +110,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
+                var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenFirstMemberAccessor, _nameRewriter);
+                if (targetReferenceDetailsIfAvailable == null)
+                    rewrittenFirstMemberAccessor = _envRefName.Name + "." + rewrittenFirstMemberAccessor;
+                else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                    rewrittenFirstMemberAccessor = _outerRefName.Name + "." + rewrittenFirstMemberAccessor;
                 return new ValueSettingStatementAssigmentFormatDetails(
 					translatedExpression => string.Format(
-						"{0}{1} = {2}",
-                        scopeAccessInformation.IsDeclaredReference(rewrittenFirstMemberAccessor, _nameRewriter) ? "" : string.Format("{0}.", _envRefName.Name),
+						"{0} = {1}",
 						isSingleTokenSettingParentScopeReturnValue
 							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
 							: rewrittenFirstMemberAccessor,
@@ -191,10 +197,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 				arguments = callExpressionSegments[0].Arguments;
 
-                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
-                // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
-                if (!scopeAccessInformation.IsDeclaredReference(targetAccessor, _nameRewriter))
+                var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessor, _nameRewriter);
+                if (targetReferenceDetailsIfAvailable == null)
                     targetAccessor = _envRefName.Name + "." + targetAccessor;
+                else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                    targetAccessor = _outerRefName.Name + "." + targetAccessor;
                 else
                 {
                     // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
