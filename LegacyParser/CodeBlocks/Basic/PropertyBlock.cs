@@ -12,8 +12,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             bool isDefault,
             NameToken name,
             PropertyType propType,
-            List<Parameter> parameters,
-            List<ICodeBlock> statements)
+            IEnumerable<Parameter> parameters,
+            IEnumerable<ICodeBlock> statements)
             : base(isPublic, isDefault, (propType == PropertyType.Get), name, parameters, statements)
         {
             bool isValid = false;

@@ -11,8 +11,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             bool isPublic,
             bool isDefault,
             NameToken name,
-            List<Parameter> parameters,
-            List<ICodeBlock> statements)
+            IEnumerable<Parameter> parameters,
+            IEnumerable<ICodeBlock> statements)
             : base(isPublic, isDefault, false, name, parameters, statements) { }
 
         protected override string keyWord

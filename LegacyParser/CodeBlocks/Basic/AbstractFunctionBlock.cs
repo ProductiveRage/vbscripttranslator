@@ -17,8 +17,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             bool isDefault,
 			bool hasReturnValue,
             NameToken name,
-            List<Parameter> parameters,
-            List<ICodeBlock> statements)
+            IEnumerable<Parameter> parameters,
+            IEnumerable<ICodeBlock> statements)
         {
             if (name == null)
                 throw new ArgumentNullException("name");
