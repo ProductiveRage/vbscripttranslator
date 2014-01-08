@@ -277,23 +277,38 @@ namespace CSharpSupport.Implementations
             var targetParameter = Expression.Parameter(typeof(object), "target");
             var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
             var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
+
+            Expression methodCall = Expression.Call(
+                Expression.Convert(targetParameter, targetType),
+                method,
+                method.GetParameters().Select((arg, index) =>
+                    Expression.Convert(
+                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
+                        arg.ParameterType
+                    )
+                )
+            );
+            if (method.ReturnType == typeof(void))
+            {
+                // If the method has no return type then we'll need to just return null since the GetInvoker delegate that
+                // we're trying to compile to has a return type of "object"
+                methodCall = Expression.Block(
+                    methodCall,
+                    Expression.Constant(null, typeof(object))
+                );
+            }
+            else if (method.ReturnType != typeof(object))
+            {
+                // Similarly, if the method has a return type but it isn't "object" then it will need to be converted to
+                // object to match the expected return
+                methodCall = Expression.Convert(methodCall, typeof(object));
+            }
+
+            // The Throw expression requires a return type to be specified since the Try block has a return type - without
+            // this a runtime "Body of catch must have the same type as body of try" exception will be raised
             return Expression.Lambda<GetInvoker>(
-
                 Expression.TryCatch(
-
-                    Expression.Call(
-                        Expression.Convert(targetParameter, targetType),
-                        method,
-                        method.GetParameters().Select((arg, index) =>
-                            Expression.Convert(
-                                Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
-                                arg.ParameterType
-                            )
-                        )
-                    ),
-
-                    // The Throw requires a return type to be specified since the Try block has a return type - without
-                    // this a runtime "Body of catch must have the same type as body of try" exception will be raised
+                    methodCall,
                     Expression.Catch(
                         exceptionParameter,
                         Expression.Throw(
@@ -301,7 +316,6 @@ namespace CSharpSupport.Implementations
                             typeof(object)
                         )
                     )
-
                 ),
                 new[]
 				{
