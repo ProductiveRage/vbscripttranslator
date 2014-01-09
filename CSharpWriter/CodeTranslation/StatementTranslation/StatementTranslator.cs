@@ -659,6 +659,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			// "Child" which is an object reference, then "o.Child" will also not have value-type access logic applied to it. If "o" is an array, then a statement "o(0)"
 			// will result in a "Type mismatch" error; "o(0).Name" would not, however (assuming that the first element of the "o" array was an object with a property
 			// called "Name").
+            // TODO: The logic applied here does not cover all error cases; if the single NameToken is a value (eg. 1 or "one") then an "Expected Statement" error is
+            // raised. If the NameToken is a non-object value (eg. i where i is null or 1 or "one") then a "Type mistmatch" error is raised. If the NameToken is an
+            // object reference without a default member then an "Object doesn't support this property or method" error is raised unless the object reference is to
+            // Nothing, in which case a "Type mismatch error" is raised. If the NamToken is an object reference WITH a default member then no error occurs (the
+            // default member is accessed / executed).
 
 			// The specific case that we want to address with this "shortcut" avenue is where we have a statement (so return type is None) with a single call expression
 			// segment with a single NameToken, which does not indicate a function or property. If these conditions are met then we can avoid all of the rest of the
