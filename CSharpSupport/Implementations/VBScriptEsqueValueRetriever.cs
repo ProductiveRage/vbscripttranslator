@@ -81,11 +81,10 @@ namespace CSharpSupport.Implementations
         /// This requires a target with optional member accessors and arguments - eg. "Test" is a target only, "a.Test" has target "a" with one
         /// named member "Test", "a.Test(0)" has target "a", named member "Test" and a single argument "0". The expression "a(Test(0))" would
         /// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
-        /// argument which was the result of the first call. A null target is only acceptable if there are no member or arguments
-        /// specified, in which null will be returned. A null arguments array set is invalid but any null elements ARE valid
-        /// since arguments in method calls may be null.
+        /// argument which was the result of the first call. The arguments array elements may be mutated if the call target has "ref"
+        /// method arguments.
         /// </summary>
-        public object CALL(object target, IEnumerable<string> members, params object[] arguments)
+        public object CALL(object target, IEnumerable<string> members, object[] arguments)
         {
             if (members == null)
                 throw new ArgumentNullException("members");
@@ -96,13 +95,10 @@ namespace CSharpSupport.Implementations
             if (memberAccessorsArray.Any(m => string.IsNullOrWhiteSpace(m)))
                 throw new ArgumentException("Null/blank value in members set");
 
-            // Note: Null is valid for any individual argument
-            var argumentsArray = arguments.ToArray();
-
             // If there are no member accessor or arguments then just return the object directly (if the caller wants this to be a value type
             // then they'll have to use VAL to try to apply that requirement). This is the only case in which it's acceptable for target to
             // be null.
-            if (!memberAccessorsArray.Any() && !argumentsArray.Any())
+            if (!memberAccessorsArray.Any() && !arguments.Any())
                 return target;
             else if (target == null)
                 throw new ArgumentException("The target reference may only be null if there are no member accessors or arguments specified");
@@ -113,11 +109,11 @@ namespace CSharpSupport.Implementations
             // 2. If target implements IDispatch then try accessing the DispId zero method or property, passing the arguments
             // 3. If it's not an IDispatch reference, then the arguments will be passed to a method or indexed property that will accept them,
             //    taking into account the IsDefault attribute
-            if (!memberAccessorsArray.Any() && argumentsArray.Any())
-                return InvokeGetter(target, null, argumentsArray);
+            if (!memberAccessorsArray.Any() && arguments.Any())
+                return InvokeGetter(target, null, arguments);
 
             // If there are member accessors but no arguments then we walk down each member accessor, no defaults are considered
-            if (!argumentsArray.Any())
+            if (!arguments.Any())
                 return WalkMemberAccessors(target, memberAccessorsArray);
 
             // If there member accessors AND arguments then all-but-the-last member accessors should be walked through as argument-less lookups
@@ -127,52 +123,54 @@ namespace CSharpSupport.Implementations
             var finalMemberAccessor = memberAccessorsArray[memberAccessorsArray.Length - 1];
             if (target == null)
                 throw new ArgumentException("Unable to access member \"" + finalMemberAccessor + "\" on null reference");
-            return InvokeGetter(target, finalMemberAccessor, argumentsArray);
+            return InvokeGetter(target, finalMemberAccessor, arguments);
         }
 
         /// <summary>
         /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
         /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
         /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
-        /// possible (in that case, a straight assignment should be generated - no call to SET required).
+        /// possible (in that case, a straight assignment should be generated - no call to SET required). The arguments array elements may
+        /// be mutated if the target setter method has "ref" method arguments.
         /// </summary>
-        public void SET(object target, string optionalMemberAccessor, IEnumerable<object> arguments, object value)
+        public void SET(object target, string optionalMemberAccessor, object[] arguments, object value)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
 
-            var argumentsArray = arguments.ToArray();
-            if ((optionalMemberAccessor == null) && !argumentsArray.Any())
+            if ((optionalMemberAccessor == null) && !arguments.Any())
                 throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
-            var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, argumentsArray.Length);
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, arguments.Length);
             SetInvoker invoker;
             if (!_setInvokerCache.TryGetValue(cacheKey, out invoker))
             {
-                invoker = GenerateSetInvoker(target, optionalMemberAccessor, argumentsArray);
+                invoker = GenerateSetInvoker(target, optionalMemberAccessor, arguments);
                 _setInvokerCache.TryAdd(cacheKey, invoker);
             }
-            invoker(target, argumentsArray, value);
+            invoker(target, arguments, value);
         }
 
-        private object InvokeGetter(object target, string optionalName, IEnumerable<object> arguments)
+        /// <summary>
+        /// The arguments set must be an array since its contents may be mutated if the call target has "ref" parameters
+        /// </summary>
+        private object InvokeGetter(object target, string optionalName, object[] arguments)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
 
-            var argumentsArray = arguments.ToArray();
-            var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, argumentsArray.Length);
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, arguments.Length);
             GetInvoker invoker;
             if (!_getInvokerCache.TryGetValue(cacheKey, out invoker))
             {
-                invoker = GenerateGetInvoker(target, optionalName, argumentsArray);
+                invoker = GenerateGetInvoker(target, optionalName, arguments);
                 _getInvokerCache.TryAdd(cacheKey, invoker);
             }
-            return invoker(target, argumentsArray);
+            return invoker(target, arguments);
         }
 
         private delegate object GetInvoker(object target, object[] arguments);
@@ -278,37 +276,99 @@ namespace CSharpSupport.Implementations
             var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
             var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
 
-            Expression methodCall = Expression.Call(
-                Expression.Convert(targetParameter, targetType),
-                method,
-                method.GetParameters().Select((arg, index) =>
-                    Expression.Convert(
-                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
-                        arg.ParameterType
+            // If there are any ByRef arguments then we need local variables that are of ByRef types. These will be populated with values from the
+            // arguments array before the method call, then used AS arguments in the method call, then their values copied back into the slots in
+            // the arguments array that they came from.
+            var methodParameters = method.GetParameters();
+            var argParameters = methodParameters.Select((p, index) => new { Parameter = p, Index = index });
+            var argExpressions = argParameters.Select(a =>
+                a.Parameter.ParameterType.IsByRef
+                    ? (Expression)Expression.Variable(
+                        GetNonByRefType(a.Parameter.ParameterType),
+                        a.Parameter.Name
+                    )
+                    : Expression.Convert(
+                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                        a.Parameter.ParameterType
                     )
                 )
+                .ToArray();
+            var byRefArgAssignmentsForMethodCall = argExpressions
+                .Select((a, index) => new { Parameter = a, Index = index })
+                .Where(a => a.Parameter is ParameterExpression)
+                .Select(a =>
+                    Expression.Assign(
+                        a.Parameter,
+                        Expression.Convert(
+                            Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                            a.Parameter.Type
+                        )
+                    )
+                );
+            var byRefArgAssignmentsForReturn = argExpressions
+                .Select((a, index) => new { Parameter = a, Index = index })
+                .Where(a => a.Parameter is ParameterExpression)
+                .Select(a =>
+                    Expression.Assign(
+                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                        a.Parameter
+                    )
+                );
+
+            var methodCall = Expression.Call(
+                Expression.Convert(targetParameter, targetType),
+                method,
+                argExpressions
             );
+
+            var resultVariable = Expression.Variable(typeof(object));
+            Expression[] methodCallAndAndResultAssignments;
             if (method.ReturnType == typeof(void))
             {
                 // If the method has no return type then we'll need to just return null since the GetInvoker delegate that
-                // we're trying to compile to has a return type of "object"
-                methodCall = Expression.Block(
+                // we're trying to compile to has a return type of "object" (so execute methodCall and then set the result
+                // variable to null)
+                methodCallAndAndResultAssignments = new Expression[]
+                {
                     methodCall,
-                    Expression.Constant(null, typeof(object))
-                );
+                    Expression.Assign(
+                        resultVariable,
+                        Expression.Constant(null, typeof(object))
+                    )
+                };
             }
-            else if (method.ReturnType != typeof(object))
+            else
             {
-                // Similarly, if the method has a return type but it isn't "object" then it will need to be converted to
-                // object to match the expected return
-                methodCall = Expression.Convert(methodCall, typeof(object));
+                // If there IS a a return type then assign the method call's return value to the result variable
+                methodCallAndAndResultAssignments = new Expression[]
+                {
+                    Expression.Assign(
+                        resultVariable,
+                        methodCall
+                    )
+                };
             }
 
             // The Throw expression requires a return type to be specified since the Try block has a return type - without
             // this a runtime "Body of catch must have the same type as body of try" exception will be raised
             return Expression.Lambda<GetInvoker>(
                 Expression.TryCatch(
-                    methodCall,
+                    Expression.Block(
+                        argExpressions
+                            .Where(a => a is ParameterExpression)
+                            .Cast<ParameterExpression>()
+                            .Concat(new[] { resultVariable })
+                            .ToArray(),
+                        byRefArgAssignmentsForMethodCall
+                            .Concat(
+                                methodCallAndAndResultAssignments
+                            )
+                            .Concat(byRefArgAssignmentsForReturn)
+                            .Concat(
+                                new[] { resultVariable }
+                            )
+                            .ToArray()
+                    ),
                     Expression.Catch(
                         exceptionParameter,
                         Expression.Throw(
@@ -317,11 +377,8 @@ namespace CSharpSupport.Implementations
                         )
                     )
                 ),
-                new[]
-				{
-					targetParameter,
-					argumentsParameter
-				}
+                targetParameter,
+                argumentsParameter
             ).Compile();
         }
 
@@ -565,6 +622,21 @@ namespace CSharpSupport.Implementations
                     )
                 ),
                 exceptionParameter
+            );
+        }
+
+        private Type GetNonByRefType(Type byRefType)
+        {
+            if (byRefType == null)
+                throw new ArgumentNullException("byRefType");
+            if (!byRefType.IsByRef)
+                throw new ArgumentException("Must be a type which reports IsByRef true");
+
+            var byRefFullName = byRefType.FullName;
+            var nonByRefFullName = byRefFullName.Substring(0, byRefFullName.Length - 1);
+            return Type.GetType(
+                byRefType.AssemblyQualifiedName.Replace(byRefFullName, nonByRefFullName),
+                true
             );
         }
 

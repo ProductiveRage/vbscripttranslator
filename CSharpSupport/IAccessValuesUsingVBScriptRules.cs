@@ -8,17 +8,19 @@ namespace CSharpSupport
         /// This requires a target with optional member accessors and arguments - eg. "Test" is a target only, "a.Test" has target "a" with one
         /// named member "Test", "a.Test(0)" has target "a", named member "Test" and a single argument "0". The expression "a(Test(0))" would
         /// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
-        /// argument which was the result of the first call.
+        /// argument which was the result of the first call. The arguments array elements may be mutated if the call target has "ref"
+        /// method arguments.
         /// </summary>
-        object CALL(object target, IEnumerable<string> members, params object[] arguments);
+        object CALL(object target, IEnumerable<string> members, object[] arguments);
         
         /// <summary>
         /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
         /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
         /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
-        /// possible (in that case, a straight assignment should be generated - no call to SET required).
+        /// possible (in that case, a straight assignment should be generated - no call to SET required). The arguments array elements may
+        /// be mutated if the target setter method has "ref" method arguments.
         /// </summary>
-        void SET(object target, string optionalMemberAccessor, IEnumerable<object> arguments, object value);
+        void SET(object target, string optionalMemberAccessor, object[] arguments, object value);
 
         /// <summary>
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is

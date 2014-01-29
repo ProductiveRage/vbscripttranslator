@@ -173,7 +173,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     new PseudoRecordset(),
                     new[] { "fields" },
-                    "F1"
+                    new[] { "F1" }
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -187,7 +187,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     new PseudoRecordset(),
                     new string[0],
-                    "F1"
+                    new[] { "F1" }
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -208,7 +208,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     recordset,
                     new[] { "fields" },
-                    "name"
+                    new[] { "name" }
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -229,7 +229,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     recordset,
                     new string[0],
-                    "name"
+                    new[] { "name" }
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -258,7 +258,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     valueRetriever.CALL(
                         recordset,
                         new string[0],
-                        "name"
+                        new[] { "name" }
                     )
                 )
             );
@@ -273,7 +273,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     data,
                     new string[0],
-                    0
+                    new object[] { 0 } 
                 )
             );
         }
