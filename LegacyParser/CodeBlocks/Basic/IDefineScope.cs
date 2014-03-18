@@ -20,5 +20,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// This must never be null but it may be empty (this may be the names of a a function's arguments, for example)
         /// </summary>
         IEnumerable<NameToken> ExplicitScopeAdditions { get; }
+
+        ScopeLocationOptions Scope { get; }
     }
 }

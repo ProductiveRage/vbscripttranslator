@@ -101,6 +101,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					if (blockTranslationResult == null)
 						continue;
 
+                    // Note: translationResult is set to blockTranslationResult rather than translationResult.Add(blockTranslationResult) since the
+                    // translationResult is passed into the translator delegate above and that is reponsible for handling any combination work
+                    // required
                     translationResult = blockTranslationResult;
 					hasBlockBeenTranslated = true;
                     break;
@@ -112,7 +115,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
             // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
             // variable declarations into translated statements
-			if (!(scopeAccessInformation.ParentIfAny is IDefineScope))
+            var scopeDefiningParent = scopeAccessInformation.ParentIfAny as IDefineScope;
+			if (scopeDefiningParent == null)
                 return translationResult;
             
             return FlushExplicitVariableDeclarations(
@@ -218,7 +222,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // exceuted, not just when the line in question is executed
 			
             // TODO: Need a translated statement if setting dimensions
-            throw new NotImplementedException("Not enabled support for declaring array variables with specifid dimensions yet");
+            throw new NotImplementedException("Not enabled support for declaring array variables with specified dimensions yet");
 		}
 
 		protected TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

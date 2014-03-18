@@ -44,7 +44,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			translationResult = translationResult.Add(
 				Translate(
 					classBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList(), ScopeLocationOptions.WithinClass),
+					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
 					indentationDepth + 1
 				)
 			);

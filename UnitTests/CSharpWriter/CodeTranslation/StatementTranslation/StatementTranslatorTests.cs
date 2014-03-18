@@ -54,15 +54,20 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 					CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
 				)
 			});
+
 			var scopeAccessInformation = new ScopeAccessInformation(
 				null,
 				null,
 				null,
+                new NonNullImmutableList<NameToken>(),
                 new NonNullImmutableList<ScopedNameToken>(),
-                new NonNullImmutableList<ScopedNameToken>(new[] { new ScopedNameToken("o", 0, ScopeLocationOptions.OutermostScope) }), // Functions
+                new NonNullImmutableList<ScopedNameToken>(new[] { new ScopedNameToken( // Functions
+                    "o",
+                    0,
+                    VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope)
+                }),
                 new NonNullImmutableList<ScopedNameToken>(),
-                new NonNullImmutableList<ScopedNameToken>(),
-                ScopeLocationOptions.OutermostScope
+                new NonNullImmutableList<ScopedNameToken>()
 			);
 			var expected = new TranslatedStatementContentDetails(
 				"o()",

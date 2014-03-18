@@ -349,9 +349,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
             string nameOfTargetContainerIfRequired;
-            if (targetReferenceDetailsIfAvailable == null)
+            if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
                 nameOfTargetContainerIfRequired = _envRefName.Name;
-            else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+            else if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
             {
                 // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
                 // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
@@ -368,8 +368,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             {
                 if (targetReferenceDetailsIfAvailable != null)
                 {
-                    if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
-                    || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
+                    if ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
+                    || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property))
                     {
                         // TODO: When generating function calls, VBScript will throw runtime exceptions for invalid argument counts (or allow the error to
                         // be swallowed if wrapped in On Error Resume Next). To replicate this perfectly, this code could be changed to wrap the call in
@@ -432,6 +432,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // a method named "Test" or "Test" may be an instance of a class which has a default parameter-less function, in which case the
             // default function will be executed by that statement.
 
+            // TODO: Deal with setting ByRef values
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}{2}",
@@ -525,11 +526,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             );
         }
 
-        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment, ScopeLocationOptions scopeLocation)
+        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment, LegacyParser.ScopeLocationOptions scopeLocation)
         {
             if (newInstanceExpressionSegment == null)
                 throw new ArgumentNullException("newInstanceExpressionSegment");
-            if (!Enum.IsDefined(typeof(ScopeLocationOptions), scopeLocation))
+            if (!Enum.IsDefined(typeof(LegacyParser.ScopeLocationOptions), scopeLocation))
                 throw new ArgumentOutOfRangeException("scopeLocation");
 
             return new TranslatedStatementContentDetailsWithContentType(
@@ -693,17 +694,17 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			// If this is a function of property then we can't consider it for this shortcut
             var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
-            if (targetReferenceDetailsIfAvailable != null)
+            if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
+                rewrittenName = _envRefName.Name + "." + rewrittenName;
+            else if (targetReferenceDetailsIfAvailable != null)
             {
-                if ((targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Function)
-                || (targetReferenceDetailsIfAvailable.ReferenceType == ScopeAccessInformation_Extensions.DeclaredReferenceDetails.ReferenceTypeOptions.Property))
+                if ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
+                || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property))
                     return null;
-                
-                if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+
+                if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
                     rewrittenName = _outerRefName.Name + "." + rewrittenName;
             }
-            else
-                rewrittenName = _envRefName.Name + "." + rewrittenName;
 
 			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
 			// return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance

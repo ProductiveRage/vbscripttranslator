@@ -62,6 +62,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get { return this.statements.AsReadOnly(); }
         }
 
+        ScopeLocationOptions IDefineScope.Scope { get { return ScopeLocationOptions.WithinClass; } }
+
         // =======================================================================================
         // VBScript BASE SOURCE RE-GENERATION
         // =======================================================================================

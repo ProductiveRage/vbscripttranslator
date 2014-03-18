@@ -46,14 +46,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			);
 			translationResult = translationResult.Add(
 				Translate(
-					functionBlock.Statements.ToNonNullImmutableList(),
+				functionBlock.Statements.ToNonNullImmutableList(),
 					scopeAccessInformation.Extend(
                         functionBlock,
                         returnValueName,
-                        functionBlock.Statements.ToNonNullImmutableList(),
-                        scopeAccessInformation.ScopeLocation
+                        functionBlock.Statements.ToNonNullImmutableList()
                     ),
-					indentationDepth + 1
+				indentationDepth + 1
 				)
 			);
 			if (functionBlock.HasReturnValue)
@@ -71,7 +70,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			}
 			return translationResult.Add(
 				new TranslatedStatement("}", indentationDepth)
-			);
+            );
 		}
 
 		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

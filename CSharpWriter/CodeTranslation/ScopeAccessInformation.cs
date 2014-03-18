@@ -11,12 +11,14 @@ namespace CSharpWriter.CodeTranslation
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
             CSharpName parentReturnValueNameIfAny,
+            NonNullImmutableList<NameToken> externalDependencies,
             NonNullImmutableList<ScopedNameToken> classes,
             NonNullImmutableList<ScopedNameToken> functions,
             NonNullImmutableList<ScopedNameToken> properties,
-            NonNullImmutableList<ScopedNameToken> variables,
-            ScopeLocationOptions scopeLocation)
+            NonNullImmutableList<ScopedNameToken> variables)
         {
+            if (externalDependencies == null)
+                throw new ArgumentNullException("externalDependencies");
             if (classes == null)
                 throw new ArgumentNullException("classes");
             if (functions == null)
@@ -25,8 +27,6 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("properties");
             if (variables == null)
                 throw new ArgumentNullException("variables");
-            if (!Enum.IsDefined(typeof(ScopeLocationOptions), scopeLocation))
-                throw new ArgumentOutOfRangeException("scopeLocation");
 
 			if ((parentIfAny == null) && (scopeDefiningParentIfAny != null))
 				throw new ArgumentException("If scopeDefiningParentIfAny is non-null then parentIfAny must be");
@@ -34,29 +34,23 @@ namespace CSharpWriter.CodeTranslation
             ParentIfAny = parentIfAny;
 			ScopeDefiningParentIfAny = scopeDefiningParentIfAny;
             ParentReturnValueNameIfAny = parentReturnValueNameIfAny;
+            ExternalDependencies = externalDependencies;
             Classes = classes;
             Functions = functions;
             Properties = properties;
             Variables = variables;
-            ScopeLocation = scopeLocation;
         }
 
-        public static ScopeAccessInformation Empty
-        {
-            get
-            {
-                return new ScopeAccessInformation(
-                    null,
-					null,
-                    null,
-                    new NonNullImmutableList<ScopedNameToken>(),
-                    new NonNullImmutableList<ScopedNameToken>(),
-                    new NonNullImmutableList<ScopedNameToken>(),
-                    new NonNullImmutableList<ScopedNameToken>(),
-                    ScopeLocationOptions.OutermostScope
-                );
-            }
-        }
+        public static ScopeAccessInformation Empty = new ScopeAccessInformation(
+            null,
+			null,
+            null,
+            new NonNullImmutableList<NameToken>(),
+            new NonNullImmutableList<ScopedNameToken>(),
+            new NonNullImmutableList<ScopedNameToken>(),
+            new NonNullImmutableList<ScopedNameToken>(),
+            new NonNullImmutableList<ScopedNameToken>()
+        );
 
         /// <summary>
 		/// /// This will be null if there is no scope-defining parent - ie. in the outermost scope
@@ -78,6 +72,13 @@ namespace CSharpWriter.CodeTranslation
         public CSharpName ParentReturnValueNameIfAny { get; private set; }
 
         /// <summary>
+        /// These are references that are declared as being a compulsory and expected part of the Environment References - eg. if a command line
+        /// script is being translated then WScript may be an expected External Dependency and warnings should not be emitted about accessing
+        /// it, even though there is nothing to indicate its presence in the source. This will never be null.
+        /// </summary>
+        public NonNullImmutableList<NameToken> ExternalDependencies { get; private set; }
+
+        /// <summary>
         /// This will never be null
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Classes { get; private set; }
@@ -97,6 +98,12 @@ namespace CSharpWriter.CodeTranslation
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
 
-        public ScopeLocationOptions ScopeLocation { get; private set; }
+        public ScopeLocationOptions ScopeLocation
+        {
+            get
+            {
+                return (ScopeDefiningParentIfAny == null) ? ScopeLocationOptions.OutermostScope : ScopeDefiningParentIfAny.Scope;
+            }
+        }
     }
 }

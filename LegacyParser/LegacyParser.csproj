@@ -51,6 +51,7 @@
     <Compile Include="CodeBlocks\Basic\InlineCommentStatement.cs" />
     <Compile Include="CodeBlocks\Basic\IHaveNestedContent.cs" />
     <Compile Include="CodeBlocks\Basic\IDefineScope.cs" />
+    <Compile Include="CodeBlocks\Basic\ScopeLocationOptions.cs" />
     <Compile Include="CodeBlocks\Basic\ValueSettingStatement.cs" />
     <Compile Include="CodeBlocks\Basic\OptionExplicit.cs" />
     <Compile Include="CodeBlocks\Basic\DoBlock.cs" />

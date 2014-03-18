@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -30,6 +31,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     public class OuterScopeBlockTranslator : CodeBlockTranslator
     {
         private readonly CSharpName _startClassName, _startMethodName;
+        private readonly NonNullImmutableList<NameToken> _externalDependencies;
         private readonly ILogInformation _logger;
         public OuterScopeBlockTranslator(
             CSharpName startClassName,
@@ -43,6 +45,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
             ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            NonNullImmutableList<NameToken> externalDependencies,
             ILogInformation logger)
             : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
         {
@@ -50,11 +53,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("startClassName");
             if (startMethodName == null)
                 throw new ArgumentNullException("startMethodName");
+            if (externalDependencies == null)
+                throw new ArgumentNullException("externalDependencies");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
             _startClassName = startClassName;
             _startMethodName = startMethodName;
+            _externalDependencies = externalDependencies;
             _logger = logger;
         }
 
@@ -95,11 +101,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // - eg. if there are comments for a function on the lines just before the function (outside the function rather than inside it) then they
             //   will get left behind when the functions are moved down
 
-            var scopeAccessInformation = ScopeAccessInformation.Empty.Extend(
-                null, // parentIfAny
-                blocks,
-                ScopeLocationOptions.OutermostScope
-            );
+            var scopeAccessInformation = ScopeAccessInformation.Empty
+                .ExtendExternalDependencies(_externalDependencies)
+                .Extend(
+                    null, // parentIfAny
+                    blocks
+                );
             var outerExecutableBlocksTranslationResult = Translate(
                 TrimTrailingBlankLines(
                     individualVariableDimStatementsForArrays.Cast<ICodeBlock>().ToNonNullImmutableList()
@@ -227,11 +234,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // This has to be generated after all of the Translate calls to ensure that the ExplicitVariableDeclarations data for all
             // of the TranslationResults is available
-            var allEnvironmentVariablesAccessed = 
-                outerExecutableBlocksTranslationResult
-                    .Add(classBlocksTranslationResult)
-                    .Add(classBlocksTranslationResult)
-                    .EnvironmentVariablesAccessed;
+            var allEnvironmentVariablesAccessed =
+                scopeAccessInformation.ExternalDependencies
+                .AddRange(
+                    outerExecutableBlocksTranslationResult
+                        .Add(classBlocksTranslationResult)
+                        .Add(classBlocksTranslationResult)
+                        .EnvironmentVariablesAccessed
+                );
             translatedStatements = translatedStatements.AddRange(new[]
             {
                 new TranslatedStatement("public class " + _envClassName.Name, 2),

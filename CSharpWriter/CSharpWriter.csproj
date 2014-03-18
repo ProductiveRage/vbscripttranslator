@@ -36,7 +36,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CodeTranslation\ScopeLocationOptions.cs" />
+    <Compile Include="CodeTranslation\Extensions\ReferenceTypeOptions.cs" />
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\DoNotRenameNameToken.cs" />
     <Compile Include="CodeTranslation\Extensions\ITranslateIndividualStatements_Extensions.cs" />

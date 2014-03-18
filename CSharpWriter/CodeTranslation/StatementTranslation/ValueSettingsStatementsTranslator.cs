@@ -111,7 +111,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
                 var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenFirstMemberAccessor, _nameRewriter);
-                if (targetReferenceDetailsIfAvailable == null)
+                if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
                     rewrittenFirstMemberAccessor = _envRefName.Name + "." + rewrittenFirstMemberAccessor;
                 else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
                     rewrittenFirstMemberAccessor = _outerRefName.Name + "." + rewrittenFirstMemberAccessor;
@@ -198,7 +198,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				arguments = callExpressionSegments[0].Arguments;
 
                 var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessor, _nameRewriter);
-                if (targetReferenceDetailsIfAvailable == null)
+                if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
                     targetAccessor = _envRefName.Name + "." + targetAccessor;
                 else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
                     targetAccessor = _outerRefName.Name + "." + targetAccessor;
@@ -248,7 +248,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
 
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
-			return new ValueSettingStatementAssigmentFormatDetails(
+            // TODO: Deal with setting ByRef values
+            return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",
 					_supportRefName.Name,

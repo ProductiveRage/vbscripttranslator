@@ -87,6 +87,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get { return Statements; }
         }
 
+        ScopeLocationOptions IDefineScope.Scope { get { return ScopeLocationOptions.WithinFunctionOrProperty; } }
+
         // =======================================================================================
         // DESCRIPTION CLASSES
         // =======================================================================================
