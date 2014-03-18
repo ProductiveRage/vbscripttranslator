@@ -349,7 +349,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
             string nameOfTargetContainerIfRequired;
-            if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
+            if (targetReferenceDetailsIfAvailable == null)
+            {
+                if (scopeAccessInformation.ScopeLocation == LegacyParser.ScopeLocationOptions.WithinFunctionOrProperty)
+                {
+                    // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
+                    // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
+                    // data returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
+                    nameOfTargetContainerIfRequired = null;
+                }
+                else
+                    nameOfTargetContainerIfRequired = _envRefName.Name;
+            }
+            else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
                 nameOfTargetContainerIfRequired = _envRefName.Name;
             else if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
             {

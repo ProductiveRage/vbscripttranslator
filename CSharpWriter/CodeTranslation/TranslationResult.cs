@@ -9,18 +9,18 @@ namespace CSharpWriter.CodeTranslation
         public TranslationResult(
             NonNullImmutableList<TranslatedStatement> translatedStatements,
             NonNullImmutableList<VariableDeclaration> explicitVariableDeclarations,
-            NonNullImmutableList<NameToken> environmentVariablesAccessed)
+            NonNullImmutableList<NameToken> undeclaredVariablesAccessed)
         {
             if (translatedStatements == null)
                 throw new ArgumentNullException("translatedStatements");
             if (explicitVariableDeclarations == null)
                 throw new ArgumentNullException("explicitVariableDeclarations");
-            if (environmentVariablesAccessed == null)
-                throw new ArgumentNullException("environmentVariablesAccessed");
+            if (undeclaredVariablesAccessed == null)
+                throw new ArgumentNullException("undeclaredVariablesAccessed");
 
             TranslatedStatements = translatedStatements;
             ExplicitVariableDeclarations = explicitVariableDeclarations;
-            EnvironmentVariablesAccessed = environmentVariablesAccessed;
+            UndeclaredVariablesAccessed = undeclaredVariablesAccessed;
         }
 
         public static TranslationResult Empty
@@ -46,9 +46,8 @@ namespace CSharpWriter.CodeTranslation
         public NonNullImmutableList<VariableDeclaration> ExplicitVariableDeclarations { get; private set; }
 
         /// <summary>
-        /// This will never be null (this is a set of all variables that are referenced but never declared, in order to deal with this in the translated
-        /// C# code an environment reference is maintained and passed between classes which makes these references available as properties)
+        /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> EnvironmentVariablesAccessed { get; private set; }
+        public NonNullImmutableList<NameToken> UndeclaredVariablesAccessed { get; private set; }
     }
 }

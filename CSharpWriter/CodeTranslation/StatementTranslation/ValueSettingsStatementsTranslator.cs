@@ -198,7 +198,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				arguments = callExpressionSegments[0].Arguments;
 
                 var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessor, _nameRewriter);
-                if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
+                if (targetReferenceDetailsIfAvailable == null)
+                {
+                    // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
+                    // to the current scope, so the targetAccessor does not require a prefix in this case (this means that the UndeclaredVariables data
+                    // returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
+                    if (scopeAccessInformation.ScopeLocation != ScopeLocationOptions.WithinFunctionOrProperty)
+                        targetAccessor = _envRefName.Name + "." + targetAccessor;
+                }
+                else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
                     targetAccessor = _envRefName.Name + "." + targetAccessor;
                 else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
                     targetAccessor = _outerRefName.Name + "." + targetAccessor;

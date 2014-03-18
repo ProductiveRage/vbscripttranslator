@@ -3,9 +3,11 @@ using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -114,13 +116,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
             // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
-            // variable declarations into translated statements
+            // variable declarations into translated statements. If the "scope-defining parent" is the outermost scope then parentIfAny
+            // will be null but that's ok since explicit variable declarations aren't flushed in the same way in that scope, they are
+            // added to an "outer" or "GlobalReferences" class.
             var scopeDefiningParent = scopeAccessInformation.ParentIfAny as IDefineScope;
 			if (scopeDefiningParent == null)
                 return translationResult;
-            
-            return FlushExplicitVariableDeclarations(
-                translationResult,
+
+            // Explicitly-declared variable declarations need to be translated into C# definitions here (hoisted to the top of the function), as
+            // do any undeclared variables (in VBScript if an undeclared variable is used within a function or property body then that variable
+            // is treated as being local to the function or property)
+            return FlushUndeclaredVariableDeclarations(            
+                FlushExplicitVariableDeclarations(
+                    translationResult,
+                    indentationDepth
+                ),
                 indentationDepth
             );
         }
@@ -177,7 +187,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 								lastTranslatedStatement.IndentationDepth
 							)),
 						translationResult.ExplicitVariableDeclarations,
-						translationResult.EnvironmentVariablesAccessed
+						translationResult.UndeclaredVariablesAccessed
 					);
 					return translationResult;
 				}
@@ -388,7 +398,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
         }
 
-        protected TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepthForExplicitVariableDeclarations)
+        private TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepthForExplicitVariableDeclarations)
 		{
 			// TODO: Consider trying to insert the content after any comments or blank lines?
 			if (translationResult == null)
@@ -401,11 +411,55 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					.Select(v =>
                          new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepthForExplicitVariableDeclarations)
 					)
-					.ToNonNullImmutableList()
+                    .Distinct(new TranslatedStatementEqualityComparer())
+                    .ToNonNullImmutableList()
 					.AddRange(translationResult.TranslatedStatements),
 				new NonNullImmutableList<VariableDeclaration>(),
-				translationResult.EnvironmentVariablesAccessed
+				translationResult.UndeclaredVariablesAccessed
 			);
 		}
+
+        private TranslationResult FlushUndeclaredVariableDeclarations(TranslationResult translationResult, int indentationDepthForExplicitVariableDeclarations)
+        {
+            // TODO: Consider trying to insert the content after any comments or blank lines?
+            if (translationResult == null)
+                throw new ArgumentNullException("translationResult");
+            if (indentationDepthForExplicitVariableDeclarations < 0)
+                throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
+
+            return new TranslationResult(
+                translationResult.UndeclaredVariablesAccessed
+                    .Select(v =>
+                        new TranslatedStatement(
+                             TranslateVariableDeclaration(new VariableDeclaration(v, VariableDeclarationScopeOptions.Private, false)) + " /* Undeclared in source */",
+                             indentationDepthForExplicitVariableDeclarations
+                        )
+                    )
+                    .Distinct(new TranslatedStatementEqualityComparer())
+                    .ToNonNullImmutableList()
+                    .AddRange(translationResult.TranslatedStatements),
+                translationResult.ExplicitVariableDeclarations,
+                new NonNullImmutableList<NameToken>()
+            );
+        }
+
+        private class TranslatedStatementEqualityComparer : IEqualityComparer<TranslatedStatement>
+        {
+            public bool Equals(TranslatedStatement x, TranslatedStatement y)
+            {
+                if ((x == null) && (y == null))
+                    return true;
+                else if ((x == null) || (y == null))
+                    return false;
+                return ((x.Content == y.Content) && (x.IndentationDepth == y.IndentationDepth));
+            }
+
+            public int GetHashCode(TranslatedStatement obj)
+            {
+                if (obj == null)
+                    throw new ArgumentNullException("obj");
+                return obj.Content.GetHashCode() ^ obj.IndentationDepth;
+            }
+        }
     }
 }

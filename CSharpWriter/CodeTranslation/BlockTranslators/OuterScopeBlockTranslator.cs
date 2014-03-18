@@ -13,6 +13,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
+    // TODO: Add a parameter to disable rendering the scaffolding so that this can be easily unit tested
     /// <summary>
     /// The outer scope code blocks need significant rearranging to work with C# compared to how they may be structured in VBScript. In VBScript, any variable declared
     /// in the outer scope (ie. not within a function or a class) may be accessed by any child scope. If there are classes defined and multiple instances of classes,
@@ -239,8 +240,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 .AddRange(
                     outerExecutableBlocksTranslationResult
                         .Add(classBlocksTranslationResult)
-                        .Add(classBlocksTranslationResult)
-                        .EnvironmentVariablesAccessed
+                        .UndeclaredVariablesAccessed
                 );
             translatedStatements = translatedStatements.AddRange(new[]
             {
