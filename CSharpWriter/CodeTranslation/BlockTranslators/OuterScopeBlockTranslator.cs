@@ -13,7 +13,6 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
-    // TODO: Add a parameter to disable rendering the scaffolding so that this can be easily unit tested
     /// <summary>
     /// The outer scope code blocks need significant rearranging to work with C# compared to how they may be structured in VBScript. In VBScript, any variable declared
     /// in the outer scope (ie. not within a function or a class) may be accessed by any child scope. If there are classes defined and multiple instances of classes,
@@ -33,6 +32,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     {
         private readonly CSharpName _startClassName, _startMethodName;
         private readonly NonNullImmutableList<NameToken> _externalDependencies;
+        private readonly OutputTypeOptions _outputType;
         private readonly ILogInformation _logger;
         public OuterScopeBlockTranslator(
             CSharpName startClassName,
@@ -47,6 +47,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             ITranslateIndividualStatements statementTranslator,
             ITranslateValueSettingsStatements valueSettingStatementTranslator,
             NonNullImmutableList<NameToken> externalDependencies,
+            OutputTypeOptions outputType,
             ILogInformation logger)
             : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
         {
@@ -56,13 +57,29 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("startMethodName");
             if (externalDependencies == null)
                 throw new ArgumentNullException("externalDependencies");
+            if (!Enum.IsDefined(typeof(OutputTypeOptions), outputType))
+                throw new ArgumentOutOfRangeException("outputType");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
             _startClassName = startClassName;
             _startMethodName = startMethodName;
             _externalDependencies = externalDependencies;
+            _outputType = outputType;
             _logger = logger;
+        }
+
+        public enum OutputTypeOptions
+        {
+            /// <summary>
+            /// This is the default option, a fully-executable class definition will be returned
+            /// </summary>
+            Executable,
+            
+            /// <summary>
+            /// This option may be used for testing output since the scaffolding which wraps the translated statement into an executable class is excluded
+            /// </summary>
+            WithoutScaffolding
         }
 
         public NonNullImmutableList<TranslatedStatement> Translate(NonNullImmutableList<ICodeBlock> blocks)
@@ -122,99 +139,106 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 2 // indentationDepth
             );
 
-            var translatedStatements = new NonNullImmutableList<TranslatedStatement>(new[]
+            var translatedStatements = new NonNullImmutableList<TranslatedStatement>();
+            if (_outputType == OutputTypeOptions.Executable)
             {
-                new TranslatedStatement("using System;", 0),
-                new TranslatedStatement("using System.Runtime.InteropServices;", 0),
-                new TranslatedStatement("using " + typeof(IProvideVBScriptCompatFunctionality).Namespace + ";", 0),
-                new TranslatedStatement("using " + typeof(SourceClassName).Namespace + ";", 0),
-                new TranslatedStatement("", 0),
-                new TranslatedStatement("namespace " + _startClassName.Name, 0),
-                new TranslatedStatement("{", 0),
-                new TranslatedStatement("public class Runner", 1),
-                new TranslatedStatement("{", 1),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", 2),
-                new TranslatedStatement("public Runner(" + typeof(IProvideVBScriptCompatFunctionality).Name + " compatLayer)", 2),
-                new TranslatedStatement("{", 2),
-                new TranslatedStatement("if (compatLayer == null)", 3),
-                new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 4),
-                new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 3),
-                new TranslatedStatement("}", 2),
-                new TranslatedStatement("", 0),
-                new TranslatedStatement(
-                    string.Format(
-                        "public void {0}()",
-                        _startMethodName.Name
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("using System;", 0),
+                    new TranslatedStatement("using System.Runtime.InteropServices;", 0),
+                    new TranslatedStatement("using " + typeof(IProvideVBScriptCompatFunctionality).Namespace + ";", 0),
+                    new TranslatedStatement("using " + typeof(SourceClassName).Namespace + ";", 0),
+                    new TranslatedStatement("", 0),
+                    new TranslatedStatement("namespace " + _startClassName.Name, 0),
+                    new TranslatedStatement("{", 0),
+                    new TranslatedStatement("public class Runner", 1),
+                    new TranslatedStatement("{", 1),
+                    new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", 2),
+                    new TranslatedStatement("public Runner(" + typeof(IProvideVBScriptCompatFunctionality).Name + " compatLayer)", 2),
+                    new TranslatedStatement("{", 2),
+                    new TranslatedStatement("if (compatLayer == null)", 3),
+                    new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 4),
+                    new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 3),
+                    new TranslatedStatement("}", 2),
+                    new TranslatedStatement("", 0),
+                    new TranslatedStatement(
+                        string.Format(
+                            "public void {0}()",
+                            _startMethodName.Name
+                        ),
+                        2
                     ),
-                    2
-                ),
-                new TranslatedStatement("{", 2),
-                new TranslatedStatement(
-                    string.Format(
-                        "{0}(new {1}());",
-                        _startMethodName.Name,
-                        _envClassName.Name
+                    new TranslatedStatement("{", 2),
+                    new TranslatedStatement(
+                        string.Format(
+                            "{0}(new {1}());",
+                            _startMethodName.Name,
+                            _envClassName.Name
+                        ),
+                        3
                     ),
-                    3
-                ),
-                new TranslatedStatement("}", 2),
-                new TranslatedStatement(
-                    string.Format(
-                        "public void {0}({1} env)",
-                        _startMethodName.Name,
-                        _envClassName.Name
+                    new TranslatedStatement("}", 2),
+                    new TranslatedStatement(
+                        string.Format(
+                            "public void {0}({1} env)",
+                            _startMethodName.Name,
+                            _envClassName.Name
+                        ),
+                        2
                     ),
-                    2
-                ),
-                new TranslatedStatement("{", 2),
-                new TranslatedStatement("if (env == null)", 3),
-                new TranslatedStatement("throw new ArgumentNullException(\"env\");", 4),
-                new TranslatedStatement("", 0),
-                new TranslatedStatement(
-                    string.Format("var {0} = env;", _envRefName.Name),
-                    3
-                ),
-                new TranslatedStatement(
-                    string.Format("var {0} = new {1}({2}, {3});", _outerRefName.Name, _outerClassName.Name, _supportRefName.Name, _envRefName.Name),
-                    3
-                ),
-                new TranslatedStatement("", 0)
-            });
+                    new TranslatedStatement("{", 2),
+                    new TranslatedStatement("if (env == null)", 3),
+                    new TranslatedStatement("throw new ArgumentNullException(\"env\");", 4),
+                    new TranslatedStatement("", 0),
+                    new TranslatedStatement(
+                        string.Format("var {0} = env;", _envRefName.Name),
+                        3
+                    ),
+                    new TranslatedStatement(
+                        string.Format("var {0} = new {1}({2}, {3});", _outerRefName.Name, _outerClassName.Name, _supportRefName.Name, _envRefName.Name),
+                        3
+                    ),
+                    new TranslatedStatement("", 0)
+                });
+            }
             translatedStatements = translatedStatements.AddRange(
                 outerExecutableBlocksTranslationResult.TranslatedStatements
             );
-            translatedStatements = translatedStatements.AddRange(new[]
+            if (_outputType == OutputTypeOptions.Executable)
             {
-                new TranslatedStatement("}", 2),
-                new TranslatedStatement("", 0)
-            });
-
-            translatedStatements = translatedStatements.AddRange(new[]
-            {
-                new TranslatedStatement("public class " + _outerClassName.Name, 2),
-                new TranslatedStatement("{", 2),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", 3),
-                new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", 3),
-                new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", 3),
-                new TranslatedStatement("public " + _outerClassName.Name + "(" + typeof(IProvideVBScriptCompatFunctionality).Name + " compatLayer, " + _envClassName.Name + " env)", 3),
-                new TranslatedStatement("{", 3),
-                new TranslatedStatement("if (compatLayer == null)", 4),
-                new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 5),
-                new TranslatedStatement("if (env == null)", 4),
-                new TranslatedStatement("throw new ArgumentNullException(\"env\");", 5),
-                new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
-                new TranslatedStatement(_envRefName.Name + " = env;", 4),
-                new TranslatedStatement(_outerRefName.Name + " = this;", 4),
-                new TranslatedStatement("}", 3)
-            });
-            if (individualVariableDimStatements.Any())
-            {
-                translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
-                translatedStatements = translatedStatements.AddRange(
-                    individualVariableDimStatements.Select(
-                        dim => new TranslatedStatement("public object " + _nameRewriter(dim.Variables.Single().Name).Name + " { get; set; }", 3)
-                    )
-                );
+                translatedStatements = translatedStatements
+                    .AddRange(new[]
+                    {
+                        new TranslatedStatement("}", 2),
+                        new TranslatedStatement("", 0)
+                    })
+                    .AddRange(new[]
+                    {
+                        new TranslatedStatement("public class " + _outerClassName.Name, 2),
+                        new TranslatedStatement("{", 2),
+                        new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", 3),
+                        new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", 3),
+                        new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", 3),
+                        new TranslatedStatement("public " + _outerClassName.Name + "(" + typeof(IProvideVBScriptCompatFunctionality).Name + " compatLayer, " + _envClassName.Name + " env)", 3),
+                        new TranslatedStatement("{", 3),
+                        new TranslatedStatement("if (compatLayer == null)", 4),
+                        new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 5),
+                        new TranslatedStatement("if (env == null)", 4),
+                        new TranslatedStatement("throw new ArgumentNullException(\"env\");", 5),
+                        new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
+                        new TranslatedStatement(_envRefName.Name + " = env;", 4),
+                        new TranslatedStatement(_outerRefName.Name + " = this;", 4),
+                        new TranslatedStatement("}", 3)
+                    });
+                if (individualVariableDimStatements.Any())
+                {
+                    translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
+                    translatedStatements = translatedStatements.AddRange(
+                        individualVariableDimStatements.Select(
+                            dim => new TranslatedStatement("public object " + _nameRewriter(dim.Variables.Single().Name).Name + " { get; set; }", 3)
+                        )
+                    );
+                }
             }
             foreach (var functionBlock in functionBlocks)
             {
@@ -227,48 +251,52 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ).TranslatedStatements
                 );
             }
-            translatedStatements = translatedStatements.AddRange(new[]
+            if (_outputType == OutputTypeOptions.Executable)
             {
-                new TranslatedStatement("}", 2),
-                new TranslatedStatement("", 0)
-            });
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("}", 2),
+                    new TranslatedStatement("", 0)
+                });
 
-            // This has to be generated after all of the Translate calls to ensure that the ExplicitVariableDeclarations data for all
-            // of the TranslationResults is available
-            var allEnvironmentVariablesAccessed =
-                scopeAccessInformation.ExternalDependencies
-                .AddRange(
-                    outerExecutableBlocksTranslationResult
-                        .Add(classBlocksTranslationResult)
-                        .UndeclaredVariablesAccessed
+                // This has to be generated after all of the Translate calls to ensure that the UndeclaredVariablesAccessed data for all
+                // of the TranslationResults is available
+                var allEnvironmentVariablesAccessed =
+                    scopeAccessInformation.ExternalDependencies
+                    .AddRange(
+                        outerExecutableBlocksTranslationResult
+                            .Add(classBlocksTranslationResult)
+                            .UndeclaredVariablesAccessed
+                    );
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("public class " + _envClassName.Name, 2),
+                    new TranslatedStatement("{", 2)
+                });
+                translatedStatements = translatedStatements.AddRange(
+                    allEnvironmentVariablesAccessed
+                        .Select(v => _nameRewriter(v).Name)
+                        .Distinct()
+                        .Select(v => new TranslatedStatement("public object " + v + " { get; set; }", 3)
+                    )
                 );
-            translatedStatements = translatedStatements.AddRange(new[]
-            {
-                new TranslatedStatement("public class " + _envClassName.Name, 2),
-                new TranslatedStatement("{", 2)
-            });
-            translatedStatements = translatedStatements.AddRange(
-                allEnvironmentVariablesAccessed
-                    .Select(v => _nameRewriter(v).Name)
-                    .Distinct()
-                    .Select(v => new TranslatedStatement("public object " + v + " { get; set; }", 3)
-                )
-            );
-            translatedStatements = translatedStatements.AddRange(new[]
-            {
-                new TranslatedStatement("}", 2),
-                new TranslatedStatement("", 0)
-            });
+                translatedStatements = translatedStatements.Add(
+                    new TranslatedStatement("}", 2)
+                );
+            }
 
             translatedStatements = translatedStatements.AddRange(
                 classBlocksTranslationResult.TranslatedStatements
             );
 
-            translatedStatements = translatedStatements.AddRange(new[]
+            if (_outputType == OutputTypeOptions.Executable)
             {
-                new TranslatedStatement("}", 1), // Close outer class
-                new TranslatedStatement("}", 0), // Close namespace
-            });
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("}", 1), // Close outer class
+                    new TranslatedStatement("}", 0), // Close namespace
+                });
+            }
             return translatedStatements;
         }
 

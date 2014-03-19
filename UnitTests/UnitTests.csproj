@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
+    <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\StatementTranslatorTests.cs" />
     <Compile Include="LegacyParser\StringBreakerTests.cs" />
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
