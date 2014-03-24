@@ -31,11 +31,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				)
 			});
 			var expected = new TranslatedStatementContentDetails(
-				"_.VAL(o)",
+				"_.VAL(_env.o)",
 				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
 			var scopeAccessInformation = ScopeAccessInformation.Empty;
-			Assert.Equal(
+            var actual = GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None); // TODO: Remove
+            Assert.Equal(
 				expected,
 				GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
 				new TranslatedStatementContentDetailsComparer()
@@ -70,15 +71,15 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NonNullImmutableList<ScopedNameToken>()
 			);
 			var expected = new TranslatedStatementContentDetails(
-				"o()",
+				"_outer.o()",
 				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
-			Assert.Equal(
-				expected,
-				GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
-				new TranslatedStatementContentDetailsComparer()
-			);
-		}
+            Assert.Equal(
+                expected,
+                GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
+                new TranslatedStatementContentDetailsComparer()
+            );
+        }
 
 		private static StatementTranslator GetDefaultStatementTranslator()
 		{
@@ -93,7 +94,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		}
 
         private static CSharpName DefaultsupportRefName = new CSharpName("_");
-        private static CSharpName DefaultSupportEnvName = new CSharpName("__");
+        private static CSharpName DefaultSupportEnvName = new CSharpName("_env");
         private static CSharpName DefaultOuterScopeName = new CSharpName("_outer");
         private static VBScriptNameRewriter DefaultNameRewriter = nameToken => new CSharpName(nameToken.Content.ToLower());
 		private static TempValueNameGenerator GetDefaultTempValueNameGenerator()
