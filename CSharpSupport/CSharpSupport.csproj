@@ -43,11 +43,14 @@
     <Compile Include="Compat\BasicIReflectImplementation.cs" />
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
+    <Compile Include="IBuildCallArgumentProviders.cs" />
+    <Compile Include="Implementations\DefaultCallArgumentProvider.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />
     <Compile Include="Implementations\VBScriptEsqueValueRetriever.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules_Extensions.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules.cs" />
     <Compile Include="Compat\TranslatedPropertyIReflectImplementation.cs" />
+    <Compile Include="IProvideCallArguments.cs" />
     <Compile Include="VBScriptConstants.cs" />
     <Compile Include="IProvideVBScriptCompatFunctionality.cs" />
     <Compile Include="Attributes\IsDefault.cs" />

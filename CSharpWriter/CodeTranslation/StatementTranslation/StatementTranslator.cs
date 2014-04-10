@@ -465,7 +465,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-            // TODO: Deal with setting ByRef values
             var callExpressionContent = new StringBuilder();
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}{2}",
@@ -496,9 +495,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                callExpressionContent.Append("new object[] { ");
+                callExpressionContent.Append(_supportRefName.Name);
+                callExpressionContent.Append(".ARGS");
                 for (var index = 0; index < argumentsArray.Length; index++)
                 {
+                    // TODO: Deal with setting ByRef values
+                    callExpressionContent.Append(".Val(");
                     var translatedCallExpressionArgumentContent = Translate(
                         argumentsArray[index],
                         scopeAccessInformation,
@@ -508,10 +510,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         translatedCallExpressionArgumentContent.VariablesAccesed
                     );
                     callExpressionContent.Append(translatedCallExpressionArgumentContent.TranslatedContent);
-                    if (index < (argumentsArray.Length - 1))
-                        callExpressionContent.Append(", ");
+                    callExpressionContent.Append(")");
                 }
-                callExpressionContent.Append(" }");
+                callExpressionContent.Append(".GetArgs()");
             }
 
             callExpressionContent.Append(")");

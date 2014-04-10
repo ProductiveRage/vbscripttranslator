@@ -1,7 +1,9 @@
-﻿using CSharpSupport.Attributes;
+﻿using CSharpSupport;
+using CSharpSupport.Attributes;
 using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -173,7 +175,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     new PseudoRecordset(),
                     new[] { "fields" },
-                    new[] { "F1" }
+                    new MultipleByValArgumentProvider("F1")
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -187,7 +189,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     new PseudoRecordset(),
                     new string[0],
-                    new[] { "F1" }
+                    new MultipleByValArgumentProvider("F1")
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -208,7 +210,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     recordset,
                     new[] { "fields" },
-                    new[] { "name" }
+                    new MultipleByValArgumentProvider("name")
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -229,7 +231,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     recordset,
                     new string[0],
-                    new[] { "name" }
+                    new MultipleByValArgumentProvider("name")
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -258,7 +260,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     valueRetriever.CALL(
                         recordset,
                         new string[0],
-                        new[] { "name" }
+                        new MultipleByValArgumentProvider("name")
                     )
                 )
             );
@@ -273,7 +275,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     data,
                     new string[0],
-                    new object[] { 0 } 
+                    new MultipleByValArgumentProvider()
                 )
             );
         }
@@ -337,6 +339,32 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             [IsDefault]
             public object value { get; set; }
+        }
+
+        private class MultipleByValArgumentProvider : IProvideCallArguments
+        {
+            private readonly object[] _values;
+            public MultipleByValArgumentProvider(params object[] values)
+            {
+                if (values == null)
+                    throw new ArgumentNullException("values");
+
+                _values = values.ToArray();
+            }
+            
+            public int NumberOfArguments { get { return _values.Length; } }
+
+            public IEnumerable<object> GetInitialValues()
+            {
+                return _values.ToArray();
+            }
+
+            public void OverwriteValueIfByRef(int index, object value)
+            {
+                // Since these  values are all ByVal we only need to perform validation, not do any actual value updating
+                if ((index < 0) || (index >= _values.Length))
+                    throw new ArgumentOutOfRangeException("index");
+            }
         }
     }
 }

@@ -78,13 +78,37 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        public IBuildCallArgumentProviders ARGS
+        {
+            get { return new DefaultCallArgumentProvider(); }
+        }
+
+        /// <summary>
         /// This requires a target with optional member accessors and arguments - eg. "Test" is a target only, "a.Test" has target "a" with one
         /// named member "Test", "a.Test(0)" has target "a", named member "Test" and a single argument "0". The expression "a(Test(0))" would
         /// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
-        /// argument which was the result of the first call. The arguments array elements may be mutated if the call target has "ref"
-        /// method arguments.
+        /// argument which was the result of the first call.
         /// </summary>
-        public object CALL(object target, IEnumerable<string> members, object[] arguments)
+        public object CALL(object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
+        {
+            if (members == null)
+                throw new ArgumentNullException("members");
+            if (argumentProvider == null)
+                throw new ArgumentNullException("argumentProvider");
+
+            var arguments = argumentProvider.GetInitialValues().ToArray();
+            var returnValue = CALL(target, members, arguments);
+            for (var index = 0; index < arguments.Length; index++)
+                argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
+            return returnValue;
+        }
+
+        /// <summary>
+        /// Note: The arguments array elements may be mutated if the call target has "ref" method arguments.
+        /// </summary>
+        private object CALL(object target, IEnumerable<string> members, object[] arguments)
         {
             if (members == null)
                 throw new ArgumentNullException("members");
