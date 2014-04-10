@@ -375,7 +375,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 nameOfTargetContainerIfRequired = null;
 
             // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
-            // out by looking into the scope access information
+            // out by looking into the scope access information. Note: Further down, we rely on function / property calls being identified at this
+            // point for cases where there are no target member accessors (it means that if we get further down and there are no target member
+            // accessors that it must not be a function or property call).
             if (targetMemberAccessTokensArray.Length == 0)
             {
                 if (targetReferenceDetailsIfAvailable != null)
@@ -386,6 +388,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         // TODO: When generating function calls, VBScript will throw runtime exceptions for invalid argument counts (or allow the error to
                         // be swallowed if wrapped in On Error Resume Next). To replicate this perfectly, this code could be changed to wrap the call in
                         // a .CALL call). It might be better to just log a warning and generate non-compiling translated code(?).
+                        // - TODO [2014-04-09 DWR]: No, this SHOULD be replaced with a .CALL call so that any ByRef arguments can be handled correctly
                         var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
                         var memberCallContent = new StringBuilder();
                         if (nameOfTargetContainerIfRequired != null)
@@ -443,6 +446,24 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // still need to use the CALL method to account for any handling of default properties (eg. a statement "Test" may be a call to
             // a method named "Test" or "Test" may be an instance of a class which has a default parameter-less function, in which case the
             // default function will be executed by that statement.
+            // 2014-04-10 DWR: This is not correct since if there are target member accessors and the target can be identified as a function
+            // or property (according to the scope access information) then it would have been caught above. So if there are no target member
+            // accessors or arguments then we can return a direct reference to the target here. Note that if a single member access token
+            // constitued the entire statement then it would have to be forced through a .VAL call but that will also have been handled
+            // before this point in the TryToGetShortCutStatementResponse call in the public Translate method (see notes in the
+            // TryToGetShortCutStatementResponse method for more information about this).
+            if (!targetMemberAccessTokensArray.Any() && !argumentsArray.Any())
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
+                        "{0}{1}",
+                        (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired),
+                        targetName
+                    ),
+                    ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
 
             // TODO: Deal with setting ByRef values
             var callExpressionContent = new StringBuilder();

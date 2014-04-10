@@ -31,7 +31,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", new object[] { _.CALL(_env.i) });"
+                "_.CALL(_env.wscript, \"echo\", new object[] { _env.i });"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -59,7 +59,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null; /* Undeclared in source */",
-                "    _.CALL(_env.wscript, \"echo\", new object[] { _.CALL(i) });",
+                "    _.CALL(_env.wscript, \"echo\", new object[] { i });",
                 "    return retVal1;",
                 "}"
             };
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null;",
-                "    _.CALL(_env.wscript, \"echo\", new object[] { _.CALL(i) });",
+                "    _.CALL(_env.wscript, \"echo\", new object[] { i });",
                 "    return retVal1;",
                 "}"
             };
@@ -120,7 +120,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
-                "    _.CALL(_env.wscript, \"echo\", new object[] { _.CALL(_outer.i) });",
+                "    _.CALL(_env.wscript, \"echo\", new object[] { _outer.i });",
                 "    return retVal1;",
                 "}"
             };
