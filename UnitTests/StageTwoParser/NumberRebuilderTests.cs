@@ -154,5 +154,27 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new TokenSetComparer()
             );
         }
+
+        [Fact]
+        public void NegativeOneAsNonBracketedArgument()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NameToken("fnc", 0),
+                    new NumericValueToken(1.1, 0)
+                },
+                NumberRebuilder.Rebuild(
+                    new IToken[]
+                    {
+                        new NameToken("fnc", 0),
+                        new NumericValueToken(1, 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NumericValueToken(1, 0)
+                    }
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

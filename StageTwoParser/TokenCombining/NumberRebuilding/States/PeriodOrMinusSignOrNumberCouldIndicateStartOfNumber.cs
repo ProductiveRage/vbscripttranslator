@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -12,12 +11,16 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
         public static PeriodOrMinusSignOrNumberCouldIndicateStartOfNumber Instance { get { return new PeriodOrMinusSignOrNumberCouldIndicateStartOfNumber(); } }
         private PeriodOrMinusSignOrNumberCouldIndicateStartOfNumber() { }
 
-        public TokenProcessResult Process(IToken token, PartialNumberContent numberContent)
+        public TokenProcessResult Process(IEnumerable<IToken> tokens, PartialNumberContent numberContent)
         {
-            if (token == null)
-                throw new ArgumentNullException("token");
+            if (tokens == null)
+                throw new ArgumentNullException("tokens");
             if (numberContent == null)
                 throw new ArgumentNullException("numberContent");
+
+            var token = tokens.First();
+            if (token == null)
+                throw new ArgumentException("Null reference encountered in tokens set");
 
             if (token.Is<MemberAccessorOrDecimalPointToken>())
             {
@@ -44,7 +47,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                 );
             }
 
-            return Common.Reset(token, numberContent);
+            return Common.Reset(tokens, numberContent);
         }
     }
 }

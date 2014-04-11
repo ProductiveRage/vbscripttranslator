@@ -28,12 +28,12 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
             var processor = (IAmLookingForNumberContent)PeriodOrMinusSignOrNumberCouldIndicateStartOfNumber.Instance;
             var numberContent = new PartialNumberContent();
             var rebuiltTokens = new List<IToken>();
-            foreach (var token in tokens)
+            var tokenArray = tokens.ToArray();
+            if (tokenArray.Any(t => t == null))
+                throw new ArgumentException("Null reference encountered in tokens set");
+            for (var index = 0; index < tokenArray.Length; index++)
             {
-                if (token == null)
-                    throw new ArgumentException("Null reference encountered in tokens set");
-
-                var result = processor.Process(token, numberContent);
+                var result = processor.Process(tokenArray.Skip(index), numberContent);
                 if (result.ProcessedTokens.Any())
                     rebuiltTokens.AddRange(result.ProcessedTokens);
                 processor = result.NextProcessor;

@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.StageTwoParser.Tokens;
 
 namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.States
 {
@@ -11,12 +11,16 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
         public static GotSomeIntegerNumberContent Instance { get { return new GotSomeIntegerNumberContent(); } }
         private GotSomeIntegerNumberContent() { }
 
-        public TokenProcessResult Process(IToken token, PartialNumberContent numberContent)
+        public TokenProcessResult Process(IEnumerable<IToken> tokens, PartialNumberContent numberContent)
         {
-            if (token == null)
-                throw new ArgumentNullException("token");
+            if (tokens == null)
+                throw new ArgumentNullException("tokens");
             if (numberContent == null)
                 throw new ArgumentNullException("numberContent");
+
+            var token = tokens.First();
+            if (token == null)
+                throw new ArgumentException("Null reference encountered in tokens set");
 
             // The only continuation possibility for the number is if a decimal point is reached
             if (token.Is<MemberAccessorOrDecimalPointToken>())
@@ -38,7 +42,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             return new TokenProcessResult(
                 new PartialNumberContent(),
                 new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex), token },
-                Common.GetDefaultProcessor(token)
+                Common.GetDefaultProcessor(tokens)
             );
         }
     }

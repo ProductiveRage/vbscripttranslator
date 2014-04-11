@@ -12,12 +12,16 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
         public static GotMinusSignOfNumber Instance { get { return new GotMinusSignOfNumber(); } }
         private GotMinusSignOfNumber() { }
 
-        public TokenProcessResult Process(IToken token, PartialNumberContent numberContent)
+        public TokenProcessResult Process(IEnumerable<IToken> tokens, PartialNumberContent numberContent)
         {
-            if (token == null)
-                throw new ArgumentNullException("token");
+            if (tokens == null)
+                throw new ArgumentNullException("tokens");
             if (numberContent == null)
                 throw new ArgumentNullException("numberContent");
+
+            var token = tokens.First();
+            if (token == null)
+                throw new ArgumentException("Null reference encountered in tokens set");
 
             // At this point, the current token needs to be either a number or a decimal point. Otherwise it's not going to be
             // part of a valid numeric value.
@@ -37,7 +41,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                     GotSomeDecimalNumberContent.Instance
                 );
             }
-            return Common.Reset(token, numberContent);
+            return Common.Reset(tokens, numberContent);
         }
     }
 }
