@@ -2,6 +2,7 @@
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
+using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
@@ -35,7 +36,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
 			var scopeAccessInformation = ScopeAccessInformation.Empty;
-            var actual = GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None); // TODO: Remove
             Assert.Equal(
 				expected,
 				GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
@@ -56,22 +56,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				)
 			});
 
-			var scopeAccessInformation = new ScopeAccessInformation(
-				null,
-				null,
-				null,
-                new NonNullImmutableList<NameToken>(),
-                new NonNullImmutableList<ScopedNameToken>(),
-                new NonNullImmutableList<ScopedNameToken>(new[] { new ScopedNameToken( // Functions
-                    "o",
-                    0,
-                    VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope)
-                }),
-                new NonNullImmutableList<ScopedNameToken>(),
-                new NonNullImmutableList<ScopedNameToken>()
-			);
+            var scopeAccessInformation = AddOutermostScopeFunction(
+                ScopeAccessInformation.Empty,
+                "o",
+                0
+            );
 			var expected = new TranslatedStatementContentDetails(
-				"_outer.o()",
+                "_.CALL(_outer, \"o\")",
 				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
             Assert.Equal(
@@ -92,6 +83,31 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NullLogger()
 			);
 		}
+
+        private static ScopeAccessInformation AddOutermostScopeFunction(ScopeAccessInformation scopeAccessInformation, string name, int lineIndex)
+        {
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Null/blank name specified");
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex");
+
+            return new ScopeAccessInformation(
+                scopeAccessInformation.ParentIfAny,
+                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ExternalDependencies,
+                scopeAccessInformation.Classes,
+                scopeAccessInformation.Functions.Add(new ScopedNameToken(
+                    name,
+                    lineIndex,
+                    VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
+                )),
+                scopeAccessInformation.Properties,
+                scopeAccessInformation.Variables
+            );
+        }
 
         private static CSharpName DefaultsupportRefName = new CSharpName("_");
         private static CSharpName DefaultSupportEnvName = new CSharpName("_env");

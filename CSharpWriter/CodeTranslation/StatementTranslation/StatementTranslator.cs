@@ -385,32 +385,35 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
                     || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property))
                     {
-                        // TODO: When generating function calls, VBScript will throw runtime exceptions for invalid argument counts (or allow the error to
-                        // be swallowed if wrapped in On Error Resume Next). To replicate this perfectly, this code could be changed to wrap the call in
-                        // a .CALL call). It might be better to just log a warning and generate non-compiling translated code(?).
-                        // - TODO [2014-04-09 DWR]: No, this SHOULD be replaced with a .CALL call so that any ByRef arguments can be handled correctly
+                        // 2014-04-11 DWR: This used to try to call the function directly (rather than through .CALL) which caused two problems;
+                        // firstly, VBScript will throw runtime exceptions for invalid argument counts (or allow the error to be swallowed if wrapped
+                        // in On Error Resume Next) whereas this code would not compile if the wrong number of arguments was specified (which is a
+                        // discrepancy or breaking change, depending upon how you look upon it). Secondly, it couldn't correctly handle updating
+                        // arguments that should be passed ByRef. So now this code path uses .CALL as the code further down does.
+                        // Note: This relies upon the extension method which allows .CALL to be executed with a target reference and single named
+                        // member accessor but no arguments
                         var memberCallVariablesAccessed = new NonNullImmutableList<NameToken>();
                         var memberCallContent = new StringBuilder();
-                        if (nameOfTargetContainerIfRequired != null)
+                        memberCallContent.AppendFormat(
+                            "{0}.CALL({1}, \"{2}\"",
+                            _supportRefName.Name,
+                            nameOfTargetContainerIfRequired ?? "this",
+                            targetName
+                        );
+                        if (argumentsArray.Any())
                         {
-                            memberCallContent.Append(nameOfTargetContainerIfRequired);
-                            memberCallContent.Append(".");
-                        }
-                        memberCallContent.Append(targetName);
-                        memberCallContent.Append("(");
-                        for (var index = 0; index < argumentsArray.Length; index++)
-                        {
-                            var translatedMemberCallArgumentContent = Translate(
-                                argumentsArray[index],
-                                scopeAccessInformation,
-                                ExpressionReturnTypeOptions.NotSpecified
-                            );
-                            memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
-                                translatedMemberCallArgumentContent.VariablesAccesed
-                            );
-                            memberCallContent.Append(translatedMemberCallArgumentContent.TranslatedContent);
-                            if (index < (argumentsArray.Length - 1))
-                                memberCallContent.Append(", ");
+                            memberCallContent.Append(", ");
+                            memberCallContent.Append(_supportRefName.Name);
+                            memberCallContent.Append(".ARGS");
+                            for (var index = 0; index < argumentsArray.Length; index++)
+                            {
+                                var argumentContent = TranslateAsArgumentContent(argumentsArray[index], scopeAccessInformation);
+                                memberCallContent.Append(argumentContent.TranslatedContent);
+                                memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
+                                    argumentContent.VariablesAccesed
+                                );
+                            }
+                            memberCallContent.Append(".GetArgs()");
                         }
                         memberCallContent.Append(")");
                         return new TranslatedStatementContentDetailsWithContentType(
@@ -499,18 +502,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 callExpressionContent.Append(".ARGS");
                 for (var index = 0; index < argumentsArray.Length; index++)
                 {
-                    // TODO: Deal with setting ByRef values
-                    callExpressionContent.Append(".Val(");
-                    var translatedCallExpressionArgumentContent = Translate(
-                        argumentsArray[index],
-                        scopeAccessInformation,
-                        ExpressionReturnTypeOptions.NotSpecified
-                    );
+                    var argumentContent = TranslateAsArgumentContent(argumentsArray[index], scopeAccessInformation);
+                    callExpressionContent.Append(argumentContent.TranslatedContent);
                     callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
-                        translatedCallExpressionArgumentContent.VariablesAccesed
+                        argumentContent.VariablesAccesed
                     );
-                    callExpressionContent.Append(translatedCallExpressionArgumentContent.TranslatedContent);
-                    callExpressionContent.Append(")");
                 }
                 callExpressionContent.Append(".GetArgs()");
             }
@@ -521,6 +517,128 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
                 callExpressionVariablesAccessed
 			);
+        }
+
+        /// <summary>
+        /// This generates the calls to IBuildCallArgumentProviders (such as .Val or .Ref) based upon argument content (eg. an argument value that
+        /// is the result of calling another function can never be passed ByRef whereas an argument that is a simple variable reference always
+        /// CAN be passed ByRef). Note that this does not have to consider whether the target function describes arguments as ByVal or ByRef,
+        /// this is just about setting up the IBuildCallArgumentProviders data so that any ByRef arguments CAN be updated on the caller
+        /// where required.
+        /// </summary>
+        private TranslatedStatementContentDetails TranslateAsArgumentContent(Expression argumentValue, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (argumentValue == null)
+                throw new ArgumentNullException("argumentValue");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            bool isConfirmedToBeByVal;
+            if (argumentValue.Segments.Count() == 1)
+            {
+                // If there is a single segment that is a constant then it must be ByVal
+                var singleSegment = argumentValue.Segments.First();
+                if ((singleSegment is NumericValueExpressionSegment)
+                || (singleSegment is StringValueExpressionSegment)
+                || (singleSegment is BuiltInValueExpressionSegment))
+                    isConfirmedToBeByVal = true;
+                else
+                {
+                    // If the segment is a CallExpressionSegment that refers to a built-in function or if there are member accessors (indicating
+                    // property access - eg. "a.Name") then the reference can not be altered and so must be ByVal
+                    var callExpressionSegment = singleSegment as CallExpressionSegment;
+                    if (callExpressionSegment != null)
+                    {
+                        if ((callExpressionSegment.MemberAccessTokens.Count() > 1)
+                        || (callExpressionSegment.MemberAccessTokens.First() is BuiltInFunctionToken))
+                            isConfirmedToBeByVal = true;
+                        else
+                        {
+                            // If the CallExpressionSegment's target is confirmed to be a function then the refrence can not be altered and so
+                            // the argument must be ByVal
+                            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
+                            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+                            if (targetReferenceDetailsIfAvailable != null)
+                            {
+                                isConfirmedToBeByVal =
+                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
+                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property);
+                            }
+                            else
+                                isConfirmedToBeByVal = false;
+                        }
+                    }
+                    else
+                        isConfirmedToBeByVal = false;
+                }
+            }
+            else
+                isConfirmedToBeByVal = false;
+            if (isConfirmedToBeByVal)
+            {
+                var translatedCallExpressionByValArgumentContent = Translate(
+                    argumentValue,
+                    scopeAccessInformation,
+                    ExpressionReturnTypeOptions.NotSpecified
+                );
+                return new TranslatedStatementContentDetails(
+                    string.Format(
+                        ".Val({0})",
+                        translatedCallExpressionByValArgumentContent.TranslatedContent
+                    ),
+                    translatedCallExpressionByValArgumentContent.VariablesAccesed
+                );
+            }
+
+            bool isConfirmedToBeByRef;
+            if (argumentValue.Segments.Count() == 1)
+            {
+                // If the CallExpressionSegment's target is confirmed to not be a function and not have any member accessors or arguments then
+                // it CAN be passed ByRef
+                var callExpressionSegment = argumentValue.Segments.First() as CallExpressionSegment;
+                if ((callExpressionSegment != null) && (callExpressionSegment.MemberAccessTokens.Count() == 1) && !callExpressionSegment.Arguments.Any())
+                {
+                    var rewrittenName = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
+                    var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+                    if (targetReferenceDetailsIfAvailable == null)
+                    {
+                        // If this is an undeclared reference then it will be implicitly declared later as a variable and so WILL be elligible
+                        // to be passed ByRef (it can't be a function or property which is what would get it off the hook)
+                        isConfirmedToBeByRef = true;
+                    }
+                    else
+                    {
+                        isConfirmedToBeByRef =
+                            (targetReferenceDetailsIfAvailable.ReferenceType != ReferenceTypeOptions.Function) &&
+                            (targetReferenceDetailsIfAvailable.ReferenceType != ReferenceTypeOptions.Property);
+                    }
+                }
+                else
+                    isConfirmedToBeByRef = false;
+            }
+            else
+                isConfirmedToBeByRef = false;
+            if (isConfirmedToBeByRef)
+            {
+                var translatedCallExpressionByRefArgumentContent = Translate(
+                    argumentValue,
+                    scopeAccessInformation,
+                    ExpressionReturnTypeOptions.NotSpecified
+                );
+                return new TranslatedStatementContentDetails(
+                    string.Format(
+                        ".Ref({0}, v => {{ {0} = v; }})",
+                        translatedCallExpressionByRefArgumentContent.TranslatedContent
+                    ),
+                    translatedCallExpressionByRefArgumentContent.VariablesAccesed
+                );
+            }
+
+            throw new NotImplementedException(); // TODO: Deal with maybe-ByRef
+
+            // Single CallExpressionSegment where single target is confirmed to NOT be a function and there are no arguments => ByRef *********
+
+            // TODO: Fix support for "a(0)(1)" (identified as CallExpressionSegment, NumericValueSegment.. maybe this IS correct?!)
         }
 
         private TranslatedStatementContentDetailsWithContentType Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)

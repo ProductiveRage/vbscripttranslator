@@ -15,6 +15,14 @@ namespace CSharpSupport
             return source.CALL(target, new string[0], new ZeroArgumentArgumentProvider());
         }
 
+        public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.CALL(target, member1, new ZeroArgumentArgumentProvider());
+        }
+
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, IProvideCallArguments argumentProvider)
         {
             if (source == null)
@@ -68,7 +76,7 @@ namespace CSharpSupport
 
             public IEnumerable<object> GetInitialValues()
             {
-                throw new ArgumentException("There are no arguments to retrieve values for");
+                return new object[0];
             }
 
             public void OverwriteValueIfByRef(int index, object value)
