@@ -275,7 +275,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 (new VBScriptEsqueValueRetriever(name => name)).CALL(
                     data,
                     new string[0],
-                    new MultipleByValArgumentProvider()
+                    new MultipleByValArgumentProvider(0)
                 )
             );
         }
