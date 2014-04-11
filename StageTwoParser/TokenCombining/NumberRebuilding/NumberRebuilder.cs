@@ -21,6 +21,10 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
 
+            // Note: There are some limitations to what can be done here - for example "Test -1" can not be have the "-" and "1" recombined since,
+            // at this point, we don't know if "Test" is a value that 1 should be subtracted from or whether it's a function that is being
+            // called with "-1" as the argument.
+
             // At the beginning of a token set, if the first token is a minus sign then it is elligible to be part of a number. If it is not the
             // first token then it may only incorporated into a number if preceded by another operator or an opening brace (which effectively
             // would make the token the start of a new expression). The same principle applies to a decimal point. This is why the initial
