@@ -50,7 +50,7 @@
     <Compile Include="Shared\Comparers\NumericValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\TokenComparer.cs" />
     <Compile Include="Shared\Comparers\OperatorOrComparisonExpressionSegmentComparer.cs" />
-    <Compile Include="Shared\Comparers\CallExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\CallSetItemExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSetComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\ExpressionSegmentSetComparer.cs" />

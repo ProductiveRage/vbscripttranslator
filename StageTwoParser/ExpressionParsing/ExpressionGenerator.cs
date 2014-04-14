@@ -100,11 +100,28 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     }
                     else if (bracketedExpressions.Any())
                     {
-						if (bracketedExpressions.Count() > 1)
-							throw new ArgumentException("If bracketed content is not for an argument list then it's invalid for there to be multiple expressions within it");
-						expressionSegments.Add(
-							WrapExpressionSegments(bracketedExpressions.Single().Segments)
-                        );
+                        if (expressionSegments.Any() && (expressionSegments.Last() is CallSetItemExpressionSegment))
+                        {
+                            // If the previous expression segment was a CallExpressionSegment or CallSetItemExpressionSegment (the first
+                            // is derived from the second so only a single type check is required) then this bracketed content should
+                            // be considered a continuation of the call (these segments will later be grouped into a single
+                            // CallSetExpression)
+                            expressionSegments.Add(
+                                new CallSetItemExpressionSegment(
+                                    new IToken[0],
+                                    bracketedExpressions,
+                                    null // ArgumentBracketPresenceOptions
+                                )
+                            );
+                        }
+                        else
+                        {
+                            if (bracketedExpressions.Count() > 1)
+                                throw new ArgumentException("If bracketed content is not for an argument list then it's invalid for there to be multiple expressions within it");
+                            expressionSegments.Add(
+                                WrapExpressionSegments(bracketedExpressions.Single().Segments)
+                            );
+                        }
                     }
                     continue;
                 }
@@ -358,36 +375,49 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (segments == null)
                 throw new ArgumentNullException("segments");
 
-            var callExpressionSegmentBuffer = new List<CallExpressionSegment>();
+            var callSetItemExpressionSegmentBuffer = new List<CallSetItemExpressionSegment>();
             var expressionSegments = new List<IExpressionSegment>();
             foreach (var segment in segments)
             {
                 if (segment == null)
                     throw new ArgumentException("Null reference encountered in segments set");
 
-                var callExpressionSegment = segment as CallExpressionSegment;
+                var callExpressionSegment = segment as CallSetItemExpressionSegment;
                 if (callExpressionSegment != null)
                 {
-                    callExpressionSegmentBuffer.Add(callExpressionSegment);
+                    callSetItemExpressionSegmentBuffer.Add(callExpressionSegment);
                     continue;
                 }
 
-                if (callExpressionSegmentBuffer.Count > 0)
+                if (callSetItemExpressionSegmentBuffer.Count > 0)
                 {
-                    if (callExpressionSegmentBuffer.Count == 1)
-                        expressionSegments.Add(callExpressionSegmentBuffer[0]);
+                    if (callSetItemExpressionSegmentBuffer.Count == 1)
+                        expressionSegments.Add(callSetItemExpressionSegmentBuffer[0]);
                     else
-                        expressionSegments.Add(new CallSetExpressionSegment(callExpressionSegmentBuffer));
-                    callExpressionSegmentBuffer.Clear();
+                        expressionSegments.Add(new CallSetExpressionSegment(callSetItemExpressionSegmentBuffer));
+                    callSetItemExpressionSegmentBuffer.Clear();
                 }
                 expressionSegments.Add(segment);
             }
-            if (callExpressionSegmentBuffer.Count > 0)
+            if (callSetItemExpressionSegmentBuffer.Count > 0)
             {
-                if (callExpressionSegmentBuffer.Count == 1)
-                    expressionSegments.Add(callExpressionSegmentBuffer[0]);
+                if (callSetItemExpressionSegmentBuffer.Count == 1)
+                {
+                    // A CallSetItemExpressionSegment should never exist in isolation, so if there is only one segment here it should
+                    // be promoted to a CallExpressionSegment (if it wasn't one already)
+                    var callExpressionSegment = callSetItemExpressionSegmentBuffer[0];
+                    if (!callExpressionSegment.MemberAccessTokens.Any())
+                        throw new ArgumentException("Encountered individual CallSetItemExpressionSegment with no Member Access Tokens, zero Member Access Tokens are only allowable with segments are part of a CallSetExpressionSegment (so long as it's not the first segment in that set's content)");
+                    expressionSegments.Add(
+                        new CallExpressionSegment(
+                            callExpressionSegment.MemberAccessTokens,
+                            callExpressionSegment.Arguments,
+                            callExpressionSegment.ZeroArgumentBracketsPresence
+                        )
+                    );
+                }
                 else
-                    expressionSegments.Add(new CallSetExpressionSegment(callExpressionSegmentBuffer));
+                    expressionSegments.Add(new CallSetExpressionSegment(callSetItemExpressionSegmentBuffer));
             }
             return new Expression(expressionSegments);
         }
@@ -397,7 +427,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             if (segment == null)
                 throw new ArgumentNullException("segment");
 
-            CallExpressionSegment callExpressionSegment;
+            CallSetItemExpressionSegment callExpressionSegment;
             if (segment is CallSetExpressionSegment)
             {
                 var callSetExpressionSegment = segment as CallSetExpressionSegment;

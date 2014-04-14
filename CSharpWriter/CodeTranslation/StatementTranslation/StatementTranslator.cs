@@ -653,16 +653,29 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count(); // This will always be at least two (see notes in CallSetExpressionSegment)
             for (var index = 0; index < numberOfCallExpressions; index++)
             {
-                var callExpression = callSetExpressionSegment.CallExpressionSegments.ElementAt(index);
+                var callSetItemExpression = callSetExpressionSegment.CallExpressionSegments.ElementAt(index);
                 TranslatedStatementContentDetailsWithContentType translatedContent;
                 if (index == 0)
-                    translatedContent = Translate(callExpression, scopeAccessInformation);
+                {
+                    // The first segment in a CallSetExpressionSegment will always have the data required to represent a CallExpressionSegment
+                    // (the only difference in the types is that a CallSetItemExpressionSegment may have zero Member Access Tokens whereas the
+                    // CallExpressionSegment must always have at least one - however, the first segment in a CallSetExpressionSegment will
+                    // always have at least one as well)
+                    translatedContent = Translate(
+                        new CallExpressionSegment(
+                            callSetItemExpression.MemberAccessTokens,
+                            callSetItemExpression.Arguments,
+                            callSetItemExpression.ZeroArgumentBracketsPresence
+                        ),
+                        scopeAccessInformation
+                    );
+                }
                 else
                 {
                     translatedContent = TranslateCallExpressionSegment(
                         content,
-                        callExpression.MemberAccessTokens,
-                        callExpression.Arguments,
+                        callSetItemExpression.MemberAccessTokens,
+                        callSetItemExpression.Arguments,
                         scopeAccessInformation
                     );
                 }

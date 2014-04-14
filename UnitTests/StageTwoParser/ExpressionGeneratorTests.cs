@@ -4,7 +4,6 @@ using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using VBScriptTranslator.StageTwoParser.Tokens;
-using VBScriptTranslator.UnitTests.Shared;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
 using Xunit;
 
@@ -264,6 +263,37 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NameToken("b", 0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
+        public void JaggedArrayAccess()
+        {
+            // a(0)(1)
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALLSET(
+                            CALL(
+                                new[] { new NameToken("a", 0) },
+                                new[] { new NumericValueToken(0, 0) }
+                            ),
+                            CALLARGSONLY(
+                                new[] { new NumericValueToken(1, 0) }
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new IToken[] {
+                        new NameToken("a", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(0, 0),
+                        new CloseBrace(0),
+                        new OpenBrace(0),
+                        new NumericValueToken(1, 0),
+                        new CloseBrace(0),
                 }),
                 new ExpressionSetComparer()
             );
@@ -655,7 +685,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
 
         private static CallSetExpressionSegment CALLSET(params IExpressionSegment[] segments)
         {
-            return new CallSetExpressionSegment(segments.Cast<CallExpressionSegment>());
+            return new CallSetExpressionSegment(segments.Cast<CallSetItemExpressionSegment>());
         }
 
 		/// <summary>
@@ -680,7 +710,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
 			else
 				argBrackets = zeroArgBrackets;
 
-			return new CallExpressionSegment(
+            if (memberAccessTokens.Any())
+            {
+			    return new CallExpressionSegment(
+                    memberAccessTokens,
+                    arguments,
+				    argBrackets
+                );
+            }
+			return new CallSetItemExpressionSegment(
                 memberAccessTokens,
                 arguments,
 				argBrackets
@@ -703,6 +741,11 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
 		private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens, params Expression[] arguments)
 		{
 			return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments, null);
+		}
+
+		private static IExpressionSegment CALLARGSONLY(params IEnumerable<IToken>[] arguments)
+		{
+			return CALL(new IToken[0], arguments);
 		}
 
 		/// <summary>

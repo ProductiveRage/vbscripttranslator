@@ -14,7 +14,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
     /// </summary>
     public class CallSetExpressionSegment : IExpressionSegment
     {
-        public CallSetExpressionSegment(IEnumerable<CallExpressionSegment> callExpressionSegments)
+        public CallSetExpressionSegment(IEnumerable<CallSetItemExpressionSegment> callExpressionSegments)
         {
             if (callExpressionSegments == null)
                 throw new ArgumentNullException("callExpressionSegments");
@@ -28,9 +28,11 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
         /// <summary>
         /// This will never be null, empty (it will always have at least two entries otherwise a single CallExpressionSegment would be appropriate
-        /// rather than a CallSetExpressionSegment) or contain any null references
+        /// rather than a CallSetExpressionSegment) or contain any null references. The first segment will always have at least Member Access
+        /// Token, thbough subsequent ones may not (to represent, for example, "a(0)(1)" - there would be segments for "a(0)" and "(1)",
+        /// the second segment would have no Member Access Tokens).
         /// </summary>
-        public IEnumerable<CallExpressionSegment> CallExpressionSegments { get; private set; }
+        public IEnumerable<CallSetItemExpressionSegment> CallExpressionSegments { get; private set; }
 
 		/// <summary>
 		/// This will never be null, empty or contain any null references

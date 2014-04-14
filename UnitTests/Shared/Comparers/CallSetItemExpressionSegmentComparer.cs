@@ -4,9 +4,9 @@ using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
-    public class CallExpressionSegmentComparer : IEqualityComparer<CallExpressionSegment>
+    public class CallSetItemExpressionSegmentComparer : IEqualityComparer<CallSetItemExpressionSegment>
     {
-        public bool Equals(CallExpressionSegment x, CallExpressionSegment y)
+        public bool Equals(CallSetItemExpressionSegment x, CallSetItemExpressionSegment y)
         {
             if (x == null)
                 throw new ArgumentNullException("x");
@@ -27,7 +27,7 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             return true;
         }
 
-        public int GetHashCode(CallExpressionSegment obj)
+        public int GetHashCode(CallSetItemExpressionSegment obj)
         {
             if (obj == null)
                 throw new ArgumentNullException("obj");

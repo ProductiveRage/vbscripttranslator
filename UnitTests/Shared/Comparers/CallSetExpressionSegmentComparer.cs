@@ -19,7 +19,7 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
             if (callExpressionSegmentsX.Length != callExpressionSegmentsY.Length)
                 return false;
 
-            var callExpressionComparer = new CallExpressionSegmentComparer();
+            var callExpressionComparer = new CallSetItemExpressionSegmentComparer();
             for (var index = 0; index < callExpressionSegmentsX.Length; index++)
             {
                 if (!callExpressionComparer.Equals(callExpressionSegmentsX[index], callExpressionSegmentsY[index]))

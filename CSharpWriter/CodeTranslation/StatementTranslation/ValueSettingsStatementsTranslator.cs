@@ -142,9 +142,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			// has a default indexed property).
 
 			// Get a set of CallExpressionSegments..
-			List<CallExpressionSegment> callExpressionSegments;
+			List<CallSetItemExpressionSegment> callExpressionSegments;
 			if (callExpressionSegment != null)
-				callExpressionSegments = new List<CallExpressionSegment> { callExpressionSegment };
+                callExpressionSegments = new List<CallSetItemExpressionSegment> { callExpressionSegment };
 			else
 			{
 				var callSetExpressionSegment = expressionSegment as CallSetExpressionSegment;
@@ -253,7 +253,35 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			// set of all variables that are accessed so that later on we can identify any undeclared variable access attempts
 			// - TODO: If manipulated segments to include function return value, it shouldn't affect the variablesAccessed retrieval but
 			//   need to make a note explaining how/why
-			var variablesAccessed = GetAccessedVariables(callExpressionSegments, scopeAccessInformation);
+            IEnumerable<NameToken> variablesAccessed;
+            if (!callExpressionSegments.Any())
+                variablesAccessed = new NameToken[0];
+            else
+            {
+                // We will have one or more CallSetItemExpressionSegment instances, the first of which will always have at least one
+                // Member Access Token since the segments were initially extracted from a CallExpressionSegment (which always has at
+                // least one) or from a CallSetExpressionSegment (whose first segment always has at least one). This means that we
+                // can always reform the segment(s) back into either CallExpressionSegment or CallSetExpressionSegment, which
+                // can then be passed to the statementTranslator to analyse for accessed variables.
+                IExpressionSegment expressionToAnalyseForVariablesAccessed;
+                if (callExpressionSegments.Count() == 1)
+                {
+                    expressionToAnalyseForVariablesAccessed = new CallExpressionSegment(
+                        callExpressionSegments.First().MemberAccessTokens,
+                        callExpressionSegments.First().Arguments,
+                        callExpressionSegments.First().ZeroArgumentBracketsPresence
+                    );
+                }
+                else
+                    expressionToAnalyseForVariablesAccessed = new CallSetExpressionSegment(callExpressionSegments);
+                variablesAccessed = _statementTranslator.Translate(
+                        new StageTwoParser.Expression(new[] { expressionToAnalyseForVariablesAccessed }),
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified
+                    )
+                    .VariablesAccesed;
+
+            }
 
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
             // TODO: Deal with setting ByRef values
@@ -276,31 +304,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				),
 				variablesAccessed.ToNonNullImmutableList()
 			);
-		}
-
-		private IEnumerable<NameToken> GetAccessedVariables(IEnumerable<CallExpressionSegment> callExpressionSegments, ScopeAccessInformation scopeAccessInformation)
-		{
-			if (callExpressionSegments == null)
-				throw new ArgumentNullException("callExpressionSegments");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
-
-			var callExpressionSegmentsArray = callExpressionSegments.ToArray();
-			if (callExpressionSegmentsArray.Any(e => e == null))
-				throw new ArgumentException("Null reference encountered in callExpressionSegments set");
-
-			if (!callExpressionSegmentsArray.Any())
-				return new NameToken[0];
-
-			var expression = (callExpressionSegmentsArray.Length == 1)
-				? new StageTwoParser.Expression(callExpressionSegmentsArray)
-				: new StageTwoParser.Expression(new[] { new CallSetExpressionSegment(callExpressionSegmentsArray) });
-			return
-				_statementTranslator.Translate(
-					expression,
-					scopeAccessInformation,
-					ExpressionReturnTypeOptions.NotSpecified
-				).VariablesAccesed;
 		}
 
 		private class ValueSettingStatementAssigmentFormatDetails
