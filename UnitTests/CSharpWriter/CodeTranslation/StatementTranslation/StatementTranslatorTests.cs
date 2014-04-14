@@ -104,7 +104,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             // array or if it is an object with a default function or property whose argument is marked as ByVal, but we won't
             // know that until runtime).
             var expected = new TranslatedStatementContentDetails(
-                "_.CALL(_.CALL(_env.a, _.ARGS.Val(0).GetArgs()), _.ARGS.Ref(_env.b, v => { _env.b = v; }).GetArgs())",
+                "_.CALL(_.CALL(_env.a, _.ARGS.Val(0).GetArgs()), _.ARGS.Ref(_env.b, v0 => { _env.b = v0; }).GetArgs())",
                 new NonNullImmutableList<NameToken>(new[] {
                     new NameToken("a", 0),
                     new NameToken("b", 0)
@@ -161,9 +161,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		private static TempValueNameGenerator GetDefaultTempValueNameGenerator()
 		{
 			var index = 0;
-			return optionalPrefix =>
+			return (optionalPrefix, scopeAccessInformation) =>
 			{
-				var name = optionalPrefix.Name + "_tempVal" + index;
+				var name = ((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + index;
 				index++;
 				return new CSharpName(name);
 			};

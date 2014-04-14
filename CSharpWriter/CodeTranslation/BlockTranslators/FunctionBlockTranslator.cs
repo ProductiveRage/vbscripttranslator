@@ -36,7 +36,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			var returnValueName = functionBlock.HasReturnValue ? _tempNameGenerator(new CSharpName("retVal")) : null;
+            var returnValueName = functionBlock.HasReturnValue ? _tempNameGenerator(new CSharpName("retVal"), scopeAccessInformation) : null;
 			var translationResult = TranslationResult.Empty.Add(
 				TranslateFunctionHeader(
 					functionBlock,

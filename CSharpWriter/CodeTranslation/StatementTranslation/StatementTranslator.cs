@@ -647,8 +647,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
                 return new TranslatedStatementContentDetails(
                     string.Format(
-                        ".Ref({0}, v => {{ {0} = v; }})",
-                        translatedCallExpressionByRefArgumentContent.TranslatedContent
+                        ".Ref({0}, {1} => {{ {0} = {1}; }})",
+                        translatedCallExpressionByRefArgumentContent.TranslatedContent,
+                        _tempNameGenerator(new CSharpName("v"), scopeAccessInformation).Name
                     ),
                     translatedCallExpressionByRefArgumentContent.VariablesAccesed
                 );

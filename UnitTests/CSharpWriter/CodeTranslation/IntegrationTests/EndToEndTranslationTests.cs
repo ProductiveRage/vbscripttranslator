@@ -31,7 +31,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v => { _env.i = v; }).GetArgs());"
+                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v1 => { _env.i = v1; }).GetArgs());"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -59,7 +59,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null; /* Undeclared in source */",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v => { i = v; }).GetArgs());",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }).GetArgs());",
                 "    return retVal1;",
                 "}"
             };
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null;",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v => { i = v; }).GetArgs());",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }).GetArgs());",
                 "    return retVal1;",
                 "}"
             };
@@ -120,7 +120,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_outer.i, v => { _outer.i = v; }).GetArgs());",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_outer.i, v2 => { _outer.i = v2; }).GetArgs());",
                 "    return retVal1;",
                 "}"
             };
@@ -167,7 +167,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var outerRefName = new CSharpName("_outer");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
             var tempNameGeneratorNextNumber = 0;
-            TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + (++tempNameGeneratorNextNumber).ToString());
+            TempValueNameGenerator tempNameGenerator = (optionalPrefix, scopeAccessInformation) =>
+            {
+                return new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + (++tempNameGeneratorNextNumber).ToString());
+            };
             var logger = new NullLogger();
             var statementTranslator = new StatementTranslator(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, logger);
             return new OuterScopeBlockTranslator(

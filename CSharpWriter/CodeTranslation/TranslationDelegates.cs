@@ -14,5 +14,5 @@ namespace CSharpWriter.CodeTranslation
     /// mechanism for implementing this must work with the VBScriptNameRewriter mechanism since there must be no overlap in the returned values. If an
     /// optionalPrefix value is specified then the returned name must begin with this (if null is specified then it must be ignored).
     /// </summary>
-    public delegate CSharpName TempValueNameGenerator(CSharpName optionalPrefix);
+    public delegate CSharpName TempValueNameGenerator(CSharpName optionalPrefix, ScopeAccessInformation scopeAccessInformation);
 }
