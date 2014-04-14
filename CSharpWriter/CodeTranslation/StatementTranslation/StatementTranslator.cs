@@ -311,7 +311,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
                 callExpressionSegment.MemberAccessTokens.Skip(1),
                 callExpressionSegment.Arguments,
-                scopeAccessInformation
+                scopeAccessInformation,
+                0 // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
             );
             var targetNameToken = callExpressionSegment.MemberAccessTokens.First() as NameToken;
             if (targetNameToken != null)
@@ -329,7 +330,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             string targetName,
             IEnumerable<IToken> targetMemberAccessTokens,
             IEnumerable<Expression> arguments,
-            ScopeAccessInformation scopeAccessInformation)
+            ScopeAccessInformation scopeAccessInformation,
+            int indexInCallSet)
         {
             if (string.IsNullOrWhiteSpace(targetName))
                 throw new ArgumentException("Null/blank targetName specified");
@@ -339,6 +341,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("arguments");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
+            if (indexInCallSet < 0)
+                throw new ArgumentOutOfRangeException("indexInCallSet");
 
             var targetMemberAccessTokensArray = targetMemberAccessTokens.ToArray();
             if (targetMemberAccessTokensArray.Any(t => t == null))
@@ -347,37 +351,53 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Any(a => a == null))
                 throw new ArgumentException("Null reference encountered in arguments set");
 
-            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
+            // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
+            // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0).GetArgs())" - there is nothing to be gained
+            // from trying to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to
+            // check for undeclared variables referenced in the arguments but that is all handled later on).
+            ScopeAccessInformation_Extensions.DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
             string nameOfTargetContainerIfRequired;
-            if (targetReferenceDetailsIfAvailable == null)
+            if (indexInCallSet > 0)
             {
-                if (scopeAccessInformation.ScopeLocation == LegacyParser.ScopeLocationOptions.WithinFunctionOrProperty)
-                {
-                    // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
-                    // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
-                    // data returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
-                    nameOfTargetContainerIfRequired = null;
-                }
-                else
-                    nameOfTargetContainerIfRequired = _envRefName.Name;
-            }
-            else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
-                nameOfTargetContainerIfRequired = _envRefName.Name;
-            else if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
-            {
-                // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
-                // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
-                // references in an identical manner to the class functions (and properties) so the outerRefName should used every time that an
-                // OutermostScope reference is accessed
-                nameOfTargetContainerIfRequired = _outerRefName.Name;
+                targetReferenceDetailsIfAvailable = null;
+                nameOfTargetContainerIfRequired = null;
             }
             else
-                nameOfTargetContainerIfRequired = null;
+            {
+                targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
+                if (targetReferenceDetailsIfAvailable == null)
+                {
+                    if (scopeAccessInformation.ScopeLocation == LegacyParser.ScopeLocationOptions.WithinFunctionOrProperty)
+                    {
+                        // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
+                        // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
+                        // data returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
+                        nameOfTargetContainerIfRequired = null;
+                    }
+                    else
+                        nameOfTargetContainerIfRequired = _envRefName.Name;
+                }
+                else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
+                    nameOfTargetContainerIfRequired = _envRefName.Name;
+                else if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
+                {
+                    // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
+                    // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
+                    // references in an identical manner to the class functions (and properties) so the outerRefName should used every time that an
+                    // OutermostScope reference is accessed
+                    nameOfTargetContainerIfRequired = _outerRefName.Name;
+                }
+                else
+                    nameOfTargetContainerIfRequired = null;
+            }
 
             // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
             // out by looking into the scope access information. Note: Further down, we rely on function / property calls being identified at this
             // point for cases where there are no target member accessors (it means that if we get further down and there are no target member
             // accessors that it must not be a function or property call).
+            // - The call semantics are different for a function call, if there is a method "F" in the outer most scope then something like
+            //   "_.CALL(_outer, "F", args)" would be generated but if "F" isn't a function then "_.CALL(_outer.F, new string[], args)"
+            //   would be
             if (targetMemberAccessTokensArray.Length == 0)
             {
                 if (targetReferenceDetailsIfAvailable != null)
@@ -676,7 +696,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         content,
                         callSetItemExpression.MemberAccessTokens,
                         callSetItemExpression.Arguments,
-                        scopeAccessInformation
+                        scopeAccessInformation,
+                        index
                     );
                 }
                 

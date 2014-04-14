@@ -3,6 +3,7 @@ using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
 using System;
+using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using VBScriptTranslator.UnitTests.Shared.Comparers;
@@ -15,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		// TODO: "o" where "o" has a default parameter-less property => try to access that property, doesn't matter if returns value-type or reference
 		// TODO: "o" where "o" has a default parameter-less function => try to access that property, doesn't matter if returns value-type or reference
 
-		// TODO: "WScript.Echo o" where "o" has a default parameter-less property => displays the property value (if value-type, "Type mismatch" if reference)
+        // TODO: "WScript.Echo o" where "o" has a default parameter-less property => displays the property value (if value-type, "Type mismatch" if reference)
 		// TODO: "WScript.Echo o" where "o" has a default parameter-less function => "Type mismatch"
 		// TODO: "WScript.Echo o()" where "o" has a default parameter-less function => displays the function return value (if value-type, "Type mismatch" if reference)
 
@@ -43,11 +44,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			);
 		}
 
-		[Fact]
-		public void IsolatedFunctionCallAccordingToScopeDoesNotHaveValueTypeAccessLogic()
-		{
-			// "o" (where there is a function in scope called "o")
-			var expression = new Expression(new[]
+        [Fact]
+        public void IsolatedFunctionCallAccordingToScopeDoesNotHaveValueTypeAccessLogic()
+        {
+            // "o" (where there is a function in scope called "o")
+            var expression = new Expression(new[]
 			{
 				new CallExpressionSegment(
 					new[] { new NameToken("o", 0) },
@@ -61,10 +62,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 "o",
                 0
             );
-			var expected = new TranslatedStatementContentDetails(
+            var expected = new TranslatedStatementContentDetails(
                 "_.CALL(_outer, \"o\")",
-				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
-			);
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
+            );
             Assert.Equal(
                 expected,
                 GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
@@ -72,7 +73,51 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             );
         }
 
-		private static StatementTranslator GetDefaultStatementTranslator()
+        [Fact]
+        public void NestedFunctionOrArrayAccess()
+        {
+            // "a(0)(b)" (where neither a nor b are defined and so there could be method calls OR array accesses)
+            var expression = new Expression(new[]
+			{
+                new CallSetExpressionSegment(new[]
+                {
+                    new CallSetItemExpressionSegment(
+                        new[] { new NameToken("a", 0) },
+                        new[] { new Expression(new[] { new NumericValueExpressionSegment(new NumericValueToken(0, 0)) }) },
+                        null
+                    ),
+                    new CallSetItemExpressionSegment(
+                        new IToken[0],
+                        new[] { new Expression(new[] { new CallExpressionSegment(
+                            new[] { new NameToken("b", 0) },
+                            new Expression[0],
+                            CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
+                        )})},
+                        null
+                    )
+                })
+			});
+
+            // Since we can't know until runtime if "a" is an array that is being accessed or a function/property, the arguments need to
+            // be constructed to work as ByVal or ByRef if it IS a function or property. Since "0" is a constant it will be ByVal but
+            // since "b" is a variable it has to be marked as exligible for ByRef (this will not have any effect if "a(0)" is an
+            // array or if it is an object with a default function or property whose argument is marked as ByVal, but we won't
+            // know that until runtime).
+            var expected = new TranslatedStatementContentDetails(
+                "_.CALL(_.CALL(_env.a, _.ARGS.Val(0).GetArgs()), _.ARGS.Ref(_env.b, v => { _env.b = v; }).GetArgs())",
+                new NonNullImmutableList<NameToken>(new[] {
+                    new NameToken("a", 0),
+                    new NameToken("b", 0)
+                })
+            );
+            Assert.Equal(
+                expected,
+                GetDefaultStatementTranslator().Translate(expression, ScopeAccessInformation.Empty, ExpressionReturnTypeOptions.None),
+                new TranslatedStatementContentDetailsComparer()
+            );
+        }
+
+        private static StatementTranslator GetDefaultStatementTranslator()
 		{
 			return new StatementTranslator(
                 DefaultsupportRefName,
