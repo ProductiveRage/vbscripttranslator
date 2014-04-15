@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace CSharpSupport
 {
     public interface IBuildCallArgumentProviders
@@ -19,7 +21,7 @@ namespace CSharpSupport
         /// TODO
         /// This should return a reference to itself to enable chaining when building up argument sets
         /// </summary>
-        IBuildCallArgumentProviders Unknown(object value, Action<object> valueUpdater);
+        IBuildCallArgumentProviders RefIfArray(object target, IBuildCallArgumentProviders argumentProvider);
 
         /// <summary>
         /// TODO

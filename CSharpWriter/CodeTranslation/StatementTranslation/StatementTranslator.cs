@@ -582,46 +582,87 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
 
             bool isConfirmedToBeByVal;
-            if (argumentValue.Segments.Count() == 1)
+            if (argumentValue.Segments.Count() > 1)
             {
-                // If there is a single segment that is a constant then it must be ByVal
+                // If there are multiple segments here then it must be ByVal (it's fairly difficult to actually not be ByVal - it basically boils
+                // down to being a simple variable reference - eg. "a" - or one or more array accesses - eg. "a(0)" or "a(0, 1)" or "a(0)(1)"
+                // though differentiating between the case where "a(0)" is an array accessor and where it's a default function/property
+                // access is where some of the difficulty comes in). All of the below will try to decide what to do.
+                isConfirmedToBeByVal = true;
+            }
+            else
+            {
+                // If there is a single segment that is a constant then it must be ByVal, same if it's a bracketed segment (VBScript treats values
+                // passed wrapped in extra brackets as being ByVal), same if it's a NewInstanceExpressionSegment (there is no point allowing the
+                // reference to be changed since nothing has a reference to the new instance being passed in)
                 var singleSegment = argumentValue.Segments.First();
                 if ((singleSegment is NumericValueExpressionSegment)
                 || (singleSegment is StringValueExpressionSegment)
-                || (singleSegment is BuiltInValueExpressionSegment))
+                || (singleSegment is BuiltInValueExpressionSegment)
+                || (singleSegment is BracketedExpressionSegment)
+                || (singleSegment is NewInstanceExpressionSegment))
                     isConfirmedToBeByVal = true;
                 else
                 {
-                    // If the segment is a CallExpressionSegment that refers to a built-in function or if there are member accessors (indicating
-                    // property access - eg. "a.Name") then the reference can not be altered and so must be ByVal
+                    // If this is either a single CallExpressionSegment or a CallSetExpressionSegment then there are some conditions that will mean that
+                    // it should definitely be passed ByVal. If there are any nested member accessors (eg. "a.Name" or "a(0).Name") then pass ByVal. If
+                    // the first call segment is to a built-in function then pass ByVal
+                    CallSetItemExpressionSegment initialCallSetItemExpressionSegmentToCheckIfAny;
                     var callExpressionSegment = singleSegment as CallExpressionSegment;
                     if (callExpressionSegment != null)
+                        initialCallSetItemExpressionSegmentToCheckIfAny = callExpressionSegment;
+                    else
                     {
-                        if ((callExpressionSegment.MemberAccessTokens.Count() > 1)
-                        || (callExpressionSegment.MemberAccessTokens.First() is BuiltInFunctionToken))
+                        var callSetExpressionSegment = singleSegment as CallSetExpressionSegment;
+                        if (callSetExpressionSegment != null)
+                        {
+                            // The first call expression segment must have at least one member access tokens (otherwise there would be no target) but
+                            // if there are multiple (checked for further down) or if any of the subsequent segments have ANY accessors) then it's ByVal
+                            // (a CallSetExpression would have segments without any member accessors if it was describing jagged array access - eg.
+                            // "a(0)(1)" - or if the same source code was accessing default properties or members).
+                            if (callSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
+                            {
+                                isConfirmedToBeByVal = true;
+                                initialCallSetItemExpressionSegmentToCheckIfAny = null; // No point doing any more checks so set this to null
+                            }
+                            else
+                                initialCallSetItemExpressionSegmentToCheckIfAny = callSetExpressionSegment.CallExpressionSegments.First();
+                        }
+                        else
+                            initialCallSetItemExpressionSegmentToCheckIfAny = null;
+                    }
+                    if (initialCallSetItemExpressionSegmentToCheckIfAny != null)
+                    {
+                        // If this is a call with multiple member accessors (indicating property access - eg. "a.Name") then it's passed ByVal. If it's
+                        // a built-in function then it's passed ByVal. If it's a known function within the current scope then it's passed ByVal.
+                        // - Check for multiple member accessor or built-in function access first, cos it's easy..
+                        if ((initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.Count() > 1)
+                        || (initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First() is BuiltInFunctionToken))
                             isConfirmedToBeByVal = true;
                         else
                         {
-                            // If the CallExpressionSegment's target is confirmed to be a function then the refrence can not be altered and so
-                            // the argument must be ByVal
+                            // .. then check for a known function
                             var rewrittenName = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
                             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
-                            if (targetReferenceDetailsIfAvailable != null)
+                            if (targetReferenceDetailsIfAvailable == null)
                             {
-                                isConfirmedToBeByVal =
-                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
-                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property);
+                                // If this is an undeclared reference then it will be implicitly declared later as a variable and so will be elligible
+                                // to be passed ByRef
+                                isConfirmedToBeByVal = false;
                             }
                             else
-                                isConfirmedToBeByVal = false;
+                            {
+                                isConfirmedToBeByVal = (
+                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
+                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
+                                );
+                            }
                         }
                     }
                     else
                         isConfirmedToBeByVal = false;
                 }
             }
-            else
-                isConfirmedToBeByVal = false;
             if (isConfirmedToBeByVal)
             {
                 var translatedCallExpressionByValArgumentContent = Translate(
@@ -638,35 +679,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-            bool isConfirmedToBeByRef;
-            if (argumentValue.Segments.Count() == 1)
-            {
-                // If the CallExpressionSegment's target is confirmed to not be a function and not have any member accessors or arguments then
-                // it CAN be passed ByRef
-                var callExpressionSegment = argumentValue.Segments.First() as CallExpressionSegment;
-                if ((callExpressionSegment != null) && (callExpressionSegment.MemberAccessTokens.Count() == 1) && !callExpressionSegment.Arguments.Any())
-                {
-                    var rewrittenName = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
-                    var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
-                    if (targetReferenceDetailsIfAvailable == null)
-                    {
-                        // If this is an undeclared reference then it will be implicitly declared later as a variable and so WILL be elligible
-                        // to be passed ByRef (it can't be a function or property which is what would get it off the hook)
-                        isConfirmedToBeByRef = true;
-                    }
-                    else
-                    {
-                        isConfirmedToBeByRef =
-                            (targetReferenceDetailsIfAvailable.ReferenceType != ReferenceTypeOptions.Function) &&
-                            (targetReferenceDetailsIfAvailable.ReferenceType != ReferenceTypeOptions.Property);
-                    }
-                }
-                else
-                    isConfirmedToBeByRef = false;
-            }
-            else
-                isConfirmedToBeByRef = false;
-            if (isConfirmedToBeByRef)
+            // If we've got this far then then argumentValue expression has only a single segment. If it is a CallExpressionSegment or a CallSetExpression
+            // then there won't be any nested member accessors (such as "a.Name" or "a(0).Name" since they would have been caught as a ByVal situation
+            // above). On the other hand, there shouldn't be any other time of expression segment that could get this far either! (Access of a variable
+            // "a" is represented by a CallExpressionSegment with a single member accessor token and zero arguments). The only easy out we have at this
+            // point is if we do indeed have a CallExpressionSegment with a single member accessor token and zero arguments since that will definitely
+            // be passed ByRef. Otherwise there are arguments to consider which may be arguments on default functions or properties (in which case it
+            // will be ByVal) or array indices (in which case it will be ByRef).
+            if ((argumentValue.Segments.Single() is CallExpressionSegment) && !((CallExpressionSegment)argumentValue.Segments.Single()).Arguments.Any())
             {
                 var translatedCallExpressionByRefArgumentContent = Translate(
                     argumentValue,
@@ -683,11 +703,76 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-            throw new NotImplementedException(); // TODO: Deal with maybe-ByRef
+            // The final scenario is a CallExpressionSegment with a single member accessor and one or more arguments or a CallSetExpressionSegment
+            // where the first segment has a single member accessor and one or more arguments and the subsequent segments all have zero member
+            // accessors but one or more arguments. It's impossible to know at this point whether those "arguments" are array accesses (which will
+            // be passed ByRef) or default function or property calls (which will be passed ByVal).
+            TranslatedStatementContentDetails possibleByRefTarget;
+            IEnumerable<Expression> possibleByRefArguments;
+            var possibleByRefCallExpressionSegment = argumentValue.Segments.Single() as CallExpressionSegment;
+            if (possibleByRefCallExpressionSegment != null)
+            {
+                if (possibleByRefCallExpressionSegment.MemberAccessTokens.Count() > 2)
+                    throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallExpressionSegment with multiple MemberAccessTokens at this point");
+                if (!possibleByRefCallExpressionSegment.MemberAccessTokens.Any())
+                    throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallExpressionSegment without any arguments at this point");
+                possibleByRefTarget = Translate(
+                    new CallExpressionSegment(
+                        possibleByRefCallExpressionSegment.MemberAccessTokens,
+                        new Expression[0],
+                        CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
+                    ),
+                    scopeAccessInformation
+                );
+                possibleByRefArguments = possibleByRefCallExpressionSegment.Arguments;
+            }
+            else
+            {
+                var possibleByRefCallSetExpressionSegment = argumentValue.Segments.Single() as CallSetExpressionSegment;
+                if (possibleByRefCallSetExpressionSegment != null)
+                {
+                    // TODO: Assert all expectations
+                    var lastCallExpressionSegment = possibleByRefCallSetExpressionSegment.CallExpressionSegments.Last();
+                    if (!lastCallExpressionSegment.Arguments.Any())
+                        throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment whose last segment has no arguments at this point");
 
-            // Single CallExpressionSegment where single target is confirmed to NOT be a function and there are no arguments => ByRef *********
+                    // Note: A CallSetExpressionSegment will always have AT LEAST two CallExpressionSegments
+                    if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() == 2)
+                    {
+                        // Can't instantiate a CallSetExpressionSegment with a single call expression segment so re-represent it as a CallExpressionSegment
+                        possibleByRefTarget = Translate(
+                            new CallExpressionSegment(
+                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
+                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().Arguments,
+                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().ZeroArgumentBracketsPresence
+                            ),
+                            scopeAccessInformation
+                        );
+                    }
+                    else
+                    {
+                        possibleByRefTarget = Translate(
+                            new CallSetExpressionSegment(
+                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.Take(possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() - 1)
+                            ),
+                            scopeAccessInformation
+                        );
+                    }
+                    possibleByRefArguments = lastCallExpressionSegment.Arguments;
+                }
+                else
+                    throw new NotSupportedException("Unexpected argumentValue content, unable to translate");
+            }
 
-            // TODO: Fix support for "a(0)(1)" (identified as CallExpressionSegment, NumericValueSegment.. maybe this IS correct?!)
+            var translatedContentForPossibleByRefArgument = TranslateAsArgumentProvider(possibleByRefArguments, scopeAccessInformation);
+            return new TranslatedStatementContentDetails(
+                string.Format(
+                    ".RefIfArray({0}, {1})",
+                    possibleByRefTarget.TranslatedContent,
+                    translatedContentForPossibleByRefArgument.TranslatedContent
+                ),
+                possibleByRefTarget.VariablesAccesed.AddRange(translatedContentForPossibleByRefArgument.VariablesAccesed)
+            );
         }
 
         private TranslatedStatementContentDetailsWithContentType Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)

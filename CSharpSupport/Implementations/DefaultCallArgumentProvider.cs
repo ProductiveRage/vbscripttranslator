@@ -39,10 +39,12 @@ namespace CSharpSupport.Implementations
         /// TODO
         /// This should return a reference to itself to enable chaining when building up argument sets
         /// </summary>
-        public IBuildCallArgumentProviders Unknown(object value, Action<object> valueUpdater)
+        public IBuildCallArgumentProviders RefIfArray(object target, IBuildCallArgumentProviders argumentProvider)
         {
-            if (valueUpdater == null)
-                throw new ArgumentNullException("valueUpdater");
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (argumentProvider == null)
+                throw new ArgumentNullException("argumentProvider");
 
             throw new NotImplementedException(); // TODO
         }
