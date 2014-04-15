@@ -68,7 +68,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
 			return new TranslatedStatementContentDetails(
 				assignmentFormatDetails.AssigmentFormat(translatedExpressionContentDetails.TranslatedContent),
-				assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccesed)
+				assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccessed)
 			);
 		}
 
@@ -279,12 +279,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         scopeAccessInformation,
                         ExpressionReturnTypeOptions.NotSpecified
                     )
-                    .VariablesAccesed;
+                    .VariablesAccessed;
             }
 
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
             var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation);
-            variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccesed);
+            variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
             return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",

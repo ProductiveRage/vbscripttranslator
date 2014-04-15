@@ -17,7 +17,7 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
 				return false;
 
 			var tokenSetComparer = new TokenSetComparer();
-			return tokenSetComparer.Equals(x.VariablesAccesed, y.VariablesAccesed);
+			return tokenSetComparer.Equals(x.VariablesAccessed, y.VariablesAccessed);
 		}
 
 		public int GetHashCode(TranslatedStatementContentDetails obj)

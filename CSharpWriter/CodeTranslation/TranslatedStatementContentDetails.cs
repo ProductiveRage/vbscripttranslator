@@ -6,15 +6,15 @@ namespace CSharpWriter.CodeTranslation
 {
     public class TranslatedStatementContentDetails
     {
-        public TranslatedStatementContentDetails(string translatedContent, NonNullImmutableList<NameToken> variablesAccesed)
+        public TranslatedStatementContentDetails(string translatedContent, NonNullImmutableList<NameToken> variablesAccessed)
         {
             if (string.IsNullOrWhiteSpace(translatedContent))
                 throw new ArgumentException("Null/blank translatedContent specified");
-            if (variablesAccesed == null)
-                throw new ArgumentNullException("variablesAccesed");
+            if (variablesAccessed == null)
+                throw new ArgumentNullException("variablesAccessed");
 
             TranslatedContent = translatedContent;
-            VariablesAccesed = variablesAccesed;
+            VariablesAccessed = variablesAccessed;
         }
 
         /// <summary>
@@ -25,6 +25,6 @@ namespace CSharpWriter.CodeTranslation
         /// <summary>
         /// This will never be null
         /// </summary>
-        public NonNullImmutableList<NameToken> VariablesAccesed { get; private set; }
+        public NonNullImmutableList<NameToken> VariablesAccessed { get; private set; }
     }
 }

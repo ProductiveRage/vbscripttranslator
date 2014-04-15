@@ -112,7 +112,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					    returnRequirements,
                         segments[0].AllTokens.First().LineIndex
                     ),
-                    result.VariablesAccesed
+                    result.VariablesAccessed
 				);
 			}
 
@@ -131,7 +131,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					    returnRequirements,
                         segments[0].AllTokens.First().LineIndex
                     ),
-                    result.VariablesAccesed
+                    result.VariablesAccessed
 				);
             }
 
@@ -150,7 +150,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				    returnRequirements,
                     segments[0].AllTokens.First().LineIndex
                 ),
-                resultLeft.VariablesAccesed.AddRange(resultRight.VariablesAccesed)
+                resultLeft.VariablesAccessed.AddRange(resultRight.VariablesAccessed)
             );
         }
 
@@ -320,7 +320,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 result = new TranslatedStatementContentDetailsWithContentType(
                     result.TranslatedContent,
                     result.ContentType,
-                    result.VariablesAccesed.Add(targetNameToken)
+                    result.VariablesAccessed.Add(targetNameToken)
                 );
             }
             return result;
@@ -430,7 +430,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                                 var argumentContent = TranslateAsArgumentContent(argumentsArray[index], scopeAccessInformation);
                                 memberCallContent.Append(argumentContent.TranslatedContent);
                                 memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
-                                    argumentContent.VariablesAccesed
+                                    argumentContent.VariablesAccessed
                                 );
                             }
                             memberCallContent.Append(".GetArgs()");
@@ -521,7 +521,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var argumentProviderContent = TranslateAsArgumentProvider(argumentsArray, scopeAccessInformation);
                 callExpressionContent.Append(argumentProviderContent.TranslatedContent);
                 callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
-                    argumentProviderContent.VariablesAccesed
+                    argumentProviderContent.VariablesAccessed
                 );
             }
 
@@ -557,7 +557,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var argumentContent = TranslateAsArgumentContent(argumentValue, scopeAccessInformation);
                 argumentProviderContent.Append(argumentContent.TranslatedContent);
                 variablesAccessed = variablesAccessed.AddRange(
-                    argumentContent.VariablesAccesed
+                    argumentContent.VariablesAccessed
                 );
             }
             argumentProviderContent.Append(".GetArgs()");
@@ -675,7 +675,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         ".Val({0})",
                         translatedCallExpressionByValArgumentContent.TranslatedContent
                     ),
-                    translatedCallExpressionByValArgumentContent.VariablesAccesed
+                    translatedCallExpressionByValArgumentContent.VariablesAccessed
                 );
             }
 
@@ -699,7 +699,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         translatedCallExpressionByRefArgumentContent.TranslatedContent,
                         _tempNameGenerator(new CSharpName("v"), scopeAccessInformation).Name
                     ),
-                    translatedCallExpressionByRefArgumentContent.VariablesAccesed
+                    translatedCallExpressionByRefArgumentContent.VariablesAccessed
                 );
             }
 
@@ -771,7 +771,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     possibleByRefTarget.TranslatedContent,
                     translatedContentForPossibleByRefArgument.TranslatedContent
                 ),
-                possibleByRefTarget.VariablesAccesed.AddRange(translatedContentForPossibleByRefArgument.VariablesAccesed)
+                possibleByRefTarget.VariablesAccessed.AddRange(translatedContentForPossibleByRefArgument.VariablesAccessed)
             );
         }
 
@@ -817,7 +817,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 
                 // Overwrite any previous string content since it effectively gets passed through as an accumulator
                 content = translatedContent.TranslatedContent;
-                variablesAccessed = variablesAccessed.AddRange(translatedContent.VariablesAccesed);
+                variablesAccessed = variablesAccessed.AddRange(translatedContent.VariablesAccessed);
             }
             return new TranslatedStatementContentDetailsWithContentType(
                 content,
