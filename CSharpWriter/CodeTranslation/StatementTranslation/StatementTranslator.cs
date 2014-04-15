@@ -518,17 +518,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                callExpressionContent.Append(_supportRefName.Name);
-                callExpressionContent.Append(".ARGS");
-                for (var index = 0; index < argumentsArray.Length; index++)
-                {
-                    var argumentContent = TranslateAsArgumentContent(argumentsArray[index], scopeAccessInformation);
-                    callExpressionContent.Append(argumentContent.TranslatedContent);
-                    callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
-                        argumentContent.VariablesAccesed
-                    );
-                }
-                callExpressionContent.Append(".GetArgs()");
+                var argumentProviderContent = TranslateAsArgumentProvider(argumentsArray, scopeAccessInformation);
+                callExpressionContent.Append(argumentProviderContent.TranslatedContent);
+                callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
+                    argumentProviderContent.VariablesAccesed
+                );
             }
 
             callExpressionContent.Append(")");
@@ -537,6 +531,40 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
                 callExpressionVariablesAccessed
 			);
+        }
+
+        /// <summary>
+        /// This generates the content that initialises a new IProvideCallArguments instance, based upon the specified argument values. This will throw
+        /// an exception for null arguments or an argumentValues set containing any null references. It will never return null, it will raise an exception
+        /// if unable to satisfy the request.
+        /// </summary>
+        public TranslatedStatementContentDetails TranslateAsArgumentProvider(IEnumerable<Expression> argumentValues, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (argumentValues == null)
+                throw new ArgumentNullException("argumentValues");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var variablesAccessed = new NonNullImmutableList<NameToken>();
+            var argumentProviderContent = new StringBuilder();
+            argumentProviderContent.Append(_supportRefName.Name);
+            argumentProviderContent.Append(".ARGS");
+            foreach (var argumentValue in argumentValues)
+            {
+                if (argumentValue == null)
+                    throw new ArgumentException("Null reference encountered in argumentValues set");
+
+                var argumentContent = TranslateAsArgumentContent(argumentValue, scopeAccessInformation);
+                argumentProviderContent.Append(argumentContent.TranslatedContent);
+                variablesAccessed = variablesAccessed.AddRange(
+                    argumentContent.VariablesAccesed
+                );
+            }
+            argumentProviderContent.Append(".GetArgs()");
+            return new TranslatedStatementContentDetails(
+                argumentProviderContent.ToString(),
+                variablesAccessed
+            );
         }
 
         /// <summary>

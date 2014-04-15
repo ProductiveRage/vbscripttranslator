@@ -280,26 +280,18 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         ExpressionReturnTypeOptions.NotSpecified
                     )
                     .VariablesAccesed;
-
             }
 
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
-            // TODO: Deal with setting ByRef values
+            var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation);
+            variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccesed);
             return new ValueSettingStatementAssigmentFormatDetails(
 				translatedExpression => string.Format(
 					"{0}.SET({1}, {2}, {3}, {4})",
 					_supportRefName.Name,
 					targetAccessor,
 					(optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
-					arguments.Any()
-						? string.Format(
-							"new object[] {{ {0} }}",
-							string.Join(
-								", ",
-								arguments.Select(a => _statementTranslator.Translate(a, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified).TranslatedContent)
-							)
-						)
-						: "new object[0]",
+                    argumentsContent.TranslatedContent,
 					translatedExpression
 				),
 				variablesAccessed.ToNonNullImmutableList()
