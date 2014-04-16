@@ -21,7 +21,7 @@ namespace Tester
         {
             Console.WriteLine(
                 Translate(
-                    "' Test\n\nDim i\ntest1 ' Inline comment\nWScript.Echo 1"
+                    "' Test\nDim i\ntest1 ' Inline comment\nWScript.Echo 1"
                 )
             );
             Console.ReadLine();
@@ -43,7 +43,10 @@ namespace Tester
             var outerClassName = new CSharpName("GlobalReferences");
             var outerRefName = new CSharpName("_outer");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
-            TempValueNameGenerator tempNameGenerator = optionalPrefix => new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
+			TempValueNameGenerator tempNameGenerator = (optionalPrefix, scopeAccessInformation) =>
+			{
+				return new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
+			};
             var logger = new CSharpCommentMakingLogger(
                 new ConsoleLogger()
             );
@@ -60,6 +63,8 @@ namespace Tester
                 tempNameGenerator,
                 statementTranslator,
                 new ValueSettingsStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
+				new NonNullImmutableList<NameToken>().Add(new NameToken("WScript", 0)),
+				OuterScopeBlockTranslator.OutputTypeOptions.Executable,
                 logger
             );
 
