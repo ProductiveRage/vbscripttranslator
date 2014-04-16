@@ -642,7 +642,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         else
                         {
                             // .. then check for a known function
-                            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
+							var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
                             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
                             if (targetReferenceDetailsIfAvailable == null)
                             {
@@ -740,9 +740,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() == 2)
                     {
                         // Can't instantiate a CallSetExpressionSegment with a single call expression segment so re-represent it as a CallExpressionSegment
-                        possibleByRefTarget = Translate(
-                            new CallExpressionSegment(
-                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
+					possibleByRefTarget = Translate(
+						new CallExpressionSegment(
+							possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
                                 possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().Arguments,
                                 possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().ZeroArgumentBracketsPresence
                             ),
@@ -754,9 +754,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         possibleByRefTarget = Translate(
                             new CallSetExpressionSegment(
                                 possibleByRefCallSetExpressionSegment.CallExpressionSegments.Take(possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() - 1)
-                            ),
-                            scopeAccessInformation
-                        );
+						),
+						scopeAccessInformation
+					);
                     }
                     possibleByRefArguments = lastCallExpressionSegment.Arguments;
                 }
