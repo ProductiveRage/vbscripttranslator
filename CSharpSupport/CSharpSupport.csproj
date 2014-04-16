@@ -43,6 +43,7 @@
     <Compile Include="Compat\BasicIReflectImplementation.cs" />
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
+    <Compile Include="IBuildCallArgumentProviders_Extensions.cs" />
     <Compile Include="IBuildCallArgumentProviders.cs" />
     <Compile Include="Implementations\DefaultCallArgumentProvider.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />

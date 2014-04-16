@@ -708,7 +708,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // accessors but one or more arguments. It's impossible to know at this point whether those "arguments" are array accesses (which will
             // be passed ByRef) or default function or property calls (which will be passed ByVal).
             TranslatedStatementContentDetails possibleByRefTarget;
-            IEnumerable<Expression> possibleByRefArguments;
+			IEnumerable<IEnumerable<Expression>> possibleByRefArgumentSets;
             var possibleByRefCallExpressionSegment = argumentValue.Segments.Single() as CallExpressionSegment;
             if (possibleByRefCallExpressionSegment != null)
             {
@@ -724,54 +724,51 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     ),
                     scopeAccessInformation
                 );
-                possibleByRefArguments = possibleByRefCallExpressionSegment.Arguments;
+                possibleByRefArgumentSets = new[] { possibleByRefCallExpressionSegment.Arguments };
             }
             else
             {
                 var possibleByRefCallSetExpressionSegment = argumentValue.Segments.Single() as CallSetExpressionSegment;
                 if (possibleByRefCallSetExpressionSegment != null)
                 {
-                    // TODO: Assert all expectations
-                    var lastCallExpressionSegment = possibleByRefCallSetExpressionSegment.CallExpressionSegments.Last();
-                    if (!lastCallExpressionSegment.Arguments.Any())
-                        throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment whose last segment has no arguments at this point");
+					if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens.Count() > 2)
+						throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with multiple MemberAccessTokens in its first CallExpressionSegment at this point");
+					if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
+						throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with subsequent CallExpressionSegments that have MemberAccessTokens at this point");
 
-                    // Note: A CallSetExpressionSegment will always have AT LEAST two CallExpressionSegments
-                    if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() == 2)
-                    {
-                        // Can't instantiate a CallSetExpressionSegment with a single call expression segment so re-represent it as a CallExpressionSegment
 					possibleByRefTarget = Translate(
 						new CallExpressionSegment(
 							possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
-                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().Arguments,
-                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().ZeroArgumentBracketsPresence
-                            ),
-                            scopeAccessInformation
-                        );
-                    }
-                    else
-                    {
-                        possibleByRefTarget = Translate(
-                            new CallSetExpressionSegment(
-                                possibleByRefCallSetExpressionSegment.CallExpressionSegments.Take(possibleByRefCallSetExpressionSegment.CallExpressionSegments.Count() - 1)
+							new Expression[0],
+							CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
 						),
 						scopeAccessInformation
 					);
-                    }
-                    possibleByRefArguments = lastCallExpressionSegment.Arguments;
+					possibleByRefArgumentSets = possibleByRefCallSetExpressionSegment.CallExpressionSegments.Select(s => s.Arguments);
                 }
                 else
                     throw new NotSupportedException("Unexpected argumentValue content, unable to translate");
             }
 
-            var translatedContentForPossibleByRefArgument = TranslateAsArgumentProvider(possibleByRefArguments, scopeAccessInformation);
+			// For the "RefIfArray" call to determine the correct behaviour at runtime, we need to pass the initial target to the method and then
+			// each set of arguments so that it can check at each point whether the arguments are for a default function/property call or whether
+			// they are for array access (as soon as a function or property call is made, the value must be passed ByVal). This means that a call
+			// "a(0, 1)(2)" is effectively passed as "RefIfArray(a, (0, 1), (2))". If it only checked whether the (2) argument was for an array
+			// access or a function/property call then it would ignore whether the (0, 1) arguments were for array access or function/property.
+			// - Note: This RefIfArray call relies upon the extension method that takes a param array instead of an IEnumerable
+			var translatedContentForPossibleByRefArgumentSets = possibleByRefArgumentSets.Select(args => TranslateAsArgumentProvider(args, scopeAccessInformation));
             return new TranslatedStatementContentDetails(
                 string.Format(
                     ".RefIfArray({0}, {1})",
                     possibleByRefTarget.TranslatedContent,
-                    translatedContentForPossibleByRefArgument.TranslatedContent
+					string.Join(
+						", ",
+						translatedContentForPossibleByRefArgumentSets.Select(content => content.TranslatedContent)
+					)
                 ),
-                possibleByRefTarget.VariablesAccessed.AddRange(translatedContentForPossibleByRefArgument.VariablesAccessed)
+                possibleByRefTarget.VariablesAccessed.AddRange(
+					translatedContentForPossibleByRefArgumentSets.SelectMany(content => content.VariablesAccessed)
+				)
             );
         }
 
