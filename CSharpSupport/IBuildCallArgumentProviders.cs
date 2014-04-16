@@ -21,7 +21,7 @@ namespace CSharpSupport
         /// TODO
         /// This should return a reference to itself to enable chaining when building up argument sets
         /// </summary>
-        IBuildCallArgumentProviders RefIfArray(object target, IEnumerable<IBuildCallArgumentProviders> argumentProviders);
+		IBuildCallArgumentProviders RefIfArray(object target, IEnumerable<IProvideCallArguments> argumentProviders);
 
         /// <summary>
         /// TODO

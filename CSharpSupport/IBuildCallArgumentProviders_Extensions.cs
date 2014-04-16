@@ -9,7 +9,7 @@ namespace CSharpSupport
         /// TODO
         /// This should return a reference to itself to enable chaining when building up argument sets
         /// </summary>
-		public static IBuildCallArgumentProviders RefIfArray(this IBuildCallArgumentProviders source, object target, params IBuildCallArgumentProviders[] argumentProviders)
+		public static IBuildCallArgumentProviders RefIfArray(this IBuildCallArgumentProviders source, object target, params IProvideCallArguments[] argumentProviders)
 		{
 			if (source == null)
 				throw new ArgumentNullException("source");
@@ -18,7 +18,7 @@ namespace CSharpSupport
 			if (argumentProviders == null)
 				throw new ArgumentNullException("argumentProviders");
 
-			return source.RefIfArray(target, (IEnumerable<IBuildCallArgumentProviders>)argumentProviders);
+			return source.RefIfArray(target, (IEnumerable<IProvideCallArguments>)argumentProviders);
 		}
     }
 }

@@ -82,7 +82,7 @@ namespace CSharpSupport.Implementations
         /// </summary>
         public IBuildCallArgumentProviders ARGS
         {
-            get { return new DefaultCallArgumentProvider(); }
+            get { return new DefaultCallArgumentProvider(this); }
         }
 
         /// <summary>

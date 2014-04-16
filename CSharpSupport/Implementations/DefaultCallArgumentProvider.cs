@@ -7,9 +7,14 @@ namespace CSharpSupport.Implementations
     public class DefaultCallArgumentProvider : IBuildCallArgumentProviders
     {
         private readonly List<Tuple<object, Action<object>>> _valuesWithUpdatesWhereRequired;
-        public DefaultCallArgumentProvider()
+		private readonly IAccessValuesUsingVBScriptRules _vbscriptValueAccessor;
+        public DefaultCallArgumentProvider(IAccessValuesUsingVBScriptRules vbscriptValueAccessor)
         {
-            _valuesWithUpdatesWhereRequired = new List<Tuple<object, Action<object>>>();
+			if (vbscriptValueAccessor == null)
+				throw new ArgumentNullException("vbscriptValueAccessor");
+
+			_vbscriptValueAccessor = vbscriptValueAccessor;
+			_valuesWithUpdatesWhereRequired = new List<Tuple<object, Action<object>>>();
         }
 
         /// <summary>
@@ -39,14 +44,48 @@ namespace CSharpSupport.Implementations
         /// TODO
         /// This should return a reference to itself to enable chaining when building up argument sets
         /// </summary>
-        public IBuildCallArgumentProviders RefIfArray(object target, IEnumerable<IBuildCallArgumentProviders> argumentProviders)
+        public IBuildCallArgumentProviders RefIfArray(object target, IEnumerable<IProvideCallArguments> argumentProviders)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
 			if (argumentProviders == null)
 				throw new ArgumentNullException("argumentProviders");
 
-            throw new NotImplementedException(); // TODO
+			var argumentProvidersArray = argumentProviders.ToArray();
+			if (argumentProvidersArray.Length == 0)
+				throw new ArgumentException("There must be at least one argument provider");
+			if (argumentProvidersArray.Any(p => p.NumberOfArguments == 0))
+				throw new ArgumentException("There may not be any argument providers with zero arguments");
+
+			// Process all but the last set of argument providers, updating target with each call. If at any point target is not an array
+			// then the final value will be passed ByVal (since there must be a function or property access involved, the result of which
+			// is never passed ByRef).
+			var passByVal = false;
+			for (var index = 0; index < argumentProvidersArray.Length - 1; index++)
+			{
+				if (!target.GetType().IsArray)
+					passByVal = true;
+				target = _vbscriptValueAccessor.CALL(target, argumentProvidersArray[index]);
+			}
+			if (!target.GetType().IsArray)
+				passByVal = true;
+
+			// Process the final arguments to get the value that should actually be passed as the argument. If we've determined that this
+			// value should be passed ByVal then hand straight off to the Val method.
+			var lastArgumentProvider = argumentProvidersArray.Last();
+			var valueForArgument = _vbscriptValueAccessor.CALL(target, lastArgumentProvider);
+			if (passByVal)
+				return Val(valueForArgument);
+
+			// If the value must be passed ByRef then we pass in the same valueForArgument as above but in the valueUpdater callback we
+			// have to call SET on the target (which is the array that valueForArgument was taken from) to push the ByRef value back
+			// into the array. (The ByRef support here is only used if the method being called has ByRef arguments, otherwise it's
+			// not required - but that is the responsibility of the CALL implementation to write the values back, the job of this
+			// interface is to allow that to occur where necessary).
+			return Ref(
+				valueForArgument,
+				v => _vbscriptValueAccessor.SET(target, null, lastArgumentProvider.GetInitialValues().ToArray(), v)
+			);
         }
 
         /// <summary>
