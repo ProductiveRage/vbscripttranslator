@@ -772,7 +772,7 @@ namespace CSharpSupport.Implementations
             // VBScript SUBSs, which would be a problem! Null will be returned if the method is successfully invoked, if the method's ReturnType is
             // void. Valid source script would never try to access the value returned since a SUB never returns a value.
             var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
-            return
+			var options = 
                 type.GetMethods()
                     .Where(m => nameMatcher(m.Name))
                     .Where(m => m.GetParameters().Length == numberOfArguments)
@@ -791,6 +791,18 @@ namespace CSharpSupport.Implementations
                         )
                         .Select(p => p.GetGetMethod())
                 );
+
+			// 2014-04-17 DWR: The current target may be a reference from an external class, passed into translated code. So if we want an unnamed
+			// default property and the above logic (that assumes a translated class that will have the IsDefault attribute present where appropriate)
+			// fails then try for a C# indexed property (an indexed property which has name "Item").
+			var useCSharpItemIndexedPropertyFallback = (optionalName == null) && (defaultMemberBehaviour == DefaultMemberBehaviourOptions.MustBeDefault) && !options.Any();
+			if (!useCSharpItemIndexedPropertyFallback)
+				return options;
+			return type.GetProperties()
+				.Where(p => p.CanRead)
+				.Where(p => p.Name == "Item")
+				.Where(p => p.GetIndexParameters().Length == numberOfArguments)
+				.Select(p => p.GetGetMethod());
         }
 
         private IEnumerable<MethodInfo> GetSetMethods(
@@ -810,7 +822,7 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
             var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
-            return
+            var options =
                 type.GetMethods()
                     .Where(m => nameMatcher(m.Name))
                     .Where(m => m.GetParameters().Length == (numberOfArguments + 1)) // Method takes property arguments plus one for the value
@@ -830,6 +842,16 @@ namespace CSharpSupport.Implementations
                         )
                         .Select(p => p.GetSetMethod())
                 );
+
+			// 2014-04-17 DWR: See note in the GetGetMethods about use of this fallback lookup
+			var useCSharpItemIndexedPropertyFallback = (optionalName == null) && (defaultMemberBehaviour == DefaultMemberBehaviourOptions.MustBeDefault) && !options.Any();
+			if (!useCSharpItemIndexedPropertyFallback)
+				return options;
+			return type.GetProperties()
+				.Where(p => p.CanWrite)
+				.Where(p => p.Name == "Item")
+				.Where(p => p.GetIndexParameters().Length == numberOfArguments)
+				.Select(p => p.GetSetMethod());
         }
 
         private Predicate<string> GetNameMatcher(string name, MemberNameMatchBehaviourOptions memberNameMatchBehaviour)
