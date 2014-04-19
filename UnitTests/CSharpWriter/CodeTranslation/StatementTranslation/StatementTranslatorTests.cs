@@ -74,6 +74,94 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         }
 
         [Fact]
+        public void KnownVariablePassedAsArgumentToKnownFunctionIsPassedByRef()
+        {
+            // "o(a)" (where there is a function in scope called "o" and a variable "a")
+            var expression = new Expression(new[]
+			{
+				new CallExpressionSegment(
+					new[] { new NameToken("o", 0) },
+					new[]
+                    {
+                        new Expression(new[] {
+                            new CallExpressionSegment(new[] { new NameToken("a", 0) }, new Expression[0], CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent)
+                        })
+                    },
+					null
+				)
+			});
+
+            var scopeAccessInformation = AddOutermostScopeVariable(
+                AddOutermostScopeFunction(
+                    ScopeAccessInformation.Empty,
+                    "o",
+                    0
+                ),
+                "a",
+                0
+            );
+            var expected = new TranslatedStatementContentDetails(
+                "_.CALL(_outer, \"o\", _.ARGS.Ref(_outer.a, v0 => { _outer.a = v0; }).GetArgs())",
+                new NonNullImmutableList<NameToken>(new[] { 
+                    new NameToken("a", 0),
+                    new NameToken("o", 0)
+                })
+            );
+            Assert.Equal(
+                expected,
+                GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
+                new TranslatedStatementContentDetailsComparer()
+            );
+        }
+
+        /// <summary>
+        /// VBScript will give special significance to arguments that are wrapped in extra brackets - if the argument would have been passed ByRef
+        /// before, the brackets will force it to be passed ByVal
+        /// </summary>
+        [Fact]
+        public void KnownVariablePassedAsArgumentToKnownFunctionIsPassedByValIfWrappedInBrackets()
+        {
+            // "o((a))" (where there is a function in scope called "o" and a variable "a")
+            var expression = new Expression(new[]
+			{
+				new CallExpressionSegment(
+					new[] { new NameToken("o", 0) },
+					new[]
+                    {
+                        new Expression(new[] {
+                            new BracketedExpressionSegment(new[] {
+                                new CallExpressionSegment(new[] { new NameToken("a", 0) }, new Expression[0], CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent)
+                            })
+                        })
+                    },
+					null
+				)
+			});
+
+            var scopeAccessInformation = AddOutermostScopeVariable(
+                AddOutermostScopeFunction(
+                    ScopeAccessInformation.Empty,
+                    "o",
+                    0
+                ),
+                "a",
+                0
+            );
+            var expected = new TranslatedStatementContentDetails(
+                "_.CALL(_outer, \"o\", _.ARGS.Val(_outer.a).GetArgs())",
+                new NonNullImmutableList<NameToken>(new[] { 
+                    new NameToken("a", 0),
+                    new NameToken("o", 0)
+                })
+            );
+            Assert.Equal(
+                expected,
+                GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
+                new TranslatedStatementContentDetailsComparer()
+            );
+        }
+
+        [Fact]
         public void NestedFunctionOrArrayAccess()
         {
             // "a(0)(b)" (where neither a nor b are defined and so there could be method calls OR array accesses)
@@ -151,6 +239,31 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 )),
                 scopeAccessInformation.Properties,
                 scopeAccessInformation.Variables
+            );
+        }
+
+        private static ScopeAccessInformation AddOutermostScopeVariable(ScopeAccessInformation scopeAccessInformation, string name, int lineIndex)
+        {
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Null/blank name specified");
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException("lineIndex");
+
+            return new ScopeAccessInformation(
+                scopeAccessInformation.ParentIfAny,
+                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ExternalDependencies,
+                scopeAccessInformation.Classes,
+                scopeAccessInformation.Functions,
+                scopeAccessInformation.Properties,
+                scopeAccessInformation.Variables.Add(new ScopedNameToken(
+                    name,
+                    lineIndex,
+                    VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
+                ))
             );
         }
 
