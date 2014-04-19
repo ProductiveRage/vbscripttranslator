@@ -668,6 +668,38 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         }
 
         /// <summary>
+        /// If a function (or property) argument is wrapped in brackets then it should be passed ByVal even when otherwise it would be passed ByRef.
+        /// This means that brackets can have special significance and should not be removed, even from places where they would have significance or
+        /// meaning in C#.
+        /// </summary>
+        [Fact]
+        public void BracketsShouldNotBeRemovedFromSingleArgumentCallStatements()
+        {
+            // CALL Test((a))
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new NameToken("Test", 0),
+                            EXP(
+                                BR(CALL(new NameToken("a", 0)))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(new IToken[] {
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new CloseBrace(0)
+                }),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions
         /// </summary>
         private static BracketedExpressionSegment BR(IEnumerable<IExpressionSegment> segments)
@@ -678,9 +710,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions
         /// </summary>
-		private static BracketedExpressionSegment BR(params IExpressionSegment[] segments)
+        private static BracketedExpressionSegment BR(params IExpressionSegment[] segments)
         {
-			return new BracketedExpressionSegment((IEnumerable<IExpressionSegment>)segments);
+            return new BracketedExpressionSegment((IEnumerable<IExpressionSegment>)segments);
         }
 
         private static CallSetExpressionSegment CALLSET(params IExpressionSegment[] segments)

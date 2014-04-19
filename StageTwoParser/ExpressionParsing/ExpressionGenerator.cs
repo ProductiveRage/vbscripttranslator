@@ -49,6 +49,23 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     if (depth == 0)
                         throw new ArgumentException("Unexpected CloseBrace - invalid content");
                     tokenNavigator.MoveNext(); // Move on since this token has been processed
+                    if (expressionSegments.Count == 1)
+                    {
+                        var callExpressionSegment = expressionSegments[0] as CallExpressionSegment;
+                        if ((callExpressionSegment != null) && (callExpressionSegment.MemberAccessTokens.Count() == 1) && !callExpressionSegment.Arguments.Any())
+                        {
+                            // VBScript gives special meaning to a reference wrapped in brackets when passing it to a function (or property); if
+                            // the argument would otherwise be passed ByRef, it will be passed ByVal. If this close bracket terminates a section
+                            // containing only a single CallExpressionSegment without property accesses or arguments, then the brackets have
+                            // significance and the content must be represented by a BracketedExpressionSegment. (If it's a variable access with
+                            // function / property accesses - meaning there would be multiple MemberAccessTokens - or if there are arguments -
+                            // meaning that it's a function or property call - then the value would not be elligible for being passed ByRef anyway,
+                            // so the extra brackets need not be maintained). There is chance that ths single token represents a non-argument call
+                            // to a function, but we don't have enough information at this point to know that, so we have to presume the worst and
+                            // keep the brackets here.
+                            expressionSegments[0] = new BracketedExpressionSegment(new[] { callExpressionSegment });
+                        }
+                    }
                     break;
                 }
 
@@ -454,6 +471,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             return new NewInstanceExpressionSegment(memberAccessToken1);
         }
 
+        /// <summary>
+        /// This is used to enforce VBScript's rules of precedence for operators (so that "a + b * c" can be represented as "a + (b * c)"
+        /// </summary>
         private class IndexerOperationExpressionSegmentSorter : IComparer<Tuple<OperationExpressionSegment, int>>
         {
             public int Compare(Tuple<OperationExpressionSegment, int> x, Tuple<OperationExpressionSegment, int> y)

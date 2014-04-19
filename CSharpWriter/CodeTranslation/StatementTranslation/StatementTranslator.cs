@@ -197,7 +197,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var bracketedExpressionSegment = segment as BracketedExpressionSegment;
             if (bracketedExpressionSegment != null)
-                return Translate(bracketedExpressionSegment);
+                return Translate(bracketedExpressionSegment, scopeAccessInformation);
 
             var newInstanceExpressionSegment = segment as NewInstanceExpressionSegment;
             if (newInstanceExpressionSegment != null)
@@ -206,12 +206,26 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             throw new NotSupportedException("Unsupported segment type: " + segment.GetType());
         }
 
-        private TranslatedStatementContentDetailsWithContentType Translate(BracketedExpressionSegment bracketedExpressionSegment)
+        private TranslatedStatementContentDetailsWithContentType Translate(BracketedExpressionSegment bracketedExpressionSegment, ScopeAccessInformation scopeAccessInformation)
 		{
 			if (bracketedExpressionSegment == null)
 				throw new ArgumentNullException("bracketedExpressionSegment");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
-			throw new NotImplementedException(); // TODO
+            var translatedInnerContentDetails = Translate(
+                new Expression(bracketedExpressionSegment.Segments),
+                scopeAccessInformation,
+                ExpressionReturnTypeOptions.NotSpecified
+            );
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
+                    "({0})",
+                    translatedInnerContentDetails.TranslatedContent
+                ),
+                ExpressionReturnTypeOptions.NotSpecified,
+                translatedInnerContentDetails.VariablesAccessed
+            );
 		}
 
         private TranslatedStatementContentDetailsWithContentType Translate(BuiltInValueExpressionSegment builtInValueExpressionSegment)
@@ -599,9 +613,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if ((singleSegment is NumericValueExpressionSegment)
                 || (singleSegment is StringValueExpressionSegment)
                 || (singleSegment is BuiltInValueExpressionSegment)
-                || (singleSegment is BracketedExpressionSegment)
                 || (singleSegment is NewInstanceExpressionSegment))
                     isConfirmedToBeByVal = true;
+                else if (singleSegment is BracketedExpressionSegment)
+                {
+                    // If this argument content is bracketed then it must be passed ByVal (a VBScript peculiarity) but if the brackets are present
+                    // for that purpose only then they needn't be included in the final output, so if there is a single term that has been wrapped
+                    // in brackets then unwrap the term (overwrite the argumentValue reference so that this change is reflected in the rendering
+                    // call further down).
+                    while ((singleSegment is BracketedExpressionSegment) && (((BracketedExpressionSegment)singleSegment).Segments.Count() == 1))
+                        singleSegment = ((BracketedExpressionSegment)singleSegment).Segments.First();
+                    argumentValue = new Expression(new[] { singleSegment });
+                    isConfirmedToBeByVal = true;
+                }
                 else
                 {
                     // If this is either a single CallExpressionSegment or a CallSetExpressionSegment then there are some conditions that will mean that
@@ -642,7 +666,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         else
                         {
                             // .. then check for a known function
-							var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
+                            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
                             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
                             if (targetReferenceDetailsIfAvailable == null)
                             {
