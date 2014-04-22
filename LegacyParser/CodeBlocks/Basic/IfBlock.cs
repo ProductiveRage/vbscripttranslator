@@ -17,11 +17,27 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if (clauses == null)
                 throw new ArgumentNullException("clauses");
 
-            Clauses = clauses.ToList().AsReadOnly();
-            if (!Clauses.Any())
+            var clausesArray = clauses.ToArray();
+            if (!clausesArray.Any())
                 throw new ArgumentException("Empty clauses set specified - invalid");
-            if (Clauses.Any(c => c == null))
+            if (clausesArray.Any(c => c == null))
                 throw new ArgumentException("Null reference encountered in clauses set");
+            
+            var numberOfElseSegments = clausesArray.Count(c => c is IfBlockElseSegment);
+            if (numberOfElseSegments > 1)
+                throw new ArgumentException("There may never be more than one IfBlockElseSegment");
+            if (numberOfElseSegments == 1)
+            {
+                if ((clausesArray.Length == 1) || !(clausesArray.Last() is IfBlockElseSegment))
+                    throw new ArgumentException("If an IfBlockElseSegment is present, it must be the last clause (and is not allowed if there is only a single clause");
+            }
+
+            var firstInvalidSegmentIfAny = clausesArray.FirstOrDefault(c => !(c is IfBlockConditionSegment) && !(c is IfBlockElseSegment));
+            if (firstInvalidSegmentIfAny != null)
+                throw new ArgumentException("Unsupported segment type: " + firstInvalidSegmentIfAny.GetType());
+
+            ConditionalClauses = clausesArray.OfType<IfBlockConditionSegment>();
+            OptionalElseClause = (IfBlockElseSegment)clausesArray.FirstOrDefault(c => c is IfBlockElseSegment);
         }
 
         // =======================================================================================
@@ -30,7 +46,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// This will never be null, empty or contain any nulls
         /// </summary>
-        public IEnumerable<IfBlockSegment> Clauses { get; private set; }
+        public IEnumerable<IfBlockConditionSegment> ConditionalClauses { get; private set; }
+        
+        /// <summary>
+        /// This will be null if there was no fallback clause
+        /// </summary>
+        public IfBlockElseSegment OptionalElseClause { get; private set; }
 
         // =======================================================================================
         // DESCRIPTION CLASSES
@@ -93,11 +114,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
             var output = new StringBuilder();
-            var numberOfClauses = Clauses.Count();
-            for (int index = 0; index < numberOfClauses; index++)
+
+            var allClauses = ConditionalClauses.Cast<IfBlockSegment>().ToList();
+            if (OptionalElseClause != null)
+                allClauses.Add(OptionalElseClause);
+
+            for (int index = 0; index < allClauses.Count; index++)
             {
                 // Render branch start: IF / ELSEIF / ELSE
-                var segment = Clauses.ElementAt(index);
+                var segment = allClauses[index];
                 if (segment is IfBlockConditionSegment)
                 {
                     output.Append(indenter.Indent);
