@@ -16,7 +16,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         protected readonly CSharpName _supportRefName, _envClassName, _envRefName, _outerClassName, _outerRefName;
         protected readonly VBScriptNameRewriter _nameRewriter;
 		protected readonly TempValueNameGenerator _tempNameGenerator;
-		private readonly ITranslateIndividualStatements _statementTranslator;
+        protected readonly ITranslateIndividualStatements _statementTranslator;
 		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(
@@ -304,7 +304,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (ifBlock == null)
 				return null;
 
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+			var codeBlockTranslator = new IfBlockTranslator(
+                _supportRefName,
+                _envClassName, 
+                _envRefName,
+                _outerClassName,
+                _outerRefName,
+                _nameRewriter,
+                _tempNameGenerator,
+                _statementTranslator,
+                _valueSettingStatementTranslator,
+                _logger
+            );
+			return translationResult.Add(
+				codeBlockTranslator.Translate(
+					ifBlock,
+					scopeAccessInformation,
+					indentationDepth
+				)
+			);
 		}
 
 		protected TranslationResult TryToTranslateOptionExplicit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

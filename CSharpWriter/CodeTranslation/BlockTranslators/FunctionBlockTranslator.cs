@@ -46,13 +46,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			);
 			translationResult = translationResult.Add(
 				Translate(
-				functionBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(
-                        functionBlock,
-                        returnValueName,
-                        functionBlock.Statements.ToNonNullImmutableList()
-                    ),
-				indentationDepth + 1
+				    functionBlock.Statements.ToNonNullImmutableList(),
+					    scopeAccessInformation.Extend(
+                            functionBlock,
+                            returnValueName,
+                            functionBlock.Statements.ToNonNullImmutableList()
+                        ),
+				    indentationDepth + 1
 				)
 			);
 			if (functionBlock.HasReturnValue)
