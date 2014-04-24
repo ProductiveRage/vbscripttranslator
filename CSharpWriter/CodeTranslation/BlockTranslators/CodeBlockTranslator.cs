@@ -200,12 +200,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 		protected TranslationResult TryToTranslateDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
+            // TODO: Within a function, REDIM may be used on the function name to initialise an array for the return value. This is not dealt with yet.
+
 			// This covers the DimStatement, ReDimStatement, PrivateVariableStatement and PublicVariableStatement
 			var explicitVariableDeclarationBlock = block as DimStatement;
 			if (explicitVariableDeclarationBlock == null)
 				return null;
 
-			translationResult = translationResult.Add(
+			// Ensure that all DIM'd variables are recorded as explicit variable declarations. It is important that it be recorded if these variables
+            // are declared as arrays - eg. "Dim a()" or "Dim a(0)" or "Private a()" - since this affects whether they are initialised as "null" or
+            // "(object[])null" later on (this distinction is important since the IsArray method returns true for a if "Dim a()" is used but false
+            // if "Dim a" is). This array/not-array has to be set in a single statement so that class member variables can be set correctly (in the
+            // outermost scope of within a function, all DIM statements could be translated into a null-value initialisation followed by a separate
+            // setting to a null array if it has dimensions, but this is not possible in a class member initialisation, as it must happen within
+            // one C# statement). One more oddity is that VBScript will accept a REDIM for a variable that has not already had a DIM statement
+            // for it, even if Option Explicit is specified. To deal with this, the REDIM target variables will be declared as explicit variable
+            // declarations here and then processed in a separate pass below.
+            // Note: There is no need to worry about specifying the same variable multiple times in the ExplicitVariableDeclarations data, that
+            // will be dealt with when the set is translated into C# code later on.
+            translationResult = translationResult.Add(
 				explicitVariableDeclarationBlock.Variables.Select(v =>
 					new VariableDeclaration(
 						v.Name,
@@ -217,22 +230,45 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				)
 			);
 
-			var areDimensionsRequired = (
-				(explicitVariableDeclarationBlock is ReDimStatement) ||
-				(explicitVariableDeclarationBlock.Variables.Any(v => (v.Dimensions != null) && (v.Dimensions.Count > 0)))
-			);
-			if (!areDimensionsRequired)
-				return translationResult;
+            // Any (RE)DIM statements with dimensions are now translated into array initialisers in the translated output (the above work to extend
+            // the ExplicitVariableDeclarations set will effectively hoist the variable declarations to the top of the scope whereas these statements
+            // will remain "in order"). In VBScript, a DIM statement may only have constant dimensions, unlike REDIM. Not meeting this would result in
+            // a compile time error and so this translation code need not worry about it (the assumption is that we are dealing with valid VBScript).
+            var isAnArrayExtension = (explicitVariableDeclarationBlock is ReDimStatement) && ((ReDimStatement)explicitVariableDeclarationBlock).Preserve;
+            var callFormat = isAnArrayExtension
+                ? "{0} = {1}.EXTENDARRAY({0}, {2})"
+                : "{0} = {1}.NEWARRAY({2})";
+            foreach (var arrayDeclaration in explicitVariableDeclarationBlock.Variables.Where(v => (v.Dimensions ?? new Expression[0]).Any()))
+            {
+                var rewrittenVariableName = _nameRewriter(arrayDeclaration.Name).Name;
+                var nameOfTargetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(
+                    rewrittenVariableName,
+                    _envRefName,
+                    _outerRefName,
+                    _nameRewriter
+                );
+                if (nameOfTargetContainerIfRequired != null)
+                    rewrittenVariableName = nameOfTargetContainerIfRequired.Name + "." + rewrittenVariableName;
 
-			// TODO: If this is a ReDim then non-constant expressions may be used to set the dimension limits, in which case it may not be moved
-			// (though a default-null declaration SHOULD be added as well as leaving the ReDim translation where it is)
-
-            // TODO: Is this is a ReDim targetting the name of the function that it's in then an "Illegal assignment" error will be raised when
-            // the code is executed (trying to Dim the name of the function will result in a "Name redefined" error as soon as the script is
-            // exceuted, not just when the line in question is executed
-			
-            // TODO: Need a translated statement if setting dimensions
-            throw new NotImplementedException("Not enabled support for declaring array variables with specified dimensions yet");
+                var translatedArrayDimensionExpressionDetails = arrayDeclaration.Dimensions.Select(d =>
+                    _statementTranslator.Translate(d, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified)
+                );
+                translationResult = translationResult
+                    .Add(translatedArrayDimensionExpressionDetails.SelectMany(t => t.VariablesAccessed))
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            callFormat,
+                            rewrittenVariableName,
+                            _supportRefName.Name,
+                            string.Join(
+                                ", ",
+                                translatedArrayDimensionExpressionDetails.Select(t => t.TranslatedContent)
+                            )
+                        ),
+                        indentationDepth
+                    ));
+            }
+            return translationResult;
 		}
 
 		protected TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -409,10 +445,23 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (variableDeclaration == null)
                 throw new ArgumentNullException("variableDeclaration");
 
+            // For variables declared in the outermost scope or within functions, this could have been simplified such that a "Dim a()"
+            // be rewritten as "object a = null;" and "a = _.NEWARRAY();" separately, which would mean that the VariableDeclaration
+            // class need not have an IsArray method. But for statements within a class, such as "Private mValue()", this would not
+            // be possible since the separate setter statement could not exist outside of a method.
+            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(variableDeclaration.Name);
+            if (variableDeclaration.IsArray)
+            {
+                return string.Format(
+                    "object {0} = {1}.NEWARRAY();",
+                    rewrittenName,
+                    _supportRefName.Name
+                );
+
+            }
             return string.Format(
-                "object {0} = {1}null;",
-                _nameRewriter.GetMemberAccessTokenName(variableDeclaration.Name),
-                variableDeclaration.IsArray ? "(object[])" : ""
+                "object {0} = null;",
+                rewrittenName
             );
         }
 
@@ -424,12 +473,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepthForExplicitVariableDeclarations < 0)
                 throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
 
-			return new TranslationResult(
-				translationResult.ExplicitVariableDeclarations
+            var uniqueVariableDeclarations = RemoveDuplicateVariableNames(translationResult.ExplicitVariableDeclarations);
+            return new TranslationResult(
+                uniqueVariableDeclarations
 					.Select(v =>
-                         new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepthForExplicitVariableDeclarations)
+                        new TranslatedStatement(TranslateVariableDeclaration(v), indentationDepthForExplicitVariableDeclarations)
 					)
-                    .Distinct(new TranslatedStatementEqualityComparer())
                     .ToNonNullImmutableList()
 					.AddRange(translationResult.TranslatedStatements),
 				new NonNullImmutableList<VariableDeclaration>(),
@@ -445,15 +494,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepthForExplicitVariableDeclarations < 0)
                 throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
 
+            var uniqueVariableDeclarations = RemoveDuplicateVariableNames(
+                translationResult.UndeclaredVariablesAccessed.Select(v =>
+                    new VariableDeclaration(v, VariableDeclarationScopeOptions.Private, false)
+                )
+                .ToNonNullImmutableList()
+            );
             return new TranslationResult(
-                translationResult.UndeclaredVariablesAccessed
+                uniqueVariableDeclarations
                     .Select(v =>
                         new TranslatedStatement(
-                             TranslateVariableDeclaration(new VariableDeclaration(v, VariableDeclarationScopeOptions.Private, false)) + " /* Undeclared in source */",
-                             indentationDepthForExplicitVariableDeclarations
+                            TranslateVariableDeclaration(v) + " /* Undeclared in source */",
+                            indentationDepthForExplicitVariableDeclarations
                         )
                     )
-                    .Distinct(new TranslatedStatementEqualityComparer())
                     .ToNonNullImmutableList()
                     .AddRange(translationResult.TranslatedStatements),
                 translationResult.ExplicitVariableDeclarations,
@@ -461,23 +515,41 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
         }
 
-        private class TranslatedStatementEqualityComparer : IEqualityComparer<TranslatedStatement>
+        private NonNullImmutableList<VariableDeclaration> RemoveDuplicateVariableNames(NonNullImmutableList<VariableDeclaration> variableDeclarations)
         {
-            public bool Equals(TranslatedStatement x, TranslatedStatement y)
+            if (variableDeclarations == null)
+                throw new ArgumentNullException("variableDeclarations");
+
+            var rewrittenNameToIsArrayLookup = new Dictionary<string, bool>();
+            foreach (var variableDeclaration in variableDeclarations)
             {
-                if ((x == null) && (y == null))
-                    return true;
-                else if ((x == null) || (y == null))
-                    return false;
-                return ((x.Content == y.Content) && (x.IndentationDepth == y.IndentationDepth));
+                var rewrittenName = _nameRewriter.GetMemberAccessTokenName(variableDeclaration.Name);
+                if (!rewrittenNameToIsArrayLookup.ContainsKey(rewrittenName))
+                {
+                    rewrittenNameToIsArrayLookup.Add(rewrittenName, variableDeclaration.IsArray);
+                    continue;
+                }
+                rewrittenNameToIsArrayLookup[rewrittenName] = rewrittenNameToIsArrayLookup[rewrittenName] || variableDeclaration.IsArray;
             }
 
-            public int GetHashCode(TranslatedStatement obj)
+            var nonDuped = new List<VariableDeclaration>();
+            var rewrittenNamesAccountedFor = new HashSet<string>();
+            foreach (var variableDeclaration in variableDeclarations)
             {
-                if (obj == null)
-                    throw new ArgumentNullException("obj");
-                return obj.Content.GetHashCode() ^ obj.IndentationDepth;
+                var rewrittenName = _nameRewriter.GetMemberAccessTokenName(variableDeclaration.Name);
+                if (rewrittenNamesAccountedFor.Contains(rewrittenName))
+                    continue;
+
+                // If this variable is declared later on in the data as an array then ensure that it is recorded as an array reference
+                // now since the later declaration will be ignored as a duplicate
+                nonDuped.Add(new VariableDeclaration(
+                    variableDeclaration.Name,
+                    variableDeclaration.Scope,
+                    rewrittenNameToIsArrayLookup[rewrittenName]
+                ));
+                rewrittenNamesAccountedFor.Add(rewrittenName);
             }
+            return nonDuped.ToNonNullImmutableList();
         }
     }
 }

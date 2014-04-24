@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CSharpSupport
 {
@@ -33,6 +34,13 @@ namespace CSharpSupport
         int IS(object l, object r);
         int EQV(object l, object r);
         int IMP(object l, object r);
+
+        // Array definitions - TODO: Note that dimensions may be an empty set for NEWARRAY (such that "Dim a()" creates an empty array), though
+        // it is not permissible for EXTENDARRAY (since "ReDim b()" is not valid, nor is "ReDim b", there must be at least one dimension). If
+        // an empty set of dimensions is specified, the returned reference should be (object[])null, not an empty array such as new object[0].
+        // -1 is a valid dimension size, meaning there should be zero elements in that dimension (but the returned returned should be null).
+        object NEWARRAY(IEnumerable<object> dimensions);
+        object EXTENDARRAY(object array, IEnumerable<object> dimensions);
 
         // Builtin functions
 		/* TODO

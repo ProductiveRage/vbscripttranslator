@@ -110,7 +110,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var individualVariableDimStatements = blocks
                 .Where(isDimStatement)
                 .Cast<DimStatement>()
-                .SelectMany(s => s.Variables.Select(v => new ReDimStatement(false, new List<DimStatement.DimVariable> { v })));
+                .SelectMany(s => s.Variables.Select(v => new DimStatement(new List<DimStatement.DimVariable> { v })));
             var individualVariableDimStatementsForArrays = individualVariableDimStatements.Where(s => s.Variables.Single().Dimensions != null);
             var individualVariableDimStatementsNotForArrays = individualVariableDimStatements.Where(s => s.Variables.Single().Dimensions == null);
             var other = blocks.Where(block => !isClassBlock(block) && !isFunctionBlock(block) && !isDimStatement(block));
