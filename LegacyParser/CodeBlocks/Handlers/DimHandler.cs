@@ -48,10 +48,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             foreach (List<IToken> variableData in variablesData)
                 variables.Add(translateRawVariableData(variableData));
 
-            // Remove all variable data from token list (and the EndOfStatmentToken)
+            // Remove all variable data from token list..
             foreach (List<IToken> entry in variablesData)
                 tokens.RemoveRange(0, entry.Count);
-            tokens.RemoveAt(0);
+
+            // .. and the EndOfStatmentToken (unless this statement was the last content, in which case there will be no remaining tokens)
+            if (tokens.Count > 0)
+                tokens.RemoveAt(0);
 
             // Return final object
             if (dimType == DimType.Dim)

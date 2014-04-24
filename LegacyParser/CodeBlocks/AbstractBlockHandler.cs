@@ -195,7 +195,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                 {
                     // Check for endMarker
                     bool reachedEndMarker = false;
-                    if ((endMarker is AbstractEndOfStatementToken) && isEndOfStatement(tokens, offset))
+                    if ((offset >= tokens.Count()) || (endMarker is AbstractEndOfStatementToken) && isEndOfStatement(tokens, offset))
                         reachedEndMarker = true;
                     else
                     {
