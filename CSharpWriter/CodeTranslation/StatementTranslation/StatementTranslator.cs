@@ -370,7 +370,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // from trying to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to
             // check for undeclared variables referenced in the arguments but that is all handled later on).
             ScopeAccessInformation_Extensions.DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
-            string nameOfTargetContainerIfRequired;
+            CSharpName nameOfTargetContainerIfRequired;
             if (indexInCallSet > 0)
             {
                 targetReferenceDetailsIfAvailable = null;
@@ -379,30 +379,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             else
             {
                 targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
-                if (targetReferenceDetailsIfAvailable == null)
-                {
-                    if (scopeAccessInformation.ScopeLocation == LegacyParser.ScopeLocationOptions.WithinFunctionOrProperty)
-                    {
-                        // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
-                        // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
-                        // data returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
-                        nameOfTargetContainerIfRequired = null;
-                    }
-                    else
-                        nameOfTargetContainerIfRequired = _envRefName.Name;
-                }
-                else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
-                    nameOfTargetContainerIfRequired = _envRefName.Name;
-                else if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
-                {
-                    // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
-                    // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
-                    // references in an identical manner to the class functions (and properties) so the outerRefName should used every time that an
-                    // OutermostScope reference is accessed
-                    nameOfTargetContainerIfRequired = _outerRefName.Name;
-                }
-                else
-                    nameOfTargetContainerIfRequired = null;
+                nameOfTargetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(targetName, _envRefName, _outerRefName, _nameRewriter);
             }
 
             // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
@@ -431,7 +408,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         memberCallContent.AppendFormat(
                             "{0}.CALL({1}, \"{2}\"",
                             _supportRefName.Name,
-                            nameOfTargetContainerIfRequired ?? "this",
+                            (nameOfTargetContainerIfRequired == null) ? "this" : nameOfTargetContainerIfRequired.Name,
                             targetName
                         );
                         if (argumentsArray.Any())
@@ -494,7 +471,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
                         "{0}{1}",
-                        (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired),
+                        (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired.Name),
                         targetName
                     ),
                     ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
@@ -506,7 +483,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             callExpressionContent.AppendFormat(
                 "{0}.CALL({1}{2}",
                 _supportRefName.Name,
-                (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired),
+                (nameOfTargetContainerIfRequired == null) ? "" : string.Format("{0}.", nameOfTargetContainerIfRequired.Name),
                 targetName
             );
 

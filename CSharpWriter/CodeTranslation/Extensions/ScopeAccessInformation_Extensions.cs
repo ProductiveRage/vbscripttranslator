@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.Extensions
@@ -171,6 +172,52 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        public static CSharpName GetNameOfTargetContainerIfAnyRequired(
+            this ScopeAccessInformation scopeAccessInformation,
+            string rewrittenTargetName,
+            CSharpName envRefName,
+            CSharpName outerRefName,
+            VBScriptNameRewriter nameRewriter)
+        {
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
+                throw new ArgumentException("Null/blank rewrittenTargetName specified");
+            if (envRefName == null)
+                throw new ArgumentNullException("envRefName");
+            if (outerRefName == null)
+                throw new ArgumentNullException("outerRefName");
+            if (nameRewriter == null)
+                throw new ArgumentNullException("nameRewriter");
+
+            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenTargetName, nameRewriter);
+            if (targetReferenceDetailsIfAvailable == null)
+            {
+                if (scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinFunctionOrProperty)
+                {
+                    // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
+                    // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
+                    // data returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
+                    return null;
+                }
+                return envRefName;
+            }
+            else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
+                return envRefName;
+            else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+            {
+                // 2014-01-06 DWR: Used to only apply this logic if the target reference was in the OutermostScope and we were currently inside a
+                // class but I'm restructuring the outer scope so that declared variables and functions are inside a class that the outermost scope
+                // references in an identical manner to the class functions (and properties) so the outerRefName should used every time that an
+                // OutermostScope reference is accessed
+                return outerRefName;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Try to retrieve information about a name token (that has been passed through the specified nameRewriter). If there is nothing matching it in the
         /// current scope then null will be returned.
         /// </summary>
@@ -182,7 +229,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
             if (string.IsNullOrWhiteSpace(rewrittenTargetName))
-                throw new ArgumentException("Null/blank targetName specified");
+                throw new ArgumentException("Null/blank rewrittenTargetName specified");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
