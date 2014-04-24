@@ -11,6 +11,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             Value = value;
         }
 
-        public new double Value { get; private set; }
+        public double Value { get; private set; }
     }
 }
