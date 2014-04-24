@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -12,47 +13,59 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private List<DimVariable> variables;
-        public DimStatement(List<DimVariable> variables)
+        public DimStatement(IEnumerable<DimVariable> variables)
         {
             if (variables == null)
                 throw new ArgumentNullException("variables");
-            this.variables = variables;
+
+            Variables = variables.ToList().AsReadOnly();
+            if (Variables.Any(v => v == null))
+                throw new ArgumentException("Null reference encountered in variables set");
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public List<DimVariable> Variables
-        {
-            get { return this.variables; }
-        }
+        /// <summary>
+        /// This will never be null nor contain any nulls (though it may be an empty set)
+        /// </summary>
+        public IEnumerable<DimVariable> Variables { get; private set; }
 
         // =======================================================================================
         // DESCRIPTION CLASSES
         // =======================================================================================
         public class DimVariable
         {
-            private NameToken name;
-            private List<Expression> dimensions;
-            public DimVariable(NameToken name, List<Expression> dimensions)
+            public DimVariable(NameToken name, IEnumerable<Expression> dimensions)
             {
                 if (name == null)
                     throw new ArgumentNullException("name");
-                this.name = name;
-                this.dimensions = dimensions;
+                
+                Name = name;
+                if (dimensions == null)
+                {
+                    Dimensions = null;
+                    return;
+                }
+                Dimensions = dimensions.ToList().AsReadOnly();
+                if (Dimensions.Any(d => d == null))
+                    throw new ArgumentException("Null reference encountered in dimensions set");
             }
-            
-            public NameToken Name { get { return this.name; } }
 
             /// <summary>
-            /// Variables list may be null (not explicitly defined as an array), have zero elements (an uninitialised array) or multiple dimensions
+            /// This will never be null
             /// </summary>
-            public List<Expression> Dimensions { get { return this.dimensions; } }
+            public NameToken Name { get; private set; }
+
+            /// <summary>
+            /// Variables list may be null (not explicitly defined as an array), have zero elements (an uninitialised array) or multiple dimensions (but
+            /// if the list is non-null and non-empty, it will never contain any null references)
+            /// </summary>
+            public IEnumerable<Expression> Dimensions { get; private set; }
 
             public override string ToString()
             {
-                return base.ToString() + ":" + this.name;
+                return base.ToString() + ":" + Name;
             }
         }
 
@@ -65,26 +78,26 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public virtual string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            StringBuilder output = new StringBuilder();
+            var output = new StringBuilder();
             output.Append(indenter.Indent);
             output.Append("Dim ");
-            for (int index = 0; index < this.variables.Count; index++)
+            var numberOfVariables = Variables.Count();
+            foreach (var indexedVariable in Variables.Select((v, i) => new { Variable = v, Index = i }))
             {
-                DimVariable variable = this.variables[index];
-                output.Append(variable.Name.Content);
-                if (variable.Dimensions != null)
+                output.Append(indexedVariable.Variable.Name.Content);
+                if (indexedVariable.Variable.Dimensions != null)
                 {
                     output.Append("(");
-                    for (int indexDimension = 0; indexDimension < variable.Dimensions.Count; indexDimension++)
+                    var numberOfDimensions = indexedVariable.Variable.Dimensions.Count();
+                    foreach (var indexedDimension in indexedVariable.Variable.Dimensions.Select((d, i) => new { Dimension = d, Index = i }))
                     {
-                        Expression dimension = variable.Dimensions[indexDimension];
-                        output.Append(dimension.GenerateBaseSource(new NullIndenter()));
-                        if (indexDimension < (variable.Dimensions.Count - 1))
+                        output.Append(indexedDimension.Dimension.GenerateBaseSource(new NullIndenter()));
+                        if (indexedDimension.Index < (numberOfDimensions - 1))
                             output.Append(", ");
                     }
                     output.Append(")");
                 }
-                if (index < (this.variables.Count - 1))
+                if (indexedVariable.Index < (numberOfVariables - 1))
                     output.Append(", ");
             }
             return output.ToString();
