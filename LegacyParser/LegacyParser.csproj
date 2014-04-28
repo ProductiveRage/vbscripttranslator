@@ -48,6 +48,7 @@
     <Compile Include="CodeBlocks\Basic\AbstractFunctionBlock.cs" />
     <Compile Include="CodeBlocks\Basic\BlankLine.cs" />
     <Compile Include="CodeBlocks\Basic\ClassBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\BaseDimStatement.cs" />
     <Compile Include="CodeBlocks\Basic\InlineCommentStatement.cs" />
     <Compile Include="CodeBlocks\Basic\IHaveNestedContent.cs" />
     <Compile Include="CodeBlocks\Basic\IDefineScope.cs" />
