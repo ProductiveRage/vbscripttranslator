@@ -11,7 +11,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
     /// EXPLICIT was specified - this may be considered to declare a variable initially, it does not necessarily have to re-declare it.
     /// </summary>
     [Serializable]
-    public class ReDimStatement : DimStatement
+    public class ReDimStatement : BaseDimStatement
     {
         // =======================================================================================
         // CLASS INITIALISATION

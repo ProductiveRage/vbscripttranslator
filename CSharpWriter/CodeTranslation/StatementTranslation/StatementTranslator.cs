@@ -386,7 +386,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // out by looking into the scope access information. Note: Further down, we rely on function / property calls being identified at this
             // point for cases where there are no target member accessors (it means that if we get further down and there are no target member
             // accessors that it must not be a function or property call).
-            // - The call semantics are different for a function call, if there is a method "F" in the outer most scope then something like
+            // - The call semantics are different for a function call, if there is a method "F" in the outermost scope then something like
             //   "_.CALL(_outer, "F", args)" would be generated but if "F" isn't a function then "_.CALL(_outer.F, new string[], args)"
             //   would be
             if (targetMemberAccessTokensArray.Length == 0)

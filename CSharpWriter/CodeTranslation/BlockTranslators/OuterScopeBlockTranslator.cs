@@ -90,30 +90,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Note: There is no need to check for identically-named classes since that would cause a "Name Redefined" error even if Option Explicit was not enabled
             blocks = RemoveDuplicateFunctions(blocks);
 
-            // DimStatements can be extracted at this point as their references will be the outerClassName type. DIM statements in VBScript can always be considered to
-            // be hoisted to the top of the scope and they can never be repeated (a "Name Redefined" error would be raised). If they have been DIM'd with array bounds
-            // (of even just as "a()" meaning that it should be set to an uninitialised array) then the statement needs to be translated into a REDIM to change the
-            // reference in the outerRefName reference).
-            // TODO: Ignore duplicate names in DIMs?
-
             // Group the code blocks that need to be executed;
             Func<ICodeBlock, bool> isClassBlock = block => block is ClassBlock;
             Func<ICodeBlock, bool> isFunctionBlock = block => block is FunctionBlock;
-            Func<ICodeBlock, bool> isDimStatement = block => block.GetType() == typeof(DimStatement);
             var classBlocks = blocks.Where(isClassBlock);
-            var functionBlocks = blocks.Where(isFunctionBlock)
-                .Cast<FunctionBlock>();
+            var functionBlocks = blocks.Where(isFunctionBlock).Cast<FunctionBlock>();
             foreach (var privateFunction in functionBlocks.Where(f => !f.IsPublic))
                 _logger.Warning("OuterScope function \"" + privateFunction.Name.Content + "\" is private, this is invalid and will be changed to public");
-            functionBlocks = functionBlocks
-                .Select(f => new FunctionBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements)); // Force all OuterScope functions to be public
-            var individualVariableDimStatements = blocks
-                .Where(isDimStatement)
-                .Cast<DimStatement>()
-                .SelectMany(s => s.Variables.Select(v => new DimStatement(new List<DimStatement.DimVariable> { v })));
-            var individualVariableDimStatementsForArrays = individualVariableDimStatements.Where(s => s.Variables.Single().Dimensions != null);
-            var individualVariableDimStatementsNotForArrays = individualVariableDimStatements.Where(s => s.Variables.Single().Dimensions == null);
-            var other = blocks.Where(block => !isClassBlock(block) && !isFunctionBlock(block) && !isDimStatement(block));
+            functionBlocks = functionBlocks.Select(f => new FunctionBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements)); // Force all OuterScope functions to be public
+            var other = blocks.Where(block => !isClassBlock(block) && !isFunctionBlock(block));
 
             // TODO: The function and class (and any other) rearranging could be a problem with comments, try to do something about that?
             // - eg. if there are comments for a function on the lines just before the function (outside the function rather than inside it) then they
@@ -126,12 +111,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     blocks
                 );
             var outerExecutableBlocksTranslationResult = Translate(
-                TrimTrailingBlankLines(
-                    individualVariableDimStatementsForArrays.Cast<ICodeBlock>().ToNonNullImmutableList()
-                )
-                .AddRange(other.ToNonNullImmutableList()),
+                other.ToNonNullImmutableList(),
                 scopeAccessInformation,
                 3 // indentationDepth
+            );
+            var explicitVariableDeclarationsFromWithOuterScope = outerExecutableBlocksTranslationResult.ExplicitVariableDeclarations;
+            base.ThrowExceptionForDuplicateVariableDeclarationNames(explicitVariableDeclarationsFromWithOuterScope);
+            outerExecutableBlocksTranslationResult = new TranslationResult(
+                outerExecutableBlocksTranslationResult.TranslatedStatements,
+                new NonNullImmutableList<VariableDeclaration>(),
+                outerExecutableBlocksTranslationResult.UndeclaredVariablesAccessed
             );
             var classBlocksTranslationResult = Translate(
                 TrimTrailingBlankLines(classBlocks.ToNonNullImmutableList()),
@@ -227,15 +216,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         new TranslatedStatement("throw new ArgumentNullException(\"env\");", 5),
                         new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
                         new TranslatedStatement(_envRefName.Name + " = env;", 4),
-                        new TranslatedStatement(_outerRefName.Name + " = this;", 4),
+                        new TranslatedStatement(_outerRefName.Name + " = this;", 4)
+                    })
+                    .AddRange(
+                        explicitVariableDeclarationsFromWithOuterScope.Select(
+                            v => new TranslatedStatement(
+                                base.TranslateVariableInitialisation(v, ScopeLocationOptions.OutermostScope),
+                                4
+                            )
+                        )
+                    )
+                    .Add(
                         new TranslatedStatement("}", 3)
-                    });
-                if (individualVariableDimStatements.Any())
+                    );
+                if (explicitVariableDeclarationsFromWithOuterScope.Any())
                 {
                     translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
                     translatedStatements = translatedStatements.AddRange(
-                        individualVariableDimStatements.Select(
-                            dim => new TranslatedStatement("public object " + _nameRewriter(dim.Variables.Single().Name).Name + " { get; set; }", 3)
+                        explicitVariableDeclarationsFromWithOuterScope.Select(
+                            v => new TranslatedStatement("public object " + _nameRewriter(v.Name).Name + " { get; set; }", 3)
                         )
                     );
                 }
@@ -285,9 +284,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            translatedStatements = translatedStatements.AddRange(
-                classBlocksTranslationResult.TranslatedStatements
-            );
+            if (classBlocksTranslationResult.TranslatedStatements.Any())
+            {
+                translatedStatements = translatedStatements.Add(
+                    new TranslatedStatement("", 0)
+                );
+                translatedStatements = translatedStatements.AddRange(
+                    classBlocksTranslationResult.TranslatedStatements
+                );
+            }
 
             if (_outputType == OutputTypeOptions.Executable)
             {
@@ -338,6 +343,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateFunction,
 					base.TryToTranslateIf,
 					base.TryToTranslateOptionExplicit,
+					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,
 					base.TryToTranslateSelect,

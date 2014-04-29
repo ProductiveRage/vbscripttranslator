@@ -1,5 +1,4 @@
 ﻿using CSharpSupport;
-using CSharpSupport.Attributes;
 using CSharpSupport.Compat;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -38,19 +38,38 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             // TODO: Require a variation of OuterScopeBlockTranslator's RemoveDuplicateFunctions (see notes on that method)
-			var translationResult = TranslationResult.Empty.Add(
-				TranslateClassHeader(classBlock, indentationDepth)
-			);
-			translationResult = translationResult.Add(
-				Translate(
-					classBlock.Statements.ToNonNullImmutableList(),
-					scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
-					indentationDepth + 1
-				)
-			);
-			return translationResult.Add(
-				new TranslatedStatement("}", indentationDepth)
-			);
+            var classContentTranslationResult = Translate(
+                classBlock.Statements.ToNonNullImmutableList(),
+                scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
+                indentationDepth + 1
+            );
+            if (classContentTranslationResult.UndeclaredVariablesAccessed.Any())
+            {
+                // Valid VBScript would not allow an undeclared variables to be present at this point. Any undeclared variables would be become
+                // implicitly declared within functions or properties and may not exist at all outside of them (the only things allows within a
+                // class are explicit variable declarations - Dim / Private / Public - and functions / properties).
+                throw new ArgumentException("Invalid content - it should not be possible for there to be any undeclared variables within a class that aren't within one of its functions or properties");
+            }
+            var explicitVariableDeclarationsFromWithClass = classContentTranslationResult.ExplicitVariableDeclarations;
+            base.ThrowExceptionForDuplicateVariableDeclarationNames(explicitVariableDeclarationsFromWithClass);
+            classContentTranslationResult = new TranslationResult(
+                classContentTranslationResult.TranslatedStatements,
+                new NonNullImmutableList<VariableDeclaration>(), // The ExplicitVariableDeclarations will be translated separately below
+                new NonNullImmutableList<NameToken>() // We've just confirmed that there will be no UndeclaredVariablesAccessed references
+            );
+            var translatedClassHeaderContent = TranslateClassHeader(classBlock, explicitVariableDeclarationsFromWithClass, indentationDepth);
+            if (classContentTranslationResult.TranslatedStatements.Any())
+                translatedClassHeaderContent = translatedClassHeaderContent.Concat(new[] { new TranslatedStatement("", 0) });
+			return TranslationResult.Empty
+                .Add(
+                    translatedClassHeaderContent
+			    )
+                .Add(
+                    classContentTranslationResult
+                )
+                .Add(
+				    new TranslatedStatement("}", indentationDepth)
+			    );
 		}
 
 		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -77,10 +96,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			);
 		}
 
-		private IEnumerable<TranslatedStatement> TranslateClassHeader(ClassBlock classBlock, int indentationDepth)
+		private IEnumerable<TranslatedStatement> TranslateClassHeader(
+            ClassBlock classBlock,
+            NonNullImmutableList<VariableDeclaration> explicitVariableDeclarationsFromWithinClass,
+            int indentationDepth)
 		{
 			if (classBlock == null)
 				throw new ArgumentNullException("classBlock");
+            if (explicitVariableDeclarationsFromWithinClass == null)
+                throw new ArgumentNullException("explicitVariableDeclarationsFromWithClass");
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
@@ -93,39 +117,63 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 inheritance = "";
 
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
-			return new[]
-            {
-                new TranslatedStatement("[ComVisible(true)]", indentationDepth),
-                new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
-                new TranslatedStatement("public class " + className, indentationDepth),
-                new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement(
-                    string.Format(
-                        "public {0}({1} compatLayer, {2} env, {3} outer){4}",
-                        className,
-                        typeof(IProvideVBScriptCompatFunctionality).Name,
-                        _envClassName.Name,
-                        _outerClassName.Name,
-                        inheritance
+            return
+                new[]
+                {
+                    new TranslatedStatement("[ComVisible(true)]", indentationDepth),
+                    new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
+                    new TranslatedStatement("public class " + className, indentationDepth),
+                    new TranslatedStatement("{", indentationDepth),
+                    new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
+                    new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
+                    new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1),
+                    new TranslatedStatement(
+                        string.Format(
+                            "public {0}({1} compatLayer, {2} env, {3} outer){4}",
+                            className,
+                            typeof(IProvideVBScriptCompatFunctionality).Name,
+                            _envClassName.Name,
+                            _outerClassName.Name,
+                            inheritance
+                        ),
+                        indentationDepth + 1
                     ),
-                    indentationDepth + 1
-                ),
-                new TranslatedStatement("{", indentationDepth + 1),
-                new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
-                new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", indentationDepth + 3),
-                new TranslatedStatement("if (env == null)", indentationDepth + 2),
-                new TranslatedStatement("throw new ArgumentNullException(\"env\");", indentationDepth + 3),
-                new TranslatedStatement("if (outer == null)", indentationDepth + 2),
-                new TranslatedStatement("throw new ArgumentNullException(\"outer\");", indentationDepth + 3),
-                new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
-                new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
-                new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2),
-                new TranslatedStatement("}", indentationDepth + 1),
-                new TranslatedStatement("", indentationDepth + 1)
-            };
+                    new TranslatedStatement("{", indentationDepth + 1),
+                    new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
+                    new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", indentationDepth + 3),
+                    new TranslatedStatement("if (env == null)", indentationDepth + 2),
+                    new TranslatedStatement("throw new ArgumentNullException(\"env\");", indentationDepth + 3),
+                    new TranslatedStatement("if (outer == null)", indentationDepth + 2),
+                    new TranslatedStatement("throw new ArgumentNullException(\"outer\");", indentationDepth + 3),
+                    new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
+                    new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
+                    new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2)
+                }
+                .Concat(
+                    explicitVariableDeclarationsFromWithinClass.Select(
+                        v => new TranslatedStatement(
+                            base.TranslateVariableInitialisation(v, ScopeLocationOptions.WithinClass),
+                            indentationDepth + 2
+                        )
+                    )
+                )
+                .Concat(new[]
+                {
+                    new TranslatedStatement("}", indentationDepth + 1),
+                    new TranslatedStatement("", indentationDepth + 1)
+                })
+                .Concat(
+                    explicitVariableDeclarationsFromWithinClass.Select(declaredVariableToInitialise =>
+                        new TranslatedStatement(
+                            string.Format(
+                                "{0} object {1} {{ get; set; }}",
+                                (declaredVariableToInitialise.Scope == VariableDeclarationScopeOptions.Private) ? "private" : "public",
+                                _nameRewriter(declaredVariableToInitialise.Name).Name
+                            ),
+                            indentationDepth + 1
+                        )
+                    )
+                );
 		}
 	}
 }

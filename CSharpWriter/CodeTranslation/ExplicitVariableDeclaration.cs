@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation
 {
     public class VariableDeclaration
     {
-        public VariableDeclaration(NameToken name, VariableDeclarationScopeOptions scope, bool isArray)
+        public VariableDeclaration(NameToken name, VariableDeclarationScopeOptions scope, IEnumerable<uint> constantDimensionsIfAny)
         {
             if (name == null)
                 throw new ArgumentNullException("name");
@@ -14,7 +16,7 @@ namespace CSharpWriter.CodeTranslation
 
             Name = name;
             Scope = scope;
-            IsArray = isArray;
+            ConstantDimensionsIfAny = (constantDimensionsIfAny == null) ? null : constantDimensionsIfAny.ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -24,6 +26,12 @@ namespace CSharpWriter.CodeTranslation
 
         public VariableDeclarationScopeOptions Scope { get; private set; }
 
-        public bool IsArray { get; private set; }
+        /// <summary>
+        /// This will be null if this was not an array declaration and may be an empty set if it is an uninitialised array declaration
+        /// (array declarations with specified dimensions will always be non-negative integer constants when Dim, Private or Public is
+        /// used, otherwise a VBScript compile error will have been raised - ReDim may be used to specify variable dimensions but they
+        /// will be represented by a VariableDeclaration with no dimensions and a separate statement to set the reference to an array)
+        /// </summary>
+        public IEnumerable<uint> ConstantDimensionsIfAny { get; private set; }
     }
 }

@@ -29,7 +29,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// This will never be null nor contain any nulls (though it may be an empty set)
         /// </summary>
-        public IEnumerable<DimVariable> Variables { get; private set; }
+        public IEnumerable<DimVariable> Variables { get; protected set; }
 
         // =======================================================================================
         // DESCRIPTION CLASSES

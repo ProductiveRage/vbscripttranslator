@@ -94,6 +94,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateFor,
 					base.TryToTranslateForEach,
 					base.TryToTranslateIf,
+					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,
 					base.TryToTranslateSelect,
@@ -155,15 +156,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (functionBlock.HasReturnValue && functionBlock.Statements.Any())
 			{
 				translatedStatements.Add(new TranslatedStatement(
-					base.TranslateVariableDeclaration(
+					base.TranslateVariableInitialisation(
 						new VariableDeclaration(
 							new DoNotRenameNameToken(
                                 returnValueNameIfAny.Name,
                                 functionBlock.Name.LineIndex
                             ),
 							VariableDeclarationScopeOptions.Private,
-							false
-						)
+                            null // Not declared as an array
+                        ),
+                        ScopeLocationOptions.WithinFunctionOrProperty
 					),
 					indentationDepth + 1
 				));

@@ -91,6 +91,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateFor,
 					base.TryToTranslateForEach,
 					base.TryToTranslateIf,
+					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,
 					base.TryToTranslateSelect,
