@@ -154,16 +154,16 @@ namespace CSharpSupport.Implementations
         /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
         /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
         /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
-        /// possible (in that case, a straight assignment should be generated - no call to SET required). The arguments array elements may
-        /// be mutated if the target setter method has "ref" method arguments.
+        /// possible (in that case, a straight assignment should be generated - no call to SET required).
         /// </summary>
-        public void SET(object target, string optionalMemberAccessor, object[] arguments, object value)
+        public void SET(object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider, object value)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
-            if (arguments == null)
-                throw new ArgumentNullException("arguments");
+            if (argumentProvider == null)
+                throw new ArgumentNullException("argumentProvider");
 
+            var arguments = argumentProvider.GetInitialValues().ToArray();
             if ((optionalMemberAccessor == null) && !arguments.Any())
                 throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
@@ -175,6 +175,8 @@ namespace CSharpSupport.Implementations
                 _setInvokerCache.TryAdd(cacheKey, invoker);
             }
             invoker(target, arguments, value);
+            for (var index = 0; index < arguments.Length; index++)
+                argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
         }
 
         /// <summary>
