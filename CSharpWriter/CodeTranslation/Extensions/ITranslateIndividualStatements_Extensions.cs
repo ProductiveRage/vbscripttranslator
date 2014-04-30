@@ -61,7 +61,14 @@ namespace CSharpWriter.CodeTranslation.Extensions
 			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
 
-			var expressions = VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(statement.BracketStandardisedTokens).ToArray();
+            // The BracketStandardisedTokens property should only be used if this is a non-value-returning statement (eg. "Test" or "Test 1"
+            // or "Test(a)", which would be translated into "Test()", "Test(1)" or "Test((a))", respectively) since that is the only time
+            // that brackets appear "optional". When this statement's return value is considered (eg. the "Test(1)" in "a = Test(1)"), the
+            // brackets will already be in a format in valid VBScript that matches what would be expected in C#.
+            var statementTokens = (returnRequirements == ExpressionReturnTypeOptions.None)
+                ? statement.BracketStandardisedTokens
+                : statement.Tokens;
+            var expressions = VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(statementTokens).ToArray();
 			if (expressions.Length != 1)
 				throw new ArgumentException("Statement translation should always result in a single expression being generated");
 

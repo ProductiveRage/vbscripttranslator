@@ -80,7 +80,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				throw new ArgumentNullException("scopeAccessInformation");
 
 			// The ValueToSet content should be reducable to a single expression segment; a CallExpression or a CallSetExpression
-			var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.BracketStandardisedTokens).ToArray();
+            // 2014-04-03 DWR: Used to pass valueSettingStatement.ValueToSet.BracketStandardisedTokens here but there is no opportunity for "optional"
+            // brackets in VBScript for the target of an assignment statement so the BracketStandardisedTokens added nothing here but complexity and
+            // so has been removed.
+			var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens).ToArray();
 			if (targetExpression.Length != 1)
 				throw new ArgumentException("The ValueToSet should always be described by a single expression");
 			var targetExpressionSegments = targetExpression[0].Segments.ToArray();
@@ -238,8 +241,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					).TranslatedContent;
 
 				// The last CallExpressionSegment may only have one member accessor
+                // - Note: it may have zero member accessors if the assignment target was of the form "a(0, 1)(2)"
 				var lastCallExpressionSegment = callExpressionSegments.Last();
-				optionalMemberAccessor = _nameRewriter.GetMemberAccessTokenName(lastCallExpressionSegment.MemberAccessTokens.Single());
+                optionalMemberAccessor = lastCallExpressionSegment.MemberAccessTokens.Any()
+                    ? _nameRewriter.GetMemberAccessTokenName(lastCallExpressionSegment.MemberAccessTokens.Single())
+                    : null;
 				arguments = lastCallExpressionSegment.Arguments;
 
 				// Note: In this case, we don't have to apply any special logic to make "return value replacements" for assignment targets

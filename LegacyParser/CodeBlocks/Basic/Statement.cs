@@ -55,8 +55,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// VBScript allow flexibility with brackets for method calls whose return value is not considered - eg. "Test 1" is acceptable
         /// while "Test(1)" might be considered more consistent. The brackets are required by statements described by the class
-        /// ValueSettingStatement - eg. "a = Test 1" is not valid while "a = Test(1)" is. This method will return a token
-        /// stream based on the current Statement's code, but with the optional brackets inserted where absent.
+        /// ValueSettingStatement - eg. "a = Test 1" is not valid while "a = Test(1)" is (and so in that case, this "standardised"
+        /// bracket retrieval would not be used, it would be used by non-value-returning statements only, such as "Test" or "Test 1").
+        /// This method will return a token stream based on the current Statement's code, but with the optional brackets inserted where
+        /// absent.
         /// </summary>
         public IEnumerable<IToken> BracketStandardisedTokens { get; private set; }
 
