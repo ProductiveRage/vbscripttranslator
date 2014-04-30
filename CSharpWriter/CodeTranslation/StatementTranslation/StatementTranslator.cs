@@ -366,9 +366,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentException("Null reference encountered in arguments set");
 
             // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
-            // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0).GetArgs())" - there is nothing to be gained
-            // from trying to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to
-            // check for undeclared variables referenced in the arguments but that is all handled later on).
+            // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
+            // to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to check for
+            // undeclared variables referenced in the arguments but that is all handled later on).
             ScopeAccessInformation_Extensions.DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
             CSharpName nameOfTargetContainerIfRequired;
             if (indexInCallSet > 0)
@@ -424,7 +424,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                                     argumentContent.VariablesAccessed
                                 );
                             }
-                            memberCallContent.Append(".GetArgs()");
                         }
                         memberCallContent.Append(")");
                         return new TranslatedStatementContentDetailsWithContentType(
@@ -551,7 +550,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     argumentContent.VariablesAccessed
                 );
             }
-            argumentProviderContent.Append(".GetArgs()");
             return new TranslatedStatementContentDetails(
                 argumentProviderContent.ToString(),
                 variablesAccessed

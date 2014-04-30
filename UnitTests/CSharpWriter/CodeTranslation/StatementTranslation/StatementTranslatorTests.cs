@@ -101,7 +101,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 0
             );
             var expected = new TranslatedStatementContentDetails(
-                "_.CALL(_outer, \"o\", _.ARGS.Ref(_outer.a, v0 => { _outer.a = v0; }).GetArgs())",
+                "_.CALL(_outer, \"o\", _.ARGS.Ref(_outer.a, v0 => { _outer.a = v0; }))",
                 new NonNullImmutableList<NameToken>(new[] { 
                     new NameToken("a", 0),
                     new NameToken("o", 0)
@@ -148,7 +148,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 0
             );
             var expected = new TranslatedStatementContentDetails(
-                "_.CALL(_outer, \"o\", _.ARGS.Val(_outer.a).GetArgs())",
+                "_.CALL(_outer, \"o\", _.ARGS.Val(_outer.a))",
                 new NonNullImmutableList<NameToken>(new[] { 
                     new NameToken("a", 0),
                     new NameToken("o", 0)
@@ -192,7 +192,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             // array or if it is an object with a default function or property whose argument is marked as ByVal, but we won't
             // know that until runtime).
             var expected = new TranslatedStatementContentDetails(
-                "_.CALL(_.CALL(_env.a, _.ARGS.Val(0).GetArgs()), _.ARGS.Ref(_env.b, v0 => { _env.b = v0; }).GetArgs())",
+                "_.CALL(_.CALL(_env.a, _.ARGS.Val(0)), _.ARGS.Ref(_env.b, v0 => { _env.b = v0; }))",
                 new NonNullImmutableList<NameToken>(new[] {
                     new NameToken("a", 0),
                     new NameToken("b", 0)

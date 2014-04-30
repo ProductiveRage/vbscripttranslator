@@ -65,7 +65,7 @@ namespace CSharpSupport.Implementations
 			{
 				if (!target.GetType().IsArray)
 					passByVal = true;
-				target = _vbscriptValueAccessor.CALL(target, argumentProvidersArray[index]);
+				target = _vbscriptValueAccessor.CALL(target, new string[0], argumentProvidersArray[index]);
 			}
 			if (!target.GetType().IsArray)
 				passByVal = true;
@@ -73,7 +73,7 @@ namespace CSharpSupport.Implementations
 			// Process the final arguments to get the value that should actually be passed as the argument. If we've determined that this
 			// value should be passed ByVal then hand straight off to the Val method.
 			var lastArgumentProvider = argumentProvidersArray.Last();
-			var valueForArgument = _vbscriptValueAccessor.CALL(target, lastArgumentProvider);
+            var valueForArgument = _vbscriptValueAccessor.CALL(target, new string[0], lastArgumentProvider);
 			if (passByVal)
 				return Val(valueForArgument);
 
