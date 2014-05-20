@@ -31,7 +31,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.EXTENDARRAY(_outer.a, 0);"
+                    "_outer.a = _.RESIZEARRAY(_outer.a, 0);"
                 };
                 Assert.Equal(
                     expected,
@@ -72,7 +72,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.EXTENDARRAY(a, 0);
+                      a = _.RESIZEARRAY(a, 0);
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -112,7 +112,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public object f1()
                     {
                       object retVal1 = null;
-                      retVal1 = _.EXTENDARRAY(retVal1, 0);
+                      retVal1 = _.RESIZEARRAY(retVal1, 0);
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -148,7 +148,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.EXTENDARRAY(_outer.a, 0);"
+                    "_outer.a = _.RESIZEARRAY(_outer.a, 0);"
                 };
                 Assert.Equal(
                     expected,
@@ -191,7 +191,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.EXTENDARRAY(a, 0);
+                      a = _.RESIZEARRAY(a, 0);
                       return retVal1;
                     }";
                 Assert.Equal(

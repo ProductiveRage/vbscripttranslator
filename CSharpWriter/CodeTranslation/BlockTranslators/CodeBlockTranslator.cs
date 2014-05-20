@@ -415,7 +415,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedReDimStatements = new NonNullImmutableList<TranslatedStatement>();
             var translatedContentFormat = reDimStatement.Preserve
-                ? "{0} = {1}.EXTENDARRAY({0}, {2});"
+                ? "{0} = {1}.RESIZEARRAY({0}, {2});"
                 : "{0} = {1}.NEWARRAY({2});";
             foreach (var variable in reDimStatement.Variables)
             {
