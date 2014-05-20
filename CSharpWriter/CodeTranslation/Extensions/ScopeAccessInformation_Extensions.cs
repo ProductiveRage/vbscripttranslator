@@ -142,6 +142,25 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
+        public static ScopeAccessInformation ExtendVariables(this ScopeAccessInformation scopeInformation, NonNullImmutableList<ScopedNameToken> variables)
+        {
+            if (scopeInformation == null)
+                throw new ArgumentNullException("scopeInformation");
+            if (variables == null)
+                throw new ArgumentNullException("variables");
+
+            return new ScopeAccessInformation(
+                scopeInformation.ParentIfAny,
+                scopeInformation.ScopeDefiningParentIfAny,
+                scopeInformation.ParentReturnValueNameIfAny,
+                scopeInformation.ExternalDependencies,
+                scopeInformation.Classes,
+                scopeInformation.Functions,
+                scopeInformation.Properties,
+                scopeInformation.Variables.AddRange(variables)
+            );
+        }
+
         /// <summary>
         /// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is a convenience
         /// method to save having to specify it explicitly for both (for cases where the parent scope - if any - does not have a return value)

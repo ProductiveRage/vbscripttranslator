@@ -316,7 +316,29 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 		protected TranslationResult TryToTranslateOptionExplicit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
-			return (block is OptionExplicit) ? TranslationResult.Empty : null;
+            if (!(block is OptionExplicit))
+                return null;
+
+            // 2014-05-02 DWR: In order to support the absence of Option Explicit (the recommended way is to INCLUDE it but it is not compulsory),
+            // there is support for tracking undeclared variables. If we're dealing with well-written VBScript with Option Explicit enabled then
+            // there shouldn't be any places that undeclared variables are used and so ignoring Option Explicit SHOULDN'T cause any problems.
+            // However, ignoring it does allow for a particularly awkward edge case around ReDim translation to be ignored. The following code:
+            //
+            //   Option Explicit
+            //   If (False) Then
+            //    ReDim a
+            //   End If
+            //   WScript.Echo TypeName(a)
+            //
+            // will result in a "Variable is undefined: 'a'" runtime error, though if "False" is replaced by "True" then it will write out
+            // "Variant()" to the console. If "Option Explicit" is not included then the first case will result in "Empty" being written
+            // out. This means that Option Explicit may result in variables being only "potentially declared", with its state not being
+            // known until runtime. Handling this correctly would make the code translation significantly harder, since state about
+            // which variables are and aren't currently declared would have to be maintained. This should be the only way in which
+            // a script written with Option Explicit acts differently when translated (and since it is an edge case and indicates
+            // poor practice even though Option Explicit has been used, I'm willing to live with the trade-off).
+            _logger.Warning("Option Explicit is ignored by this translation process");
+            return TranslationResult.Empty;
 		}
 
 		protected TranslationResult TryToTranslateProperty(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -341,13 +363,121 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
         protected TranslationResult TryToTranslateReDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
-            // TODO: "Dim a(0): ReDim a(1)" results in "This array is fixed or temporarily locked", though "Dim a(): ReDim a(1)" is allowed
-            // TODO: Within a function, REDIM may be used on the function name to initialise an array for the return value.
             var reDimStatement = block as ReDimStatement;
             if (reDimStatement == null)
                 return null;
 
-            throw new NotImplementedException(); // TODO
+            // Any variables that are referenced by the REDIM statement should be treated as if they HAVE been explicitly declared, so they will
+            // be included in the returned TranslationResult's ExplicitVariableDeclarations set (any variables that have already been declared
+            // need not be). Note that this means that code such as
+            //
+            //   REDIM a(0)
+            //   DIM a
+            //
+            // will fail, but that is consistent with VBScript's behaviour (a compile time error). This is a situation where the DIM statement
+            // does not effectively get hoisted to the top of the function. This behaviour happens regardless of the absence or presence of
+            // OPTION EXPLICIT (since that can only cause run time errors and this is a "Name redefined" VBScript compilation error).
+            var uninitialisedVariableDeclarationsToRecord = reDimStatement.Variables
+                .Select(v => new
+                {
+                    SourceName = v.Name,
+                    VariableDeclaration = new VariableDeclaration(
+                        v.Name,
+                        VariableDeclarationScopeOptions.Private,
+                        null
+                    )
+                })
+                .Where(
+                    newVariable => !translationResult.ExplicitVariableDeclarations.Any(
+                        existingVariable => existingVariable.Name.Content.Equals(newVariable.VariableDeclaration.Name.Content, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                .Where(newVariable =>
+                    (scopeAccessInformation.ScopeDefiningParentIfAny == null) ||
+                    !scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)
+                );
+            
+            // These variables are now used to extend the current scopeAccessInformation, this is important for the translation below - any
+            // variables that had not be declared should be treated as if they had been explicitly declared (this will affect the results of
+            // calls to scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired; it will be able to correctly associated any previously-
+            // undeclared variables with the local scope or outer most scope - depending upon whether we're within a function / property or
+            // not - without updating the scopeAccessInformation, if we were in the outer most scope then the undeclared variables would be
+            // identified as an "Environment References" entry, which we don't want).
+            scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                uninitialisedVariableDeclarationsToRecord
+                    .Select(v => new ScopedNameToken(
+                        v.SourceName.Content,
+                        v.SourceName.LineIndex,
+                        scopeAccessInformation.ScopeLocation
+                    ))
+                    .ToNonNullImmutableList()
+            );
+
+            var translatedReDimStatements = new NonNullImmutableList<TranslatedStatement>();
+            var translatedContentFormat = reDimStatement.Preserve
+                ? "{0} = {1}.EXTENDARRAY({0}, {2});"
+                : "{0} = {1}.NEWARRAY({2});";
+            foreach (var variable in reDimStatement.Variables)
+            {
+                var rewrittenVariableName = _nameRewriter(variable.Name).Name;
+                string targetReference;
+                if ((scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinFunctionOrProperty)
+                && variable.Name.Content.Equals(scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content, StringComparison.OrdinalIgnoreCase))
+                {
+                    // REDIM statements can target the return value of a function - eg.
+                    //
+                    //   FUNCTION F1()
+                    //    REDIM F1(0)
+                    //    F1(0) = "Result"
+                    //   END FUNCTION
+                    //
+                    // In this case, the "targetReference" value needs to be the name of the temporary value used as the function return
+                    // value (the ScopeAccessInformation class should always have non-null references for the ScopeDefiningParentIfAny
+                    // and ParentReturnValueNameIfAny properties if the ScopeLocation is WithinFunctionOrProperty).
+                    targetReference = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                }
+                else
+                {
+                    // If the target is not the function / property return value then we need to determine whether it's a local reference
+                    // or within another scope. If it is currently undeclared, then this will return null if we're within a function or
+                    // property or the name of the "Environment References" class if in the outer most scope. This is correct, we don't
+                    // need to worry about the fact that any undeclared variables will be getting added to the ExplicitVariableDeclarations
+                    // set of the return TranslationResult since they adding them to that set will result in them being declared as either
+                    // local references or within the "Environment References", depending upon whether we're within a function / property
+                    // or not - in other words, the exact same result.
+                    var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenVariableName, _envRefName, _outerRefName, _nameRewriter);
+                    targetReference = (targetContainer == null)
+                        ? rewrittenVariableName
+                        : (targetContainer.Name + "." + rewrittenVariableName);
+                }
+
+                var translatedArguments = new List<string>();
+                foreach (var dimension in variable.Dimensions)
+                {
+                    var translatedArgumentDetails = _statementTranslator.Translate(
+                        dimension,
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.Value
+                    );
+                    translatedArguments.Add(translatedArgumentDetails.TranslatedContent);
+                    translationResult = translationResult.Add(translatedArgumentDetails.VariablesAccessed);
+                }
+                translatedReDimStatements = translatedReDimStatements.Add(
+                    new TranslatedStatement(
+                        string.Format(
+                            translatedContentFormat,
+                            targetReference,
+                            _supportRefName.Name,
+                            string.Join(", ", translatedArguments)
+                        ),
+                        indentationDepth
+                    )
+                );
+            }
+
+            return translationResult
+                .Add(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
+                .Add(translatedReDimStatements);
         }
 
         protected TranslationResult TryToTranslateSelect(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
