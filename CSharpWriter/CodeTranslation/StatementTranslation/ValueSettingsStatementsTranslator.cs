@@ -11,105 +11,105 @@ using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
-	public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
+    public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
     {
-		private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
-		private readonly VBScriptNameRewriter _nameRewriter;
-		private readonly ITranslateIndividualStatements _statementTranslator;
+        private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
+        private readonly VBScriptNameRewriter _nameRewriter;
+        private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
-		public ValueSettingsStatementsTranslator(
+        public ValueSettingsStatementsTranslator(
             CSharpName supportRefName,
             CSharpName envRefName,
             CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             ITranslateIndividualStatements statementTranslator,
             ILogInformation logger)
-		{
-			if (supportRefName == null)
-				throw new ArgumentNullException("supportRefName");
+        {
+            if (supportRefName == null)
+                throw new ArgumentNullException("supportRefName");
             if (envRefName == null)
                 throw new ArgumentNullException("envRefName");
             if (outerRefName == null)
                 throw new ArgumentNullException("outerRefName");
-			if (nameRewriter == null)
-				throw new ArgumentNullException("nameRewriter");
-			if (statementTranslator == null)
-				throw new ArgumentNullException("statementTranslator");
+            if (nameRewriter == null)
+                throw new ArgumentNullException("nameRewriter");
+            if (statementTranslator == null)
+                throw new ArgumentNullException("statementTranslator");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
-			_supportRefName = supportRefName;
+            _supportRefName = supportRefName;
             _envRefName = envRefName;
             _outerRefName = outerRefName;
-			_nameRewriter = nameRewriter;
-			_statementTranslator = statementTranslator;
+            _nameRewriter = nameRewriter;
+            _statementTranslator = statementTranslator;
             _logger = logger;
-		}
+        }
 
-		/// <summary>
-		/// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
-		/// </summary>
-		public TranslatedStatementContentDetails Translate(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
-		{
-			if (valueSettingStatement == null)
-				throw new ArgumentNullException("valueSettingStatement");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
+        /// <summary>
+        /// This will never return null, it will raise an exception if unable to satisfy the request (this includes the case of a null statement reference)
+        /// </summary>
+        public TranslatedStatementContentDetails Translate(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (valueSettingStatement == null)
+                throw new ArgumentNullException("valueSettingStatement");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
-			var assignmentFormatDetails = GetAssignmentFormatDetails(valueSettingStatement, scopeAccessInformation);
+            var assignmentFormatDetails = GetAssignmentFormatDetails(valueSettingStatement, scopeAccessInformation);
 
-			var translatedExpressionContentDetails = _statementTranslator.Translate(
-				valueSettingStatement.Expression,
-				scopeAccessInformation,
-				(valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
-					? ExpressionReturnTypeOptions.Reference
-					: ExpressionReturnTypeOptions.Value
-			);
+            var translatedExpressionContentDetails = _statementTranslator.Translate(
+                valueSettingStatement.Expression,
+                scopeAccessInformation,
+                (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
+                    ? ExpressionReturnTypeOptions.Reference
+                    : ExpressionReturnTypeOptions.Value
+            );
 
-			return new TranslatedStatementContentDetails(
-				assignmentFormatDetails.AssigmentFormat(translatedExpressionContentDetails.TranslatedContent),
-				assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccessed)
-			);
-		}
+            return new TranslatedStatementContentDetails(
+                assignmentFormatDetails.AssigmentFormat(translatedExpressionContentDetails.TranslatedContent),
+                assignmentFormatDetails.VariablesAccessed.AddRange(translatedExpressionContentDetails.VariablesAccessed)
+            );
+        }
 
-		private ValueSettingStatementAssigmentFormatDetails GetAssignmentFormatDetails(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
-		{
-			if (valueSettingStatement == null)
-				throw new ArgumentNullException("valueSettingStatement");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
+        private ValueSettingStatementAssigmentFormatDetails GetAssignmentFormatDetails(ValueSettingStatement valueSettingStatement, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (valueSettingStatement == null)
+                throw new ArgumentNullException("valueSettingStatement");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
-			// The ValueToSet content should be reducable to a single expression segment; a CallExpression or a CallSetExpression
+            // The ValueToSet content should be reducable to a single expression segment; a CallExpression or a CallSetExpression
             // 2014-04-03 DWR: Used to pass valueSettingStatement.ValueToSet.BracketStandardisedTokens here but there is no opportunity for "optional"
             // brackets in VBScript for the target of an assignment statement so the BracketStandardisedTokens added nothing here but complexity and
             // so has been removed.
-			var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens).ToArray();
-			if (targetExpression.Length != 1)
-				throw new ArgumentException("The ValueToSet should always be described by a single expression");
-			var targetExpressionSegments = targetExpression[0].Segments.ToArray();
-			if (targetExpressionSegments.Length != 1)
-				throw new ArgumentException("The ValueToSet should always be described by a single expression containing a single segment");
+            var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens).ToArray();
+            if (targetExpression.Length != 1)
+                throw new ArgumentException("The ValueToSet should always be described by a single expression");
+            var targetExpressionSegments = targetExpression[0].Segments.ToArray();
+            if (targetExpressionSegments.Length != 1)
+                throw new ArgumentException("The ValueToSet should always be described by a single expression containing a single segment");
 
-			// If there is only a single CallExpressionSegment with a single token then that token must be a NameToken otherwise the statement would be
-			// trying to assign a value to a constant or keyword or something inappropriate. If it IS a NameToken, then this is the easiest case - it's
-			// a simple assignment, no SET method call required.
-			var expressionSegment = targetExpressionSegments[0];
-			var callExpressionSegment = expressionSegment as CallExpressionSegment;
-			if ((callExpressionSegment != null) && (callExpressionSegment.MemberAccessTokens.Take(2).Count() < 2) && !callExpressionSegment.Arguments.Any())
-			{
-				var singleTokenAsName = callExpressionSegment.MemberAccessTokens.Single() as NameToken;
-				if (singleTokenAsName == null)
-					throw new ArgumentException("Where a ValueSettingStatement's ValueToSet expression is a single expression with a single CallExpressionSegment with one token, that token must be a NameToken");
+            // If there is only a single CallExpressionSegment with a single token then that token must be a NameToken otherwise the statement would be
+            // trying to assign a value to a constant or keyword or something inappropriate. If it IS a NameToken, then this is the easiest case - it's
+            // a simple assignment, no SET method call required.
+            var expressionSegment = targetExpressionSegments[0];
+            var callExpressionSegment = expressionSegment as CallExpressionSegment;
+            if ((callExpressionSegment != null) && (callExpressionSegment.MemberAccessTokens.Take(2).Count() < 2) && !callExpressionSegment.Arguments.Any())
+            {
+                var singleTokenAsName = callExpressionSegment.MemberAccessTokens.Single() as NameToken;
+                if (singleTokenAsName == null)
+                    throw new ArgumentException("Where a ValueSettingStatement's ValueToSet expression is a single expression with a single CallExpressionSegment with one token, that token must be a NameToken");
 
-				// If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
-				// replacement so that the return value reference is updated.
-				// TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-				// the replacement (in order to be consistent with VBScript's runtime behaviour)
-				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
-				var isSingleTokenSettingParentScopeReturnValue = (
-					(scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-					rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
-				);
+                // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
+                // replacement so that the return value reference is updated.
+                // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+                // the replacement (in order to be consistent with VBScript's runtime behaviour)
+                var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
+                var isSingleTokenSettingParentScopeReturnValue = (
+                    (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
+                    rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
+                );
 
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
@@ -119,86 +119,93 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
                     rewrittenFirstMemberAccessor = _outerRefName.Name + "." + rewrittenFirstMemberAccessor;
                 return new ValueSettingStatementAssigmentFormatDetails(
-					translatedExpression => string.Format(
-						"{0} = {1}",
-						isSingleTokenSettingParentScopeReturnValue
-							? scopeAccessInformation.ParentReturnValueNameIfAny.Name
-							: rewrittenFirstMemberAccessor,
-						translatedExpression
-					),
-					new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
-				);
-			}
+                    translatedExpression => string.Format(
+                        "{0} = {1}",
+                        isSingleTokenSettingParentScopeReturnValue
+                            ? scopeAccessInformation.ParentReturnValueNameIfAny.Name
+                            : rewrittenFirstMemberAccessor,
+                        translatedExpression
+                    ),
+                    new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
+                );
+            }
 
-			// If this is a more complicated case then the single assignment case covered above then we need to break it down into a target reference,
-			// an optional single member accessor and zero or more arguments. For example -
-			//
-			//  "a(0)"                 ->  "a", null, [0]
-			//  "a.Role(0)"            ->  "a", "Role", [0]
-			//  "a.b.Role(0)"          ->  "a.b", "Role", [0]
-			//  "a(0).Name"            ->  "a(0)", "Name", []
-			//  "c.r.Fields(0).Value"  ->  "c.r.Fields(0)", "Value", []
-			//
-			// This allows the StatementTranslator to handle reference access until the last moment, providing the logic to access the "target". Then
-			// there is much less to do when determining how to set the value on the target. The case where there are arguments is the only time that
-			// defaults need to be considered (eg. "a(0)" could be an array access if "a" is an array or it could be a default property access if "a"
-			// has a default indexed property).
+            // If this is a more complicated case then the single assignment case covered above then we need to break it down into a target reference,
+            // an optional single member accessor and zero or more arguments. For example -
+            //
+            //  "a(0)"                 ->  "a", null, [0]
+            //  "a.Role(0)"            ->  "a", "Role", [0]
+            //  "a.b.Role(0)"          ->  "a.b", "Role", [0]
+            //  "a(0).Name"            ->  "a(0)", "Name", []
+            //  "c.r.Fields(0).Value"  ->  "c.r.Fields(0)", "Value", []
+            //
+            // This allows the StatementTranslator to handle reference access until the last moment, providing the logic to access the "target". Then
+            // there is much less to do when determining how to set the value on the target. The case where there are arguments is the only time that
+            // defaults need to be considered (eg. "a(0)" could be an array access if "a" is an array or it could be a default property access if "a"
+            // has a default indexed property).
+            //
+            // 2014-07-03 DWR: The above examples all assume that "a" is an arrays or an objects with settable properties (with a default settable
+            // property in the first case) but VBScript will also allow "a(0) = 1" to compile if "a" is a function. It will fail at run time but, in
+            // the interests of compability, these statements need to be translated into C# statements that compile but fail at run time. If the above
+            // logic was applied to a function then "a(0) = 1" would become "_.SET(a, null, _.ARGS.Val(0), 1)" which will not compile as the "a"
+            // reference is a function. It needs to be translated into "_.SET(_outer, "a", _.ARGS.Val(0), 1)" instead. This is handled with a special
+            // case below (it is only in the "callExpressionSegments.Count == 1" condition).
 
-			// Get a set of CallExpressionSegments..
-			List<CallSetItemExpressionSegment> callExpressionSegments;
-			if (callExpressionSegment != null)
+            // Get a set of CallExpressionSegments..
+            List<CallSetItemExpressionSegment> callExpressionSegments;
+            if (callExpressionSegment != null)
                 callExpressionSegments = new List<CallSetItemExpressionSegment> { callExpressionSegment };
-			else
-			{
-				var callSetExpressionSegment = expressionSegment as CallSetExpressionSegment;
-				if (callSetExpressionSegment == null)
-					throw new ArgumentException("The ValueToSet should always be described by a single expression containing a single segment, of type CallExpressionSegment or CallSetExpressionSegment");
-				callExpressionSegments = callSetExpressionSegment.CallExpressionSegments.ToList();
-			}
+            else
+            {
+                var callSetExpressionSegment = expressionSegment as CallSetExpressionSegment;
+                if (callSetExpressionSegment == null)
+                    throw new ArgumentException("The ValueToSet should always be described by a single expression containing a single segment, of type CallExpressionSegment or CallSetExpressionSegment");
+                callExpressionSegments = callSetExpressionSegment.CallExpressionSegments.ToList();
+            }
 
-			// If the last CallExpressionSegment has more than two member accessor then it needs breaking up since we need a target, at most a single
-			// member accessor against that target and arguments. So if there are more than two member accessors in the last segments then we want to
-			// split it so that all but one are in one segment (with no arguments) and then the last one (to go WITH the arguments) in the last entry.
-			var numberOfMemberAccessTokensInLastCallExpressionSegment = callExpressionSegments.Last().MemberAccessTokens.Count();
-			if (numberOfMemberAccessTokensInLastCallExpressionSegment > 2)
-			{
-				var lastCallExpressionSegments = callExpressionSegments.Last();
-				callExpressionSegments.RemoveAt(callExpressionSegments.Count - 1);
-				callExpressionSegments.Add(
-					new CallExpressionSegment(
-						lastCallExpressionSegments.MemberAccessTokens.Take(numberOfMemberAccessTokensInLastCallExpressionSegment - 1),
-						new StageTwoParser.Expression[0],
-						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // Can't be any brackets as we're splitting a CallExpressionSegment in two
-					)
-				);
-				callExpressionSegments.Add(
-					new CallExpressionSegment(
-						new[] { lastCallExpressionSegments.MemberAccessTokens.Last() },
-						lastCallExpressionSegments.Arguments,
-						lastCallExpressionSegments.ZeroArgumentBracketsPresence
-					)
-				);
-			}
+            // If the last CallExpressionSegment has more than two member accessor then it needs breaking up since we need a target, at most a single
+            // member accessor against that target and arguments. So if there are more than two member accessors in the last segments then we want to
+            // split it so that all but one are in one segment (with no arguments) and then the last one (to go WITH the arguments) in the last entry.
+            var numberOfMemberAccessTokensInLastCallExpressionSegment = callExpressionSegments.Last().MemberAccessTokens.Count();
+            if (numberOfMemberAccessTokensInLastCallExpressionSegment > 2)
+            {
+                var lastCallExpressionSegments = callExpressionSegments.Last();
+                callExpressionSegments.RemoveAt(callExpressionSegments.Count - 1);
+                callExpressionSegments.Add(
+                    new CallExpressionSegment(
+                        lastCallExpressionSegments.MemberAccessTokens.Take(numberOfMemberAccessTokensInLastCallExpressionSegment - 1),
+                        new StageTwoParser.Expression[0],
+                        CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // Can't be any brackets as we're splitting a CallExpressionSegment in two
+                    )
+                );
+                callExpressionSegments.Add(
+                    new CallExpressionSegment(
+                        new[] { lastCallExpressionSegments.MemberAccessTokens.Last() },
+                        lastCallExpressionSegments.Arguments,
+                        lastCallExpressionSegments.ZeroArgumentBracketsPresence
+                    )
+                );
+            }
 
-			// Now we either have a single segment in the set that has no more than two member accessors (lending itself to easy extraction of a
-			// target and optional member accessor) or we have multiple segments where all but the last one define the target and the last entry
-			// has the optional member accessor and any arguments.
-			string targetAccessor;
-			string optionalMemberAccessor;
-			IEnumerable<StageTwoParser.Expression> arguments;
-			if (callExpressionSegments.Count == 1)
-			{
-				// The single CallExpressionSegment may have one or two member accessors
-				targetAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegments[0].MemberAccessTokens.First());
-				if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
-					optionalMemberAccessor = null;
-				else
-				{
-					optionalMemberAccessor = _nameRewriter.GetMemberAccessTokenName(
-						callExpressionSegments[0].MemberAccessTokens.Skip(1).Single()
-					);
-				}
-				arguments = callExpressionSegments[0].Arguments;
+            // Now we either have a single segment in the set that has no more than two member accessors (lending itself to easy extraction of a
+            // target and optional member accessor) or we have multiple segments where all but the last one define the target and the last entry
+            // has the optional member accessor and any arguments.
+            string targetAccessor;
+            string optionalMemberAccessor;
+            IEnumerable<StageTwoParser.Expression> arguments;
+            if (callExpressionSegments.Count == 1)
+            {
+                // The single CallExpressionSegment may have one or two member accessors
+                targetAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegments[0].MemberAccessTokens.First());
+                if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
+                    optionalMemberAccessor = null;
+                else
+                {
+                    optionalMemberAccessor = _nameRewriter.GetMemberAccessTokenName(
+                        callExpressionSegments[0].MemberAccessTokens.Skip(1).Single()
+                    );
+                }
+                arguments = callExpressionSegments[0].Arguments;
 
                 var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessor, _nameRewriter);
                 if (targetReferenceDetailsIfAvailable == null)
@@ -209,10 +216,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if (scopeAccessInformation.ScopeLocation != ScopeLocationOptions.WithinFunctionOrProperty)
                         targetAccessor = _envRefName.Name + "." + targetAccessor;
                 }
-                else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
-                    targetAccessor = _envRefName.Name + "." + targetAccessor;
-                else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
-                    targetAccessor = _outerRefName.Name + "." + targetAccessor;
                 else
                 {
                     // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
@@ -225,40 +228,70 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     );
                     if (isSingleTokenSettingParentScopeReturnValue)
                         targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                    else
+                    {
+                        if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
+                        {
+                            // 2014-07-03 DWR: This is the special case talked about above - eg. "a(0) = 1" where "a" is a function. It can not be
+                            // translated into "_.SET(a, null, _.ARGS.Val(0), 1)" since the first argument of "SET" requires an obect and "a" is a
+                            // function. Instead it must be translated into "_.SET(_outer, "a", _.ARGS.Val(0), 1)". This is only a problem where
+                            // there is a single "callExpressionSegments" entry since this is the only case where the first named target is extracted
+                            // from its arguments - eg. "a(0).Name = 1" is represented by two callExpressionSegments ("a(0)" and ".Name") which will
+                            // be translated into "_.SET(_.CALL(_outer, "a"), "Name", _.ARGS.Val(0), 1)" and not require any special messing around.
+                            var targetAccessCallExpressionSegments = new IExpressionSegment[]
+                            {
+                                new CallExpressionSegment(
+                                    callExpressionSegments.Single().MemberAccessTokens.Take(1),
+                                    new StageTwoParser.Expression[0],
+                                    CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
+                                )
+                            };
+                            targetAccessor =
+                                _statementTranslator.Translate(
+                                    new StageTwoParser.Expression(targetAccessCallExpressionSegments),
+                                    scopeAccessInformation,
+                                    ExpressionReturnTypeOptions.NotSpecified
+                                ).TranslatedContent;
+                        }
+                        else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
+                            targetAccessor = _envRefName.Name + "." + targetAccessor;
+                        else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                            targetAccessor = _outerRefName.Name + "." + targetAccessor;
+                    }
                 }
-			}
-			else
-			{
-				var targetAccessCallExpressionSegments = callExpressionSegments.Take(callExpressionSegments.Count() - 1);
-				var targetAccessExpressionSegments = (targetAccessCallExpressionSegments.Count() > 1)
-					? new IExpressionSegment[] { new CallSetExpressionSegment(targetAccessCallExpressionSegments) }
-					: new IExpressionSegment[] { targetAccessCallExpressionSegments.Single() };
-				targetAccessor =
-					_statementTranslator.Translate(
-						new StageTwoParser.Expression(targetAccessExpressionSegments),
-						scopeAccessInformation,
-						ExpressionReturnTypeOptions.NotSpecified
-					).TranslatedContent;
+            }
+            else
+            {
+                var targetAccessCallExpressionSegments = callExpressionSegments.Take(callExpressionSegments.Count() - 1);
+                var targetAccessExpressionSegments = (targetAccessCallExpressionSegments.Count() > 1)
+                    ? new IExpressionSegment[] { new CallSetExpressionSegment(targetAccessCallExpressionSegments) }
+                    : new IExpressionSegment[] { targetAccessCallExpressionSegments.Single() };
+                targetAccessor =
+                    _statementTranslator.Translate(
+                        new StageTwoParser.Expression(targetAccessExpressionSegments),
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified
+                    ).TranslatedContent;
 
-				// The last CallExpressionSegment may only have one member accessor
+                // The last CallExpressionSegment may only have one member accessor
                 // - Note: it may have zero member accessors if the assignment target was of the form "a(0, 1)(2)"
-				var lastCallExpressionSegment = callExpressionSegments.Last();
+                var lastCallExpressionSegment = callExpressionSegments.Last();
                 optionalMemberAccessor = lastCallExpressionSegment.MemberAccessTokens.Any()
                     ? _nameRewriter.GetMemberAccessTokenName(lastCallExpressionSegment.MemberAccessTokens.Single())
                     : null;
-				arguments = lastCallExpressionSegment.Arguments;
+                arguments = lastCallExpressionSegment.Arguments;
 
-				// Note: In this case, we don't have to apply any special logic to make "return value replacements" for assignment targets
-				// (when "F2 = 1" is setting the return value for the function "F2" that we're inside of, for example) since this will be
-				// handled by the statement translator. The cases above where there was only a single token or only a single call
-				// expression segment needed additional logic since they don't use the statement translator for the left hand
-				// side of the assignment expression.
-			}
+                // Note: In this case, we don't have to apply any special logic to make "return value replacements" for assignment targets
+                // (when "F2 = 1" is setting the return value for the function "F2" that we're inside of, for example) since this will be
+                // handled by the statement translator. The cases above where there was only a single token or only a single call
+                // expression segment needed additional logic since they don't use the statement translator for the left hand
+                // side of the assignment expression.
+            }
 
-			// Regardless of how we've gone about trying to access the data in the callExpressionSegments data above, we now need to get a
-			// set of all variables that are accessed so that later on we can identify any undeclared variable access attempts
-			// - TODO: If manipulated segments to include function return value, it shouldn't affect the variablesAccessed retrieval but
-			//   need to make a note explaining how/why
+            // Regardless of how we've gone about trying to access the data in the callExpressionSegments data above, we now need to get a
+            // set of all variables that are accessed so that later on we can identify any undeclared variable access attempts
+            // - TODO: If manipulated segments to include function return value, it shouldn't affect the variablesAccessed retrieval but
+            //   need to make a note explaining how/why
             IEnumerable<NameToken> variablesAccessed;
             if (!callExpressionSegments.Any())
                 variablesAccessed = new NameToken[0];
@@ -292,40 +325,40 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation);
             variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
             return new ValueSettingStatementAssigmentFormatDetails(
-				translatedExpression => string.Format(
-					"{0}.SET({1}, {2}, {3}, {4})",
-					_supportRefName.Name,
-					targetAccessor,
-					(optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
+                translatedExpression => string.Format(
+                    "{0}.SET({1}, {2}, {3}, {4})",
+                    _supportRefName.Name,
+                    targetAccessor,
+                    (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
                     argumentsContent.TranslatedContent,
-					translatedExpression
-				),
-				variablesAccessed.ToNonNullImmutableList()
-			);
-		}
+                    translatedExpression
+                ),
+                variablesAccessed.ToNonNullImmutableList()
+            );
+        }
 
-		private class ValueSettingStatementAssigmentFormatDetails
-		{
-			public ValueSettingStatementAssigmentFormatDetails(Func<string, string> assigmentFormat, NonNullImmutableList<NameToken> variablesAccessed)
-			{
-				if (assigmentFormat == null)
-					throw new ArgumentNullException("assigmentFormat");
-				if (variablesAccessed == null)
-					throw new ArgumentNullException("memberCallVariablesAccessed");
+        private class ValueSettingStatementAssigmentFormatDetails
+        {
+            public ValueSettingStatementAssigmentFormatDetails(Func<string, string> assigmentFormat, NonNullImmutableList<NameToken> variablesAccessed)
+            {
+                if (assigmentFormat == null)
+                    throw new ArgumentNullException("assigmentFormat");
+                if (variablesAccessed == null)
+                    throw new ArgumentNullException("memberCallVariablesAccessed");
 
-				AssigmentFormat = assigmentFormat;
-				VariablesAccessed = variablesAccessed;
-			}
+                AssigmentFormat = assigmentFormat;
+                VariablesAccessed = variablesAccessed;
+            }
 
-			/// <summary>
-			/// This will never be null
-			/// </summary>
-			public Func<string, string> AssigmentFormat { get; private set; }
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public Func<string, string> AssigmentFormat { get; private set; }
 
-			/// <summary>
-			/// This will never be null
-			/// </summary>
-			public NonNullImmutableList<NameToken> VariablesAccessed { get; private set; }
-		}
-	}
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public NonNullImmutableList<NameToken> VariablesAccessed { get; private set; }
+        }
+    }
 }
