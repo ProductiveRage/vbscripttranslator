@@ -76,6 +76,13 @@ namespace CSharpSupport
         
         void HANDLEERROR(Action action, int token);
 
+        /// <summary>
+        /// This layers error-handling on top of the IAccessValuesUsingVBScriptRules.IF method, if error-handling is enabled for the specified
+        /// token then evaluation of the value will be attempted - if an error occurs then it will be recorded and the condition will be treated
+        /// as true, since this is VBScript's behaviour. It will throw an exception for a null valueEvaluator or an invalid errorToken.
+        /// </summary>
+        bool IF(Func<object> valueEvaluator, int errorToken);
+
         VBScriptConstants Constants { get; }
     }
 }

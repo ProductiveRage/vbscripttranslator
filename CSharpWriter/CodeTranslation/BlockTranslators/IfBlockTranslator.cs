@@ -33,15 +33,37 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // TODO: Integrate error-handling, if enabled
 			var translationResult = TranslationResult.Empty;
             foreach (var conditionalEntry in ifBlock.ConditionalClauses.Select((conditional, index) => new { Conditional = conditional, Index = index }))
             {
                 var conditionalContent = _statementTranslator.Translate(
                     conditionalEntry.Conditional.Condition,
                     scopeAccessInformation,
-                    ExpressionReturnTypeOptions.Boolean
+                    ExpressionReturnTypeOptions.NotSpecified
                 );
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                {
+                    conditionalContent = new TranslatedStatementContentDetails(
+                        string.Format(
+                            "{0}.IF({1})",
+                            _supportRefName.Name,
+                            conditionalContent.TranslatedContent
+                        ),
+                        conditionalContent.VariablesAccessed
+                    );
+                }
+                else
+                {
+                    conditionalContent = new TranslatedStatementContentDetails(
+                        string.Format(
+                            "{0}.IF(() => {1}, {2})",
+                            _supportRefName.Name,
+                            conditionalContent.TranslatedContent,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        conditionalContent.VariablesAccessed
+                    );
+                }
                 translationResult = translationResult.Add(conditionalContent.VariablesAccessed);
                 translationResult = translationResult.Add(
                     new TranslatedStatement(
