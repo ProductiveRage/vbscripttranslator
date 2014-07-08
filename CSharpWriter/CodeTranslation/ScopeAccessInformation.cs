@@ -11,6 +11,7 @@ namespace CSharpWriter.CodeTranslation
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
             CSharpName parentReturnValueNameIfAny,
+            CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<NameToken> externalDependencies,
             NonNullImmutableList<ScopedNameToken> classes,
             NonNullImmutableList<ScopedNameToken> functions,
@@ -33,6 +34,7 @@ namespace CSharpWriter.CodeTranslation
 
             ParentIfAny = parentIfAny;
 			ScopeDefiningParentIfAny = scopeDefiningParentIfAny;
+            ErrorRegistrationTokenIfAny = errorRegistrationTokenIfAny;
             ParentReturnValueNameIfAny = parentReturnValueNameIfAny;
             ExternalDependencies = externalDependencies;
             Classes = classes;
@@ -44,6 +46,7 @@ namespace CSharpWriter.CodeTranslation
         public static ScopeAccessInformation Empty = new ScopeAccessInformation(
             null,
 			null,
+            null,
             null,
             new NonNullImmutableList<NameToken>(),
             new NonNullImmutableList<ScopedNameToken>(),
@@ -70,6 +73,14 @@ namespace CSharpWriter.CodeTranslation
 		/// will also be non-null.
         /// </summary>
         public CSharpName ParentReturnValueNameIfAny { get; private set; }
+
+        /// <summary>
+        /// TODO
+        /// This will be null if the ScopeDefiningParentIfAny is null or if not a structure that returns a value, if ScopeDefiningParentIfAny IS a
+		/// structure that returns a value (ie. FUNCTION or PROPERTY) then this will be non-null. If this is non-null then ScopeDefiningParentIfAny
+		/// will also be non-null.
+        /// </summary>
+        public CSharpName ErrorRegistrationTokenIfAny { get; private set; }
 
         /// <summary>
         /// These are references that are declared as being a compulsory and expected part of the Environment References - eg. if a command line

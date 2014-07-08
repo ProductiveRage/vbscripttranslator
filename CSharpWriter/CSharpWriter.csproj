@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeTranslation\BlockTranslators\IfBlockTranslator.cs" />
+    <Compile Include="CodeTranslation\Extensions\NonNullImmutableListOfCodeBlocks_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\ReferenceTypeOptions.cs" />
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\DoNotRenameNameToken.cs" />

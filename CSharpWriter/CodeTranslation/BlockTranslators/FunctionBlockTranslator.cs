@@ -44,18 +44,45 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					indentationDepth
 				)
 			);
-			translationResult = translationResult.Add(
+            CSharpName errorRegistrationTokenIfAny;
+            if (functionBlock.Statements.ToNonNullImmutableList().DoesScopeContainOnErrorResumeNext())
+            {
+                errorRegistrationTokenIfAny = _tempNameGenerator(new CSharpName("errOn"), scopeAccessInformation);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "var {0} = {1}.GETERRORTRAPPINGTOKEN();",
+                        errorRegistrationTokenIfAny.Name,
+                        _supportRefName.Name
+                    ),
+                    indentationDepth + 1
+                ));
+            }
+            else
+                errorRegistrationTokenIfAny = null;
+            translationResult = translationResult.Add(
 				Translate(
 				    functionBlock.Statements.ToNonNullImmutableList(),
 					    scopeAccessInformation.Extend(
                             functionBlock,
                             returnValueName,
+                            errorRegistrationTokenIfAny,
                             functionBlock.Statements.ToNonNullImmutableList()
                         ),
 				    indentationDepth + 1
 				)
 			);
-			if (functionBlock.HasReturnValue)
+            if (errorRegistrationTokenIfAny != null)
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}.RELEASEERRORTRAPPINGTOKEN({1});",
+                        _supportRefName.Name,
+                        errorRegistrationTokenIfAny.Name
+                    ),
+                    indentationDepth + 1
+                ));
+            }
+            if (functionBlock.HasReturnValue)
 			{
 				// If this is an empty function then just render "return null" (TranslateFunctionHeader won't declare the return value reference) 
 				translationResult = translationResult.Add(
@@ -94,6 +121,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateFor,
 					base.TryToTranslateForEach,
 					base.TryToTranslateIf,
+                    base.TryToTranslateOnErrorResumeNext,
+                    base.TryToTranslateOnErrorGotoZero,
 					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,

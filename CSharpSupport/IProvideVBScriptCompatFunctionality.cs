@@ -65,11 +65,16 @@ namespace CSharpSupport
 			"STRCOMP", "STRING",
 			"LTRIM", "RTRIM", "TRIM"
 		 */
-
+        
 		// TODO: Integration RANDOMIZE functionality
-        // TODO: Deal with recording error settings
 
-        void TRAP(Action action, bool enableErrorTrapping = true);
+        void GETERRORTRAPPINGTOKEN();
+        void RELEASEERRORTRAPPINGTOKEN(int token);
+
+        void STARTERRORTRAPPING(int token);
+        void STOPERRORTRAPPING(int token);
+        
+        void HANDLEERROR(Action action, int token);
 
         VBScriptConstants Constants { get; }
     }

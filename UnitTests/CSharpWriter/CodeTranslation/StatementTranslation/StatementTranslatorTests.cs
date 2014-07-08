@@ -16,6 +16,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 		// TODO: "o" where "o" has a default parameter-less property => try to access that property, doesn't matter if returns value-type or reference
 		// TODO: "o" where "o" has a default parameter-less function => try to access that property, doesn't matter if returns value-type or reference
 
+        // The next two are bullshit! The method WScript.Echo should be given the "o" reference unmolested, if it then tries to get printable content
+        // from it and fails then that is down to the implementation
         // TODO: "WScript.Echo o" where "o" has a default parameter-less property => displays the property value (if value-type, "Type mismatch" if reference)
 		// TODO: "WScript.Echo o" where "o" has a default parameter-less function => "Type mismatch"
 		// TODO: "WScript.Echo o()" where "o" has a default parameter-less function => displays the function return value (if value-type, "Type mismatch" if reference)
@@ -230,6 +232,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.ParentIfAny,
                 scopeAccessInformation.ScopeDefiningParentIfAny,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions.Add(new ScopedNameToken(
@@ -255,6 +258,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.ParentIfAny,
                 scopeAccessInformation.ScopeDefiningParentIfAny,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,

@@ -15,6 +15,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
 			IHaveNestedContent parentIfAny,
 			IDefineScope scopeDefiningParentIfAny,
             CSharpName parentReturnValueNameIfAny,
+            CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<ICodeBlock> blocks)
         {
             if (scopeInformation == null)
@@ -51,6 +52,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
 				parentIfAny,
 				scopeDefiningParentIfAny,
                 parentReturnValueNameIfAny,
+                errorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies,
                 scopeInformation.Classes.AddRange(
                     blocks
@@ -113,6 +115,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             this ScopeAccessInformation scopeInformation,
             IDefineScope parentIfAny,
             CSharpName parentReturnValueNameIfAny,
+            CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<ICodeBlock> blocks)
         {
             if (scopeInformation == null)
@@ -120,7 +123,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            return Extend(scopeInformation, parentIfAny, parentIfAny, parentReturnValueNameIfAny, blocks);
+            return Extend(scopeInformation, parentIfAny, parentIfAny, parentReturnValueNameIfAny, errorRegistrationTokenIfAny, blocks);
         }
 
         public static ScopeAccessInformation ExtendExternalDependencies(this ScopeAccessInformation scopeInformation, NonNullImmutableList<NameToken> externalDependencies)
@@ -134,6 +137,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.ParentIfAny,
                 scopeInformation.ScopeDefiningParentIfAny,
                 scopeInformation.ParentReturnValueNameIfAny,
+                scopeInformation.ErrorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies.AddRange(externalDependencies),
                 scopeInformation.Classes,
                 scopeInformation.Functions,
@@ -153,6 +157,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.ParentIfAny,
                 scopeInformation.ScopeDefiningParentIfAny,
                 scopeInformation.ParentReturnValueNameIfAny,
+                scopeInformation.ErrorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies,
                 scopeInformation.Classes,
                 scopeInformation.Functions,
@@ -175,7 +180,25 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            return Extend(scopeInformation, parentIfAny, null, blocks);
+            return Extend(scopeInformation, parentIfAny, null, null, blocks);
+        }
+
+        public static ScopeAccessInformation SetErrorRegistrationToken(this ScopeAccessInformation scopeAccessInformation, CSharpName errorRegistrationTokenIfAny)
+        {
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            return new ScopeAccessInformation(
+                scopeAccessInformation.ParentIfAny,
+                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.ParentReturnValueNameIfAny,
+                errorRegistrationTokenIfAny,
+                scopeAccessInformation.ExternalDependencies,
+                scopeAccessInformation.Classes,
+                scopeAccessInformation.Functions,
+                scopeAccessInformation.Properties,
+                scopeAccessInformation.Variables
+            );
         }
 
         public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string rewrittenTargetName, VBScriptNameRewriter nameRewriter)

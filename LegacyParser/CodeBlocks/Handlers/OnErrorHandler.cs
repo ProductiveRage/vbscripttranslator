@@ -22,14 +22,14 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // Look for "ON ERROR.." form in tokens
             // - Define token matches with corresponding ICodeBlock type
-            Dictionary<string[], ICodeBlock> matchPatterns = new Dictionary<string[],ICodeBlock>();
+            var matchPatterns = new Dictionary<string[], Func<int, ICodeBlock>>();
             matchPatterns.Add(
                 new string[] { "ON", "ERROR", "RESUME", "NEXT" },
-                new OnErrorResumeNext()
+                lineIndex => new OnErrorResumeNext(lineIndex)
             );
             matchPatterns.Add(
                 new string[] { "ON", "ERROR", "GOTO", "0" },
-                new OnErrorGoto0()
+                lineIndex => new OnErrorGoto0(lineIndex)
             );
             // - Check for match
             int? tokensToRemove = null;
@@ -38,7 +38,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             {
                 if (base.checkAtomTokenPattern(tokens, matchPattern, false))
                 {
-                    errorBlock = matchPatterns[matchPattern];
+                    errorBlock = matchPatterns[matchPattern](tokens[0].LineIndex);
                     tokensToRemove = matchPattern.Length;
                     break;
                 }

@@ -110,6 +110,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     null, // parentIfAny
                     blocks
                 );
+            if (blocks.DoesScopeContainOnErrorResumeNext())
+            {
+                scopeAccessInformation = scopeAccessInformation.SetErrorRegistrationToken(
+                    _tempNameGenerator(new CSharpName("errOn"), scopeAccessInformation)
+                );
+            }
+
             var outerExecutableBlocksTranslationResult = Translate(
                 other.ToNonNullImmutableList(),
                 scopeAccessInformation,
@@ -190,9 +197,33 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("", 0)
                 });
             }
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                translatedStatements = translatedStatements
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "var {0} = {1}.GETERRORTRAPPINGTOKEN();",
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name,
+                            _supportRefName.Name
+                        ),
+                        3
+                    ));
+            }
             translatedStatements = translatedStatements.AddRange(
                 outerExecutableBlocksTranslationResult.TranslatedStatements
             );
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                translatedStatements = translatedStatements
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.RELEASEERRORTRAPPINGTOKEN({1});",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        3
+                    ));
+            }
             if (_outputType == OutputTypeOptions.Executable)
             {
                 translatedStatements = translatedStatements
@@ -342,6 +373,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateForEach,
 					base.TryToTranslateFunction,
 					base.TryToTranslateIf,
+                    base.TryToTranslateOnErrorResumeNext,
+                    base.TryToTranslateOnErrorGotoZero,
 					base.TryToTranslateOptionExplicit,
 					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,

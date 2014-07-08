@@ -37,6 +37,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // TODO: Add support for "class_initialize" and "class_terminate"
+            // - Ensure that the implicit error trapping is applied to these methods
+
+            // Any error-trapping in the parent scope will not apply within the class and will have to be set explicitly within the methods and
+            // properties if required
+            scopeAccessInformation = scopeAccessInformation.SetErrorRegistrationToken(null);
+
             // TODO: Require a variation of OuterScopeBlockTranslator's RemoveDuplicateFunctions (see notes on that method)
             var classContentTranslationResult = Translate(
                 classBlock.Statements.ToNonNullImmutableList(),

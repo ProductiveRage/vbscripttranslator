@@ -210,6 +210,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.ParentIfAny,
                 scopeAccessInformation.ScopeDefiningParentIfAny,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions.Add(new ScopedNameToken(
@@ -235,6 +236,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.ParentIfAny,
                 scopeAccessInformation.ScopeDefiningParentIfAny,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
+                scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,

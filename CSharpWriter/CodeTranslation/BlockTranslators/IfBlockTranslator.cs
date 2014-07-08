@@ -33,6 +33,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // TODO: Integrate error-handling, if enabled
 			var translationResult = TranslationResult.Empty;
             foreach (var conditionalEntry in ifBlock.ConditionalClauses.Select((conditional, index) => new { Conditional = conditional, Index = index }))
             {
@@ -91,6 +92,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateFor,
 					base.TryToTranslateForEach,
 					base.TryToTranslateIf,
+                    base.TryToTranslateOnErrorResumeNext,
+                    base.TryToTranslateOnErrorGotoZero,
 					base.TryToTranslateReDim,
 					base.TryToTranslateRandomize,
 					base.TryToTranslateStatementOrExpression,

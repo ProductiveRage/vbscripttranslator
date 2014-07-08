@@ -239,6 +239,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (exitStatement == null)
 				return null;
 
+            // TODO: Ensure that RELEASEERRORTRAPPINGTOKEN is called correctly if the scope has error-handling present
 			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
 		}
 
@@ -313,6 +314,49 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				)
 			);
 		}
+
+        protected TranslationResult TryToTranslateOnErrorResumeNext(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var onErrorResumeNextBlock = block as OnErrorResumeNext;
+            if (onErrorResumeNextBlock == null)
+                return null;
+
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                throw new ArgumentException("The ScopeAccessInformation's ErrorRegistrationTokenIfAny may not be null when the scope contains OnErrorResumeNext");
+
+            return translationResult.Add(new TranslatedStatement(
+                string.Format(
+                    "{0}.STARTERRORTRAPPING({1});",
+                    _supportRefName.Name,
+                    scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                ),
+                indentationDepth
+            ));
+        }
+
+        protected TranslationResult TryToTranslateOnErrorGotoZero(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var onErrorGotoZeroBlock = block as OnErrorGoto0;
+            if (onErrorGotoZeroBlock == null)
+                return null;
+
+            // If this is a "On Error Goto 0" statement within a scope that does not contain an "On Error Resume Next" then it's redundant statement
+            // and can be ignored
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+            {
+                _logger.Warning("Ignoring ON ERROR GOTO 0 within a scope that contains no ON ERROR RESUME NEXT (line " + onErrorGotoZeroBlock.LineIndex + ")");
+                return translationResult;
+            }
+
+            return translationResult.Add(new TranslatedStatement(
+                string.Format(
+                    "{0}.STOPERRORTRAPPING({1});",
+                    _supportRefName.Name,
+                    scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                ),
+                indentationDepth
+            ));
+        }
 
 		protected TranslationResult TryToTranslateOptionExplicit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -475,6 +519,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
+            // TODO: Add error-handling if required
             return translationResult
                 .Add(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
                 .Add(translatedReDimStatements);
@@ -502,14 +547,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-			return
-                translationResult.Add(
-				    new TranslatedStatement(
-                        translatedStatementContentDetails.TranslatedContent + ";",
-					    indentationDepth
-				    )
-			    )
-				.Add(undeclaredVariables);
+
+            var coreContent = translatedStatementContentDetails.TranslatedContent + ";";
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                translationResult = translationResult.Add(new TranslatedStatement(coreContent, indentationDepth));
+            else
+            {
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(GetHandleErrorContent(scopeAccessInformation.ErrorRegistrationTokenIfAny), indentationDepth))
+                    .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
+                    .Add(new TranslatedStatement("});", indentationDepth));
+            }
+			return translationResult.Add(undeclaredVariables);
 		}
 
 		protected TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -524,14 +573,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
 				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-			return
-				translationResult.Add(
-					new TranslatedStatement(
-						translatedValueSettingStatementContentDetails.TranslatedContent + ";",
-						indentationDepth
-					)
-				)
-				.Add(undeclaredVariables);
+
+            var coreContent = translatedValueSettingStatementContentDetails.TranslatedContent + ";";
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                translationResult = translationResult.Add(new TranslatedStatement(coreContent, indentationDepth));
+            else
+            {
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(GetHandleErrorContent(scopeAccessInformation.ErrorRegistrationTokenIfAny), indentationDepth))
+                    .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
+                    .Add(new TranslatedStatement("});", indentationDepth));
+            }
+            return translationResult.Add(undeclaredVariables);
 		}
 
         /// <summary>
@@ -681,6 +734,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .AddRange(translationResult.TranslatedStatements),
                 translationResult.ExplicitVariableDeclarations,
                 new NonNullImmutableList<NameToken>()
+            );
+        }
+
+        private string GetHandleErrorContent(CSharpName errorRegistrationToken)
+        {
+            if (errorRegistrationToken == null)
+                throw new ArgumentNullException("errorRegistrationToken");
+
+            return string.Format(
+                "{0}.HANDLEERROR({1}, () => {{",
+                _supportRefName.Name,
+                errorRegistrationToken.Name
             );
         }
     }
