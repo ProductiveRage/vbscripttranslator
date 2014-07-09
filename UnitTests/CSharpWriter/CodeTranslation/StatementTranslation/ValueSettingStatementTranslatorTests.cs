@@ -178,9 +178,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
         }
 
-        private static ValueSettingsStatementsTranslator GetDefaultValueSettingStatementTranslator()
+        private static ValueSettingStatementsTranslator GetDefaultValueSettingStatementTranslator()
 		{
-            return new ValueSettingsStatementsTranslator(
+            return new ValueSettingStatementsTranslator(
                 DefaultSupportRefName,
                 DefaultSupportEnvName,
                 DefaultOuterScopeName,

@@ -45,7 +45,7 @@
     <Compile Include="CodeTranslation\Extensions\PropertyBlock_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\VBScriptNameRewriter_Extensions.cs" />
     <Compile Include="CodeTranslation\ScopedNameToken.cs" />
-    <Compile Include="CodeTranslation\StatementTranslation\ValueSettingsStatementsTranslator.cs" />
+    <Compile Include="CodeTranslation\StatementTranslation\ValueSettingStatementsTranslator.cs" />
     <Compile Include="CodeTranslation\StatementTranslation\ITranslateValueSettingsStatements.cs" />
     <Compile Include="CodeTranslation\StatementTranslation\ITranslateIndividualStatements.cs" />
     <Compile Include="CodeTranslation\TranslatedStatementContentDetails.cs" />

@@ -11,13 +11,13 @@ using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
-    public class ValueSettingsStatementsTranslator : ITranslateValueSettingsStatements
+    public class ValueSettingStatementsTranslator : ITranslateValueSettingsStatements
     {
         private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
         private readonly VBScriptNameRewriter _nameRewriter;
         private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
-        public ValueSettingsStatementsTranslator(
+        public ValueSettingStatementsTranslator(
             CSharpName supportRefName,
             CSharpName envRefName,
             CSharpName outerRefName,

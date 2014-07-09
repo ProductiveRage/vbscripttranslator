@@ -71,7 +71,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 nameRewriter,
                 tempNameGenerator,
                 statementTranslator,
-                new ValueSettingsStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
+                new ValueSettingStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
                 externalDependencies,
                 OuterScopeBlockTranslator.OutputTypeOptions.WithoutScaffolding,
                 logger
