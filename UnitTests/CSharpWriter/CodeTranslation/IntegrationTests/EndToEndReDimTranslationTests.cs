@@ -16,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.NEWARRAY(0);"
+                    "_.NEWARRAY(new object[] { 0 }, value1 => { _outer.a = value1; });"
                 };
                 Assert.Equal(
                     expected,
@@ -31,7 +31,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.RESIZEARRAY(_outer.a, 0);"
+                    "_.RESIZEARRAY(_outer.a, new object[] { 0 }, value1 => { _outer.a = value1; });"
                 };
                 Assert.Equal(
                     expected,
@@ -51,7 +51,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.NEWARRAY(0);
+                      _.NEWARRAY(new object[] { 0 }, value2 => { a = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -72,7 +72,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.RESIZEARRAY(a, 0);
+                      _.RESIZEARRAY(a, new object[] { 0 }, value2 => { a = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -92,7 +92,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public object f1()
                     {
                       object retVal1 = null;
-                      retVal1 = _.NEWARRAY(0);
+                      _.NEWARRAY(new object[] { 0 }, value2 => { retVal1 = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -112,7 +112,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public object f1()
                     {
                       object retVal1 = null;
-                      retVal1 = _.RESIZEARRAY(retVal1, 0);
+                      _.RESIZEARRAY(retVal1, new object[] { 0 }, value2 => { retVal1 = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -132,7 +132,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.NEWARRAY(0);"
+                    "_.NEWARRAY(new object[] { 0 }, value1 => { _outer.a = value1; });"
                 };
                 Assert.Equal(
                     expected,
@@ -148,7 +148,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_outer.a = _.RESIZEARRAY(_outer.a, 0);"
+                    "_.RESIZEARRAY(_outer.a, new object[] { 0 }, value1 => { _outer.a = value1; });"
                 };
                 Assert.Equal(
                     expected,
@@ -169,7 +169,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.NEWARRAY(0);
+                      _.NEWARRAY(new object[] { 0 }, value2 => { a = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -191,7 +191,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      a = _.RESIZEARRAY(a, 0);
+                      _.RESIZEARRAY(a, new object[] { 0 }, value2 => { a = value2; });
                       return retVal1;
                     }";
                 Assert.Equal(

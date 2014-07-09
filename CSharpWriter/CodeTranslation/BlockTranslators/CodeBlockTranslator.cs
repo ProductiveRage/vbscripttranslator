@@ -459,8 +459,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedReDimStatements = new NonNullImmutableList<TranslatedStatement>();
             var translatedContentFormat = reDimStatement.Preserve
-                ? "{0} = {1}.RESIZEARRAY({0}, {2});"
-                : "{0} = {1}.NEWARRAY({2});";
+                ? "{0}.RESIZEARRAY({1}, new object[] {{ {2} }}, {3} => {{ {1} = {3}; }});"
+                : "{0}.NEWARRAY(new object[] {{ {2} }}, {3} => {{ {1} = {3}; }});";
             foreach (var variable in reDimStatement.Variables)
             {
                 var rewrittenVariableName = _nameRewriter(variable.Name).Name;
@@ -495,6 +495,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         : (targetContainer.Name + "." + rewrittenVariableName);
                 }
 
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    translatedReDimStatements = translatedReDimStatements.Add(
+                        new TranslatedStatement(
+                            GetHandleErrorContent(scopeAccessInformation.ErrorRegistrationTokenIfAny),
+                            indentationDepth
+                        )
+                    );
+                }
+
                 var translatedArguments = new List<string>();
                 foreach (var dimension in variable.Dimensions)
                 {
@@ -510,16 +520,26 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement(
                         string.Format(
                             translatedContentFormat,
-                            targetReference,
                             _supportRefName.Name,
-                            string.Join(", ", translatedArguments)
+                            targetReference,
+                            string.Join(", ", translatedArguments),
+                            _tempNameGenerator(new CSharpName("value"), scopeAccessInformation).Name
                         ),
-                        indentationDepth
+                        indentationDepth + ((scopeAccessInformation.ErrorRegistrationTokenIfAny == null) ? 0 : 1)
                     )
                 );
+
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    translatedReDimStatements = translatedReDimStatements.Add(
+                        new TranslatedStatement(
+                            "});",
+                            indentationDepth
+                        )
+                    );
+                }
             }
 
-            // TODO: Add error-handling if required
             return translationResult
                 .Add(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
                 .Add(translatedReDimStatements);
