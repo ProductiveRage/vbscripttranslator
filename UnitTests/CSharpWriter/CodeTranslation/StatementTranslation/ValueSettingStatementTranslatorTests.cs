@@ -89,7 +89,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken(1, 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(_outer.a, null, _.ARGS.Val(1), 1)",
+                "_.SET(1, _outer.a, null, _.ARGS.Val(1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
@@ -126,7 +126,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken(1, 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(_env.a, null, _.ARGS.Val(1), 1)",
+                "_.SET(1, _env.a, null, _.ARGS.Val(1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = ScopeAccessInformation.Empty;
@@ -159,7 +159,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken(1, 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(_.CALL(_outer, \"a\"), null, _.ARGS.Val(1), 1)",
+                "_.SET(1, _.CALL(_outer, \"a\"), null, _.ARGS.Val(1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(

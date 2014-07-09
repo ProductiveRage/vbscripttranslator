@@ -18,14 +18,14 @@ namespace CSharpSupport
 
             return source.CALL(target, members, argumentProviderBuilder.GetArgs());
         }
-        public static void SET(this IAccessValuesUsingVBScriptRules source, object target, string optionalMemberAccessor, IBuildCallArgumentProviders argumentProviderBuilder, object value)
+        public static void SET(this IAccessValuesUsingVBScriptRules source, object valueToSetTo, object target, string optionalMemberAccessor, IBuildCallArgumentProviders argumentProviderBuilder)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
             if (argumentProviderBuilder == null)
                 throw new ArgumentNullException("argumentProviderBuilder");
 
-            source.SET(target, optionalMemberAccessor, argumentProviderBuilder.GetArgs(), value);
+            source.SET(valueToSetTo, target, optionalMemberAccessor, argumentProviderBuilder.GetArgs());
         }
 
         // Convenience methods for when there are no arguments

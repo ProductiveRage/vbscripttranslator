@@ -154,9 +154,11 @@ namespace CSharpSupport.Implementations
         /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
         /// invalid member accessor - if specified - argument thrown by the target setter). This must not be called with a target reference
         /// only (null optionalMemberAccessor and zero arguments) as it would need to change the caller's reference to target, which is not
-        /// possible (in that case, a straight assignment should be generated - no call to SET required).
+        /// possible (in that case, a straight assignment should be generated - no call to SET required). Note that the valueToSetTo argument
+        /// comes before any others since VBScript will evaulate the right-hand side of the assignment before the left, which may be important
+        /// if an error is raised at some point in the operation.
         /// </summary>
-        public void SET(object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider, object value)
+        public void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
@@ -174,7 +176,7 @@ namespace CSharpSupport.Implementations
                 invoker = GenerateSetInvoker(target, optionalMemberAccessor, arguments);
                 _setInvokerCache.TryAdd(cacheKey, invoker);
             }
-            invoker(target, arguments, value);
+            invoker(target, arguments, valueToSetTo);
             for (var index = 0; index < arguments.Length; index++)
                 argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
         }

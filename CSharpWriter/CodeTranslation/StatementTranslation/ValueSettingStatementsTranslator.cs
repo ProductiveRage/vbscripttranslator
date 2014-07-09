@@ -147,8 +147,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // 2014-07-03 DWR: The above examples all assume that "a" is an arrays or an objects with settable properties (with a default settable
             // property in the first case) but VBScript will also allow "a(0) = 1" to compile if "a" is a function. It will fail at run time but, in
             // the interests of compability, these statements need to be translated into C# statements that compile but fail at run time. If the above
-            // logic was applied to a function then "a(0) = 1" would become "_.SET(a, null, _.ARGS.Val(0), 1)" which will not compile as the "a"
-            // reference is a function. It needs to be translated into "_.SET(_outer, "a", _.ARGS.Val(0), 1)" instead. This is handled with a special
+            // logic was applied to a function then "a(0) = 1" would become "_.SET(1, a, null, _.ARGS.Val(0))" which will not compile as the "a"
+            // reference is a function. It needs to be translated into "_.SET(1, _outer, "a", _.ARGS.Val(0))" instead. This is handled with a special
             // case below (it is only in the "callExpressionSegments.Count == 1" condition).
 
             // Get a set of CallExpressionSegments..
@@ -233,11 +233,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
                         {
                             // 2014-07-03 DWR: This is the special case talked about above - eg. "a(0) = 1" where "a" is a function. It can not be
-                            // translated into "_.SET(a, null, _.ARGS.Val(0), 1)" since the first argument of "SET" requires an obect and "a" is a
-                            // function. Instead it must be translated into "_.SET(_outer, "a", _.ARGS.Val(0), 1)". This is only a problem where
+                            // translated into "_.SET(1, a, null, _.ARGS.Val(0))" since the first argument of "SET" requires an obect and "a" is a
+                            // function. Instead it must be translated into "_.SET(1, _outer, "a", _.ARGS.Val(0))". This is only a problem where
                             // there is a single "callExpressionSegments" entry since this is the only case where the first named target is extracted
                             // from its arguments - eg. "a(0).Name = 1" is represented by two callExpressionSegments ("a(0)" and ".Name") which will
-                            // be translated into "_.SET(_.CALL(_outer, "a"), "Name", _.ARGS.Val(0), 1)" and not require any special messing around.
+                            // be translated into "_.SET(1, _.CALL(_outer, "a"), "Name", _.ARGS.Val(0))" and not require any special messing around.
                             var targetAccessCallExpressionSegments = new IExpressionSegment[]
                             {
                                 new CallExpressionSegment(
@@ -328,10 +328,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 translatedExpression => string.Format(
                     "{0}.SET({1}, {2}, {3}, {4})",
                     _supportRefName.Name,
+                    translatedExpression,
                     targetAccessor,
                     (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
-                    argumentsContent.TranslatedContent,
-                    translatedExpression
+                    argumentsContent.TranslatedContent
                 ),
                 variablesAccessed.ToNonNullImmutableList()
             );

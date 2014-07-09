@@ -84,7 +84,7 @@ namespace CSharpSupport.Implementations
 			// interface is to allow that to occur where necessary).
 			return Ref(
 				valueForArgument,
-				v => _vbscriptValueAccessor.SET(target, null, lastArgumentProvider, v)
+				v => _vbscriptValueAccessor.SET(v, target, null, lastArgumentProvider)
 			);
         }
 
