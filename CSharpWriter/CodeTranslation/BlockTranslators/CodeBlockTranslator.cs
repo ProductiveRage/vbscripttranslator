@@ -493,7 +493,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         : (targetContainer.Name + "." + rewrittenVariableName);
                 }
 
-                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                var mayRequireErrorWrapping = scopeAccessInformation.MayRequireErrorWrapping(block);
+                if (mayRequireErrorWrapping)
                 {
                     translatedReDimStatements = translatedReDimStatements.Add(
                         new TranslatedStatement(
@@ -523,11 +524,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             string.Join(", ", translatedArguments),
                             _tempNameGenerator(new CSharpName("value"), scopeAccessInformation).Name
                         ),
-                        indentationDepth + ((scopeAccessInformation.ErrorRegistrationTokenIfAny == null) ? 0 : 1)
+                        indentationDepth + (mayRequireErrorWrapping ? 1 : 0)
                     )
                 );
 
-                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                if (mayRequireErrorWrapping)
                 {
                     translatedReDimStatements = translatedReDimStatements.Add(
                         new TranslatedStatement(
@@ -567,7 +568,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
             var coreContent = translatedStatementContentDetails.TranslatedContent + ";";
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+            if (!scopeAccessInformation.MayRequireErrorWrapping(block))
                 translationResult = translationResult.Add(new TranslatedStatement(coreContent, indentationDepth));
             else
             {
@@ -593,7 +594,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
             var coreContent = translatedValueSettingStatementContentDetails.TranslatedContent + ";";
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+            if (!scopeAccessInformation.MayRequireErrorWrapping(block))
                 translationResult = translationResult.Add(new TranslatedStatement(coreContent, indentationDepth));
             else
             {

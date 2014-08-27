@@ -41,7 +41,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     scopeAccessInformation,
                     ExpressionReturnTypeOptions.NotSpecified
                 );
-                if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                if (!scopeAccessInformation.MayRequireErrorWrapping(ifBlock))
                 {
                     conditionalContent = new TranslatedStatementContentDetails(
                         string.Format(
