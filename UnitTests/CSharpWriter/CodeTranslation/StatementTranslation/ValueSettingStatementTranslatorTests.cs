@@ -28,7 +28,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 "_env.a = 1",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
-            var scopeAccessInformation = ScopeAccessInformation.Empty;
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
             var actual = GetDefaultValueSettingStatementTranslator().Translate(
                 new ValueSettingStatement(
                     expressionToSet,
@@ -56,7 +56,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
-                ScopeAccessInformation.Empty,
+                GetEmptyScopeAccessInformation(),
                 "a",
                 0
             );
@@ -93,7 +93,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
-                ScopeAccessInformation.Empty,
+                GetEmptyScopeAccessInformation(),
                 "a",
                 0
             );
@@ -129,7 +129,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 "_.SET(1, _env.a, null, _.ARGS.Val(1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
-            var scopeAccessInformation = ScopeAccessInformation.Empty;
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
             var actual = GetDefaultValueSettingStatementTranslator().Translate(
                 new ValueSettingStatement(
                     expressionToSet,
@@ -163,7 +163,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(
-                ScopeAccessInformation.Empty,
+                GetEmptyScopeAccessInformation(),
                 "a",
                 0
             );
@@ -176,6 +176,21 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation
             );
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
+        /// <summary>
+        /// This will return an empty ScopeAccessInformation that indicates an outermost scope without any statements - this does not describe a real scenario
+        /// but allows us to set up data to exercise the code that the tests here are targetting
+        /// </summary>
+        private static ScopeAccessInformation GetEmptyScopeAccessInformation()
+        {
+            return ScopeAccessInformation.FromOutermostScope(
+                new OutermostScope(
+                    new CSharpName("UnitTestOutermostScope"),
+                    new NonNullImmutableList<VBScriptTranslator.LegacyParser.CodeBlocks.ICodeBlock>()
+                ),
+                new NonNullImmutableList<NameToken>()
+            );
         }
 
         private static ValueSettingStatementsTranslator GetDefaultValueSettingStatementTranslator()
@@ -207,8 +222,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 throw new ArgumentOutOfRangeException("lineIndex");
 
             return new ScopeAccessInformation(
-                scopeAccessInformation.ParentIfAny,
-                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.Parent,
+                scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
@@ -233,8 +248,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 throw new ArgumentOutOfRangeException("lineIndex");
 
             return new ScopeAccessInformation(
-                scopeAccessInformation.ParentIfAny,
-                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.Parent,
+                scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,

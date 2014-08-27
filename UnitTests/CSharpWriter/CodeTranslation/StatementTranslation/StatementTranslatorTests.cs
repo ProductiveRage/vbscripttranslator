@@ -38,7 +38,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 				"_.VAL(_env.o)",
 				new NonNullImmutableList<NameToken>(new[] { new NameToken("o", 0) })
 			);
-			var scopeAccessInformation = ScopeAccessInformation.Empty;
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
             Assert.Equal(
 				expected,
 				GetDefaultStatementTranslator().Translate(expression, scopeAccessInformation, ExpressionReturnTypeOptions.None),
@@ -60,7 +60,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			});
 
             var scopeAccessInformation = AddOutermostScopeFunction(
-                ScopeAccessInformation.Empty,
+                GetEmptyScopeAccessInformation(),
                 "o",
                 0
             );
@@ -95,7 +95,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 
             var scopeAccessInformation = AddOutermostScopeVariable(
                 AddOutermostScopeFunction(
-                    ScopeAccessInformation.Empty,
+                    GetEmptyScopeAccessInformation(),
                     "o",
                     0
                 ),
@@ -142,7 +142,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 
             var scopeAccessInformation = AddOutermostScopeVariable(
                 AddOutermostScopeFunction(
-                    ScopeAccessInformation.Empty,
+                    GetEmptyScopeAccessInformation(),
                     "o",
                     0
                 ),
@@ -202,8 +202,23 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             );
             Assert.Equal(
                 expected,
-                GetDefaultStatementTranslator().Translate(expression, ScopeAccessInformation.Empty, ExpressionReturnTypeOptions.None),
+                GetDefaultStatementTranslator().Translate(expression, GetEmptyScopeAccessInformation(), ExpressionReturnTypeOptions.None),
                 new TranslatedStatementContentDetailsComparer()
+            );
+        }
+
+        /// <summary>
+        /// This will return an empty ScopeAccessInformation that indicates an outermost scope without any statements - this does not describe a real scenario
+        /// but allows us to set up data to exercise the code that the tests here are targetting
+        /// </summary>
+        private static ScopeAccessInformation GetEmptyScopeAccessInformation()
+        {
+            return ScopeAccessInformation.FromOutermostScope(
+                new OutermostScope(
+                    new CSharpName("UnitTestOutermostScope"),
+                    new NonNullImmutableList<VBScriptTranslator.LegacyParser.CodeBlocks.ICodeBlock>()
+                ),
+                new NonNullImmutableList<NameToken>()
             );
         }
 
@@ -229,8 +244,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 throw new ArgumentOutOfRangeException("lineIndex");
 
             return new ScopeAccessInformation(
-                scopeAccessInformation.ParentIfAny,
-                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.Parent,
+                scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
@@ -255,8 +270,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 throw new ArgumentOutOfRangeException("lineIndex");
 
             return new ScopeAccessInformation(
-                scopeAccessInformation.ParentIfAny,
-                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.Parent,
+                scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 scopeAccessInformation.ErrorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,

@@ -8,8 +8,8 @@ namespace CSharpWriter.CodeTranslation
     public class ScopeAccessInformation
     {
         public ScopeAccessInformation(
-			IHaveNestedContent parentIfAny,
-			IDefineScope scopeDefiningParentIfAny,
+			IHaveNestedContent parent,
+			IDefineScope scopeDefiningParent,
             CSharpName parentReturnValueNameIfAny,
             CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<NameToken> externalDependencies,
@@ -18,6 +18,10 @@ namespace CSharpWriter.CodeTranslation
             NonNullImmutableList<ScopedNameToken> properties,
             NonNullImmutableList<ScopedNameToken> variables)
         {
+            if (parent == null)
+                throw new ArgumentNullException("parent");
+            if (scopeDefiningParent == null)
+                throw new ArgumentNullException("scopeDefiningParent");
             if (externalDependencies == null)
                 throw new ArgumentNullException("externalDependencies");
             if (classes == null)
@@ -29,11 +33,8 @@ namespace CSharpWriter.CodeTranslation
             if (variables == null)
                 throw new ArgumentNullException("variables");
 
-			if ((parentIfAny == null) && (scopeDefiningParentIfAny != null))
-				throw new ArgumentException("If scopeDefiningParentIfAny is non-null then parentIfAny must be");
-
-            ParentIfAny = parentIfAny;
-			ScopeDefiningParentIfAny = scopeDefiningParentIfAny;
+            Parent = parent;
+			ScopeDefiningParent = scopeDefiningParent;
             ErrorRegistrationTokenIfAny = errorRegistrationTokenIfAny;
             ParentReturnValueNameIfAny = parentReturnValueNameIfAny;
             ExternalDependencies = externalDependencies;
@@ -43,42 +44,48 @@ namespace CSharpWriter.CodeTranslation
             Variables = variables;
         }
 
-        public static ScopeAccessInformation Empty = new ScopeAccessInformation(
-            null,
-			null,
-            null,
-            null,
-            new NonNullImmutableList<NameToken>(),
-            new NonNullImmutableList<ScopedNameToken>(),
-            new NonNullImmutableList<ScopedNameToken>(),
-            new NonNullImmutableList<ScopedNameToken>(),
-            new NonNullImmutableList<ScopedNameToken>()
-        );
+        public static ScopeAccessInformation FromOutermostScope(IDefineScope outermostScope, NonNullImmutableList<NameToken> externalDependencies)
+        {
+            if (outermostScope == null)
+                throw new ArgumentNullException("outermostScope");
+
+            return new ScopeAccessInformation(
+                outermostScope, // parent
+                outermostScope, // scope-defining parent
+                null, // parentReturnValueNameIfAny
+                null, // errorRegistrationTokenIfAny
+                externalDependencies,
+                new NonNullImmutableList<ScopedNameToken>(), // classes
+                new NonNullImmutableList<ScopedNameToken>(), // functions,
+                new NonNullImmutableList<ScopedNameToken>(), // properties,
+                new NonNullImmutableList<ScopedNameToken>() // variables
+            );
+        }
 
         /// <summary>
-		/// /// This will be null if there is no scope-defining parent - ie. in the outermost scope
+        /// This will never be null - if this is a statement within the outermost scope, there should be a construct to identify this (the OuterMostScope
+        /// class is intended to be used for this purposes)
         /// </summary>
-		public IHaveNestedContent ParentIfAny { get; private set; }
+		public IHaveNestedContent Parent { get; private set; }
 
 		/// <summary>
-		/// This will be null if there is no scope-defining parent - eg. in the outermost scope, or within a non-scope-altering construct (such as an
-		/// IF block) within that scope. This may be the same reference as ParentIfAny. If this is non-null then ParentIfAny will always be non-null,
-		/// though it is possible for ParentIfAny to be non-null and this be null (eg. when inside an IF block in the outermost scope)
+        /// This will never be null - if this is a statement within the outermost scope, there should be a construct to identify this (the OuterMostScope
+        /// class is intended to be used for this purposes). This may be the same reference as Parent or it may be a different one - if, for example this
+        /// is for a statement within an IF block then the Parent will be the IF block and and ScopeDefiningParent will be the Function / Property or
+        /// OuterMostScope containing the IF.
 		/// </summary>
-		public IDefineScope ScopeDefiningParentIfAny { get; private set; }
+		public IDefineScope ScopeDefiningParent { get; private set; }
 
         /// <summary>
-        /// This will be null if the ScopeDefiningParentIfAny is null or if not a structure that returns a value, if ScopeDefiningParentIfAny IS a
-		/// structure that returns a value (ie. FUNCTION or PROPERTY) then this will be non-null. If this is non-null then ScopeDefiningParentIfAny
-		/// will also be non-null.
+        /// This will be null if the ScopeDefining is not a structure that returns a value. If ScopeDefiningParent IS a structure that returns a value
+        /// (ie. FUNCTION or PROPERTY) then this will be non-null.
         /// </summary>
         public CSharpName ParentReturnValueNameIfAny { get; private set; }
 
         /// <summary>
-        /// TODO
-        /// This will be null if the ScopeDefiningParentIfAny is null or if not a structure that returns a value, if ScopeDefiningParentIfAny IS a
-		/// structure that returns a value (ie. FUNCTION or PROPERTY) then this will be non-null. If this is non-null then ScopeDefiningParentIfAny
-		/// will also be non-null.
+        /// This must not be null if error-trapping is to be supported by the current scope. If it is null then error-trapping can be never be applied
+        /// to translated statements (it being non-null does not mean that error-trapping will be applied to ALL statements, it depends upon where and
+        /// how error-trapping is enabled by the code being translated).
         /// </summary>
         public CSharpName ErrorRegistrationTokenIfAny { get; private set; }
 
@@ -109,12 +116,10 @@ namespace CSharpWriter.CodeTranslation
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
 
+        // TODO: We can get rid of this now that ScopeDefiningParent may never be null
         public ScopeLocationOptions ScopeLocation
         {
-            get
-            {
-                return (ScopeDefiningParentIfAny == null) ? ScopeLocationOptions.OutermostScope : ScopeDefiningParentIfAny.Scope;
-            }
+            get { return ScopeDefiningParent.Scope; }
         }
     }
 }

@@ -13,8 +13,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("scopeAccessInformation");
 
             return new ScopeAccessInformation(
-                scopeAccessInformation.ParentIfAny,
-                scopeAccessInformation.ScopeDefiningParentIfAny,
+                scopeAccessInformation.Parent,
+                scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 errorRegistrationTokenIfAny,
                 scopeAccessInformation.ExternalDependencies,
@@ -46,7 +46,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             // If there's no OnErrorResumeNext present at all within the scope-defining parent's code blocks, then don't both with any of the work below,
             // it isn't necessary (scope-defining blocks are the outermost scope, classes and functions / properties - so if error trapping is enabled
             // outside of the current scope then they don't affect what happens within this scope).
-            var codeBlocksWithinScopeDefiningParent = scopeAccessInformation.ScopeDefiningParentIfAny.AllExecutableBlocks.ToNonNullImmutableList();
+            var codeBlocksWithinScopeDefiningParent = scopeAccessInformation.ScopeDefiningParent.AllExecutableBlocks.ToNonNullImmutableList();
             if (!codeBlocksWithinScopeDefiningParent.DoesScopeContainOnErrorResumeNext())
                 return false;
 

@@ -108,7 +108,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
                 var isSingleTokenSettingParentScopeReturnValue = (
                     (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-                    rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
+                    rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
                 );
 
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
@@ -224,7 +224,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // the replacement (in order to be consistent with VBScript's runtime behaviour)
                     var isSingleTokenSettingParentScopeReturnValue = (
                         (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-                        targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParentIfAny.Name)
+                        targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
                     );
                     if (isSingleTokenSettingParentScopeReturnValue)
                         targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;

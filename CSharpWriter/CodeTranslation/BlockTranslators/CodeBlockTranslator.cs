@@ -116,10 +116,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
             // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
-            // variable declarations into translated statements. If the "scope-defining parent" is the outermost scope then parentIfAny
-            // will be null but that's ok since explicit variable declarations aren't flushed in the same way in that scope, they are
-            // added to an "outer" or "GlobalReferences" class.
-            var scopeDefiningParent = scopeAccessInformation.ParentIfAny as IDefineScope;
+            // variable declarations into translated statements.
+            var scopeDefiningParent = scopeAccessInformation.Parent as IDefineScope;
 			if (scopeDefiningParent == null)
                 return translationResult;
 
@@ -437,8 +435,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     )
                 )
                 .Where(newVariable =>
-                    (scopeAccessInformation.ScopeDefiningParentIfAny == null) ||
-                    !scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)
+                    (scopeAccessInformation.ScopeDefiningParent == null) ||
+                    !scopeAccessInformation.ScopeDefiningParent.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)
                 );
             
             // These variables are now used to extend the current scopeAccessInformation, this is important for the translation below - any
@@ -466,7 +464,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var rewrittenVariableName = _nameRewriter(variable.Name).Name;
                 string targetReference;
                 if ((scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinFunctionOrProperty)
-                && variable.Name.Content.Equals(scopeAccessInformation.ScopeDefiningParentIfAny.Name.Content, StringComparison.OrdinalIgnoreCase))
+                && variable.Name.Content.Equals(scopeAccessInformation.ScopeDefiningParent.Name.Content, StringComparison.OrdinalIgnoreCase))
                 {
                     // REDIM statements can target the return value of a function - eg.
                     //
@@ -476,8 +474,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     //   END FUNCTION
                     //
                     // In this case, the "targetReference" value needs to be the name of the temporary value used as the function return
-                    // value (the ScopeAccessInformation class should always have non-null references for the ScopeDefiningParentIfAny
-                    // and ParentReturnValueNameIfAny properties if the ScopeLocation is WithinFunctionOrProperty).
+                    // value (the ScopeAccessInformation class will always have a non-null references for the ScopeDefiningParent and
+                    // should have one for the and ParentReturnValueNameIfAny if the ScopeLocation is WithinFunctionOrProperty).
                     targetReference = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
                 }
                 else

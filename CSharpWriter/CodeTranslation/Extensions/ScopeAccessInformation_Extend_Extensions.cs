@@ -11,18 +11,22 @@ namespace CSharpWriter.CodeTranslation.Extensions
     {
         public static ScopeAccessInformation Extend(
             this ScopeAccessInformation scopeInformation,
-            IHaveNestedContent parentIfAny,
-            IDefineScope scopeDefiningParentIfAny,
+            IHaveNestedContent parent,
+            IDefineScope scopeDefiningParent,
             CSharpName parentReturnValueNameIfAny,
             CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<ICodeBlock> blocks)
         {
+            if (parent == null)
+                throw new ArgumentNullException("parent");
+            if (scopeDefiningParent == null)
+                throw new ArgumentNullException("scopeDefiningParent");
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            var blocksScopeLocation = (scopeDefiningParentIfAny == null) ? scopeInformation.ScopeLocation : scopeDefiningParentIfAny.Scope;
+            var blocksScopeLocation = scopeDefiningParent.Scope;
             blocks = FlattenAllAccessibleBlockLevelCodeBlocks(blocks);
             var variables = scopeInformation.Variables.AddRange(
                 blocks
@@ -34,10 +38,10 @@ namespace CSharpWriter.CodeTranslation.Extensions
                         blocksScopeLocation
                     )))
             );
-            if (scopeDefiningParentIfAny != null)
+            if (scopeDefiningParent != null)
             {
                 variables = variables.AddRange(
-                    scopeDefiningParentIfAny.ExplicitScopeAdditions
+                    scopeDefiningParent.ExplicitScopeAdditions
                         .Select(v => new ScopedNameToken(
                             v.Content,
                             v.LineIndex,
@@ -48,8 +52,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
             }
 
             return new ScopeAccessInformation(
-                parentIfAny,
-                scopeDefiningParentIfAny,
+                parent,
+                scopeDefiningParent,
                 parentReturnValueNameIfAny,
                 errorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies,
@@ -107,22 +111,24 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is a convenience
-        /// method to save having to specify it explicitly for both
+        /// If the parent is scope-defining then both the parent and scopeDefiningParent references will be set to it, this is a convenience method to
+        /// save having to specify it explicitly for both
         /// </summary>
         public static ScopeAccessInformation Extend(
             this ScopeAccessInformation scopeInformation,
-            IDefineScope parentIfAny,
+            IDefineScope parent,
             CSharpName parentReturnValueNameIfAny,
             CSharpName errorRegistrationTokenIfAny,
             NonNullImmutableList<ICodeBlock> blocks)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
+            if (parent == null)
+                throw new ArgumentNullException("parent");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            return Extend(scopeInformation, parentIfAny, parentIfAny, parentReturnValueNameIfAny, errorRegistrationTokenIfAny, blocks);
+            return Extend(scopeInformation, parent, parent, parentReturnValueNameIfAny, errorRegistrationTokenIfAny, blocks);
         }
 
         public static ScopeAccessInformation ExtendExternalDependencies(this ScopeAccessInformation scopeInformation, NonNullImmutableList<NameToken> externalDependencies)
@@ -133,8 +139,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("externalDependencies");
 
             return new ScopeAccessInformation(
-                scopeInformation.ParentIfAny,
-                scopeInformation.ScopeDefiningParentIfAny,
+                scopeInformation.Parent,
+                scopeInformation.ScopeDefiningParent,
                 scopeInformation.ParentReturnValueNameIfAny,
                 scopeInformation.ErrorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies.AddRange(externalDependencies),
@@ -153,8 +159,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("variables");
 
             return new ScopeAccessInformation(
-                scopeInformation.ParentIfAny,
-                scopeInformation.ScopeDefiningParentIfAny,
+                scopeInformation.Parent,
+                scopeInformation.ScopeDefiningParent,
                 scopeInformation.ParentReturnValueNameIfAny,
                 scopeInformation.ErrorRegistrationTokenIfAny,
                 scopeInformation.ExternalDependencies,
@@ -166,20 +172,22 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// If the parentIfAny is scope-defining then both the parentIfAny and scopeDefiningParentIfAny references will be set to it, this is a convenience
-        /// method to save having to specify it explicitly for both (for cases where the parent scope - if any - does not have a return value)
+        /// If the parent is scope-defining then both the parent and scopeDefiningParent references will be set to it, this is a convenience method to
+        /// save having to specify it explicitly for both (for cases where the parent scope - if any - does not have a return value)
         /// </summary>
         public static ScopeAccessInformation Extend(
             this ScopeAccessInformation scopeInformation,
-            IDefineScope parentIfAny,
+            IDefineScope parent,
             NonNullImmutableList<ICodeBlock> blocks)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
+            if (parent == null)
+                throw new ArgumentNullException("parent");
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
-            return Extend(scopeInformation, parentIfAny, null, null, blocks);
+            return Extend(scopeInformation, parent, null, null, blocks);
         }
     }
 }

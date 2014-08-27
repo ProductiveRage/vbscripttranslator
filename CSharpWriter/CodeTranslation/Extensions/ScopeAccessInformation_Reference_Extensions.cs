@@ -80,9 +80,9 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
-            if (scopeInformation.ScopeDefiningParentIfAny != null)
+            if (scopeInformation.ScopeDefiningParent != null)
             {
-                if (scopeInformation.ScopeDefiningParentIfAny.ExplicitScopeAdditions.Any(t => nameRewriter.GetMemberAccessTokenName(t) == rewrittenTargetName))
+                if (scopeInformation.ScopeDefiningParent.ExplicitScopeAdditions.Any(t => nameRewriter.GetMemberAccessTokenName(t) == rewrittenTargetName))
                 {
                     // ExplicitScopeAdditions should be things such as function arguments, so they will share the same ScopeLocation as the
                     // current scopeInformation reference

@@ -103,13 +103,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // TODO: The function and class (and any other) rearranging could be a problem with comments, try to do something about that?
             // - eg. if there are comments for a function on the lines just before the function (outside the function rather than inside it) then they
             //   will get left behind when the functions are moved down
+            // - or just remove comments entirely since the translated code is bearing less and less relation to the source?
 
-            var scopeAccessInformation = ScopeAccessInformation.Empty
-                .ExtendExternalDependencies(_externalDependencies)
-                .Extend(
-                    null, // parentIfAny
-                    blocks
-                );
+            var scopeAccessInformation = ScopeAccessInformation.FromOutermostScope(
+                new OutermostScope(_startClassName, blocks),
+                _externalDependencies
+            );
             if (blocks.DoesScopeContainOnErrorResumeNext())
             {
                 scopeAccessInformation = scopeAccessInformation.SetErrorRegistrationToken(
@@ -419,5 +418,5 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				blocks = blocks.RemoveAt(removeIndex);
 			return blocks;
 		}
-	}
+    }
 }
