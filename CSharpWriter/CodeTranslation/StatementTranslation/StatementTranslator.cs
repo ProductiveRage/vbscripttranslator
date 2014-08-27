@@ -201,7 +201,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var newInstanceExpressionSegment = segment as NewInstanceExpressionSegment;
             if (newInstanceExpressionSegment != null)
-                return Translate(newInstanceExpressionSegment, scopeAccessInformation.ScopeLocation);
+                return Translate(newInstanceExpressionSegment, scopeAccessInformation.ScopeDefiningParent.Scope);
 
             throw new NotSupportedException("Unsupported segment type: " + segment.GetType());
         }

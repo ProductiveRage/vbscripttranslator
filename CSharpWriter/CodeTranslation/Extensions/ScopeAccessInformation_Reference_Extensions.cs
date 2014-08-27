@@ -42,7 +42,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenTargetName, nameRewriter);
             if (targetReferenceDetailsIfAvailable == null)
             {
-                if (scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinFunctionOrProperty)
+                if (scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrProperty)
                 {
                     // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
                     // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
@@ -86,7 +86,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 {
                     // ExplicitScopeAdditions should be things such as function arguments, so they will share the same ScopeLocation as the
                     // current scopeInformation reference
-                    return new DeclaredReferenceDetails(ReferenceTypeOptions.Variable, scopeInformation.ScopeLocation);
+                    return new DeclaredReferenceDetails(ReferenceTypeOptions.Variable, scopeInformation.ScopeDefiningParent.Scope);
                 }
             }
 

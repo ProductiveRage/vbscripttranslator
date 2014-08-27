@@ -115,11 +115,5 @@ namespace CSharpWriter.CodeTranslation
         /// This will never be null
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
-
-        // TODO: We can get rid of this now that ScopeDefiningParent may never be null
-        public ScopeLocationOptions ScopeLocation
-        {
-            get { return ScopeDefiningParent.Scope; }
-        }
     }
 }

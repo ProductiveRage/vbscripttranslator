@@ -124,7 +124,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Explicitly-declared variable declarations need to be translated into C# definitions here (hoisted to the top of the function), as
             // do any undeclared variables (in VBScript if an undeclared variable is used within a function or property body then that variable
             // is treated as being local to the function or property)
-            if (scopeAccessInformation.ScopeLocation != ScopeLocationOptions.WithinFunctionOrProperty)
+            if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrProperty)
             {
                 // This work is not required when not in a function - variable declarations for the outermost scope and within classes needs
                 // different handling (in both cases, there will be properties on a class that will be set in the constructor - in the case
@@ -134,7 +134,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             return FlushUndeclaredVariableDeclarations(
                 FlushExplicitVariableDeclarations(translationResult, indentationDepth),
-                scopeAccessInformation.ScopeLocation,
+                scopeAccessInformation.ScopeDefiningParent.Scope,
                 indentationDepth
             );
         }
@@ -450,7 +450,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Select(v => new ScopedNameToken(
                         v.SourceName.Content,
                         v.SourceName.LineIndex,
-                        scopeAccessInformation.ScopeLocation
+                        scopeAccessInformation.ScopeDefiningParent.Scope
                     ))
                     .ToNonNullImmutableList()
             );
@@ -463,7 +463,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             {
                 var rewrittenVariableName = _nameRewriter(variable.Name).Name;
                 string targetReference;
-                if ((scopeAccessInformation.ScopeLocation == ScopeLocationOptions.WithinFunctionOrProperty)
+                if ((scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrProperty)
                 && variable.Name.Content.Equals(scopeAccessInformation.ScopeDefiningParent.Name.Content, StringComparison.OrdinalIgnoreCase))
                 {
                     // REDIM statements can target the return value of a function - eg.
