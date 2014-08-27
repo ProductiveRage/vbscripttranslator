@@ -88,7 +88,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     }
                     else if (siblingCodeBlock is OnErrorGoto0)
                     {
-                        errorTrappingMustBeEnabled = true;
+                        errorTrappingMustBeEnabled = false;
                         continue;
                     }
 
