@@ -40,6 +40,7 @@
     <Compile Include="CodeTranslation\Extensions\DeclaredReferenceDetails.cs" />
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Error_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Reference_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\IEnumerableOfCodeBlocks_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\ReferenceTypeOptions.cs" />
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\DoNotRenameNameToken.cs" />

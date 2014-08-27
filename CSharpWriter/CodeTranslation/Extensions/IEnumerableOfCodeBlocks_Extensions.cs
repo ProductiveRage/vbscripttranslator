@@ -1,19 +1,23 @@
 ﻿using CSharpWriter.Lists;
 using System;
+using System.Collections.Generic;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter.CodeTranslation.Extensions
 {
-    public static class NonNullImmutableListOfCodeBlocks_Extensions
+    public static class IEnumerableOfCodeBlocks_Extensions
     {
-        public static bool DoesScopeContainOnErrorResumeNext(this NonNullImmutableList<ICodeBlock> blocks)
+        public static bool DoesScopeContainOnErrorResumeNext(this IEnumerable<ICodeBlock> blocks)
         {
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
 
             foreach (var block in blocks)
             {
+                if (block == null)
+                    throw new ArgumentException("Null reference encountered in blocks set");
+
                 if (block is OnErrorResumeNext)
                     return true;
 
