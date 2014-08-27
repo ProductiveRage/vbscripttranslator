@@ -58,7 +58,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             // Now try to determine whether the code in the current scope means that error-trapping should be enabled for the specified code block. It
             // might identify false positives in some scenarios but should never identify false negatives.
             var currentCodeBlockInTrackBack = codeBlockWithinContent.CodeBlock;
-            var remainingParentsToTrackBackThrough = codeBlockWithinContent.ParentsWithinScope;
+            var remainingParentsToTrackBackThrough = codeBlockWithinContent.ParentsWithinScope.Add(scopeAccessInformation.ScopeDefiningParent);
             while (remainingParentsToTrackBackThrough.Any())
             {
                 var parent = remainingParentsToTrackBackThrough.Last();
