@@ -369,7 +369,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
             // to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to check for
             // undeclared variables referenced in the arguments but that is all handled later on).
-            ScopeAccessInformation_Extensions.DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
+            DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
             CSharpName nameOfTargetContainerIfRequired;
             if (indexInCallSet > 0)
             {

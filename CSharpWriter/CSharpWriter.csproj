@@ -37,7 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeTranslation\BlockTranslators\IfBlockTranslator.cs" />
-    <Compile Include="CodeTranslation\Extensions\NonNullImmutableListOfCodeBlocks_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\DeclaredReferenceDetails.cs" />
+    <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Error_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Reference_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\ReferenceTypeOptions.cs" />
     <Compile Include="CodeTranslation\ExpressionReturnTypeOptions.cs" />
     <Compile Include="CodeTranslation\Extensions\DoNotRenameNameToken.cs" />
@@ -57,7 +59,7 @@
     <Compile Include="CodeTranslation\StatementTranslation\StatementTranslator.cs" />
     <Compile Include="CodeTranslation\TranslationDelegates.cs" />
     <Compile Include="CodeTranslation\Extensions\TranslationResult_Extensions.cs" />
-    <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Extensions.cs" />
+    <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Extend_Extensions.cs" />
     <Compile Include="CodeTranslation\ScopeAccessInformation.cs" />
     <Compile Include="CodeTranslation\ExplicitVariableDeclaration.cs" />
     <Compile Include="Lists\IValueValidator.cs" />
