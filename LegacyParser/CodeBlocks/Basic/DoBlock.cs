@@ -7,7 +7,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class DoBlock : IHaveNestedContent, ICodeBlock
+    public class DoBlock : ILoopOverNestedContent, ICodeBlock
     {
         // =======================================================================================
         // CLASS INITIALISATION

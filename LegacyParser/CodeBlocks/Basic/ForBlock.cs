@@ -8,7 +8,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class ForBlock : IHaveNestedContent, ICodeBlock
+    public class ForBlock : ILoopOverNestedContent, ICodeBlock
     {
         // =======================================================================================
         // CLASS INITIALISATION
