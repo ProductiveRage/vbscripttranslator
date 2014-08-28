@@ -1,7 +1,9 @@
 ﻿using CSharpWriter.Lists;
 using System;
+using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using CSharpWriter.CodeTranslation.Extensions;
 
 namespace CSharpWriter.CodeTranslation
 {
@@ -44,12 +46,21 @@ namespace CSharpWriter.CodeTranslation
             Variables = variables;
         }
 
-        public static ScopeAccessInformation FromOutermostScope(IDefineScope outermostScope, NonNullImmutableList<NameToken> externalDependencies)
+        public static ScopeAccessInformation FromOutermostScope(
+            CSharpName outermostScopeWrapperName,
+            NonNullImmutableList<ICodeBlock> blocks,
+            NonNullImmutableList<NameToken> externalDependencies)
         {
-            if (outermostScope == null)
-                throw new ArgumentNullException("outermostScope");
+            if (outermostScopeWrapperName == null)
+                throw new ArgumentNullException("outermostScopeWrapperName");
+            if (blocks == null)
+                throw new ArgumentNullException("blocks");
+            if (externalDependencies == null)
+                throw new ArgumentNullException("externalDependencies");
 
-            return new ScopeAccessInformation(
+            // This prepares the empty template for the primary instance..
+            var outermostScope = new OutermostScope(outermostScopeWrapperName, blocks);
+            var initialScope = new ScopeAccessInformation(
                 outermostScope, // parent
                 outermostScope, // scope-defining parent
                 null, // parentReturnValueNameIfAny
@@ -60,6 +71,11 @@ namespace CSharpWriter.CodeTranslation
                 new NonNullImmutableList<ScopedNameToken>(), // properties,
                 new NonNullImmutableList<ScopedNameToken>() // variables
             );
+
+            // .. but it needs the classes, functions, properties and variables declared by the code blocks to be registered with it. To do that, this
+            // extension method will be used (seems a bit strange since this method is part of the ScopeAccessInformation class and it relies upon an
+            // extension method, but that's only because there's no way to define a static extension method, which would have been ideal for this).
+            return initialScope.Extend(outermostScope, blocks);
         }
 
         /// <summary>

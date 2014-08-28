@@ -214,10 +214,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         private static ScopeAccessInformation GetEmptyScopeAccessInformation()
         {
             return ScopeAccessInformation.FromOutermostScope(
-                new OutermostScope(
-                    new CSharpName("UnitTestOutermostScope"),
-                    new NonNullImmutableList<VBScriptTranslator.LegacyParser.CodeBlocks.ICodeBlock>()
-                ),
+                new CSharpName("UnitTestOutermostScope"),
+                new NonNullImmutableList<VBScriptTranslator.LegacyParser.CodeBlocks.ICodeBlock>(),
                 new NonNullImmutableList<NameToken>()
             );
         }

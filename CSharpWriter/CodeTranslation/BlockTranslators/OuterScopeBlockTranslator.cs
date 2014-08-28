@@ -106,7 +106,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // - or just remove comments entirely since the translated code is bearing less and less relation to the source?
 
             var scopeAccessInformation = ScopeAccessInformation.FromOutermostScope(
-                new OutermostScope(_startClassName, blocks),
+                _startClassName, // A placeholder name is required for an OutermostScope instance and so is required by this method
+                blocks,
                 _externalDependencies
             );
             if (blocks.DoesScopeContainOnErrorResumeNext())
