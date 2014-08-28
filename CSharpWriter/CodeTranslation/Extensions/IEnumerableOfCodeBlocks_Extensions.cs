@@ -31,7 +31,6 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 var blockWithNestedContent = block as IHaveNestedContent;
                 if ((blockWithNestedContent != null) && blockWithNestedContent.AllExecutableBlocks.ToNonNullImmutableList().DoesScopeContainOnErrorResumeNext())
                     return true;
-                    continue;
             }
             return false;
         }
