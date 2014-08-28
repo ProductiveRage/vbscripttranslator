@@ -10,7 +10,10 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation
 {
-    // TODO: Explain the need for this
+    /// <summary>
+    /// Since the ScopeAccessInformation requires a non-null ScopeDefiningParent, this class is required to wrap statements that are in the outer
+    /// most scope in the source content.
+    /// </summary>
     public class OutermostScope : IDefineScope
     {
         public OutermostScope(CSharpName wrapperName, NonNullImmutableList<ICodeBlock> codeBlocks)
