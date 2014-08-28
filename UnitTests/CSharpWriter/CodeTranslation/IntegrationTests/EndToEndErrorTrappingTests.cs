@@ -93,6 +93,66 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        [Fact]
+        public void ErrorTrappingDoesNotAffectChildScopes()
+        {
+            var source = @"
+                On Error Resume Next
+                Func1
+                Function Func1()
+                    WScript.Echo ""Test1""
+                End Function
+            ";
+            var expected = @"
+                var errOn1 = _.GETERRORTRAPPINGTOKEN();
+                _.STARTERRORTRAPPING(errOn1);
+                _.HANDLEERROR(errOn1, () => {
+                    _.CALL(_outer, ""func1"");
+                });
+                _.RELEASEERRORTRAPPINGTOKEN(errOn1);
+                public object func1()
+                {
+                    object retVal2 = null;
+                    _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                    return retVal2;
+                }";
+            Assert.Equal(
+                SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
+        public void ErrorTrappingDoesNotAffectParentScopes()
+        {
+            var source = @"
+                Func1
+                WScript.Echo ""Test2""
+                Function Func1()
+                    On Error Resume Next
+                    WScript.Echo ""Test1""
+                End Function
+            ";
+            var expected = @"
+                _.CALL(_outer, ""func1"");
+                _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test2""));
+                public object func1()
+                {
+                    object retVal1 = null;
+                    var errOn2 = _.GETERRORTRAPPINGTOKEN();
+                    _.STARTERRORTRAPPING(errOn2);
+                    _.HANDLEERROR(errOn2, () => {
+                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                    });
+                    _.RELEASEERRORTRAPPINGTOKEN(errOn2);
+                    return retVal1;
+                }";
+            Assert.Equal(
+                SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         private static IEnumerable<string> SplitOnNewLinesSkipFirstLineAndTrimAll(string value)
         {
             if (value == null)
