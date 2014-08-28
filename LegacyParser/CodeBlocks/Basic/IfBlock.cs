@@ -7,7 +7,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class IfBlock : ICodeBlock
+    public class IfBlock : IHaveNestedContent
     {
         // =======================================================================================
         // CLASS INITIALISATION
@@ -52,6 +52,23 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// This will be null if there was no fallback clause
         /// </summary>
         public IfBlockElseSegment OptionalElseClause { get; private set; }
+
+        /// <summary>
+        /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
+        /// would include the statements inside the conditions but also the conditions themselves. It will never be null nor contain any nulls.
+        /// </summary>
+        IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
+        {
+            get
+            {
+                foreach (var statement in ConditionalClauses.SelectMany(c => c.Statements))
+                    yield return statement;
+                if (OptionalElseClause == null)
+                    yield break;
+                foreach (var statement in OptionalElseClause.Statements)
+                    yield return statement;
+            }
+        }
 
         // =======================================================================================
         // DESCRIPTION CLASSES
