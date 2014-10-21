@@ -161,10 +161,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // Remove end sequence tokens
             tokens.RemoveRange(0, endSequenceMet.Length);
-            if ((tokens.Count > 0) && (!(tokens[0] is AbstractEndOfStatementToken)))
-                throw new Exception("EndOfStatementToken missing after NEXT");
-            else
-                tokens.RemoveAt(0);
+            if (tokens.Count > 0)
+            {
+                if (tokens[0] is AbstractEndOfStatementToken)
+                    tokens.RemoveAt(0);
+                else
+                    throw new Exception("EndOfStatementToken missing after NEXT");
+            }
 
             // Return code block instance
             return blockContent;
