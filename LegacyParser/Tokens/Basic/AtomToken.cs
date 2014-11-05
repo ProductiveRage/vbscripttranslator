@@ -256,7 +256,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "IF", "THEN", "ELSE", "ELSEIF", "END",
                     "SUB", "FUNCTION", "PROPERTY", "DEFAULT", "CLASS",
                     "SELECT", "CASE", 
-                    "FOR", "EACH", "NEXT", "STEP",
+                    "FOR", "EACH", "NEXT", "TO", "STEP",
                     "DO", "WHILE", "UNTIL", "LOOP", "WEND",
                     "RANDOMIZE",
                     "REM",
