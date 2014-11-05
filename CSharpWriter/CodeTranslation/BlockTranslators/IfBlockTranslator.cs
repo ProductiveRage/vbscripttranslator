@@ -106,7 +106,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				new BlockTranslationAttempter[]
 				{
 					base.TryToTranslateBlankLine,
-					base.TryToTranslateClass,
 					base.TryToTranslateComment,
 					base.TryToTranslateDim,
 					base.TryToTranslateDo,
