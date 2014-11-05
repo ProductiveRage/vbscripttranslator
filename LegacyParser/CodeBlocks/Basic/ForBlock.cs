@@ -77,7 +77,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
         {
-            get { return new ICodeBlock[] { new Expression(new[] { LoopVar }), LoopFrom, LoopTo, LoopStep }.Concat(Statements); }
+            get
+            {
+                return new ICodeBlock[] { new Expression(new[] { LoopVar }), LoopFrom, LoopTo, LoopStep }
+                    .Where(b => b != null) // Ignore a null LoopStep (this is a valid configuration but we can't have nulls in the data returned here)
+                    .Concat(Statements);
+            }
         }
 
         // =======================================================================================
