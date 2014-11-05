@@ -40,6 +40,14 @@ namespace CSharpSupport
         object OBJ(object o);
 
         /// <summary>
+        /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
+        /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
+        /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
+        /// an object without an appropriate default property member) will.
+        /// </summary>
+        double NUM(object o);
+    
+        /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
         /// require a numeric value or null, otherwise an exception will be raised. Zero and null equate to false, non-zero numbers to true.
         /// </summary>

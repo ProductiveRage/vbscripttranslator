@@ -60,6 +60,35 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
+        /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
+        /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
+        /// an object without an appropriate default property member) will.
+        /// </summary>
+        public double NUM(object o)
+        {
+            // Get the null-esque cases out of the way
+            if (o == null)
+                return 0;
+            if (o == DBNull.Value)
+                throw new Exception("Invalid use of Null");
+
+            // Try to extract the value-type data from the reference, dealing with the false-Empty/Null cases first
+            var value = VAL(o);
+            if (value == null)
+                return 0;
+            if (value == DBNull.Value)
+                throw new Exception("Invalid use of Null");
+
+            // Then fall back to parsing as a string
+            var valueString = value.ToString();
+            double parsedValue;
+            if (!double.TryParse(valueString, out parsedValue))
+                throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
+            return parsedValue;
+        }
+
+        /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
         /// require a numeric value or null, otherwise an exception will be raised. Zero and null equate to false, non-zero numbers to true.
         /// </summary>
@@ -68,13 +97,17 @@ namespace CSharpSupport.Implementations
             if (o == null)
                 return false;
 
-            var valueString = VAL(o).ToString();
+            // Try to extract the value-type data from the reference, dealing with the false-Empty/Null cases first
+            var value = VAL(o);
+            if ((value == null) || (value == DBNull.Value))
+                return false;
 
-            double value;
-            if (!double.TryParse(valueString, out value))
+            // Then fall back to parsing as a string
+            var valueString = value.ToString();
+            double parsedValue;
+            if (!double.TryParse(valueString, out parsedValue))
                 throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
-
-            return value != 0;
+            return parsedValue != 0;
         }
 
         /// <summary>
