@@ -197,5 +197,40 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new TokenSetComparer()
             );
         }
+
+        [Fact]
+        public void ForLoopWithNegativeConstraints()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new KeyWordToken("FOR", 0),
+                    new NameToken("i", 0),
+                    new ComparisonOperatorToken("=", 0),
+                    new NumericValueToken(-1, 0),
+                    new KeyWordToken("TO", 0),
+                    new NumericValueToken(-4, 0),
+                    new KeyWordToken("STEP", 0),
+                    new NumericValueToken(-1, 0)
+                },
+                NumberRebuilder.Rebuild(
+                    new IToken[]
+                    {
+                        new KeyWordToken("FOR", 0),
+                        new NameToken("i", 0),
+                        new ComparisonOperatorToken("=", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0),
+                        new KeyWordToken("TO", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(4, 0),
+                        new KeyWordToken("STEP", 0),
+                        new OperatorToken("-", 0),
+                        new NumericValueToken(1, 0)
+                    }
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

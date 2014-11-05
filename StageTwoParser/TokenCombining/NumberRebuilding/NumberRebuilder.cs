@@ -23,7 +23,9 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
 
             // Note: There are some limitations to what can be done here - for example "Test -1" can not be have the "-" and "1" recombined since,
             // at this point, we don't know if "Test" is a value that 1 should be subtracted from or whether it's a function that is being
-            // called with "-1" as the argument.
+            // called with "-1" as the argument. However, for some values of "Test", we CAN be sure that it's not a substraction; if the
+            // value is a keyword or a comparison operator (as in the "FOR", "TO" and "=" in "FOR a = -1 TO -10 STEP -1" then the minus
+            // sign must be part of a numeric value).
 
             // At the beginning of a token set, if the first token is a minus sign then it is elligible to be part of a number. If it is not the
             // first token then it may only incorporated into a number if preceded by another operator or an opening brace (which effectively

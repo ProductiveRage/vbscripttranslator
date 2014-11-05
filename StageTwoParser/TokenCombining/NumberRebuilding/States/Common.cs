@@ -50,7 +50,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             if (token == null)
                 throw new ArgumentNullException("token");
 
-            return (token.Is<OpenBrace>() || token.Is<OperatorToken>());
+            // Note: The "Is" method requires a precise match, which is why Is<ComparisonOperatorToken> is required as well as Is<OperatorToken>
+            return (token.Is<OpenBrace>() || token.Is<OperatorToken>() || token.Is<ComparisonOperatorToken>() || token.Is<KeyWordToken>());
         }
     }
 }
