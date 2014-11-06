@@ -66,26 +66,6 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             }
 
             [Fact]
-            public void ObjectMethodWithSingleArgumentWithBrackets()
-            {
-                var tokens = new IToken[]
-                {
-                    new NameToken("a", 0),
-                    new MemberAccessorOrDecimalPointToken(".", 0),
-                    new NameToken("Test", 0),
-                    new OpenBrace(0),
-                    new NumericValueToken(1, 0),
-                    new CloseBrace(0)
-                };
-                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
-                Assert.Equal(
-                    tokens,
-                    statement.BracketStandardisedTokens,
-                    new TokenSetComparer()
-                );
-            }
-
-            [Fact]
             public void FunctionCallWithCallKeywordAndMandatoryArgumentBrackets()
             {
                 var tokens = new IToken[]
@@ -317,6 +297,8 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             [Fact]
             public void ObjectMethodWithSingleArgumentWithoutBrackets()
             {
+                // This should become "a.Test(1)" in the "standardised" format, the brackets are there for parsing, not for signficant meaning
+                // (like forcing the argument to be passed ByVal - see ObjectMethodWithSingleVariableArgumentWithBrackets for that case)
                 var statement = new Statement(
                     new IToken[]
                     {
@@ -335,6 +317,38 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken(1, 0),
+                        new CloseBrace(0)
+                    },
+                    statement.BracketStandardisedTokens,
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void ObjectMethodWithSingleVariableArgumentWithBrackets()
+            {
+                // This should become "a.Test((b))" since "b" should keep its brackets which indicate the argument be passed ByVal but additional
+                // brackets are inserted to "standardise" the format for parsing
+                var tokens = new IToken[]
+                {
+                    new NameToken("a", 0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Test", 0),
+                    new OpenBrace(0),
+                    new NameToken("b", 0),
+                    new CloseBrace(0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("a", 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Test", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0),
                         new CloseBrace(0)
                     },
                     statement.BracketStandardisedTokens,

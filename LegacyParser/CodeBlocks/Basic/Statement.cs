@@ -193,6 +193,14 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     }
                     if (valueTokenTypes.Contains(token.GetType()))
                     {
+                        if (firstItemTokens.Last() is MemberAccessorOrDecimalPointToken)
+                        {
+                            // If the previous token was a "." and the content is valid (which we're assuming), then this token should be part of group
+                            // containing the preceding tokens (eg. "WScript", ".", "Echo" are part of "WScript.Echo") so treat this as a further
+                            // continuation of the current term
+                            firstItemTokens.Add(token);
+                            continue;
+                        }
                         if (valueTokenTypes.Contains(firstItemTokens.Last().GetType()))
                         {
                             // If there are two adjacent value type tokens then they must be part of two terms - eg. "Test a" (if they were part of
