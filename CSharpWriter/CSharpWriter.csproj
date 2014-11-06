@@ -36,6 +36,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CodeTranslation\BlockTranslators\ForBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\IfBlockTranslator.cs" />
     <Compile Include="CodeTranslation\Extensions\DeclaredReferenceDetails.cs" />
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Error_Extensions.cs" />
