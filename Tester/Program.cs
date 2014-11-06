@@ -1,4 +1,6 @@
-﻿using CSharpWriter.CodeTranslation;
+﻿using CSharpSupport;
+using CSharpSupport.Implementations;
+using CSharpWriter.CodeTranslation;
 using CSharpWriter.CodeTranslation.BlockTranslators;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
@@ -19,18 +21,30 @@ namespace Tester
     {
         static void Main()
         {
+            var content = @"
+                ' Test
+                Dim a
+                Test1 ' Inline comment
+                WScript.Echo 1
+
+                Dim i: For i = 1 To 10
+                    WScript.Echo i
+                Next";
+
+            // Set to Executable to get an entire, runnable program. Set to WithoutScaffolding to see only the meat of the translated content.
+            var outputType = OuterScopeBlockTranslator.OutputTypeOptions.Executable;
             Console.WriteLine(
-                Translate(
-                    "' Test\nDim i\ntest1 ' Inline comment\nWScript.Echo 1"
-                )
+                Translate(content, outputType)
             );
             Console.ReadLine();
         }
 
-        private static string Translate(string scriptContent)
+        private static string Translate(string scriptContent, OuterScopeBlockTranslator.OutputTypeOptions outputType)
         {
             if (scriptContent == null)
                 throw new ArgumentNullException("scriptContent");
+            if ((outputType != OuterScopeBlockTranslator.OutputTypeOptions.Executable) && (outputType != OuterScopeBlockTranslator.OutputTypeOptions.WithoutScaffolding))
+                throw new ArgumentOutOfRangeException("outputType");
 
             // This is just a very simple configuration of the CodeBlockTranslator, its name generation implementations are not robust in
             // the slightest, it's just to get going and should be rewritten when the CodeBlockTranslator is further along functionally
@@ -43,10 +57,10 @@ namespace Tester
             var outerClassName = new CSharpName("GlobalReferences");
             var outerRefName = new CSharpName("_outer");
             VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
-			TempValueNameGenerator tempNameGenerator = (optionalPrefix, scopeAccessInformation) =>
-			{
-				return new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
-			};
+            TempValueNameGenerator tempNameGenerator = (optionalPrefix, scopeAccessInformation) =>
+            {
+                return new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + random.Next(1000000).ToString());
+            };
             var logger = new CSharpCommentMakingLogger(
                 new ConsoleLogger()
             );
@@ -62,18 +76,17 @@ namespace Tester
                 nameRewriter,
                 tempNameGenerator,
                 statementTranslator,
-                new ValueSettingsStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
-				new NonNullImmutableList<NameToken>().Add(new NameToken("WScript", 0)),
-				OuterScopeBlockTranslator.OutputTypeOptions.Executable,
+                new ValueSettingStatementsTranslator(supportRefName, envRefName, outerRefName, nameRewriter, statementTranslator, logger),
+                new NonNullImmutableList<NameToken>().Add(new NameToken("WScript", 0)),
+                outputType,
                 logger
             );
 
-            var translatedCode1 = codeBlockTranslator.Translate(
-                ProcessContent(scriptContent).ToNonNullImmutableList()
-            );
+            var translatedCodeBlocks = ProcessContent(scriptContent).ToNonNullImmutableList();
+            var output = codeBlockTranslator.Translate(translatedCodeBlocks);
             return string.Join(
                 "\n",
-                translatedCode1.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
+                output.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
             );
         }
 
@@ -127,6 +140,90 @@ namespace Tester
             }
 
             return NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList();
+        }
+
+        private class PartialProvideVBScriptCompatFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionality
+        {
+            public PartialProvideVBScriptCompatFunctionalityProvider(Func<string, string> nameRewriter)
+                : base(nameRewriter)
+            {
+                Constants = new VBScriptConstants();
+            }
+
+            public VBScriptConstants Constants { get; private set; }
+
+            // Arithemetic operators
+            public double POW(object l, object r) { throw new NotImplementedException(); }
+            public double DIV(object l, object r) { throw new NotImplementedException(); }
+            public double MULT(object l, object r) { throw new NotImplementedException(); }
+            public int INTDIV(object l, object r) { throw new NotImplementedException(); }
+            public double MOD(object l, object r) { throw new NotImplementedException(); }
+            public double ADD(object l, object r) { throw new NotImplementedException(); }
+            public double SUBT(object o) { throw new NotImplementedException(); }
+            public double SUBT(object l, object r) { throw new NotImplementedException(); }
+
+            // String concatenation
+            public string CONCAT(object l, object r) { throw new NotImplementedException(); }
+
+            // Logical operators
+            public int NOT(object o) { throw new NotImplementedException(); }
+            public int AND(object l, object r) { throw new NotImplementedException(); }
+            public int OR(object l, object r) { throw new NotImplementedException(); }
+            public int XOR(object l, object r) { throw new NotImplementedException(); }
+
+            // Comparison operators
+            public int EQ(object l, object r) { throw new NotImplementedException(); }
+            public int NOTEQ(object l, object r) { throw new NotImplementedException(); }
+            public int LT(object l, object r) { throw new NotImplementedException(); }
+            public int GT(object l, object r) { throw new NotImplementedException(); }
+            public int LTE(object l, object r) { throw new NotImplementedException(); }
+            public int GTE(object l, object r) { throw new NotImplementedException(); }
+            public int IS(object l, object r) { throw new NotImplementedException(); }
+            public int EQV(object l, object r) { throw new NotImplementedException(); }
+            public int IMP(object l, object r) { throw new NotImplementedException(); }
+
+            // Array definitions
+            public void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter)
+            {
+                throw new NotImplementedException(); // TODO
+            }
+
+            public void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter)
+            {
+                throw new NotImplementedException(); // TODO
+            }
+
+            private IEnumerable<int> GetDimensions(IEnumerable<object> dimensions)
+            {
+                if (dimensions == null)
+                    throw new ArgumentNullException("dimensions");
+
+                throw new NotImplementedException(); // TODO
+            }
+
+            public void GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
+            public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO
+
+            public void STARTERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
+            public void STOPERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
+
+            public void HANDLEERROR(Action action, int token) { throw new NotImplementedException(); } // TODO
+
+            public bool IF(Func<object> valueEvaluator, int errorToken)
+            {
+                if (valueEvaluator == null)
+                    throw new ArgumentNullException("valueEvaluator");
+
+                throw new NotImplementedException(); // TODO
+            }
+        }
+
+        public class WScriptMock
+        {
+            public void Echo(object content)
+            {
+                Console.WriteLine(content);
+            }
         }
     }
 }
