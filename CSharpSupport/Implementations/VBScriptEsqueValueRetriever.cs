@@ -73,6 +73,18 @@ namespace CSharpSupport.Implementations
             if (o == DBNull.Value)
                 throw new Exception("Invalid use of Null");
 
+            // Now some other quick and easy (and common) ones (this method is used by the FOR translation so having this quick casts is helpful)
+            if (o is bool)
+            {
+                if ((bool)o)
+                    return -1;
+                return 0;
+            }
+            if (o is double)
+                return (double)o;
+            if (o is int)
+                return (double)(int)o;
+
             // Try to extract the value-type data from the reference, dealing with the false-Empty/Null cases first
             var value = VAL(o);
             if (value == null)
