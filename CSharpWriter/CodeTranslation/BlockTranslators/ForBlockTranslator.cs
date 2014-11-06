@@ -182,8 +182,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            // TODO: If (loopStep == 0) Or (loop.... TODO: Finish logic for detecting non-executing loops, where step is in the wrong direction
-
             // TODO: Comparison should be ">=" or "<=" (depending upon whether loopStart < loopEnd or not)
             // - Have simple case if loop start and end are fixed constants but require more verbose "OR" combination if one of both are not
 
