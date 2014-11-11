@@ -11,6 +11,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public class IfBlockTranslator : CodeBlockTranslator
     {
+        private readonly ILogInformation _logger;
         public IfBlockTranslator(
             CSharpName supportRefName,
             CSharpName envClassName,
@@ -22,7 +23,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			ITranslateIndividualStatements statementTranslator,
 			ITranslateValueSettingsStatements valueSettingStatementTranslator,
             ILogInformation logger)
-            : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger) { }
+            : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
+        {
+            if (logger == null)
+                throw new ArgumentNullException("logger");
+
+            _logger = logger;
+        }
 
 		public TranslationResult Translate(IfBlock ifBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
@@ -64,7 +71,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         conditionalContent.VariablesAccessed
                     );
                 }
-                translationResult = translationResult.Add(conditionalContent.VariablesAccessed);
+                var undeclaredVariablesAccessed = conditionalContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
+                foreach (var undeclaredVariable in undeclaredVariablesAccessed)
+                    _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+                translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesAccessed);
                 translationResult = translationResult.Add(
                     new TranslatedStatement(
                         string.Format(

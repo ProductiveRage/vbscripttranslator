@@ -49,7 +49,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
-        public static TranslationResult Add(this TranslationResult source, IEnumerable<VariableDeclaration> toAdd)
+        public static TranslationResult AddExplicitVariableDeclarations(this TranslationResult source, IEnumerable<VariableDeclaration> toAdd)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
@@ -63,7 +63,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             );
         }
 
-        public static TranslationResult Add(this TranslationResult source, IEnumerable<NameToken> toAdd)
+        public static TranslationResult AddUndeclaredVariables(this TranslationResult source, IEnumerable<NameToken> toAdd)
         {
             if (source == null)
                 throw new ArgumentNullException("source");

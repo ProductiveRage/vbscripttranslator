@@ -6,7 +6,6 @@ using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
@@ -46,6 +45,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work.
+            var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
             string loopStart;
             var numericLoopStartValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopFrom);
             if (numericLoopStartValueIfAny != null)
@@ -67,11 +67,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             "var {0} = {1}.NUM({2});",
                             loopStartName.Name,
                             _supportRefName.Name,
-                            loopStartExpressionContent
+                            loopStartExpressionContent.TranslatedContent
                         ),
                         indentationDepth
                     ));
                 loopStart = loopStartName.Name;
+                undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
+                    loopStartExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
+                );
             }
             string loopEnd;
             var numericLoopEndValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopTo);
@@ -92,11 +95,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             "var {0} = {1}.NUM({2});",
                             loopEndName.Name,
                             _supportRefName.Name,
-                            loopEndExpressionContent
+                            loopEndExpressionContent.TranslatedContent
                         ),
                         indentationDepth
                     ));
                 loopEnd = loopEndName.Name;
+                undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
+                    loopEndExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
+                );
             }
             string loopStep;
             var numericLoopStepValueIfAny = (forBlock.LoopStep == null)
@@ -119,11 +125,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             "var {0} = {1}.NUM({2});",
                             loopStepName.Name,
                             _supportRefName.Name,
-                            loopStepExpressionContent
+                            loopStepExpressionContent.TranslatedContent
                         ),
                         indentationDepth
                     ));
                 loopStep = loopStepName.Name;
+                undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
+                    loopStepExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
+                );
             }
 
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
@@ -182,9 +191,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            // TODO: Comparison should be ">=" or "<=" (depending upon whether loopStart < loopEnd or not)
-            // - Have simple case if loop start and end are fixed constants but require more verbose "OR" combination if one of both are not
-
             var rewrittenLoopVariableName = _nameRewriter(forBlock.LoopVar).Name;
             var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
             if (targetContainer != null)
@@ -198,15 +204,58 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement("{", indentationDepth));
                 indentationDepthLoop++;
             }
-            translationResult = translationResult.Add(new TranslatedStatement(
-                string.Format(
-                    "for ({0} = {1}; {5}.NUM({0}) < {2}; {0} = {5}.NUM({0}) {3} {4})",
+            string continuationCondition;
+            if (numericLoopStepValueIfAny != null)
+            {
+                if (numericLoopStepValueIfAny.Value >= 0)
+                {
+                    continuationCondition = string.Format(
+                        "{0}.NUM({1}) <= {2}",
+                        _supportRefName.Name,
+                        rewrittenLoopVariableName,
+                        loopEnd
+                    );
+                }
+                else
+                {
+                    continuationCondition = string.Format(
+                        "{0}.NUM({1}) >= {2}",
+                        _supportRefName.Name,
+                        rewrittenLoopVariableName,
+                        loopEnd
+                    );
+                }
+            }
+            else
+            {
+                continuationCondition = string.Format(
+                    "(({3} >= 0) && ({0}.NUM({1}) <= {2})) || (({3} < 0) && ({0}.NUM({1}) >= {2}))",
+                    _supportRefName.Name,
                     rewrittenLoopVariableName,
-                    loopStart,
                     loopEnd,
+                    loopStep
+                );
+            }
+            string loopIncrementWithLeadingSpaceIfNonBlank;
+            if ((numericLoopStepValueIfAny != null) && (numericLoopStepValueIfAny.Value == 0))
+                loopIncrementWithLeadingSpaceIfNonBlank = "";
+            else
+            {
+                loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
+                    " {0} = {3}.NUM({0}) {1} {2}",
+                    rewrittenLoopVariableName,
                     ((numericLoopStepValueIfAny == null) || (numericLoopStepValueIfAny.Value >= 0)) ? "+" : "-",
                     ((numericLoopStepValueIfAny == null) || (numericLoopStepValueIfAny.Value >= 0)) ? loopStep : Math.Abs(numericLoopStepValueIfAny.Value).ToString(),
                     _supportRefName.Name
+                );
+            }
+            translationResult = translationResult.Add(new TranslatedStatement(
+                string.Format(
+                    "for ({0} = {1}; {2};{3})",
+                    rewrittenLoopVariableName,
+                    loopStart,
+                    continuationCondition,
+                    loopIncrementWithLeadingSpaceIfNonBlank
                 ),
                 indentationDepthLoop
             ));
@@ -216,10 +265,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepthLoop));
             if (guardClause != null)
-            {
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
-            }
-            return translationResult;
+            foreach (var undeclaredVariable in undeclaredVariableReferencesAccessedByLoopConstraints)
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            return translationResult.AddUndeclaredVariables(undeclaredVariableReferencesAccessedByLoopConstraints);
 		}
 
         private NumericValueToken TryToGetExpressionAsNumericConstant(Expression expression)

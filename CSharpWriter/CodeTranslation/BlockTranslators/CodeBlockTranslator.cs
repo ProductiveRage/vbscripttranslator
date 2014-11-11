@@ -213,7 +213,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // These only need to result in additions to the ExplicitVariableDeclarations set of the translationResult, these will be
             // translated into the required form (varies depending upon whether the variable is defined within a class, function or
             // in outermost scope)
-            return translationResult.Add(
+            return translationResult.AddExplicitVariableDeclarations(
                 explicitVariableDeclarationBlock.Variables.Select(v => new VariableDeclaration(
                     v.Name,
                     (explicitVariableDeclarationBlock is PublicVariableStatement) ? VariableDeclarationScopeOptions.Public : VariableDeclarationScopeOptions.Private,
@@ -531,7 +531,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         ExpressionReturnTypeOptions.Value
                     );
                     translatedArguments.Add(translatedArgumentDetails.TranslatedContent);
-                    translationResult = translationResult.Add(translatedArgumentDetails.VariablesAccessed);
+                    var undeclaredVariables = translatedArgumentDetails.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
+                    foreach (var undeclaredVariable in undeclaredVariables)
+                        _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+                    translationResult = translationResult.AddUndeclaredVariables(undeclaredVariables);
                 }
                 translatedReDimStatements = translatedReDimStatements.Add(
                     new TranslatedStatement(
@@ -558,7 +561,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             return translationResult
-                .Add(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
+                .AddExplicitVariableDeclarations(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
                 .Add(translatedReDimStatements);
         }
 
@@ -595,7 +598,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
-			return translationResult.Add(undeclaredVariables);
+			return translationResult.AddUndeclaredVariables(undeclaredVariables);
 		}
 
 		protected TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -621,7 +624,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
-            return translationResult.Add(undeclaredVariables);
+            return translationResult.AddUndeclaredVariables(undeclaredVariables);
 		}
 
         /// <summary>
