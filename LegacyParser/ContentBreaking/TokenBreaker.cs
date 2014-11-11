@@ -30,8 +30,6 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             for (var index = 0; index < content.Length; index++)
             {
                 var chr = content.Substring(index, 1);
-                if (chr == "\n")
-                    lineIndex++;
                 if ((chr != "\n") && WhiteSpaceChars.IndexOf(chr) != -1)
                 {
                     // If we've found a (non-line-return) whitespace character, push content retrieved from the token so far (if any), into a fresh token on the
@@ -64,6 +62,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 }
                 else
                     buffer += chr;
+                if (chr == "\n")
+                    lineIndex++;
             }
             if (buffer != "")
                 tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));

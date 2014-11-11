@@ -47,6 +47,7 @@
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\WithoutScaffoldingTranslator.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\ValueSettingStatementTranslatorTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\StatementTranslatorTests.cs" />
+    <Compile Include="LegacyParser\TokenBreakerTests.cs" />
     <Compile Include="LegacyParser\StringBreakerTests.cs" />
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\CallSetExpressionSegmentComparer.cs" />
