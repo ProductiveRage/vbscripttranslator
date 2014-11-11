@@ -123,7 +123,7 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// TODO
+        /// This is used to wrap arguments such that those that must be passed ByVal can have changes reflected after a method call completes
         /// </summary>
         public IBuildCallArgumentProviders ARGS
         {
