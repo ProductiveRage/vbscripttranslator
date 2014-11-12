@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -24,12 +23,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 string[] matchPattern = new string[] { "EXIT", exitType.ToString() };
                 if (base.checkAtomTokenPattern(tokens, matchPattern, false))
                 {
-                    if (tokens.Count > matchPattern.Length)
+                    var requireAnEndOfStatementToken = (tokens.Count > matchPattern.Length);
+                    if (requireAnEndOfStatementToken)
                     {
                         if (!(tokens[matchPattern.Length] is AbstractEndOfStatementToken))
                             throw new Exception("EXIT statement wasn't followed by end-of-statement token");
                     }
-                    tokens.RemoveRange(0, matchPattern.Length + 1);
+                    tokens.RemoveRange(0, matchPattern.Length);
+                    if (requireAnEndOfStatementToken)
+                        tokens.RemoveRange(0, 1);
                     return new ExitStatement(exitType);
                 }
             }
