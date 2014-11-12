@@ -51,6 +51,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             // Remove all variable data from token list..
             foreach (List<IToken> entry in variablesData)
                 tokens.RemoveRange(0, entry.Count);
+            tokens.RemoveRange(0, variablesData.Count - 1); // Ensure that any argument separators are removed as well as the variable names / dimension
 
             // .. and the EndOfStatmentToken (unless this statement was the last content, in which case there will be no remaining tokens)
             if (tokens.Count > 0)
