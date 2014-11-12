@@ -259,6 +259,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             IToken lastUnbracketedToken = null;
             for (var tokenIndex = 0; tokenIndex < tokenArray.Length; tokenIndex++)
             {
+                var nextTokenIfAny = (tokenArray.Length > 1) ? tokenArray[1] : null;
                 var token = tokenArray[tokenIndex];
                 if (tokenIndex == 0)
                 {
@@ -266,7 +267,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     // here as "(a.Test(1))" as the "Call" keyword is removed and so an OpenBrace is a valid first token as well
                     if (token is OpenBrace)
                         bracketCount = 1;
-					else if (!IsTokenAcceptableToCommenceCallExecution(token))
+                    else if (!IsTokenAcceptableToCommenceCallExecution(token, nextTokenIfAny))
                         throw new ArgumentException("The first token should be an AtomToken or a KeyWordToken (not another type derived from AtomToken) to be a valid Statement");
                 }
                 else
@@ -290,9 +291,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                             // If we've reached an un-bracketed string then we need to standardise the brackets starting before this token and closing around the last
                             insertBracketsBeforeThisToken = true;
                         }
-						if (IsTokenAcceptableToCommenceCallExecution(token)
+						if (IsTokenAcceptableToCommenceCallExecution(token, nextTokenIfAny)
                         && (lastUnbracketedToken != null)
-						&& (IsTokenAcceptableToCommenceCallExecution(lastUnbracketedToken)))
+                        && (IsTokenAcceptableToCommenceCallExecution(lastUnbracketedToken, nextTokenIfAny)))
                         {
                             // If we've hit adjacent tokens (excluding bracketed content) that look like objects, properties or functions then there should
                             // be brackets in between. This covers cases such as
@@ -326,10 +327,16 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 		/// a function call (eg.  BuiltInFunctionToken or NameToken, in some cases). Tokens that would not be acceptable would be open braces
 		/// (since bracketed expressions should be handled separately above) or ArgumentSeparatorToken, amongst others.
 		/// </summary>
-        private static bool IsTokenAcceptableToCommenceCallExecution(IToken token)
+        private static bool IsTokenAcceptableToCommenceCallExecution(IToken token, IToken nextTokenIfAny)
         {
             if (token == null)
                 throw new ArgumentNullException("token");
+
+            // If the current token is a MemberAccessorOrDecimalPointToken and the next token is a NameToken then this must be a statement that
+            // accesses a method or property within a "WITH" construct (in which case, the method or property accesses will need to be resolved
+            // later on in the processing, according to the containing WITH target)
+            if ((token is MemberAccessorOrDecimalPointToken) && (nextTokenIfAny != null) && (nextTokenIfAny is NameToken))
+                return true;
 
             return (
                 (token.GetType() == typeof(AtomToken)) ||
