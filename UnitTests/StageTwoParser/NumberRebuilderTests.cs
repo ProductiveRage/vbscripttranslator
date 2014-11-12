@@ -232,5 +232,29 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new TokenSetComparer()
             );
         }
+
+        /// <summary>
+        /// When NameTokens are prefixed with a MemberAccessorOrDecimalPointToken, this is presumably because the content is wrapped in a "WITH" statement
+        /// that will resolve the property / method access. As such, it shouldn't be assumed that a trailing dot is always a decimal point.
+        /// </summary>
+        [Fact]
+        public void DoNotTryToTreatMemberSeparatorRelyUponWithKeywordAsDecimalPoint()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new MemberAccessorToken(0),
+                    new NameToken("Name", 0),
+                },
+                NumberRebuilder.Rebuild(
+                    new IToken[]
+                    {
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Name", 0),
+                    }
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

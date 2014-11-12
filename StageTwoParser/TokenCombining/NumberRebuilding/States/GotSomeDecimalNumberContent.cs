@@ -45,7 +45,22 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                 // token (we don't have to try to process it as number content since it's not valid for two number tokens to exist adjacently)
                 var number = numberContent.TryToExpressNumberFromTokens();
                 if (number == null)
-                    throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
+                {
+                    if ((numberContent.Tokens.Count() == 1) && numberContent.Tokens.Single().Is<MemberAccessorOrDecimalPointToken>())
+                    {
+                        // If we've hit what appears to be a decimal point, but it's the current token does not result in a successful numeric
+                        // parse, then presumably it's actually a property or method access within a "WITH" construct. As such, don't try to
+                        // treat it as numeric content - return the tokens as "processed" (meaning there is no NumberRebuilder processing
+                        // to be done to them).
+                        return new TokenProcessResult(
+                            new PartialNumberContent(),
+                            new[] { numberContent.Tokens.Single(), token },
+                            Common.GetDefaultProcessor(tokens)
+                        );
+                    }
+                    else
+                        throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
+                }
                 return new TokenProcessResult(
                     new PartialNumberContent(),
                     new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex), token },
