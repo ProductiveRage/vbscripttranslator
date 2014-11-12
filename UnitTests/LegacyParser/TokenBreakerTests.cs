@@ -26,5 +26,48 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        [Fact]
+        public void UnderscoresAreLineContinuationsWhenTheyArePrecededByWhitespace()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NameToken("a", 0),
+                    new OperatorToken("&", 0),
+                    new NameToken("b", 1)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("a & _\nb", 0)),
+                new TokenSetComparer()
+            );
+        }
+
+        [Fact]
+        public void UnderscoresAreLineContinuationsWhenTheyArePrecededByTokenBreakers()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NameToken("a", 0),
+                    new OperatorToken("&", 0),
+                    new NameToken("b", 1)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("a&_\nb", 0)),
+                new TokenSetComparer()
+            );
+        }
+
+        [Fact]
+        public void DoNotConsiderUnderscoresToBeLineContinuationsWhenTheyArePartOfVariableNames()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NameToken("a_b", 0)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("a_b", 0)),
+                new TokenSetComparer()
+            );
+        }
     }
 }

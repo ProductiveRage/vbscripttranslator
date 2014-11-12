@@ -8,15 +8,11 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 {
     public static class TokenBreaker
     {
-        private static string WhiteSpaceChars = new string(
-            Enumerable.Range((int)char.MinValue, (int)char.MaxValue).Select(v => (char)v).Where(c => char.IsWhiteSpace(c)).ToArray()
-        );
-
-        private const string TokenBreakChars = "_,.*&+-=!(){}[]:;\n";
+        private const string TokenBreakChars = ",.*&+-=!(){}[]:;\n";
 
         /// <summary>
         /// Break down an UnprocessedContentToken into a combination of AtomToken and AbstractEndOfStatementToken references. This will never return null nor a set
-		/// containing any null references.
+        /// containing any null references.
         /// </summary>
         public static IEnumerable<IToken> BreakUnprocessedToken(UnprocessedContentToken token)
         {
@@ -30,7 +26,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
             for (var index = 0; index < content.Length; index++)
             {
                 var chr = content.Substring(index, 1);
-                if ((chr != "\n") && WhiteSpaceChars.IndexOf(chr) != -1)
+                if (char.IsWhiteSpace(chr, 0) && (chr != "\n"))
                 {
                     // If we've found a (non-line-return) whitespace character, push content retrieved from the token so far (if any), into a fresh token on the
                     // list and clear the buffer to accept following data.
@@ -38,36 +34,51 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
                     buffer = "";
                 }
-                else if (TokenBreakChars.IndexOf(chr) != -1)
-                {
-					// If the current character is a "&" then it may be a string concatenation or it may be the start of a hex number (eg. "&h001"), if it's
-					// the latter then we want to represent the content as a single token "&h001" not break the "&" out.
-					if ((chr == "&") && (index <= (content.Length - 3)))
-					{
-						var chrNext = content.Substring(index + 1, 1);
-						var chrNextNext = content.Substring(index + 2, 1);
-						if (chrNext.Equals("H", StringComparison.InvariantCultureIgnoreCase) && ("0123456789".IndexOf(chrNextNext) != -1))
-						{
-							buffer += chr;
-							continue;
-						}
-					}
-
-                    // If we've found another "break" character (which means a token split is identified, but that we want to keep the break character itself,
-                    // unlike with whitespace breaks), then do similar to above.
-                    if (buffer != "")
-                        tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
-                    tokens.Add(AtomToken.GetNewToken(chr, lineIndex));
-                    buffer = "";
-                }
                 else
-                    buffer += chr;
+                {
+                    bool characterIsTokenBreaker;
+                    if (TokenBreakChars.IndexOf(chr) != -1)
+                        characterIsTokenBreaker = true;
+                    else if (chr == "_")
+                    {
+                        // An underscore is a line return continuation character if it follows whitespace, but it must be part of a variable name if it is not
+                        // preceded by whitespace (and line return continuation is a token-breaker, as opposed to an underscore that is part of the current
+                        // token)
+                        characterIsTokenBreaker = (index > 0) && char.IsWhiteSpace(content, index - 1);
+                    }
+                    else
+                        characterIsTokenBreaker = false;
+                    if (characterIsTokenBreaker)
+                    {
+                        // If the current character is a "&" then it may be a string concatenation or it may be the start of a hex number (eg. "&h001"), if it's
+                        // the latter then we want to represent the content as a single token "&h001" not break the "&" out.
+                        if ((chr == "&") && (index <= (content.Length - 3)))
+                        {
+                            var chrNext = content.Substring(index + 1, 1);
+                            var chrNextNext = content.Substring(index + 2, 1);
+                            if (chrNext.Equals("H", StringComparison.InvariantCultureIgnoreCase) && ("0123456789".IndexOf(chrNextNext) != -1))
+                            {
+                                buffer += chr;
+                                continue;
+                            }
+                        }
+
+                        // If we've found another "break" character (which means a token split is identified, but that we want to keep the break character itself,
+                        // unlike with whitespace breaks), then do similar to above.
+                        if (buffer != "")
+                            tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
+                        tokens.Add(AtomToken.GetNewToken(chr, lineIndex));
+                        buffer = "";
+                    }
+                    else
+                        buffer += chr;
+                }
                 if (chr == "\n")
                     lineIndex++;
             }
             if (buffer != "")
                 tokens.Add(AtomToken.GetNewToken(buffer, lineIndex));
-            
+
             // Handle ignore-line-return / end-of-statement combinations
             tokens = handleLineReturnCancels(tokens);
 
