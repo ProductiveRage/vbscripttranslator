@@ -49,6 +49,7 @@
     <Compile Include="CodeBlocks\Basic\BlankLine.cs" />
     <Compile Include="CodeBlocks\Basic\ClassBlock.cs" />
     <Compile Include="CodeBlocks\Basic\BaseDimStatement.cs" />
+    <Compile Include="CodeBlocks\Basic\WithBlock.cs" />
     <Compile Include="CodeBlocks\Basic\ILoopOverNestedContent.cs" />
     <Compile Include="CodeBlocks\Basic\InlineCommentStatement.cs" />
     <Compile Include="CodeBlocks\Basic\IHaveNestedContent.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="CodeBlocks\Basic\FunctionBlock.cs" />
     <Compile Include="CodeBlocks\Basic\SubBlock.cs" />
     <Compile Include="CodeBlocks\Handlers\ClassHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\WithHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\NewInstanceHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\OptionExplicitHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\DoHandler.cs" />
