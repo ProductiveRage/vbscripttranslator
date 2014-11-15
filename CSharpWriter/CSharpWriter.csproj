@@ -36,6 +36,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CodeTranslation\BlockTranslators\WithBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\ForBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\IfBlockTranslator.cs" />
     <Compile Include="CodeTranslation\TranslatedStatementContentDetails_Extensions.cs" />

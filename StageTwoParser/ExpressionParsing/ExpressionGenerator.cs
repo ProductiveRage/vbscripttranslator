@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -13,18 +14,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// present the terms will be bracketed up to apply the max-one-operator restriction and to enforce VBScript operator precedence. This will
         /// never return null nor a set containing any nulls, it will raise an exception for a null token set or a set containing any nulls.
         /// </summary>
-        public static IEnumerable<Expression> Generate(IEnumerable<IToken> tokens)
+        public static IEnumerable<Expression> Generate(IEnumerable<IToken> tokens, IToken directedWithReferenceIfAny)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
 
-            return Generate(new TokenNavigator(tokens), 0);
+            return Generate(new TokenNavigator(tokens), 0, directedWithReferenceIfAny);
         }
 
         /// <summary>
         /// This will never return null nor a set containing any nulls
         /// </summary>
-        private static IEnumerable<Expression> Generate(TokenNavigator tokenNavigator, int depth)
+        private static IEnumerable<Expression> Generate(TokenNavigator tokenNavigator, int depth, IToken directedWithReferenceIfAny)
         {
             if (tokenNavigator == null)
                 throw new ArgumentNullException("tokenNavigator");
@@ -80,7 +81,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             GetCallOrNewOrValueExpressionSegment(
 								accessorBuffer,
 								new Expression[0],
-								false // false => zero-argument content not bracketed
+                                directedWithReferenceIfAny,
+                                argumentsAreBracketed: false,
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
 							)
                         );
                         accessorBuffer.Clear();
@@ -101,7 +104,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     // Get the content from inside the brackets (using a TokenNavigator here that is passed again into the Generate
                     // method means that when the below call returns, the tokenNavigator here will have been moved along to after
                     // the bracketed content that is about to be processed)
-                    var bracketedExpressions = Generate(tokenNavigator, depth + 1);
+                    var bracketedExpressions = Generate(tokenNavigator, depth + 1, directedWithReferenceIfAny);
 
                     // If the accessorBuffer isn't empty then the bracketed content should be arguments, if not then it's just a bracketed expression
                     if (accessorBuffer.Any())
@@ -110,7 +113,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             GetCallOrNewOrValueExpressionSegment(
                                 accessorBuffer,
                                 bracketedExpressions,
-								true // true => brackets are present for any arguments
+                                directedWithReferenceIfAny,
+                                argumentsAreBracketed: true,
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
                             )
                         );
                         accessorBuffer.Clear();
@@ -152,8 +157,10 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             GetCallOrNewOrValueExpressionSegment(
 								accessorBuffer,
 								new Expression[0],
-								false // false => zero-argument content not bracketed
-							)
+                                directedWithReferenceIfAny,
+                                argumentsAreBracketed: false, // zero-argument content not bracketed
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                            )
                         );
                         accessorBuffer.Clear();
                     }
@@ -173,8 +180,10 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     GetCallOrNewOrValueExpressionSegment(
 						accessorBuffer,
 						new Expression[0],
-						false // false => zero-argument content not bracketed
-					)
+                        directedWithReferenceIfAny,
+                        argumentsAreBracketed: false, // zero-argument content not bracketed
+                        willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                    )
                 );
                 accessorBuffer.Clear();
             }
@@ -184,6 +193,19 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 expressionSegments.Clear();
             }
             return expressions;
+        }
+
+        private static bool WillBeFirstSegmentInCallExpression(IEnumerable<IExpressionSegment> expressionSegmentBuffer)
+        {
+            if (expressionSegmentBuffer == null)
+                throw new ArgumentNullException("expressionSegmentBuffer");
+
+            // If the expressionSegmentBuffer is empty and the next segment to be to processed is a part of a call expression then it will definitely be the
+            // first of its segments. Same logic applies if the previous expression segment was an operator since this will be the first part of an expression
+            // that contains multiple expressions - eg. "a * b". Otherwise, the next expression segment must be part of a single expression that is being
+            // processed (eg. ".Name" from "a.Name").
+            var lastExpressionSegmentIfAny = expressionSegmentBuffer.LastOrDefault();
+            return (lastExpressionSegmentIfAny == null) || (lastExpressionSegmentIfAny is OperationExpressionSegment);
         }
 
         /// <summary>
@@ -298,37 +320,57 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// (with no arguments) then this can be represented by a NewInstanceExpressionSegment. Otherwise return a CallExpressionSegment.
         /// that data in a constant-type expression segment).
         /// </summary>
-        private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(IEnumerable<IToken> tokens, IEnumerable<Expression> arguments, bool argumentsAreBracketed)
+        private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(
+            IEnumerable<IToken> tokens,
+            IEnumerable<Expression> arguments,
+            IToken directedWithReferenceIfAny,
+            bool argumentsAreBracketed,
+            bool willBeFirstSegmentInCallExpression)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
 
-            var tokensArray = tokens.ToArray();
-            if (!tokensArray.Any())
+            var tokensList = tokens.ToList();
+            if (!tokensList.Any())
                 throw new ArgumentException("Empty tokens set specified, invalid");
-            if (tokensArray.Any(t => t == null))
+            if (tokensList.Any(t => t == null))
                 throw new ArgumentException("Null reference encountered in tokens set");
+
+            // If the first segment in a call expression and the first token is a "." then directedWithReferenceIfAny must be non-null (meaning this statement is
+            // found within a "WITH x" construct) or the statement is invalid. The statement "a(0).Name" is broken down into two segments; "a(0)" and ".Name" -
+            // clearly starting with a "." is acceptable (mandatory, in fact!) for ".Name" but would only be in the first segment if found within a WITH.
+            if (tokensList[0] is MemberAccessorOrDecimalPointToken)
+            {
+                if (willBeFirstSegmentInCallExpression)
+                {
+                    if (directedWithReferenceIfAny == null)
+                        throw new ArgumentException("The first token in the first segment of an expression can not be a MemberAccessorOrDecimalPointToken unless the statement is found within a WITH construct");
+                    tokensList.Insert(0, directedWithReferenceIfAny);
+                }
+            }
+            else if (!willBeFirstSegmentInCallExpression)
+                throw new ArgumentException("All segments in a call expression after the first must start with a MemberAccessorOrDecimalPointToken");
 
             // If there are arguments then there's no change of representing this as a constant-type expression or as a new instance request
             if (!arguments.Any())
             {
-                if (tokensArray.Length == 1)
+                if (tokensList.Count == 1)
                 {
-                    var numericValue = tokensArray[0] as NumericValueToken;
+                    var numericValue = tokensList[0] as NumericValueToken;
                     if (numericValue != null)
                         return new NumericValueExpressionSegment(numericValue);
-                    var stringValue = tokensArray[0] as StringToken;
+                    var stringValue = tokensList[0] as StringToken;
                     if (stringValue != null)
                         return new StringValueExpressionSegment(stringValue);
-					var builtInValue = tokensArray[0] as BuiltInValueToken;
+					var builtInValue = tokensList[0] as BuiltInValueToken;
 					if (builtInValue != null)
 						return new BuiltInValueExpressionSegment(builtInValue);
                 }
-                else if ((tokensArray.Length == 2)
-                && (tokensArray[0] is KeyWordToken)
-                && tokensArray[0].Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
+                else if ((tokensList.Count == 2)
+                && (tokensList[0] is KeyWordToken)
+                && tokensList[0].Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var newInstanceName = tokensArray[1] as NameToken;
+                    var newInstanceName = tokensList[1] as NameToken;
                     if (newInstanceName != null)
                         return new NewInstanceExpressionSegment(newInstanceName);
                 }
@@ -342,7 +384,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 			else
 				zeroArgumentBracketsPresence = CallExpressionSegment.ArgumentBracketPresenceOptions.Absent;
             return new CallExpressionSegment(
-                tokensArray.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
+                tokensList.Where(t => !(t is MemberAccessorOrDecimalPointToken)),
                 arguments,
 				zeroArgumentBracketsPresence
             );

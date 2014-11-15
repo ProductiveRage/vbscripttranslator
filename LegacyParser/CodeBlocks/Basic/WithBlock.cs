@@ -9,7 +9,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
     [Serializable]
     public class WithBlock : IHaveNestedContent
     {
-        public WithBlock(ICodeBlock target, IEnumerable<ICodeBlock> content)
+        public WithBlock(Expression target, IEnumerable<ICodeBlock> content)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
@@ -25,7 +25,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// This will never be null
         /// </summary>
-        public ICodeBlock Target { get; private set; }
+        public Expression Target { get; private set; }
         
         /// <summary>
         /// This will never be null nor contain any null references

@@ -56,6 +56,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeDefiningParent,
                 parentReturnValueNameIfAny,
                 errorRegistrationTokenIfAny,
+                scopeInformation.DirectedWithReferenceIfAny,
                 scopeInformation.ExternalDependencies,
                 scopeInformation.Classes.AddRange(
                     blocks
@@ -143,6 +144,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.ScopeDefiningParent,
                 scopeInformation.ParentReturnValueNameIfAny,
                 scopeInformation.ErrorRegistrationTokenIfAny,
+                scopeInformation.DirectedWithReferenceIfAny,
                 scopeInformation.ExternalDependencies.AddRange(externalDependencies),
                 scopeInformation.Classes,
                 scopeInformation.Functions,
@@ -163,6 +165,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.ScopeDefiningParent,
                 scopeInformation.ParentReturnValueNameIfAny,
                 scopeInformation.ErrorRegistrationTokenIfAny,
+                scopeInformation.DirectedWithReferenceIfAny,
                 scopeInformation.ExternalDependencies,
                 scopeInformation.Classes,
                 scopeInformation.Functions,

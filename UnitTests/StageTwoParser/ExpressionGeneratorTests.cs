@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using CSharpWriter.CodeTranslation.Extensions;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -21,9 +22,12 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("Test", 0))
                     )
                 },
-                ExpressionGenerator.Generate(new[] {
+                ExpressionGenerator.Generate(
+                    new[] {
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -38,11 +42,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("Test", 0), CallExpressionSegment.ArgumentBracketPresenceOptions.Present)
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new CloseBrace(0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -59,11 +66,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("a", 0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -80,13 +90,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("a", 0),
                         new MemberAccessorToken(0),
                         new NameToken("b", 0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -104,12 +117,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken(1, 0),
                         new CloseBrace(0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -128,14 +144,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken(1, 0),
                         new ArgumentSeparatorToken(",", 0),
                         new NumericValueToken(2, 0),
                         new CloseBrace(0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -159,7 +178,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NameToken("Test2", 0),
@@ -169,7 +189,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new ArgumentSeparatorToken(",", 0),
                         new NumericValueToken(2, 0),
                         new CloseBrace(0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -192,14 +214,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("a", 0),
                         new OpenBrace(0),
                         new NumericValueToken(0, 0),
                         new CloseBrace(0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -222,7 +247,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("a", 0),
                         new MemberAccessorToken(0),
                         new NameToken("b", 0),
@@ -231,7 +257,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new CloseBrace(0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -263,7 +291,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NameToken("b", 0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -286,7 +316,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
                         new NameToken("a", 0),
                         new OpenBrace(0),
                         new NumericValueToken(0, 0),
@@ -294,7 +325,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new NumericValueToken(1, 0),
                         new CloseBrace(0),
-                }),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -319,13 +352,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("c", 0))
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("c", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("c", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -349,13 +385,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -379,16 +418,19 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0),
-                    new OpenBrace(0),
-                    new NumericValueToken(0, 0),
-                    new CloseBrace(0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(0, 0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -419,18 +461,21 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("d", 0))
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0),
-                    new OpenBrace(0),
-                    new NumericValueToken(0, 0),
-                    new CloseBrace(0),
-                    new OperatorToken("+", 0),
-                    new NameToken("d", 0),
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(0, 0),
+                        new CloseBrace(0),
+                        new OperatorToken("+", 0),
+                        new NameToken("d", 0),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -454,15 +499,18 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new OpenBrace(0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0),
-                    new CloseBrace(0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -487,17 +535,20 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("d", 0))
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new OpenBrace(0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0),
-                    new CloseBrace(0),
-                    new OperatorToken("+", 0),
-                    new NameToken("d", 0),
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0),
+                        new CloseBrace(0),
+                        new OperatorToken("+", 0),
+                        new NameToken("d", 0),
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -521,13 +572,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new ComparisonOperatorToken("=", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("c", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new ComparisonOperatorToken("=", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("c", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -568,27 +622,30 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALL(new NameToken("f", 0))
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("+", 0),
-                    new NameToken("b", 0),
-                    new OperatorToken("*", 0),
-                    new NameToken("c", 0),
-                    new MemberAccessorToken(0),
-                    new NameToken("d", 0),
-                    new OpenBrace(0),
-                    new NameToken("Test", 0),
-                    new OpenBrace(0),
-                    new NumericValueToken(0, 0),
-                    new CloseBrace(0),
-                    new ArgumentSeparatorToken(",", 0),
-                    new NumericValueToken(1, 0),
-                    new CloseBrace(0),
-                    new OperatorToken("+", 0),
-                    new NameToken("e", 0),
-                    new ComparisonOperatorToken("=", 0),
-                    new NameToken("f", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("+", 0),
+                        new NameToken("b", 0),
+                        new OperatorToken("*", 0),
+                        new NameToken("c", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("d", 0),
+                        new OpenBrace(0),
+                        new NameToken("Test", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken(0, 0),
+                        new CloseBrace(0),
+                        new ArgumentSeparatorToken(",", 0),
+                        new NumericValueToken(1, 0),
+                        new CloseBrace(0),
+                        new OperatorToken("+", 0),
+                        new NameToken("e", 0),
+                        new ComparisonOperatorToken("=", 0),
+                        new NameToken("f", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -611,12 +668,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new OperatorToken("*", 0),
-                    new OperatorToken("-", 0),
-                    new NameToken("b", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new OperatorToken("*", 0),
+                        new OperatorToken("-", 0),
+                        new NameToken("b", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -639,12 +699,15 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("a", 0),
-                    new LogicalOperatorToken("AND", 0),
-                    new LogicalOperatorToken("NOT", 0),
-                    new NameToken("b", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new LogicalOperatorToken("AND", 0),
+                        new LogicalOperatorToken("NOT", 0),
+                        new NameToken("b", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -659,10 +722,13 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         NEW("Test", 0)
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new KeyWordToken("new", 0),
-                    new NameToken("Test", 0)
-                }),
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new KeyWordToken("new", 0),
+                        new NameToken("Test", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
@@ -687,17 +753,52 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         )
                     )
                 },
-                ExpressionGenerator.Generate(new IToken[] {
-                    new NameToken("Test", 0),
-                    new OpenBrace(0),
-                    new OpenBrace(0),
-                    new NameToken("a", 0),
-                    new CloseBrace(0),
-                    new CloseBrace(0)
-                }),
+                ExpressionGenerator.Generate(
+                        new IToken[] {
+                        new NameToken("Test", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
                 new ExpressionSetComparer()
             );
         }
+
+
+        [Fact]
+        public void ObjectFunctionCallWithNoArgumentsAndNoBracketsThatReliesUponDirectedWithReference()
+        {
+            // ".Test" within "WITH a"
+            var actual = ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new MemberAccessorToken(0),
+                        new NameToken("Test", 0)
+                    },
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0)
+                ); // TODO: Remove
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new[] { new DoNotRenameNameToken("a", 0), new NameToken("Test", 0) }
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new MemberAccessorToken(0),
+                        new NameToken("Test", 0)
+                    },
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0)
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
 
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions

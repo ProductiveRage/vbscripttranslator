@@ -1,9 +1,9 @@
-﻿using CSharpWriter.Lists;
+﻿using CSharpWriter.CodeTranslation.Extensions;
+using CSharpWriter.Lists;
 using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using CSharpWriter.CodeTranslation.Extensions;
 
 namespace CSharpWriter.CodeTranslation
 {
@@ -14,6 +14,7 @@ namespace CSharpWriter.CodeTranslation
 			IDefineScope scopeDefiningParent,
             CSharpName parentReturnValueNameIfAny,
             CSharpName errorRegistrationTokenIfAny,
+            DirectedWithReferenceDetails directedWithReferenceIfAny,
             NonNullImmutableList<NameToken> externalDependencies,
             NonNullImmutableList<ScopedNameToken> classes,
             NonNullImmutableList<ScopedNameToken> functions,
@@ -37,8 +38,9 @@ namespace CSharpWriter.CodeTranslation
 
             Parent = parent;
 			ScopeDefiningParent = scopeDefiningParent;
-            ErrorRegistrationTokenIfAny = errorRegistrationTokenIfAny;
             ParentReturnValueNameIfAny = parentReturnValueNameIfAny;
+            ErrorRegistrationTokenIfAny = errorRegistrationTokenIfAny;
+            DirectedWithReferenceIfAny = directedWithReferenceIfAny;
             ExternalDependencies = externalDependencies;
             Classes = classes;
             Functions = functions;
@@ -65,6 +67,7 @@ namespace CSharpWriter.CodeTranslation
                 outermostScope, // scope-defining parent
                 null, // parentReturnValueNameIfAny
                 null, // errorRegistrationTokenIfAny
+                null, // directedWithReferenceIfAn
                 externalDependencies,
                 new NonNullImmutableList<ScopedNameToken>(), // classes
                 new NonNullImmutableList<ScopedNameToken>(), // functions,
@@ -106,6 +109,12 @@ namespace CSharpWriter.CodeTranslation
         public CSharpName ErrorRegistrationTokenIfAny { get; private set; }
 
         /// <summary>
+        /// This will be non-null if the current scope is within a WITH statement that resolves relative method or property accesses. It will be null
+        /// otherwise.
+        /// </summary>
+        public DirectedWithReferenceDetails DirectedWithReferenceIfAny { get; private set; }
+
+        /// <summary>
         /// These are references that are declared as being a compulsory and expected part of the Environment References - eg. if a command line
         /// script is being translated then WScript may be an expected External Dependency and warnings should not be emitted about accessing
         /// it, even though there is nothing to indicate its presence in the source. This will never be null.
@@ -131,5 +140,37 @@ namespace CSharpWriter.CodeTranslation
         /// This will never be null
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
+
+        /// <summary>
+        /// If the current code is running within a WITH construct then there may be partial references which need to know what to target to complete
+        /// the reference.
+        /// </summary>
+        public class DirectedWithReferenceDetails
+        {
+            private readonly int _lineIndexOfWithStatement;
+            public DirectedWithReferenceDetails(CSharpName referenceName, int lineIndexOfWithStatement)
+            {
+                if (referenceName == null)
+                    throw new ArgumentNullException("referenceName");
+                if (lineIndexOfWithStatement < 0)
+                    throw new ArgumentOutOfRangeException("lineIndexOfWithStatement");
+
+                ReferenceName = referenceName;
+                _lineIndexOfWithStatement = lineIndexOfWithStatement;
+            }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public CSharpName ReferenceName { get; private set; }
+
+            public NameToken AsToken()
+            {
+                return new DoNotRenameNameToken(
+                    ReferenceName.Name,
+                    _lineIndexOfWithStatement
+                );
+            }
+        }
     }
 }

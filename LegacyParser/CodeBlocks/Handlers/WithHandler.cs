@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -26,12 +25,18 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 throw new ArgumentException("Insufficient tokens - invalid");
 
             // The WITH target will normally be a NameToken - eg. "WITH a" - but may also be wrapped in brackets - eg. "WITH (a)" - or may even
-            // be another redirected reference (from an ancester WITH) - eg. "WITH .Item"
+            // be another redirected reference (from an ancester WITH) - eg. "WITH .Item". We'll use the StatementHandler to determine what
+            // content is part of the WITH target, but we don't directly require the returned Statement - we just needs its tokens (to
+            // generate an Expression for the WithBlock).
             var token = base.getToken(tokens, offset: 1, allowedTokenTypes: new Type[] { typeof(OpenBrace), typeof(MemberAccessorOrDecimalPointToken), typeof(NameToken) });
             var targetTokensSource = tokens.Skip(1).ToList();
-            var numerOfItemsInTargetTokensSource = targetTokensSource.Count;
-            var target = new StatementHandler().Process(targetTokensSource);
-            var numberOfItemsProcessedInTarget = numerOfItemsInTargetTokensSource - targetTokensSource.Count;
+            var numberOfItemsInTargetTokensSource = targetTokensSource.Count;
+            var target = new StatementHandler().Process(targetTokensSource) as Statement;
+            if (target == null)
+                throw new ArgumentException("The WITH target must be parseable as a (non-value-setting) statement");
+            else if (target.CallPrefix == Statement.CallPrefixOptions.Present)
+                throw new ArgumentException("The WITH target must be parseable as a statement without a CALL prefix");
+            var numberOfItemsProcessedInTarget = numberOfItemsInTargetTokensSource - targetTokensSource.Count;
             tokens.RemoveRange(0, 1 + numberOfItemsProcessedInTarget); // Remove the "WITH" plus the tokens in the target reference
 
             // Get block content
@@ -56,7 +61,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             }
 
             // Return code block instance
-            return new WithBlock(target, blockContent);
+            return new WithBlock(new Expression(target.Tokens), blockContent);
         }
     }
 }

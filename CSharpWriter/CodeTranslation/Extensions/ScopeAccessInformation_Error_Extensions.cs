@@ -17,6 +17,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeAccessInformation.ScopeDefiningParent,
                 scopeAccessInformation.ParentReturnValueNameIfAny,
                 errorRegistrationTokenIfAny,
+                scopeAccessInformation.DirectedWithReferenceIfAny,
                 scopeAccessInformation.ExternalDependencies,
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,

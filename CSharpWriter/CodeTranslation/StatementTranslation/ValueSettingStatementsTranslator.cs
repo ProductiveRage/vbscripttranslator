@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
@@ -83,7 +84,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // 2014-04-03 DWR: Used to pass valueSettingStatement.ValueToSet.BracketStandardisedTokens here but there is no opportunity for "optional"
             // brackets in VBScript for the target of an assignment statement so the BracketStandardisedTokens added nothing here but complexity and
             // so has been removed.
-            var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens).ToArray();
+            var directedWithReferenceTokenIfAny = (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken();
+            var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens, directedWithReferenceTokenIfAny).ToArray();
             if (targetExpression.Length != 1)
                 throw new ArgumentException("The ValueToSet should always be described by a single expression");
             var targetExpressionSegments = targetExpression[0].Segments.ToArray();
@@ -213,7 +215,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
                     // to the current scope, so the targetAccessor does not require a prefix in this case (this means that the UndeclaredVariables data
                     // returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
-                    if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrProperty)
+                    if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
                         targetAccessor = _envRefName.Name + "." + targetAccessor;
                 }
                 else

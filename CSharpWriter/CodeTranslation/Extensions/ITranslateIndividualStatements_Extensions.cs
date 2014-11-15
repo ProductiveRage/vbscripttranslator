@@ -65,10 +65,11 @@ namespace CSharpWriter.CodeTranslation.Extensions
             // or "Test(a)", which would be translated into "Test()", "Test(1)" or "Test((a))", respectively) since that is the only time
             // that brackets appear "optional". When this statement's return value is considered (eg. the "Test(1)" in "a = Test(1)"), the
             // brackets will already be in a format in valid VBScript that matches what would be expected in C#.
-            var statementTokens = (returnRequirements == ExpressionReturnTypeOptions.None)
-                ? statement.BracketStandardisedTokens
-                : statement.Tokens;
-            var expressions = VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(statementTokens).ToArray();
+            var expressions =
+                VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(
+                    (returnRequirements == ExpressionReturnTypeOptions.None) ? statement.BracketStandardisedTokens : statement.Tokens,
+                    (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken()
+                ).ToArray();
 			if (expressions.Length != 1)
 				throw new ArgumentException("Statement translation should always result in a single expression being generated");
 

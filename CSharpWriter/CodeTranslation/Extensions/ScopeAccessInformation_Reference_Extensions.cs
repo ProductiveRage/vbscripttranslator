@@ -42,7 +42,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenTargetName, nameRewriter);
             if (targetReferenceDetailsIfAvailable == null)
             {
-                if (scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrProperty)
+                if (scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
                 {
                     // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
                     // to the current scope, so the nameOfTargetContainerIfRequired should be null in this case (this means that the UndeclaredVariables
@@ -80,6 +80,18 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
+            // If the target corresponds to the containing "WITH" reference (if any) then use that ("WITH a: .Go: END WITH" is translated
+            // approximately into "var w123 = a; w123.Go();" where the "w123" is the DirectedWithReferenceIfAny and so we don't need to
+            // check for other variables or functions that may apply, it's the local variable WITH construct target.
+            if (scopeInformation.DirectedWithReferenceIfAny != null)
+            {
+                // Note that WithinFunctionOrPropertyOrWith is always specified here for the scope location since the WITH target should
+                // not be part of the "outer most scope" variable set like variables declared in that scope in the source script - this
+                // target reference is not something that can be altered, it is set in the current scope and accessed directly.
+                if (nameRewriter(scopeInformation.DirectedWithReferenceIfAny.AsToken()).Name == rewrittenTargetName)
+                    return new DeclaredReferenceDetails(ReferenceTypeOptions.Variable, ScopeLocationOptions.WithinFunctionOrPropertyOrWith);
+            }
+
             if (scopeInformation.ScopeDefiningParent != null)
             {
                 if (scopeInformation.ScopeDefiningParent.ExplicitScopeAdditions.Any(t => nameRewriter.GetMemberAccessTokenName(t) == rewrittenTargetName))
@@ -104,7 +116,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             // There could be references matching the requested name in multiple scopes, start from the closest and work outwards
             var possibleScopes = new[]
             {
-                ScopeLocationOptions.WithinFunctionOrProperty,
+                ScopeLocationOptions.WithinFunctionOrPropertyOrWith,
                 ScopeLocationOptions.WithinClass,
                 ScopeLocationOptions.OutermostScope
             };

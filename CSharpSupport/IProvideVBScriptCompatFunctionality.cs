@@ -46,6 +46,8 @@ namespace CSharpSupport
         void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter);
         void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter);
 
+        //int ABS(int value); // TODO: This is a temporary stand-in, limiting the input to int is probably not correct
+
         // Builtin functions
 		/* TODO
 			"ERR", // This is NOT a function (it's a value)
@@ -70,6 +72,9 @@ namespace CSharpSupport
 			"LTRIM", "RTRIM", "TRIM"
 		 */
         
+        // TODO: Split.. how was this missed off the list above?!
+        // - Splitting an empty string seems to return an empty array, rather than an array with a single element (that is a blank string)
+
 		// TODO: Integration RANDOMIZE functionality
 
         void GETERRORTRAPPINGTOKEN();

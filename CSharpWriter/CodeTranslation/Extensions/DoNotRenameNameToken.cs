@@ -8,7 +8,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
 	/// (this may be useful when content is being injected into expressions to ensure that name rewriting isn't double-applied - it is used in the StatementTranslator,
 	/// for example)
 	/// </summary>
-	public class DoNotRenameNameToken : NameToken
+    [Serializable]
+    public class DoNotRenameNameToken : NameToken
 	{
 		public DoNotRenameNameToken(string content, int lineIndex) : base(content, WhiteSpaceBehaviourOptions.Allow, lineIndex)
 		{

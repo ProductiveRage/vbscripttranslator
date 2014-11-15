@@ -110,25 +110,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
 			return base.TranslateCommon(
-				new BlockTranslationAttempter[]
-				{
-					base.TryToTranslateBlankLine,
-					base.TryToTranslateClass,
-					base.TryToTranslateComment,
-					base.TryToTranslateDim,
-					base.TryToTranslateDo,
-					base.TryToTranslateExit,
-					base.TryToTranslateFor,
-					base.TryToTranslateForEach,
-					base.TryToTranslateIf,
-                    base.TryToTranslateOnErrorResumeNext,
-                    base.TryToTranslateOnErrorGotoZero,
-					base.TryToTranslateReDim,
-					base.TryToTranslateRandomize,
-					base.TryToTranslateStatementOrExpression,
-					base.TryToTranslateSelect,
-                    base.TryToTranslateValueSettingStatement
-				}.ToNonNullImmutableList(),
+                base.GetWithinFunctionBlockTranslators(),
 				blocks,
 				scopeAccessInformation,
 				indentationDepth
@@ -194,7 +176,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 							VariableDeclarationScopeOptions.Private,
                             null // Not declared as an array
                         ),
-                        ScopeLocationOptions.WithinFunctionOrProperty
+                        ScopeLocationOptions.WithinFunctionOrPropertyOrWith
 					),
 					indentationDepth + 1
 				));

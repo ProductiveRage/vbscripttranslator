@@ -4,6 +4,6 @@
     {
         OutermostScope,
         WithinClass,
-        WithinFunctionOrProperty
+        WithinFunctionOrPropertyOrWith
     }
 }
