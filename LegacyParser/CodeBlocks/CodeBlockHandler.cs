@@ -102,7 +102,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
         }
 
         /// <summary>
-        /// Have we encountered a token sequence that marks the end for this code block?
+        /// Have we encountered a token sequence that marks the end for this code block? Only KeyWordTokens are considered since this should be looking
+        /// for structural termination sequences.
         /// </summary>
         private bool atBlockEnd(List<IToken> tokens, out string[] endSequenceMet)
         {
@@ -115,7 +116,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                         int matchCount = 0;
                         for (int index = 0; index < endSequence.Length; index++)
                         {
-                            if (tokens[index].Content.ToUpper() == endSequence[index].ToUpper())
+                            var token = tokens[index];
+                            if (!(token is KeyWordToken))
+                                continue;
+                            if (token.Content.Equals(endSequence[index], StringComparison.OrdinalIgnoreCase))
                                 matchCount++;
                         }
                         if (matchCount == endSequence.Length)
