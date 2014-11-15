@@ -88,7 +88,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 // Note that WithinFunctionOrPropertyOrWith is always specified here for the scope location since the WITH target should
                 // not be part of the "outer most scope" variable set like variables declared in that scope in the source script - this
                 // target reference is not something that can be altered, it is set in the current scope and accessed directly.
-                if (nameRewriter(scopeInformation.DirectedWithReferenceIfAny.AsToken()).Name == rewrittenTargetName)
+                if (nameRewriter.GetMemberAccessTokenName(scopeInformation.DirectedWithReferenceIfAny.AsToken()) == rewrittenTargetName)
                     return new DeclaredReferenceDetails(ReferenceTypeOptions.Variable, ScopeLocationOptions.WithinFunctionOrPropertyOrWith);
             }
 

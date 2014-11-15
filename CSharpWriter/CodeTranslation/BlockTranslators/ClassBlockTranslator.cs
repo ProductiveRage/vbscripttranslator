@@ -175,7 +175,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             string.Format(
                                 "{0} object {1} {{ get; set; }}",
                                 (declaredVariableToInitialise.Scope == VariableDeclarationScopeOptions.Private) ? "private" : "public",
-                                _nameRewriter(declaredVariableToInitialise.Name).Name
+                                _nameRewriter.GetMemberAccessTokenName(declaredVariableToInitialise.Name)
                             ),
                             indentationDepth + 1
                         )

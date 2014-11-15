@@ -24,7 +24,7 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("nameRewriter");
 
             return source.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(nameRewriter(v).Name, nameRewriter))
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(nameRewriter.GetMemberAccessTokenName(v), nameRewriter))
                 .ToNonNullImmutableList();
         }
     }

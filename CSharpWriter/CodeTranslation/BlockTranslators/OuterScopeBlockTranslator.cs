@@ -265,7 +265,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
                     translatedStatements = translatedStatements.AddRange(
                         explicitVariableDeclarationsFromWithOuterScope.Select(
-                            v => new TranslatedStatement("public object " + _nameRewriter(v.Name).Name + " { get; set; }", 3)
+                            v => new TranslatedStatement("public object " + _nameRewriter.GetMemberAccessTokenName(v.Name) + " { get; set; }", 3)
                         )
                     );
                 }
@@ -305,7 +305,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 });
                 translatedStatements = translatedStatements.AddRange(
                     allEnvironmentVariablesAccessed
-                        .Select(v => _nameRewriter(v).Name)
+                        .Select(v => _nameRewriter.GetMemberAccessTokenName(v))
                         .Distinct()
                         .Select(v => new TranslatedStatement("public object " + v + " { get; set; }", 3)
                     )

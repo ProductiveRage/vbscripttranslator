@@ -42,7 +42,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedTargetReference = _statementTranslator.Translate(withBlock.Target, scopeAccessInformation, ExpressionReturnTypeOptions.Reference);
             var undeclaredVariables = translatedTargetReference.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 

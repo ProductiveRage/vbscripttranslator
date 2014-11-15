@@ -191,7 +191,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            var rewrittenLoopVariableName = _nameRewriter(forBlock.LoopVar).Name;
+            var rewrittenLoopVariableName = _nameRewriter.GetMemberAccessTokenName(forBlock.LoopVar);
             var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
             if (targetContainer != null)
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;

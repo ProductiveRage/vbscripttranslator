@@ -479,7 +479,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 : "{0}.NEWARRAY(new object[] {{ {2} }}, {3} => {{ {1} = {3}; }});";
             foreach (var variable in reDimStatement.Variables)
             {
-                var rewrittenVariableName = _nameRewriter(variable.Name).Name;
+                var rewrittenVariableName = _nameRewriter.GetMemberAccessTokenName(variable.Name);
                 string targetReference;
                 if ((scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
                 && variable.Name.Content.Equals(scopeAccessInformation.ScopeDefiningParent.Name.Content, StringComparison.OrdinalIgnoreCase))
@@ -584,7 +584,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // TODO: Differentiate between undeclared variables and functions (and classes?)
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
@@ -610,7 +610,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // TODO: Differentiate between undeclared variables and functions (and classes?)
             var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter(v).Name, _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
 				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
@@ -779,7 +779,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var uniqueVariables = new List<VariableDeclaration>();
             foreach (var undeclaredVariable in translationResult.UndeclaredVariablesAccessed)
             {
-                var rewrittenName = _nameRewriter(undeclaredVariable).Name;
+                var rewrittenName = _nameRewriter.GetMemberAccessTokenName(undeclaredVariable);
                 if (rewrittenNamesAccountedFor.Contains(rewrittenName))
                     continue;
 
