@@ -67,7 +67,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             // brackets will already be in a format in valid VBScript that matches what would be expected in C#.
             var expressions =
                 VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(
-                    (returnRequirements == ExpressionReturnTypeOptions.None) ? statement.BracketStandardisedTokens : statement.Tokens,
+                    (returnRequirements == ExpressionReturnTypeOptions.None) ? statement.GetBracketStandardisedTokens() : statement.Tokens,
                     (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken()
                 ).ToArray();
 			if (expressions.Length != 1)

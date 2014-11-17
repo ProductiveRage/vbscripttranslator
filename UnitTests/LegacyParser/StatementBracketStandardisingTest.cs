@@ -20,7 +20,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -38,7 +38,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -60,7 +60,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -78,7 +78,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -98,7 +98,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -117,7 +117,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -138,7 +138,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
                 Assert.Equal(
                     tokens,
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -173,7 +173,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new CloseBrace(0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -207,7 +207,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new CloseBrace(0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -231,7 +231,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NameToken("a", 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -265,7 +265,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NumericValueToken(-1, 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -289,7 +289,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NumericValueToken(1, 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -319,7 +319,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NumericValueToken(1, 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -351,7 +351,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new CloseBrace(0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -377,7 +377,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NumericValueToken(2, 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -409,7 +409,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NumericValueToken(2, 0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }
@@ -441,7 +441,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new CloseBrace(0),
                         new CloseBrace(0)
                     },
-                    statement.BracketStandardisedTokens,
+                    statement.GetBracketStandardisedTokens(),
                     new TokenSetComparer()
                 );
             }

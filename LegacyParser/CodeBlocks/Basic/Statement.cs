@@ -37,7 +37,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if ((firstTokenAsAtom != null) && firstTokenAsAtom.Content.Equals("Call", StringComparison.InvariantCultureIgnoreCase))
                 throw new ArgumentException("The first token may not be the Call keyword, that must be specified through the CallPrefixOption value where present");
 
-            BracketStandardisedTokens = GetBracketStandardisedTokens(Tokens, callPrefix);
             CallPrefix = callPrefix;
         }
 
@@ -60,7 +59,17 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// This method will return a token stream based on the current Statement's code, but with the optional brackets inserted where
         /// absent.
         /// </summary>
-        public IEnumerable<IToken> BracketStandardisedTokens { get; private set; }
+        public IEnumerable<IToken> GetBracketStandardisedTokens()
+        {
+            // The "bracket-standardised" content is only required when there is no return type for a statement - in which case it must
+            // be possible to apply this logic. However, there are some times where a statement is valid but where this processing will
+            // fail. For example, the optional "LoopStep" of a ForBlock will fail if it's value is "-x" since an operator is not considered
+            // acceptable for the first token of a statement (since, if this were a standalone statement; "-x"; then there would be a
+            // compile time error). This method was previously a property which was pre-evalaated in the constructor, but that caused
+            // issues with ForBlocks in that format. So now, instead, this work is only done when required and so shouldn't cause
+            // problems where it's not needed.
+            return GetBracketStandardisedTokens(Tokens, CallPrefix);
+        }
 
         public CallPrefixOptions CallPrefix { get; private set; }
 
