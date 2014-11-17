@@ -50,7 +50,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     tokens.RemoveAt(0);
             }
 
-            // Return Function code block instance
             return new ClassBlock(new NameToken(classNameToken.Content, classNameToken.LineIndex), functionContent);
         }
     }
