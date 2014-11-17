@@ -108,6 +108,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var numericLoopStepValueIfAny = (forBlock.LoopStep == null)
                 ? new NumericValueToken(1, forBlock.LoopTo.Tokens.Last().LineIndex) // Default to Step 1 if no LoopStep expression was specified
                 : TryToGetExpressionAsNumericConstant(forBlock.LoopStep);
+            if ((numericLoopStepValueIfAny == null) && (forBlock.LoopStep.Tokens.Count() == 2))
+            {
+                // If the loop step is "-1" then this will still appear as distinct tokens "-" and "1" since the NumberRebuilder can't safely combine
+                // the two tokens at the level of knowledge that it has, since it doesn't know if the "STEP" token is a keyword (meaning it's part of
+                // a loop structure and so they could be safely combined) or a reference name (meaning it could be something like "step - 1", in which
+                // case they could not be safely combined).
+                var firstLoopStepToken = forBlock.LoopStep.Tokens.First();
+                var lastLoopStepTokenAsNumericValueToken = forBlock.LoopStep.Tokens.Last() as NumericValueToken;
+                if ((firstLoopStepToken is OperatorToken) && (firstLoopStepToken.Content == "-") && (lastLoopStepTokenAsNumericValueToken != null))
+                    numericLoopStepValueIfAny = new NumericValueToken(-lastLoopStepTokenAsNumericValueToken.Value, lastLoopStepTokenAsNumericValueToken.LineIndex);
+            }
             if (numericLoopStepValueIfAny != null)
                 loopStep = numericLoopStepValueIfAny.Value.ToString();
             else
