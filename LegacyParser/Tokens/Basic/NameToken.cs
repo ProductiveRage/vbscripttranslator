@@ -21,7 +21,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (this.GetType() == typeof(NameToken))
             {
                 var recognisedType = TryToGetAsRecognisedType(content, lineIndex);
-                if (recognisedType != null)
+                if ((recognisedType != null) && !(recognisedType is NameToken))
                     throw new ArgumentException("Invalid content for a NameToken");
             }
         }

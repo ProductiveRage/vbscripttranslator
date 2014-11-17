@@ -94,6 +94,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 
             if (isMustHandleKeyWord(content) || isMiscKeyWord(content))
                 return new KeyWordToken(content, lineIndex);
+            if (isContextDependentKeyword(content))
+                return new MayBeKeywordOrNameToken(content, lineIndex);
             if (isVBScriptFunction(content))
                 return new BuiltInFunctionToken(content, lineIndex);
             if (isVBScriptValue(content))
@@ -250,18 +252,34 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 atomContent,
                 new string[]
                 {
-                    "OPTION", "EXPLICIT",
+                    "OPTION",
                     "DIM", "REDIM", "PRESERVE",
                     "PUBLIC", "PRIVATE",
                     "IF", "THEN", "ELSE", "ELSEIF", "END",
-                    "SUB", "FUNCTION", "PROPERTY", "DEFAULT", "CLASS",
+                    "WITH",
+                    "SUB", "FUNCTION", "CLASS",
                     "EXIT",
                     "SELECT", "CASE", 
-                    "FOR", "EACH", "NEXT", "TO", "STEP",
+                    "FOR", "EACH", "NEXT", "TO",
                     "DO", "WHILE", "UNTIL", "LOOP", "WEND",
                     "RANDOMIZE",
                     "REM",
                     "GET"
+                }
+            );
+        }
+
+        /// <summary>
+        /// There are some keywords that can be used as variable names, deeper parsing work than looking
+        /// solely at its content is required to determine if a token is a NameToken or KeywordToken
+        /// </summary>
+        protected static bool isContextDependentKeyword(string atomContent)
+        {
+            return isType(
+                atomContent,
+                new string[]
+                {
+                    "EXPLICIT", "PROPERTY", "DEFAULT", "STEP", "ERROR"
                 }
             );
         }
@@ -281,7 +299,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "CALL",
                     "LET", "SET",
                     "NEW",
-                    "ON", "ERROR", "RESUME"
+                    "ON", "RESUME"
                 }
             );
         }
@@ -407,6 +425,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         {
             get
             {
+                // Note: isContextDependentKeyword is not consulted here since it the values there are not reserved in all cases
                 return
                     isMustHandleKeyWord(Content) ||
                     isMiscKeyWord(Content) ||

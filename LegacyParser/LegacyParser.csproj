@@ -105,6 +105,7 @@
     <Compile Include="Tokens\Basic\ArgumentSeparatorToken.cs" />
     <Compile Include="Tokens\Basic\BuiltInFunctionToken.cs" />
     <Compile Include="Tokens\Basic\BuiltInValueToken.cs" />
+    <Compile Include="Tokens\Basic\MayBeKeywordOrNameToken.cs" />
     <Compile Include="Tokens\Basic\InlineCommentToken.cs" />
     <Compile Include="Tokens\Basic\EscapedNameToken.cs" />
     <Compile Include="Tokens\Basic\LogicalOperatorToken.cs" />
