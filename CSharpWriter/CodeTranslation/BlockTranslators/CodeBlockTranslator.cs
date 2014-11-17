@@ -228,7 +228,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (doBlock == null)
 				return null;
 
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+            var codeBlockTranslator = new DoBlockTranslator(
+                _supportRefName,
+                _envClassName,
+                _envRefName,
+                _outerClassName,
+                _outerRefName,
+                _nameRewriter,
+                _tempNameGenerator,
+                _statementTranslator,
+                _valueSettingStatementTranslator,
+                _logger
+            );
+            return translationResult.Add(
+                codeBlockTranslator.Translate(
+                    doBlock,
+                    scopeAccessInformation,
+                    indentationDepth
+                )
+            );
 		}
 
         private TranslationResult TryToTranslateExit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
