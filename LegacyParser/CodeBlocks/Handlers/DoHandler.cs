@@ -24,60 +24,76 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 return null;
             if (tokens.Count < 3)
                 throw new ArgumentException("Insufficient tokens - invalid");
-            IToken token = base.getToken(tokens, 1, new List<Type> { typeof(AtomToken), typeof(AbstractEndOfStatementToken) });
-            bool hasCondition, doUntil;
-            if (token is AtomToken)
+
+            var preConditionStartToken = base.getToken(tokens, 1, new List<Type> { typeof(AtomToken), typeof(AbstractEndOfStatementToken) });
+            bool hasPreCondition, doUntil;
+            if (preConditionStartToken is AtomToken)
             {
-                bool doWhile = (token.Content.ToUpper() == "WHILE");
-                doUntil = (token.Content.ToUpper() == "UNTIL");
-                if (!doWhile && !doUntil)
-                    throw new Exception("Invalid content - not EndOfStatement, WHILE or UNTIL after DO");
-                hasCondition = true;
+                var doWhile = (preConditionStartToken.Content.ToUpper() == "WHILE");
+                doUntil = (preConditionStartToken.Content.ToUpper() == "UNTIL");
+                hasPreCondition = doWhile || doUntil;
             }
             else
             {
-                hasCondition = false;
+                hasPreCondition = false;
                 doUntil = false;
             }
 
-            // Remove DO keyword and grab conditional content (if any)
+            // Remove DO keyword and grab pre-condition content (if any)
             tokens.RemoveAt(0);
             Expression conditionStatement;
-            if (!hasCondition)
+            if (!hasPreCondition)
                 conditionStatement = null;
             else
             {
-                // Loop for end of line..
                 tokens.RemoveAt(0); // Remove WHILE / UNTIL
-                List<IToken> tokensInCondition = new List<IToken>();
-                while (true)
-                {
-                    // Add AtomTokens to list until find EndOfStatement
-                    if (base.isEndOfStatement(tokens, 0))
-                    {
-                        tokens.RemoveAt(0);
-                        break;
-                    }
-                    IToken tokenCondition = base.getToken_AtomOrStringOnly(tokens, 0);
-                    tokensInCondition.Add(tokenCondition);
+                conditionStatement = ExtractConditionFromTokens(tokens);
+            }
+
+            // If the token was a WHILE or UNTIL and we extracted a pre-condition following it, then the next token must be an end-of-statement. If there was
+            // no pre-condition then we've only processed the "DO" and the next token must still be an end-of-statement.
+            if (tokens.Count > 0)
+            {
+                if (tokens[0] is AbstractEndOfStatementToken)
                     tokens.RemoveAt(0);
-                }
-                conditionStatement = new Expression(tokensInCondition);
+                else
+                    throw new ArgumentException("Expected end-of-statement token after DO keyword (relating to a construct without a pre-condition)");
             }
 
             // Get block content
             string[] endSequenceMet;
-            List<string[]> endSequences = new List<string[]>()
+            var endSequences = new List<string[]>()
             {
                 new string[] { "LOOP" }
             };
-            CodeBlockHandler codeBlockHandler = new CodeBlockHandler(endSequences);
-            List<ICodeBlock> blockContent = codeBlockHandler.Process(tokens, out endSequenceMet);
+            var codeBlockHandler = new CodeBlockHandler(endSequences);
+            var blockContent = codeBlockHandler.Process(tokens, out endSequenceMet);
             if (endSequenceMet == null)
                 throw new Exception("Didn't find end sequence!");
+            tokens.RemoveAt(0); // Remove "LOOP"
 
-            // Remove end sequence tokens
-            tokens.RemoveRange(0, endSequenceMet.Length);
+            // Remove post-condition content (if any)
+            if (!hasPreCondition)
+            {
+                // Note that it's valid in VBScript to have neither a pre- or post-condition and for the loop to continue until an EXIT DO
+                // statement is encountered (in which case we will pass a null conditionStatement to the DoBlock). It's not valid for it
+                // to have both a pre- and post-condition, so if a pre-condition has already been extracted, don't try to extract a
+                // post-condition.
+                var postConditionStartToken = base.getToken(tokens,  0, new List<Type> { typeof(AtomToken), typeof(AbstractEndOfStatementToken) });
+                if (postConditionStartToken is AtomToken)
+                {
+                    var doWhile = (postConditionStartToken.Content.ToUpper() == "WHILE");
+                    doUntil = (postConditionStartToken.Content.ToUpper() == "UNTIL");
+                    if (doWhile || doUntil)
+                    {
+                        tokens.RemoveAt(0); // Remove WHILE / UNTIL
+                        conditionStatement = ExtractConditionFromTokens(tokens);
+                    }
+                }
+            }
+            
+            // Whether a post-condition has been processed or the construct terminated at the "LOOP" keyword, the next token (if any)
+            // must be an end-of-statement
             if (tokens.Count > 0)
             {
                 if (tokens[0] is AbstractEndOfStatementToken)
@@ -86,8 +102,28 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     throw new Exception("EndOfStatementToken missing after LOOP");
             }
 
-            // Return Function code block instance
-            return new DoBlock(conditionStatement, doUntil, blockContent);
+            return new DoBlock(conditionStatement, hasPreCondition, doUntil, blockContent);
+        }
+
+        private Expression ExtractConditionFromTokens(List<IToken> tokens)
+        {
+            if (tokens == null)
+                throw new ArgumentNullException("tokens");
+            if (tokens.Count == 0)
+                throw new ArgumentException("No tokens to extract content from");
+
+            // Add AtomTokens to list until find EndOfStatement (so long as there are any tokens to consume)
+            var tokensInCondition = new List<IToken>();
+            while (tokens.Count > 0)
+            {
+                // Once the end-of-statement has been identified, don't try to remove it - leave that up to the caller
+                if (base.isEndOfStatement(tokens, 0))
+                    break;
+                var tokenCondition = base.getToken_AtomOrStringOnly(tokens, 0);
+                tokensInCondition.Add(tokenCondition);
+                tokens.RemoveAt(0);
+            }
+            return new Expression(tokensInCondition);
         }
     }
 }

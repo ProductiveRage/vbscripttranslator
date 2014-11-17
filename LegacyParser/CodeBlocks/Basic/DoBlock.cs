@@ -12,40 +12,41 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private Expression conditionStatement;
-        private bool doUntil;
-        private List<ICodeBlock> statements;
-        
         /// <summary>
-        /// It is valid to have a null conditionStatement in VBScript - in case the
-        /// doUntil value is not of any consequence
+        /// It is valid to have a null conditionStatement in VBScript - in case the isPreCondition and doUntil constructor arguments are of no consequence
         /// </summary>
-        public DoBlock(Expression conditionStatement, bool doUntil, List<ICodeBlock> statements)
+        public DoBlock(Expression conditionIfAny, bool isPreCondition, bool doUntil, IEnumerable<ICodeBlock> statements)
         {
             if (statements == null)
                 throw new ArgumentNullException("statements");
-            this.conditionStatement = conditionStatement;
-            this.doUntil = doUntil;
-            this.statements = statements;
+
+            ConditionIfAny = conditionIfAny;
+            IsPreCondition = isPreCondition;
+            IsDoWhileCondition = !doUntil;
+            Statements = statements.ToList().AsReadOnly();
+            if (Statements.Any(s => s == null))
+                throw new ArgumentException("Null reference encountered in statements set");
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public Expression Condition
-        {
-            get { return this.conditionStatement; }
-        }
+        /// <summary>
+        /// This may be null since VBScript supports DO..WHILE loops with no constraint
+        /// </summary>
+        public Expression ConditionIfAny { get; private set; }
 
-        public bool DoWhileCondition
-        {
-            get { return !this.doUntil; }
-        }
+        public bool IsPreCondition { get; private set; }
 
-        public List<ICodeBlock> Statements
-        {
-            get { return this.statements; }
-        }
+        /// <summary>
+        /// If this is true then for construct is of the for DO WHILE..LOOP or DO..LOOP WHILE, as opposed to DO UNTIL..LOOP or DO..LOOP UNTIL
+        /// </summary>
+        public bool IsDoWhileCondition { get; private set; }
+
+        /// <summary>
+        /// This will never be null nor contain any null references, but it may be an empty set
+        /// </summary>
+        public IEnumerable<ICodeBlock> Statements { get; private set; }
 
         /// <summary>
         /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
@@ -53,34 +54,59 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         IEnumerable<ICodeBlock> IHaveNestedContent.AllExecutableBlocks
         {
-            get { return new ICodeBlock[] { Condition }.Concat(Statements); }
+            get
+            {
+                var statementBlocks = Statements.ToList();
+                if (ConditionIfAny != null)
+                {
+                    if (IsPreCondition)
+                        statementBlocks.Insert(0, ConditionIfAny);
+                    else
+                        statementBlocks.Add(ConditionIfAny);
+                }
+                return statementBlocks;
+            }
         }
 
         // =======================================================================================
         // VBScript BASE SOURCE RE-GENERATION
         // =======================================================================================
         /// <summary>
-        /// Re-generate equivalent VBScript source code for this block - there
-        /// should not be a line return at the end of the content
+        /// Re-generate equivalent VBScript source code for this block - there should not be a line return at the end of the content
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            StringBuilder output = new StringBuilder();
+            var output = new StringBuilder();
 
-            // Open statement
-            output.Append("Do ");
-            if (this.doUntil)
-                output.Append("Until ");
+            // Open statement (with condition if this construct has a pre condition)
+            output.Append("Do");
+            if (IsPreCondition && (ConditionIfAny != null))
+            {
+                output.Append(" ");
+                if (IsDoWhileCondition)
+                    output.Append("While ");
+                else
+                    output.Append("Until ");
+                output.AppendLine(ConditionIfAny.GenerateBaseSource(new NullIndenter()));
+            }
             else
-                output.Append("While ");
-            output.AppendLine(this.conditionStatement.GenerateBaseSource(new NullIndenter()));
+                output.AppendLine();
 
             // Render inner content
-            foreach (ICodeBlock statement in this.statements)
+            foreach (var statement in Statements)
                 output.AppendLine(statement.GenerateBaseSource(indenter.Increase()));
 
-            // Close statement
+            // Close statement (with condition if this construct has a pre condition)
             output.Append(indenter.Indent + "Loop");
+            if (!IsPreCondition && (ConditionIfAny != null))
+            {
+                output.Append(" ");
+                if (IsDoWhileCondition)
+                    output.Append("While ");
+                else
+                    output.Append("Until ");
+                output.Append(ConditionIfAny.GenerateBaseSource(new NullIndenter()));
+            }
             return output.ToString();
         }
     }

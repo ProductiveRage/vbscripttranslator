@@ -67,7 +67,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             }
 
             // Return code block instance
-            return new DoBlock(conditionStatement, false, blockContent);
+            return new DoBlock(conditionStatement, isPreCondition: true, doUntil: false, statements: blockContent);
         }
     }
 }
