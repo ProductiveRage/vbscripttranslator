@@ -23,7 +23,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 throw new ArgumentNullException("tokens");
             if (tokens.Count == 0)
                 return null;
-            
+
             // Can we handle this point in the token stream?
             IToken firstToken = tokens[0];
             if ((!(firstToken is AtomToken)) || (firstToken.Content.ToUpper() != "IF"))
@@ -46,10 +46,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             if (indexThen == -1)
                 throw new Exception("IF statement not got matching THEN");
 
-            // Is next token an EndOfStatementToken or is it a one-line IF statement?
+            // Is next token an end-of-statement token or is it a one-line IF statement?
             if (indexThen == (tokens.Count - 1))
                 throw new Exception("IF statement's THEN keyword is final token - missing content");
-            if (tokens[indexThen + 1] is EndOfStatementNewLineToken)
+            if (tokens[indexThen + 1] is AbstractEndOfStatementToken)
                 return processMultiLine(tokens, indexThen);
             return processSingleLine(tokens);
         }
@@ -113,7 +113,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 // grab the content after it..
                 if (endSequenceMet == null)
                     throw new Exception("Didn't find end sequence!");
-                
+
                 // Remove the last end sequence tokens (on the first loop, this will
                 // actually remove the initial "IF" token)
                 tokens.RemoveRange(0, endSequenceMet.Length);
@@ -134,7 +134,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
                     // If the first character is a new-line end-of-statement (which is a
                     // common form), we may as well pull that out as well
-                    if ((tokens.Count > 0) && (tokens[0] is EndOfStatementNewLineToken))
+                    if ((tokens.Count > 0) && (tokens[0] is AbstractEndOfStatementToken))
                         tokens.RemoveAt(0);
                 }
 

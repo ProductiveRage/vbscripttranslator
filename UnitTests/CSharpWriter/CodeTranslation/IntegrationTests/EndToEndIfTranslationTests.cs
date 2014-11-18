@@ -33,5 +33,28 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        /// <summary>
+        /// When testing against real content, another silly mistake was found where an inline comment would result in the parser getting confused
+        /// </summary>
+        [Fact]
+        public void DoNotGetConfusedByCommentsInLineWithConditions()
+        {
+            var source = @"
+			    If True Then 'Comment
+			    End If
+            ";
+            var expected = new[]
+            {
+                "if (_.IF(_.Constants.True))",
+                "{",
+                "  //Comment",
+                "}",
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
