@@ -75,19 +75,24 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 foreach (var undeclaredVariable in undeclaredVariablesAccessed)
                     _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
                 translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesAccessed);
+                var innerStatements = conditionalEntry.Conditional.Statements.ToNonNullImmutableList();
+                var conditionalInlineCommentIfAny = innerStatements.First() as InlineCommentStatement;
+                if (conditionalInlineCommentIfAny != null)
+                    innerStatements = innerStatements.RemoveAt(0);
                 translationResult = translationResult.Add(
                     new TranslatedStatement(
                         string.Format(
-                            "{0} ({1})",
+                            "{0} ({1}){2}",
                             (conditionalEntry.Index == 0) ? "if" : "else if",
-                            conditionalContent.TranslatedContent
+                            conditionalContent.TranslatedContent,
+                            (conditionalInlineCommentIfAny == null) ? "" : (" //" + conditionalInlineCommentIfAny.Content)
                         ),
                         indentationDepth
                     )
                 );
                 translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                 translationResult = translationResult.Add(
-                    Translate(conditionalEntry.Conditional.Statements.ToNonNullImmutableList(), scopeAccessInformation, indentationDepth + 1)
+                    Translate(innerStatements, scopeAccessInformation, indentationDepth + 1)
                 );
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             }

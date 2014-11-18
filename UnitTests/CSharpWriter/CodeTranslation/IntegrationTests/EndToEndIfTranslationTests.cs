@@ -46,9 +46,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "if (_.IF(_.Constants.True))",
+                "if (_.IF(_.Constants.True)) //Comment",
                 "{",
-                "  //Comment",
                 "}",
             };
             Assert.Equal(

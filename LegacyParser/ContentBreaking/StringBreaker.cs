@@ -61,7 +61,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     if (tokenContent != "")
                     {
                         // If there has been any one the same line as this comment, then this is an inline comment
-                        var contentAfterLastLineReturn = tokenContent.Split('\'').Last();
+                        var contentAfterLastLineReturn = tokenContent.Split('\n').Last();
                         isInlineComment = (contentAfterLastLineReturn.Trim() != "");
                         tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
                         tokenContent = "";
