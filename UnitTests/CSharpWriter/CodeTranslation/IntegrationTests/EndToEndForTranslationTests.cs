@@ -40,6 +40,25 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         [Fact]
+        public void DescendingLoopWithExplicitNegativeStep()
+        {
+            var source = @"
+                Dim i: For i = 5 To 1 Step -1
+                Next
+            ";
+            var expected = new[]
+            {
+                "for (_outer.i = 5; _.NUM(_outer.i) >= 1; _outer.i = _.NUM(_outer.i) - 1)",
+                "{",
+                "}"
+            };
+            Assert.Equal(
+                expected,
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
         public void ZeroStepResultsInInfiniteLoopWhenAscending()
         {
             var source = @"
