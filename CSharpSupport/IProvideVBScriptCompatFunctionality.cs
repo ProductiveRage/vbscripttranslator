@@ -49,29 +49,29 @@ namespace CSharpSupport
         //int ABS(int value); // TODO: This is a temporary stand-in, limiting the input to int is probably not correct
 
         // Builtin functions
-		/* TODO
-			"ERR", // This is NOT a function (it's a value)
-			"TIMER", // This IS a function (as are all of the below)
-			"ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
-			"LBOUND", "UBOUND",
-			"VARTYPE", "TYPENAME",
-			"CREATEOBJECT", "GETOBJECT",
-			"CBYTE", "CINT", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
-			"DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
-			"NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
-			"ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
-			"HEX", "OCT", "FIX", "INT", "SNG",
-			"ASC", "ASCB", "ASCW",
-			"CHR", "CHRB", "CHRW",
-			"ASC", "ASCB", "ASCW",
-			"INSTR", "INSTRREV",
-			"LEN", "LENB",
-			"LCASE", "UCASE",
-			"LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
-			"STRCOMP", "STRING",
-			"LTRIM", "RTRIM", "TRIM"
-		 */
-        
+        /* TODO
+            "ERR", // This is NOT a function (it's a value)
+            "TIMER", // This IS a function (as are all of the below)
+            "ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
+            "LBOUND", "UBOUND",
+            "VARTYPE", "TYPENAME",
+            "CREATEOBJECT", "GETOBJECT",
+            "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
+            "DATEADD", "DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
+            "NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
+            "ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
+            "HEX", "OCT", "FIX", "INT", "SNG",
+            "ASC", "ASCB", "ASCW",
+            "CHR", "CHRB", "CHRW",
+            "ASC", "ASCB", "ASCW",
+            "INSTR", "INSTRREV",
+            "LEN", "LENB",
+            "LCASE", "UCASE",
+            "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
+            "STRCOMP", "STRING",
+            "LTRIM", "RTRIM", "TRIM"
+         */
+
         // TODO: Split.. how was this missed off the list above?!
         // - Splitting an empty string seems to return an empty array, rather than an array with a single element (that is a blank string)
 
