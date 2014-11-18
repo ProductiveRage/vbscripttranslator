@@ -19,7 +19,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "  return null;",
                 "}"
             };
-            var actual = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies); // TODO
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
