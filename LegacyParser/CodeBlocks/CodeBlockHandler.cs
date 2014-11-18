@@ -117,7 +117,23 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                         for (int index = 0; index < endSequence.Length; index++)
                         {
                             var token = tokens[index];
-                            if (!(token is KeyWordToken))
+                            bool isTokenThatNeedsCheckingAgainstEndSequence;
+                            if (token is KeyWordToken)
+                                isTokenThatNeedsCheckingAgainstEndSequence = true;
+                            else if ((index > 0) && (token is MayBeKeywordOrNameToken))
+                            {
+                                // The token "Property" may be a keyword (as most commonly expected) or a reference name (eg. "property = 1" is valid).
+                                // So "Property" is categorised as a MayBeKeywordOrNameToken, rather than KeyWordToken. This means that when looking
+                                // for "End" / "Property", we can't only consider KeyWordTokens. We can't just allow matching MayBeKeywordOrNameToken
+                                // unless a false positive is found for a token that is actually a reference name, so the first token must be a
+                                // KeywordToken and subsequent tokens may be either a KeywordToken or MayBeKeywordOrNameToken. This seems like
+                                // a safe compromise (an alternative may be to allow MayBeKeywordOrNameToken for any token, for end sequence
+                                // matches that are more than one token long - but I'll leave this approach unless it proves problematic).
+                                isTokenThatNeedsCheckingAgainstEndSequence = true;
+                            }
+                            else
+                                isTokenThatNeedsCheckingAgainstEndSequence = false;
+                            if (!isTokenThatNeedsCheckingAgainstEndSequence)
                                 continue;
                             if (token.Content.Equals(endSequence[index], StringComparison.OrdinalIgnoreCase))
                                 matchCount++;
