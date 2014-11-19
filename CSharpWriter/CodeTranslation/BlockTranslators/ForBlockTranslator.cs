@@ -271,14 +271,34 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 indentationDepthLoop
             ));
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepthLoop));
+            var earlyExitName = _tempNameGenerator(new CSharpName("exitFor"), scopeAccessInformation);
+            translationResult = translationResult.Add(new TranslatedStatement(
+                string.Format("var {0} = false;", earlyExitName.Name),
+                indentationDepthLoop + 1
+            ));
             translationResult = translationResult.Add(
-                Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, indentationDepthLoop + 1)
+                Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitName, indentationDepthLoop + 1)
             );
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepthLoop));
             if (guardClause != null)
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             foreach (var undeclaredVariable in undeclaredVariableReferencesAccessedByLoopConstraints)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            if (scopeAccessInformation.StructureExitPoints.Any())
+            {
+                // Perform early-exit checks for any scopeAccessInformation.StructureExitPoints - if this is FOR loop inside a DO..LOOP loop and an
+                // EXIT DO was encountered within the FOR that must refer to the containing DO, then the FOR loop will have been broken out of, but
+                // also a flag set that means that we must break further to get out of the DO loop.
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        "if (" + string.Join(" || ", scopeAccessInformation.StructureExitPoints.Select(e => e.ExitEarlyBooleanName.Name)) + ")",
+                        indentationDepth
+                    ))
+                    .Add(new TranslatedStatement(
+                        "break;",
+                        indentationDepth + 1
+                    ));
+            }
             return translationResult.AddUndeclaredVariables(undeclaredVariableReferencesAccessedByLoopConstraints);
 		}
 
@@ -293,19 +313,25 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             return tokens[0] as NumericValueToken;
         }
 
-		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, CSharpName earlyExitName, int indentationDepth)
 		{
 			if (blocks == null)
 				throw new ArgumentNullException("block");
 			if (scopeAccessInformation == null)
 				throw new ArgumentNullException("scopeAccessInformation");
+            if (earlyExitName == null)
+                throw new ArgumentNullException("earlyExitName");
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			return base.TranslateCommon(
+            // Add a StructureExitPoint entry for the current loop so that the "early-exit" logic described in the Translate method above is possible
+            return base.TranslateCommon(
                 base.GetWithinFunctionBlockTranslators(),
 				blocks,
-				scopeAccessInformation,
+				scopeAccessInformation.AddStructureExitPoints(
+                    earlyExitName,
+                    ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions.For
+                ),
 				indentationDepth
 			);
 		}

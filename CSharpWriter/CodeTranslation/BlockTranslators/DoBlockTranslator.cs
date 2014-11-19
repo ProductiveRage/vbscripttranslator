@@ -3,6 +3,7 @@ using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
 using System;
+using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
@@ -89,8 +90,19 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+            CSharpName earlyExitNameIfAny;
+            if (doBlock.SupportsExit)
+            {
+                earlyExitNameIfAny = _tempNameGenerator(new CSharpName("exitDo"), scopeAccessInformation);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("var {0} = false;", earlyExitNameIfAny.Name),
+                    indentationDepth + 1
+                ));
+            }
+            else
+                earlyExitNameIfAny = null;
             translationResult = translationResult.Add(
-                Translate(doBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, indentationDepth + 1)
+                Translate(doBlock.SupportsExit, doBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
             );
             if ((whileConditionExpressionContentIfAny == null) || doBlock.IsPreCondition)
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
@@ -101,10 +113,30 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth
                 ));
             }
+            if (scopeAccessInformation.StructureExitPoints.Any())
+            {
+                // Perform early-exit checks for any scopeAccessInformation.StructureExitPoints - if this is DO..LOOP loop inside a FOR loop and an
+                // EXIT FOR was encountered within the DO..LOOP that must refer to the containing FOR, then the DO..LOOP will have been broken out
+                // of, but also a flag set that means that we must break further to get out of the FOR loop.
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        "if (" + string.Join(" || ", scopeAccessInformation.StructureExitPoints.Select(e => e.ExitEarlyBooleanName.Name)) + ")",
+                        indentationDepth
+                    ))
+                    .Add(new TranslatedStatement(
+                        "break;",
+                        indentationDepth + 1
+                    ));
+            }
             return translationResult;
 		}
 
-		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		private TranslationResult Translate(
+            bool blockSupportsEarlyExit,
+            NonNullImmutableList<ICodeBlock> blocks,
+            ScopeAccessInformation scopeAccessInformation,
+            CSharpName earlyExitNameIfAny,
+            int indentationDepth)
 		{
 			if (blocks == null)
 				throw new ArgumentNullException("block");
@@ -113,11 +145,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			return base.TranslateCommon(
+            // Add a StructureExitPoint entry for the current loop so that the "early-exit" logic described in the Translate method above is possible
+            if (blockSupportsEarlyExit)
+            {
+                if (earlyExitNameIfAny == null)
+                    throw new ArgumentNullException("earlyExitNameIfAny");
+                scopeAccessInformation = scopeAccessInformation.AddStructureExitPoints(
+                    earlyExitNameIfAny,
+                    ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions.Do
+                );
+            }
+            return base.TranslateCommon(
                 base.GetWithinFunctionBlockTranslators(),
 				blocks,
-				scopeAccessInformation,
-				indentationDepth
+                scopeAccessInformation,
+                indentationDepth
 			);
 		}
     }

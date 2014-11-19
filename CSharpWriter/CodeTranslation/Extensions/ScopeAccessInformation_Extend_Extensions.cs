@@ -76,7 +76,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                         .Cast<PropertyBlock>()
                         .Select(p => new ScopedNameToken(p.Name.Content, p.Name.LineIndex, ScopeLocationOptions.WithinClass)) // These are always WithinClass
                 ),
-                variables
+                variables,
+                scopeInformation.StructureExitPoints
             );
         }
 
@@ -149,7 +150,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
-                scopeInformation.Variables
+                scopeInformation.Variables,
+                scopeInformation.StructureExitPoints
             );
         }
 
@@ -170,7 +172,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
-                scopeInformation.Variables.AddRange(variables)
+                scopeInformation.Variables.AddRange(variables),
+                scopeInformation.StructureExitPoints
             );
         }
 
@@ -191,6 +194,37 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 throw new ArgumentNullException("blocks");
 
             return Extend(scopeInformation, parent, null, null, blocks);
+        }
+
+        public static ScopeAccessInformation AddStructureExitPoints(
+            this ScopeAccessInformation scopeInformation,
+            CSharpName structureExitFlagName,
+            ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions structureExitType)
+        {
+            if (scopeInformation == null)
+                throw new ArgumentNullException("scopeInformation");
+            if (structureExitFlagName == null)
+                throw new ArgumentNullException("structureExitFlagName");
+            if (!Enum.IsDefined(typeof(ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions), structureExitType))
+                throw new ArgumentOutOfRangeException("structureExitType");
+
+            return new ScopeAccessInformation(
+                scopeInformation.Parent,
+                scopeInformation.ScopeDefiningParent,
+                scopeInformation.ParentReturnValueNameIfAny,
+                scopeInformation.ErrorRegistrationTokenIfAny,
+                scopeInformation.DirectedWithReferenceIfAny,
+                scopeInformation.ExternalDependencies,
+                scopeInformation.Classes,
+                scopeInformation.Functions,
+                scopeInformation.Properties,
+                scopeInformation.Variables,
+                scopeInformation.StructureExitPoints
+                    .Add(new ScopeAccessInformation.ExitableNonScopeDefiningConstructDetails(
+                        structureExitFlagName,
+                        structureExitType
+                    ))
+            );
         }
     }
 }

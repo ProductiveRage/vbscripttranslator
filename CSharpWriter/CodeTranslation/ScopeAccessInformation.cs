@@ -19,7 +19,8 @@ namespace CSharpWriter.CodeTranslation
             NonNullImmutableList<ScopedNameToken> classes,
             NonNullImmutableList<ScopedNameToken> functions,
             NonNullImmutableList<ScopedNameToken> properties,
-            NonNullImmutableList<ScopedNameToken> variables)
+            NonNullImmutableList<ScopedNameToken> variables,
+            NonNullImmutableList<ExitableNonScopeDefiningConstructDetails> structureExitPoints)
         {
             if (parent == null)
                 throw new ArgumentNullException("parent");
@@ -35,6 +36,8 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("properties");
             if (variables == null)
                 throw new ArgumentNullException("variables");
+            if (structureExitPoints == null)
+                throw new ArgumentNullException("structureExitPoints");
 
             Parent = parent;
 			ScopeDefiningParent = scopeDefiningParent;
@@ -46,6 +49,7 @@ namespace CSharpWriter.CodeTranslation
             Functions = functions;
             Properties = properties;
             Variables = variables;
+            StructureExitPoints = structureExitPoints;
         }
 
         public static ScopeAccessInformation FromOutermostScope(
@@ -72,7 +76,8 @@ namespace CSharpWriter.CodeTranslation
                 new NonNullImmutableList<ScopedNameToken>(), // classes
                 new NonNullImmutableList<ScopedNameToken>(), // functions,
                 new NonNullImmutableList<ScopedNameToken>(), // properties,
-                new NonNullImmutableList<ScopedNameToken>() // variables
+                new NonNullImmutableList<ScopedNameToken>(), // variables
+                new NonNullImmutableList<ExitableNonScopeDefiningConstructDetails>()
             );
 
             // .. but it needs the classes, functions, properties and variables declared by the code blocks to be registered with it. To do that, this
@@ -142,6 +147,14 @@ namespace CSharpWriter.CodeTranslation
         public NonNullImmutableList<ScopedNameToken> Variables { get; private set; }
 
         /// <summary>
+        /// This contains the early-exit variables of containing non-scope-defining structures that may be exited - such as FOR and DO (FUNCTION is not,
+        /// for example, one of these types since functions and properties define a new scope). The earlier an entry is, the further up the ancestor
+        /// chain it is. This will never be null, but it may be empty (and it may contain multiple entries for the same type - there may be multiple
+        /// FOR entries if there are multiple parent FOR structures).
+        /// </summary>
+        public NonNullImmutableList<ExitableNonScopeDefiningConstructDetails> StructureExitPoints { get; private set; }
+
+        /// <summary>
         /// If the current code is running within a WITH construct then there may be partial references which need to know what to target to complete
         /// the reference.
         /// </summary>
@@ -171,6 +184,34 @@ namespace CSharpWriter.CodeTranslation
                     _lineIndexOfWithStatement
                 );
             }
+        }
+
+        public class ExitableNonScopeDefiningConstructDetails
+        {
+            public ExitableNonScopeDefiningConstructDetails(CSharpName exitEarlyBooleanName, ExitableNonScopeDefiningConstructOptions structureType)
+            {
+                if (exitEarlyBooleanName == null)
+                    throw new ArgumentNullException("exitEarlyBooleanName");
+                if (!Enum.IsDefined(typeof(ExitableNonScopeDefiningConstructOptions), structureType))
+                    throw new ArgumentOutOfRangeException("structureType");
+
+                ExitEarlyBooleanName = exitEarlyBooleanName;
+                StructureType = structureType;
+            }
+            
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public CSharpName ExitEarlyBooleanName { get; private set; }
+
+            public ExitableNonScopeDefiningConstructOptions StructureType { get; private set; }
+
+        }
+
+        public enum ExitableNonScopeDefiningConstructOptions
+        {
+            Do,
+            For
         }
     }
 }

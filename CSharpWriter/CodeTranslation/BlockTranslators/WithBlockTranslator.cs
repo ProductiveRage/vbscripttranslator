@@ -62,7 +62,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     scopeAccessInformation.Classes,
                     scopeAccessInformation.Functions,
                     scopeAccessInformation.Properties,
-                    scopeAccessInformation.Variables
+                    scopeAccessInformation.Variables,
+                scopeAccessInformation.StructureExitPoints
                 ),
                 indentationDepth
             );

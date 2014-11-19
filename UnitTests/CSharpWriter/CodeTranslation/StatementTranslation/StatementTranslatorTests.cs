@@ -255,7 +255,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                     VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
                 )),
                 scopeAccessInformation.Properties,
-                scopeAccessInformation.Variables
+                scopeAccessInformation.Variables,
+                scopeAccessInformation.StructureExitPoints
             );
         }
 
@@ -282,7 +283,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                     name,
                     lineIndex,
                     VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
-                ))
+                )),
+                scopeAccessInformation.StructureExitPoints
             );
         }
 

@@ -255,8 +255,90 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (exitStatement == null)
 				return null;
 
-            // TODO: Ensure that RELEASEERRORTRAPPINGTOKEN is called correctly if the scope has error-handling present
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+            // EXIT FUNCTION, PROPERTY or SUB statements are simple enough - if the current scope has a return value being maintained (FUNCTION
+            // and PROPERTY will, SUB won't) then return that - otherwise just return (with a value). Some validation is done that the EXIT is
+            // acceptable - eg. there isn't an EXIT SUB within a FUNCTION. Then, if there is error handling enabled within the the current
+            // scope, the error handler token needs to be released as we are about to leave this scope (this is also done at the end of
+            // the FunctionBlockTranslator's work, but since we're exiting early and not getting to that, we need to do it here too).
+            bool isValidatedFunctionTypeExit;
+            if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Function)
+            {
+                if ((scopeAccessInformation.ScopeDefiningParent as FunctionBlock) == null)
+                    throw new ArgumentException("Encountered EXIT FUNCTION that was not within a function");
+                isValidatedFunctionTypeExit = true;
+            }
+            else if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Property)
+            {
+                if ((scopeAccessInformation.ScopeDefiningParent as PropertyBlock) == null)
+                    throw new ArgumentException("Encountered EXIT PROPERTY that was not within a property");
+                isValidatedFunctionTypeExit = true;
+            }
+            else if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Sub)
+            {
+                if ((scopeAccessInformation.ScopeDefiningParent as PropertyBlock) == null)
+                    throw new ArgumentException("Encountered EXIT SUB that was not within a sub");
+                isValidatedFunctionTypeExit = true;
+            }
+            else
+                isValidatedFunctionTypeExit = false;
+            if (isValidatedFunctionTypeExit)
+            {
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.RELEASEERRORTRAPPINGTOKEN({1});",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth + 1
+                    ));
+                }
+                return translationResult.Add(
+                    new TranslatedStatement(
+                        string.Format(
+                            "return{0};",
+                            (scopeAccessInformation.ParentReturnValueNameIfAny == null) ? "" : (" " + scopeAccessInformation.ParentReturnValueNameIfAny.Name)
+                        ),
+                        indentationDepth
+                    )
+                );
+            }
+
+            // For EXIT DO and EXIT FOR, we need to break out of the current structure, but that might not be enough. If we're within a FOR loop within a
+            // DO loop and an EXIT DO is encountered then we need to break out of the FOR loop and then break out of the DO loop as well. The scope
+            // information's StructureExitPoints allows us to do that, we can set the appropriate "exit-early" flag and then break out (the FOR
+            // and DO translation implementations are responsible for checking the exit-early flags).
+            CSharpName exitEarlyFlagForValidatedLoopTypeExit;
+            if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Do)
+            {
+                var correspondingExitableStructureDetails = scopeAccessInformation.StructureExitPoints.LastOrDefault(
+                    e => e.StructureType == ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions.Do
+                );
+                if (correspondingExitableStructureDetails == null)
+                    throw new ArgumentException("Encountered EXIT DO that was not within a do loop");
+                exitEarlyFlagForValidatedLoopTypeExit = correspondingExitableStructureDetails.ExitEarlyBooleanName;
+            }
+            else if (exitStatement.StatementType == ExitStatement.ExitableStatementType.For)
+            {
+                var correspondingExitableStructureDetails = scopeAccessInformation.StructureExitPoints.LastOrDefault(
+                    e => e.StructureType == ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions.For
+                );
+                if (correspondingExitableStructureDetails == null)
+                    throw new ArgumentException("Encountered EXIT FOR that was not within a for loop");
+                exitEarlyFlagForValidatedLoopTypeExit = correspondingExitableStructureDetails.ExitEarlyBooleanName;
+            }
+            else
+                throw new ArgumentException("Unsupported ExitableStatementType: " + exitStatement.StatementType);
+            return translationResult
+                .Add(new TranslatedStatement(
+                    exitEarlyFlagForValidatedLoopTypeExit.Name + " = true;",
+                    indentationDepth
+                ))
+                .Add(new TranslatedStatement(
+                    "break;",
+                    indentationDepth
+                ));
 		}
 
         private TranslationResult TryToTranslateFor(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

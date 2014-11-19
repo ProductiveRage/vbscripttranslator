@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
@@ -9,29 +8,22 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private ExitableStatementType statementType;
         public ExitStatement(ExitableStatementType statementType)
         {
-            bool isValid = false;
-            foreach (object value in Enum.GetValues(typeof(ExitableStatementType)))
-            {
-                if (value.Equals(statementType))
-                {
-                    isValid = true;
-                    break;
-                }
-            }
-            if (!isValid)
+            if (!Enum.IsDefined(typeof(ExitableStatementType), statementType))
 				throw new ArgumentException("Invalid statementType value specified [" + statementType.ToString() + "]");
-            this.statementType = statementType;
+            StatementType = statementType;
         }
+
+        public ExitableStatementType StatementType { get; private set; }
 
         public enum ExitableStatementType
         {
 			Do,
 			For,
 			Function,
-			Property
+			Property,
+            Sub
         }
 
         // =======================================================================================
@@ -43,7 +35,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            return indenter.Indent + "Exit " + this.statementType.ToString();
+            return indenter.Indent + "Exit " + StatementType.ToString();
         }
     }
 }
