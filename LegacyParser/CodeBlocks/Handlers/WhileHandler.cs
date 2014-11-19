@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -30,7 +29,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             tokens.RemoveAt(0);
 
             // Loop for end of line..
-            List<IToken> tokensInCondition = new List<IToken>();
+            var tokensInCondition = new List<IToken>();
             while (true)
             {
                 // Add AtomTokens to list until find EndOfStatement
@@ -43,16 +42,16 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 tokensInCondition.Add(tokenCondition);
                 tokens.RemoveAt(0);
             }
-            Expression conditionStatement = new Expression(tokensInCondition);
+            var conditionStatement = new Expression(tokensInCondition);
 
             // Get block content
             string[] endSequenceMet;
-            List<string[]> endSequences = new List<string[]>()
+            var endSequences = new List<string[]>()
             {
                 new string[] { "WEND" }
             };
-            CodeBlockHandler codeBlockHandler = new CodeBlockHandler(endSequences);
-            List<ICodeBlock> blockContent = codeBlockHandler.Process(tokens, out endSequenceMet);
+            var codeBlockHandler = new CodeBlockHandler(endSequences);
+            var blockContent = codeBlockHandler.Process(tokens, out endSequenceMet);
             if (endSequenceMet == null)
                 throw new Exception("Didn't find end sequence!");
 
@@ -67,7 +66,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             }
 
             // Return code block instance
-            return new DoBlock(conditionStatement, isPreCondition: true, doUntil: false, statements: blockContent);
+            // - Note: While DO..LOOP support EXIT DO, WHILE..WEND loops have no corresponding exit statement (so supportsExit is false)
+            return new DoBlock(conditionStatement, isPreCondition: true, doUntil: false, supportsExit: false, statements: blockContent);
         }
     }
 }

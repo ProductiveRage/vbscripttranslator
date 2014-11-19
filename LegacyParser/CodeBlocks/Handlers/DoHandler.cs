@@ -102,7 +102,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     throw new Exception("EndOfStatementToken missing after LOOP");
             }
 
-            return new DoBlock(conditionStatement, hasPreCondition, doUntil, blockContent);
+            var supportsExit = true; // DO..LOOP supports EXIT DO (while WHILE..WEND loops have no corresponding exit statement)
+            return new DoBlock(conditionStatement, hasPreCondition, doUntil, supportsExit, blockContent);
         }
 
         private Expression ExtractConditionFromTokens(List<IToken> tokens)

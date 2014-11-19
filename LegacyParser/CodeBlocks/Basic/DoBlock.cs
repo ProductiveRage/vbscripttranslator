@@ -15,7 +15,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// It is valid to have a null conditionStatement in VBScript - in case the isPreCondition and doUntil constructor arguments are of no consequence
         /// </summary>
-        public DoBlock(Expression conditionIfAny, bool isPreCondition, bool doUntil, IEnumerable<ICodeBlock> statements)
+        public DoBlock(Expression conditionIfAny, bool isPreCondition, bool doUntil, bool supportsExit, IEnumerable<ICodeBlock> statements)
         {
             if (statements == null)
                 throw new ArgumentNullException("statements");
@@ -23,6 +23,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             ConditionIfAny = conditionIfAny;
             IsPreCondition = isPreCondition;
             IsDoWhileCondition = !doUntil;
+            SupportsExit = supportsExit;
             Statements = statements.ToList().AsReadOnly();
             if (Statements.Any(s => s == null))
                 throw new ArgumentException("Null reference encountered in statements set");
@@ -42,6 +43,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// If this is true then for construct is of the for DO WHILE..LOOP or DO..LOOP WHILE, as opposed to DO UNTIL..LOOP or DO..LOOP UNTIL
         /// </summary>
         public bool IsDoWhileCondition { get; private set; }
+
+        /// <summary>
+        /// If this represents a WHILE construct then the source VBScript does not allow it to be targeted by an EXIT DO statement (and there is
+        /// no EXIT WHILE), so this will be false. If this represent a DO construct then this will be true.
+        /// </summary>
+        public bool SupportsExit { get; private set; }
 
         /// <summary>
         /// This will never be null nor contain any null references, but it may be an empty set
