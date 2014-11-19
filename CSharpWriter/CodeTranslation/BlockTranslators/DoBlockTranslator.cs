@@ -90,19 +90,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
-            CSharpName earlyExitNameIfAny;
-            if (doBlock.SupportsExit)
+            var earlyExitNameIfAny = GetEarlyExitNameIfRequired(doBlock, scopeAccessInformation);
+            if (earlyExitNameIfAny != null)
             {
-                earlyExitNameIfAny = _tempNameGenerator(new CSharpName("exitDo"), scopeAccessInformation);
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format("var {0} = false;", earlyExitNameIfAny.Name),
                     indentationDepth + 1
                 ));
             }
-            else
-                earlyExitNameIfAny = null;
             translationResult = translationResult.Add(
-                Translate(doBlock.SupportsExit, doBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
+                Translate(doBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, doBlock.SupportsExit, earlyExitNameIfAny, indentationDepth + 1)
             );
             if ((whileConditionExpressionContentIfAny == null) || doBlock.IsPreCondition)
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
@@ -113,14 +110,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth
                 ));
             }
-            if (scopeAccessInformation.StructureExitPoints.Any())
+            var earlyExitFlagNamesToCheck = scopeAccessInformation.StructureExitPoints
+                .Where(e => e.ExitEarlyBooleanNameIfAny != null)
+                .Select(e => e.ExitEarlyBooleanNameIfAny.Name);
+            if (earlyExitFlagNamesToCheck.Any())
             {
                 // Perform early-exit checks for any scopeAccessInformation.StructureExitPoints - if this is DO..LOOP loop inside a FOR loop and an
                 // EXIT FOR was encountered within the DO..LOOP that must refer to the containing FOR, then the DO..LOOP will have been broken out
                 // of, but also a flag set that means that we must break further to get out of the FOR loop.
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
-                        "if (" + string.Join(" || ", scopeAccessInformation.StructureExitPoints.Select(e => e.ExitEarlyBooleanName.Name)) + ")",
+                        "if (" + string.Join(" || ", earlyExitFlagNamesToCheck) + ")",
                         indentationDepth
                     ))
                     .Add(new TranslatedStatement(
@@ -131,10 +131,23 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             return translationResult;
 		}
 
+        private CSharpName GetEarlyExitNameIfRequired(DoBlock doBlock, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (doBlock == null)
+                throw new ArgumentNullException("doBlock");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            if (!doBlock.SupportsExit || !doBlock.ContainsLoopThatContainsMismatchedExitThatMustBeHandledAtThisLevel())
+                return null;
+
+            return _tempNameGenerator(new CSharpName("exitDo"), scopeAccessInformation);
+        }
+
 		private TranslationResult Translate(
-            bool blockSupportsEarlyExit,
             NonNullImmutableList<ICodeBlock> blocks,
             ScopeAccessInformation scopeAccessInformation,
+            bool supportsExit,
             CSharpName earlyExitNameIfAny,
             int indentationDepth)
 		{
@@ -142,14 +155,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				throw new ArgumentNullException("block");
 			if (scopeAccessInformation == null)
 				throw new ArgumentNullException("scopeAccessInformation");
-			if (indentationDepth < 0)
+            if (!supportsExit && (earlyExitNameIfAny != null))
+                throw new ArgumentException("earlyExitNameIfAny should always be null if supportsExit is false");
+            if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             // Add a StructureExitPoint entry for the current loop so that the "early-exit" logic described in the Translate method above is possible
-            if (blockSupportsEarlyExit)
+            if (supportsExit)
             {
-                if (earlyExitNameIfAny == null)
-                    throw new ArgumentNullException("earlyExitNameIfAny");
                 scopeAccessInformation = scopeAccessInformation.AddStructureExitPoints(
                     earlyExitNameIfAny,
                     ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions.Do

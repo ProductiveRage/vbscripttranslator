@@ -198,13 +198,11 @@ namespace CSharpWriter.CodeTranslation.Extensions
 
         public static ScopeAccessInformation AddStructureExitPoints(
             this ScopeAccessInformation scopeInformation,
-            CSharpName structureExitFlagName,
+            CSharpName structureExitFlagNameIfAny,
             ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions structureExitType)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (structureExitFlagName == null)
-                throw new ArgumentNullException("structureExitFlagName");
             if (!Enum.IsDefined(typeof(ScopeAccessInformation.ExitableNonScopeDefiningConstructOptions), structureExitType))
                 throw new ArgumentOutOfRangeException("structureExitType");
 
@@ -221,7 +219,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Variables,
                 scopeInformation.StructureExitPoints
                     .Add(new ScopeAccessInformation.ExitableNonScopeDefiningConstructDetails(
-                        structureExitFlagName,
+                        structureExitFlagNameIfAny,
                         structureExitType
                     ))
             );

@@ -66,9 +66,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get { return this.loopStep; }
         }
 
-        public List<ICodeBlock> Statements
+        public IEnumerable<ICodeBlock> Statements
         {
-            get { return this.statements; }
+            get { return this.statements.AsReadOnly(); }
         }
 
         /// <summary>

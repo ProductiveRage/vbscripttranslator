@@ -188,24 +188,24 @@ namespace CSharpWriter.CodeTranslation
 
         public class ExitableNonScopeDefiningConstructDetails
         {
-            public ExitableNonScopeDefiningConstructDetails(CSharpName exitEarlyBooleanName, ExitableNonScopeDefiningConstructOptions structureType)
+            public ExitableNonScopeDefiningConstructDetails(CSharpName exitEarlyBooleanNameIfAny, ExitableNonScopeDefiningConstructOptions structureType)
             {
-                if (exitEarlyBooleanName == null)
-                    throw new ArgumentNullException("exitEarlyBooleanName");
                 if (!Enum.IsDefined(typeof(ExitableNonScopeDefiningConstructOptions), structureType))
                     throw new ArgumentOutOfRangeException("structureType");
 
-                ExitEarlyBooleanName = exitEarlyBooleanName;
+                ExitEarlyBooleanNameIfAny = exitEarlyBooleanNameIfAny;
                 StructureType = structureType;
             }
             
             /// <summary>
-            /// This will never be null
+            /// This will not be null if there are mismatched EXIT DO / FOR statements with DO / FOR loops (an EXIT DO that is within a FOR loop that is
+            /// within a DO loop must exit both the translated C# for loop AND the translated C# do loop). If there is no such complicated logic required
+            /// then this will be null (though the entry must exist in the StructureExitPoints chain to correctly describe the code arrangement and allow
+            /// validation of the source code).
             /// </summary>
-            public CSharpName ExitEarlyBooleanName { get; private set; }
+            public CSharpName ExitEarlyBooleanNameIfAny { get; private set; }
 
             public ExitableNonScopeDefiningConstructOptions StructureType { get; private set; }
-
         }
 
         public enum ExitableNonScopeDefiningConstructOptions

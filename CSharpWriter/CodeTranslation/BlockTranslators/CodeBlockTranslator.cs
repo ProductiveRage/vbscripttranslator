@@ -309,7 +309,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // DO loop and an EXIT DO is encountered then we need to break out of the FOR loop and then break out of the DO loop as well. The scope
             // information's StructureExitPoints allows us to do that, we can set the appropriate "exit-early" flag and then break out (the FOR
             // and DO translation implementations are responsible for checking the exit-early flags).
-            CSharpName exitEarlyFlagForValidatedLoopTypeExit;
+            CSharpName exitEarlyFlagForValidatedLoopTypeExitIfAny;
             if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Do)
             {
                 var correspondingExitableStructureDetails = scopeAccessInformation.StructureExitPoints.LastOrDefault(
@@ -317,7 +317,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
                 if (correspondingExitableStructureDetails == null)
                     throw new ArgumentException("Encountered EXIT DO that was not within a do loop");
-                exitEarlyFlagForValidatedLoopTypeExit = correspondingExitableStructureDetails.ExitEarlyBooleanName;
+                exitEarlyFlagForValidatedLoopTypeExitIfAny = correspondingExitableStructureDetails.ExitEarlyBooleanNameIfAny;
             }
             else if (exitStatement.StatementType == ExitStatement.ExitableStatementType.For)
             {
@@ -326,19 +326,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
                 if (correspondingExitableStructureDetails == null)
                     throw new ArgumentException("Encountered EXIT FOR that was not within a for loop");
-                exitEarlyFlagForValidatedLoopTypeExit = correspondingExitableStructureDetails.ExitEarlyBooleanName;
+                exitEarlyFlagForValidatedLoopTypeExitIfAny = correspondingExitableStructureDetails.ExitEarlyBooleanNameIfAny;
             }
             else
                 throw new ArgumentException("Unsupported ExitableStatementType: " + exitStatement.StatementType);
-            return translationResult
-                .Add(new TranslatedStatement(
-                    exitEarlyFlagForValidatedLoopTypeExit.Name + " = true;",
-                    indentationDepth
-                ))
-                .Add(new TranslatedStatement(
-                    "break;",
+            if (exitEarlyFlagForValidatedLoopTypeExitIfAny != null)
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    exitEarlyFlagForValidatedLoopTypeExitIfAny.Name + " = true;",
                     indentationDepth
                 ));
+            }
+            return translationResult.Add(new TranslatedStatement(
+                "break;",
+                indentationDepth
+            ));
 		}
 
         private TranslationResult TryToTranslateFor(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

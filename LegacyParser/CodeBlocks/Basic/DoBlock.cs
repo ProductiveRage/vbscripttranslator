@@ -86,7 +86,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             var output = new StringBuilder();
 
             // Open statement (with condition if this construct has a pre condition)
-            output.Append("Do");
+            output.Append(indenter.Indent + "Do");
             if (IsPreCondition && (ConditionIfAny != null))
             {
                 output.Append(" ");
