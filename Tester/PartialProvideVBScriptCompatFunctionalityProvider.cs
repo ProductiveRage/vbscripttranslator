@@ -67,13 +67,13 @@ namespace Tester
             throw new NotImplementedException(); // TODO
         }
 
-        public void GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
+        public int GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
         public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO
 
         public void STARTERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
         public void STOPERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
 
-        public void HANDLEERROR(Action action, int token) { throw new NotImplementedException(); } // TODO
+        public void HANDLEERROR(int token, Action action) { throw new NotImplementedException(); } // TODO
 
         public bool IF(Func<object> valueEvaluator, int errorToken)
         {

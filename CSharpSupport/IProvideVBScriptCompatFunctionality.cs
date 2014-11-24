@@ -77,14 +77,27 @@ namespace CSharpSupport
 
 		// TODO: Integration RANDOMIZE functionality
 
-        void GETERRORTRAPPINGTOKEN();
+        int GETERRORTRAPPINGTOKEN();
         void RELEASEERRORTRAPPINGTOKEN(int token);
 
         void STARTERRORTRAPPING(int token);
         void STOPERRORTRAPPING(int token);
         
-        void HANDLEERROR(Action action, int token);
+        void HANDLEERROR(int token, Action action);
 
+        // The error-handling IF behaviour described below sounds unbelievable, but it's true as demonstrated by the script -
+        //
+        //   On Error Resume Next
+        //   If (GetValue()) Then
+        //     WScript.Echo "Yes"
+        //   End If
+        //   Function GetValue()
+        //     Err.Raise vbObjectError, "Test", "Test"
+        //   End Function
+        //
+        // This example WILL enter the conditional, even though the GetValue function raises an error and doesn't even try to set its return value
+        // to true. An even simplier example is to replace the GetValue() call with 1/0, which will result in a "Division by zero" error if ON
+        // ERROR RESUME NEXT is not present, but which will result in both of the above loops being entered if it IS present).
         /// <summary>
         /// This layers error-handling on top of the IAccessValuesUsingVBScriptRules.IF method, if error-handling is enabled for the specified
         /// token then evaluation of the value will be attempted - if an error occurs then it will be recorded and the condition will be treated
