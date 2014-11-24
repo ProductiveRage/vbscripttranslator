@@ -150,7 +150,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         public static IEnumerable<string> ArithmeticAndStringOperatorTokenValues = new List<string>
         {
-            "^", "/", "*", "\"", "MOD", "+", "-", "&" // Note: "\" is integer division (see the link above)
+            "^", "/", "\\", "*", "\"", "MOD", "+", "-", "&" // Note: "\" is integer division (see the link above)
         }.AsReadOnly();
 
         /// This will not be null, empty, contain any null or blank values, any duplicates or any content containing whitespace. These are ordered

@@ -69,5 +69,43 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        /// <summary>
+        /// I realised that "1/0" wasn't being correctly broken down since the "/" wasn't being considered a "Token Break Character" and so the "1/0" was being
+        /// interpreted as a NameToken, instead of two numeric value tokens and an operator.
+        /// </summary>
+        [Fact]
+        public void EnsureThatDivisionOperatorsAreRecognised()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("/", 0),
+                    new NumericValueToken(0, 0)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("1/0", 0)),
+                new TokenSetComparer()
+            );
+        }
+
+        /// <summary>
+        /// This is the same issue as that for which the EnsureThatDivisionOperatorsAreRecognised test was added, but for the integer division opereator (back
+        /// slash, rather than forward)
+        /// </summary>
+        [Fact]
+        public void EnsureThatIntegerDivisionOperatorsAreRecognised()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NumericValueToken(1, 0),
+                    new OperatorToken("\\", 0),
+                    new NumericValueToken(0, 0)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("1\\0", 0)),
+                new TokenSetComparer()
+            );
+        }
     }
 }

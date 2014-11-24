@@ -8,7 +8,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 {
     public static class TokenBreaker
     {
-        private const string TokenBreakChars = ",.*&+-=!(){}[]:;\n";
+        private const string TokenBreakChars = ",.*&+-/\\=!(){}[]:;\n";
 
         /// <summary>
         /// Break down an UnprocessedContentToken into a combination of AtomToken and AbstractEndOfStatementToken references. This will never return null nor a set
