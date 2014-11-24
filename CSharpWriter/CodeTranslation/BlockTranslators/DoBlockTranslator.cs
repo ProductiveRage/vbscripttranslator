@@ -58,6 +58,43 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         whileConditionExpressionContentIfAny.VariablesAccessed
                     );
                 }
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    // Ensure that the frankly ludicrous VBScript error-handling is applied where required. As the IProvideVBScriptCompatFunctionality's IF method
+                    // signature describes, if an error occurs in retrieving the value, it will be evaulated as true. So, given a function
+                    //
+                    //   FUNCTION GetValue()
+                    //     Err.Raise vbObjectError, "Test", "Test"
+                    //   END FUNCTION
+                    //
+                    // both of the following loops will be entered:
+                    //
+                    //   ON ERROR RESUME NEXT
+                    //   DO WHILE GetValue()
+                    //     WScript.Echo "True"
+                    //     EXIT DO
+                    //   LOOP
+                    //
+                    //   ON ERROR RESUME NEXT
+                    //   DO UNTIL GetValue()
+                    //     WScript.Echo "True"
+                    //     EXIT DO
+                    //   LOOP
+                    //
+                    // This is why an additional IF call must be wrapped around the IF above - since the negation of a DO UNTIL (as opposed to a DO WHILE) loop
+                    // must be within the outer, error-handling IF call. (A simpler example of the above is to replace the GetValue() call with 1/0, which will
+                    // result in a "Division by zero" error if ON ERROR RESUME NEXT is not present, but which will result in both of the above loops being
+                    // entered if it IS present).
+                    whileConditionExpressionContentIfAny = new TranslatedStatementContentDetails(
+                        string.Format(
+                            "{0}.IF(() => {1}, {2})",
+                            _supportRefName.Name,
+                            whileConditionExpressionContentIfAny.TranslatedContent,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        whileConditionExpressionContentIfAny.VariablesAccessed
+                    );
+                }
             }
 
             var translationResult = TranslationResult.Empty;

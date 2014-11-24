@@ -99,5 +99,51 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        [Fact]
+        public void ErrorHidingDoWhileLoopWithErrorThrowingCondition()
+        {
+            var source = @"
+                ON ERROR RESUME NEXT
+                DO WHILE(1/0)
+                LOOP
+            ";
+            var expected = new[]
+            {
+                "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
+                "_.STARTERRORTRAPPING(errOn1);",
+                "while (_.IF(() => _.IF((_.DIV(1, 0))), errOn1))",
+                "{",
+                "}",
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
+        public void ErrorHidingDoUntilLoopWithErrorThrowingCondition()
+        {
+            var source = @"
+                ON ERROR RESUME NEXT
+                DO UNTIL(1/0)
+                LOOP
+            ";
+            var expected = new[]
+            {
+                "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
+                "_.STARTERRORTRAPPING(errOn1);",
+                "while (_.IF(() => !_.IF((_.DIV(1, 0))), errOn1))",
+                "{",
+                "}",
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
