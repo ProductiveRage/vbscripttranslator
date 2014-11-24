@@ -78,7 +78,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             else if (doBlock.IsPreCondition)
             {
                 translationResult = translationResult.Add(new TranslatedStatement(
-                    "do while (" + whileConditionExpressionContentIfAny.TranslatedContent + ")",
+                    "while (" + whileConditionExpressionContentIfAny.TranslatedContent + ")",
                     indentationDepth
                 ));
             }

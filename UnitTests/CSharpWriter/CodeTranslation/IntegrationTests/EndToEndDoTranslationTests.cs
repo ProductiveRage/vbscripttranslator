@@ -14,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "do while (_.IF(_.GT(_env.i, 10)))",
+                "while (_.IF(_.GT(_env.i, 10)))",
                 "{",
                 "}"
             };
@@ -33,7 +33,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "do while (!_.IF(_.GT(_env.i, 10)))",
+                "while (!_.IF(_.GT(_env.i, 10)))",
                 "{",
                 "}"
             };
