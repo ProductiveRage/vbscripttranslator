@@ -288,7 +288,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 indentationDepthLoop
             ));
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepthLoop));
-            var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forBlock, scopeAccessInformation); // TODO _tempNameGenerator(new CSharpName("exitFor"), scopeAccessInformation);
+            var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forBlock, scopeAccessInformation);
             if (earlyExitNameIfAny != null)
             {
                 translationResult = translationResult.Add(new TranslatedStatement(
