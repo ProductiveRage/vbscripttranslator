@@ -165,6 +165,39 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// If the loop start, end and step values are not known until runtime then their values must be determined once and then applied to a loop (in
+        /// VBScript, the constraints are not re-evaulated each loop iteration). The loop may only be entered if there is a zero or positive step and a
+        /// non-descending loop or if there is a negative step and a descending loop. Similarly, the termination condition operator may be a less-than-
+        /// or-equal-to comparison or a greater-than-or-equal-to, depending upon loop direction.
+        /// </summary>
+        [Fact]
+        public void RuntimeVariableLoopBoundariesAndStep()
+        {
+            var source = @"
+                For i = a To b Step c
+                Next
+            ";
+            var expected = new[]
+            {
+                "var loopStart1 = _.NUM(_env.a);",
+                "var loopEnd2 = _.NUM(_env.b);",
+                "var loopStep3 = _.NUM(_env.c);",
+                "if (((loopStart1 <= loopEnd2) && (loopStep3 >= 0)) || ((loopStart1 > loopEnd2) && (loopStep3 < 0)))",
+                "{",
+                "for (_env.i = loopStart1; ((loopStep3 >= 0) && (_.NUM(_env.i) <= loopEnd2)) || ((loopStep3 < 0) && (_.NUM(_env.i) >= loopEnd2)); _env.i = _.NUM(_env.i) + loopStep3)",
+                "{",
+                "}",
+                "}"
+            };
+            var actual = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies); // TODO
+            System.Console.WriteLine(string.Join("\r\n", actual)); // TODO
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         // TODO: Various variable-ascending/descending/step combinations
     }
 }
