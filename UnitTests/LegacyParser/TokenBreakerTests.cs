@@ -107,5 +107,31 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        /// <summary>
+        /// This is an issue identified in testing real content. The first of the following was correctly parsed while the second wasn't -
+        ///   value <> ""
+        ///   value<> ""
+        /// It should be broken down into four tokens:
+        ///   NameToken:"value"
+        ///   ComparisonOperationToken:"<"
+        ///   ComparisonOperationToken:">"
+        ///   StringToken:""
+        /// The TokenBreaker would then get an UnprocessedContentToken with content "value<>" which it needs to break into three.
+        /// </summary>
+        [Fact]
+        public void LessThanComparisonOperatorIndicatesTokenBreakRegardlessOfWhitespace()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new NameToken("value", 0),
+                    new ComparisonOperatorToken("<", 0),
+                    new ComparisonOperatorToken(">", 0)
+                },
+                TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("value<>", 0)),
+                new TokenSetComparer()
+            );
+        }
     }
 }
