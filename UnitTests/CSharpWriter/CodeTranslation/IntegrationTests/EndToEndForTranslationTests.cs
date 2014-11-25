@@ -196,6 +196,90 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// If there are non-compile-time-known-numeric-constant constraints and error-trapping may be enabled, then the constraints must be evaluated
+        /// first, and no further work undertaken if this fails. Then there must be error-trapping around the loop itself, so that if the termination
+        /// condition or loop-variable-addition/subtraction fails then the loop will terminate. Then there must be error-trapping around each statement
+        /// within the loop, so that if any one of them fails then the others may still be processed (if the error-trapping token is enabled at that
+        /// point during the runtime execution).
+        /// </summary>
+        [Fact]
+        public void RuntimeVariableLoopBoundariesWithErrorTrapping()
+        {
+            var source = @"
+                On Error Resume Next
+                For i = a To b
+                    WScript.Echo i
+                Next
+            ";
+            var expected = new[]
+            {
+                "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
+                "_.STARTERRORTRAPPING(errOn1);",
+                "double loopStart2 = 0, loopEnd3 = 0;",
+                "var loopConstraintsInitialised4 = false;",
+                "_.HANDLEERROR(errOn1, () =>",
+                "{",
+                "    loopStart2 = _.NUM(_env.a);",
+                "    loopEnd3 = _.NUM(_env.b);",
+                "    loopConstraintsInitialised4 = true;",
+                "});",
+                "if (loopConstraintsInitialised4 && (loopStart2 <= loopEnd3))",
+                "{",
+                "    _.HANDLEERROR(errOn1, () =>",
+                "    {",
+                "        for (_env.i = loopStart2; _.NUM(_env.i) <= loopEnd3; _env.i = _.NUM(_env.i) + 1)",
+                "        {",
+                "            _.HANDLEERROR(errOn1, () => {",
+                "                _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
+                "            });",
+                "        }",
+                "    });",
+                "}",
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// If the loop constraints and known numeric values at translation time then enabling error-handling is relatively easy. The loop needs to be
+        /// wrapped in error-trapping in case the termination condition or loop variable addition/subtraction fail, then the individual statements
+        /// within the loop need wrapping as well. But without any dynamic loop constraints to be evaluated, it's a lot simpler - no evaluation
+        /// of contraints to trap or guard clause around the loop to worry about.
+        /// </summary>
+        [Fact]
+        public void AscendingLoopWithImplicitStepAndErrorTrappingEnabled()
+        {
+            var source = @"
+                On Error Resume Next
+                For i = 1 To 10
+                    WScript.Echo i
+                Next
+            ";
+            var expected = new[]
+            {
+                "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
+                "_.STARTERRORTRAPPING(errOn1);",
+                "_.HANDLEERROR(errOn1, () =>",
+                "{",
+                "    for (_env.i = 1; _.NUM(_env.i) <= 10; _env.i = _.NUM(_env.i) + 1)",
+                "    {",
+                "        _.HANDLEERROR(errOn1, () => {",
+                "            _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",
+                "        });",
+                "    }",
+                "});",
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         // TODO: Various variable-ascending/descending/step combinations
     }
 }

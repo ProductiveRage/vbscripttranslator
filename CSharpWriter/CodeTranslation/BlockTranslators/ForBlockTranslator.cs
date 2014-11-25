@@ -42,11 +42,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // TODO: Add error-trapping
-            // - Each of the three variables (start, end, step) will be evaluated (but not validated as numeric), as soon as one fails the process stops.
-            //   If all three values are available, loop executed will be attempted. If, at this point, any of the values can not be interpreted as
-            //   numeric, an error is raised.
-
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work.
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
@@ -174,15 +169,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "var {0} = false;",
-                            constraintsInitialisedFlagNameIfAny.Name
+                            "double {0};",
+                            string.Join(", ", loopConstraintInitialisersWhereRequired.Select(c => c.Item1.Name + " = 0"))
                         ),
                         indentationDepth
                     ))
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "double {0};",
-                            string.Join(", ", loopConstraintInitialisersWhereRequired.Select(c => c.Item1.Name + " = 0"))
+                            "var {0} = false;",
+                            constraintsInitialisedFlagNameIfAny.Name
                         ),
                         indentationDepth
                     ))
@@ -287,13 +282,26 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (targetContainer != null)
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
 
-            var indentationDepthLoop = indentationDepth;
             if (guardClause != null)
             {
                 translationResult = translationResult
                     .Add(new TranslatedStatement("if " + guardClause, indentationDepth))
                     .Add(new TranslatedStatement("{", indentationDepth));
-                indentationDepthLoop++;
+                indentationDepth++;
+            }
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.HANDLEERROR({1}, () =>",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth
+                    ))
+                    .Add(new TranslatedStatement("{", indentationDepth));
+                indentationDepth++;
             }
             string continuationCondition;
             if (numericLoopStepValueIfAny != null)
@@ -348,23 +356,31 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     continuationCondition,
                     loopIncrementWithLeadingSpaceIfNonBlank
                 ),
-                indentationDepthLoop
+                indentationDepth
             ));
-            translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepthLoop));
+            translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
             var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forBlock, scopeAccessInformation);
             if (earlyExitNameIfAny != null)
             {
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format("var {0} = false;", earlyExitNameIfAny.Name),
-                    indentationDepthLoop + 1
+                    indentationDepth + 1
                 ));
             }
             translationResult = translationResult.Add(
-                Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepthLoop + 1)
+                Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
             );
-            translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepthLoop));
+            translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                indentationDepth--;
+                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+            }
             if (guardClause != null)
+            {
+                indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
+            }
             foreach (var undeclaredVariable in undeclaredVariableReferencesAccessedByLoopConstraints)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
             var earlyExitFlagNamesToCheck = scopeAccessInformation.StructureExitPoints
