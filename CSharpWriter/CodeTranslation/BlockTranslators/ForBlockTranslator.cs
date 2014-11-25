@@ -47,8 +47,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             //   If all three values are available, loop executed will be attempted. If, at this point, any of the values can not be interpreted as
             //   numeric, an error is raised.
 
-            var translationResult = TranslationResult.Empty;
-
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work.
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
@@ -150,17 +148,71 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
             // to deal with here (this will have been determined in the work above).
-            foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
+            var translationResult = TranslationResult.Empty;
+            CSharpName constraintsInitialisedFlagNameIfAny;
+            if (!loopConstraintInitialisersWhereRequired.Any())
+                constraintsInitialisedFlagNameIfAny = null;
+            else if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
+                constraintsInitialisedFlagNameIfAny = null;
+                foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
+                {
+                    translationResult = translationResult
+                        .Add(new TranslatedStatement(
+                            string.Format(
+                                "var {0} = {1};",
+                                loopConstraintInitialiser.Item1.Name,
+                                loopConstraintInitialiser.Item2
+                            ),
+                            indentationDepth
+                        ));
+                }
+            }
+            else
+            {
+                constraintsInitialisedFlagNameIfAny = _tempNameGenerator(new CSharpName("loopConstraintsInitialised"), scopeAccessInformation);
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "var {0} = {1};",
-                            loopConstraintInitialiser.Item1.Name,
-                            loopConstraintInitialiser.Item2
+                            "var {0} = false;",
+                            constraintsInitialisedFlagNameIfAny.Name
                         ),
                         indentationDepth
-                    ));
+                    ))
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "double {0};",
+                            string.Join(", ", loopConstraintInitialisersWhereRequired.Select(c => c.Item1.Name + " = 0"))
+                        ),
+                        indentationDepth
+                    ))
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.HANDLEERROR({1}, () =>",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth
+                    ))
+                    .Add(new TranslatedStatement("{", indentationDepth));
+                foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
+                {
+                    translationResult = translationResult
+                        .Add(new TranslatedStatement(
+                            string.Format(
+                                "{0} = {1};",
+                                loopConstraintInitialiser.Item1.Name,
+                                loopConstraintInitialiser.Item2
+                            ),
+                            indentationDepth + 1
+                        ));
+                }
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        constraintsInitialisedFlagNameIfAny.Name + " = true;",
+                        indentationDepth + 1
+                    ))
+                    .Add(new TranslatedStatement("});", indentationDepth));
             }
 
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
@@ -216,6 +268,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     loopStart,
                     loopEnd,
                     loopStep
+                );
+            }
+
+            // If there are non-constant constraint(s) and error-trapping may be enabled, then ensure there is a guard clause that ensures that
+            // the constraints were successfully evalulated before considering entering the loop
+            if (constraintsInitialisedFlagNameIfAny != null)
+            {
+                guardClause = string.Format(
+                    (guardClause == null) ? "({0})" : "({0} && {1})",
+                    constraintsInitialisedFlagNameIfAny.Name,
+                    guardClause
                 );
             }
 
