@@ -3,6 +3,7 @@ using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
@@ -41,11 +42,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // TODO: Add error-trapping
+            // - Each of the three variables (start, end, step) will be evaluated (but not validated as numeric), as soon as one fails the process stops.
+            //   If all three values are available, loop executed will be attempted. If, at this point, any of the values can not be interpreted as
+            //   numeric, an error is raised.
+
             var translationResult = TranslationResult.Empty;
 
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work.
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
+            var loopConstraintInitialisersWhereRequired = new List<Tuple<CSharpName, string>>();
             string loopStart;
             var numericLoopStartValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopFrom);
             if (numericLoopStartValueIfAny != null)
@@ -61,16 +68,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ExpressionReturnTypeOptions.NotSpecified
                 );
                 var loopStartName = _tempNameGenerator(new CSharpName("loopStart"), scopeAccessInformation);
-                translationResult = translationResult
-                    .Add(new TranslatedStatement(
-                        string.Format(
-                            "var {0} = {1}.NUM({2});",
-                            loopStartName.Name,
-                            _supportRefName.Name,
-                            loopStartExpressionContent.TranslatedContent
-                        ),
-                        indentationDepth
-                    ));
+                loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
+                    loopStartName,
+                    string.Format(
+                        "{0}.NUM({1})",
+                        _supportRefName.Name,
+                        loopStartExpressionContent.TranslatedContent
+                    )
+                ));
                 loopStart = loopStartName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
                     loopStartExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
@@ -89,16 +94,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ExpressionReturnTypeOptions.NotSpecified
                 );
                 var loopEndName = _tempNameGenerator(new CSharpName("loopEnd"), scopeAccessInformation);
-                translationResult = translationResult
-                    .Add(new TranslatedStatement(
-                        string.Format(
-                            "var {0} = {1}.NUM({2});",
-                            loopEndName.Name,
-                            _supportRefName.Name,
-                            loopEndExpressionContent.TranslatedContent
-                        ),
-                        indentationDepth
-                    ));
+                loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
+                    loopEndName,
+                    string.Format(
+                        "{0}.NUM({1})",
+                        _supportRefName.Name,
+                        loopEndExpressionContent.TranslatedContent
+                    )
+                ));
                 loopEnd = loopEndName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
                     loopEndExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
@@ -130,20 +133,34 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ExpressionReturnTypeOptions.NotSpecified
                 );
                 var loopStepName = _tempNameGenerator(new CSharpName("loopStep"), scopeAccessInformation);
-                translationResult = translationResult
-                    .Add(new TranslatedStatement(
-                        string.Format(
-                            "var {0} = {1}.NUM({2});",
-                            loopStepName.Name,
-                            _supportRefName.Name,
-                            loopStepExpressionContent.TranslatedContent
-                        ),
-                        indentationDepth
-                    ));
+                loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
+                    loopStepName,
+                    string.Format(
+                        "{0}.NUM({1})",
+                        _supportRefName.Name,
+                        loopStepExpressionContent.TranslatedContent
+                    )
+                ));
                 loopStep = loopStepName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
                     loopStepExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
                 );
+            }
+
+            // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
+            // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
+            // to deal with here (this will have been determined in the work above).
+            foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
+            {
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "var {0} = {1};",
+                            loopConstraintInitialiser.Item1.Name,
+                            loopConstraintInitialiser.Item2
+                        ),
+                        indentationDepth
+                    ));
             }
 
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
