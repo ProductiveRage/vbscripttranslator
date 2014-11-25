@@ -190,8 +190,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "}",
                 "}"
             };
-            var actual = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies); // TODO
-            System.Console.WriteLine(string.Join("\r\n", actual)); // TODO
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
