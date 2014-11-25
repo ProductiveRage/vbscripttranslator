@@ -76,7 +76,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
                 translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesAccessed);
                 var innerStatements = conditionalEntry.Conditional.Statements.ToNonNullImmutableList();
-                var conditionalInlineCommentIfAny = innerStatements.First() as InlineCommentStatement;
+                var conditionalInlineCommentIfAny = !innerStatements.Any() ? null : (innerStatements.First() as InlineCommentStatement);
                 if (conditionalInlineCommentIfAny != null)
                     innerStatements = innerStatements.RemoveAt(0);
                 translationResult = translationResult.Add(

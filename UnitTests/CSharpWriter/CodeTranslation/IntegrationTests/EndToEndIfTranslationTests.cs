@@ -55,5 +55,28 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        /// <summary>
+        /// This addresses a bug found in testing (relating to InlineCommentStatement detection in the IfBlockTranslator, which assumed that there would
+        /// always be at least one statement within any conditional block)
+        /// </summary>
+        [Fact]
+        public void EmptyIfBlocksDoNotCauseExceptions()
+        {
+            var source = @"
+			    If True Then
+			    End If
+            ";
+            var expected = new[]
+            {
+                "if (_.IF(_.Constants.True))",
+                "{",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
