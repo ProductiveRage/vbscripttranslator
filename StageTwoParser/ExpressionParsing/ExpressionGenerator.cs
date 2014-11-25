@@ -252,6 +252,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             }
 
             // Next, check whether any NOT handling is required - this is only the case if the only operations are logical (boolean) operations
+            // - This is to handle cases such as "a AND NOT b" where "NOT b" must be combined and then considered by the "a AND x" operation, in
+            //   other cases, "NOT" takes lower precedence (eg. "NOT a IS Nothing" is dealt with by combining "a IS Nothing" and then applying
+            //   the NOT operation, this is dealt with further down)
             if (operatorSegments.All(s => s.Item1.Token is LogicalOperatorToken))
             {
                 var firstLogicalInversion = operatorSegments.FirstOrDefault(s =>
@@ -278,12 +281,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
             var left = segmentsArray.Take(segmentToBreakOn.Item2);
             var right = segmentsArray.Skip(segmentToBreakOn.Item2 + 1);
-            return GetCallExpressionSegmentGroupedExpression(new IExpressionSegment[]
-            {
-                WrapExpressionSegments(GetExpression(left).Segments),
-                segmentToBreakOn.Item1,
-                WrapExpressionSegments(GetExpression(right).Segments)
-            });
+            var expressionSegmentsToGroup = new List<IExpressionSegment>();
+            if (left.Any())
+                expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(left).Segments));
+            else if (!segmentToBreakOn.Item1.Token.Content.Equals("NOT", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("The content to the left of an operator may only be empty if it is a \"NOT\" logical operator");
+            expressionSegmentsToGroup.Add(segmentToBreakOn.Item1);
+            if (!right.Any())
+                throw new ArgumentException("The content to the right of an operator may not be empty");
+            expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(right).Segments));
+            return GetCallExpressionSegmentGroupedExpression(
+                expressionSegmentsToGroup
+            );
         }
 
         private static IEnumerable<IExpressionSegment> BracketOffTerms(IEnumerable<IExpressionSegment> segments, int index, int count)

@@ -712,6 +712,38 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
+        /// <summary>
+        /// This indicates different precedence that is applied to a NOT operation depending upon content, as compared to the test
+        /// LogicalInversionsTermsShouldBeBracketed
+        /// </summary>
+        [Fact]
+        public void NegationOperationHasLessPrecendenceThanComparsionOperations()
+        {
+            // NOT a IS Nothing
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        OP(new LogicalOperatorToken("NOT", 0)),
+                        BR(
+                            CALL(new NameToken("a", 0)),
+                            OP(new ComparisonOperatorToken("IS", 0)),
+                            new BuiltInValueExpressionSegment(new BuiltInValueToken("Nothing", 0))
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new LogicalOperatorToken("NOT", 0),
+                        new NameToken("a", 0),
+                        new ComparisonOperatorToken("IS", 0),
+                        new BuiltInValueToken("Nothing", 0)
+                    },
+                    directedWithReferenceIfAny: null
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
         [Fact]
         public void NewInstanceRequestsShouldNotBeConfusedWithCallExpressions()
         {
