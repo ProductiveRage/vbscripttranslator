@@ -1,6 +1,7 @@
 ﻿using CSharpWriter.CodeTranslation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace VBScriptTranslator.UnitTests.Shared.Comparers
 {
@@ -17,7 +18,10 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
 				return false;
 
 			var tokenSetComparer = new TokenSetComparer();
-			return tokenSetComparer.Equals(x.VariablesAccessed, y.VariablesAccessed);
+			return tokenSetComparer.Equals(
+                x.VariablesAccessed.Distinct(new TokenComparer()),
+                y.VariablesAccessed.Distinct(new TokenComparer())
+            );
 		}
 
 		public int GetHashCode(TranslatedStatementContentDetails obj)

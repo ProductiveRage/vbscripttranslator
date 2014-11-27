@@ -324,7 +324,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             // Note: The translatedExpression will already account for whether the statement is of type LET or SET
-            var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation);
+            var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation, forceAllArgumentsToBeByVal: false);
             variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
             return new ValueSettingStatementAssigmentFormatDetails(
                 translatedExpression => string.Format(

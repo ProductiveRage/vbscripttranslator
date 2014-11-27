@@ -183,11 +183,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-			var builtInValueExpressionSegment = segment as BuiltInValueExpressionSegment;
-			if (builtInValueExpressionSegment != null)
-				return Translate(builtInValueExpressionSegment);
+            var builtInValueExpressionSegment = segment as BuiltInValueExpressionSegment;
+            if (builtInValueExpressionSegment != null)
+                return Translate(builtInValueExpressionSegment);
 
-			var callExpressionSegment = segment as CallExpressionSegment;
+            var callExpressionSegment = segment as CallExpressionSegment;
             if (callExpressionSegment != null)
                 return Translate(callExpressionSegment, scopeAccessInformation);
 
@@ -291,6 +291,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
 			// We may have to monkey about with the data here - if there are references to the return value of the current function (if we're in one) then these
 			// need to be replaced with the scopeAccessInformation's parentReturnValueNameIfAny value (if there is one).
+            var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
 			if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
 			{
 				// If the segment's first (or only) member accessor and no arguments and wasn't expressed in the source code as a function call (ie. it didn't
@@ -299,7 +300,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				// - If arguments are specified or brackets used with no arguments then it is always a function (or property) call and the return-value
 				//   replacement does not need to be made (the return value may not be DIM'd or REDIM'd to an array and so element access is not allowed,
 				//   so ANY argument use always points to a function / property call)
-				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First());
+				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
 				var rewrittenScopeDefiningParentName = _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name);
 				if ((rewrittenFirstMemberAccessor == rewrittenScopeDefiningParentName)
 				&& !callExpressionSegment.Arguments.Any()
@@ -310,7 +311,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 					// GetMemberAccessTokenName is consistently used for VBScriptNameRewriter access, its name won't be altered.
                     var parentReturnValueNameToken = new DoNotRenameNameToken(
                         scopeAccessInformation.ParentReturnValueNameIfAny.Name,
-                        callExpressionSegment.MemberAccessTokens.First().LineIndex
+                        firstMemberAccessToken.LineIndex
                     );
 					callExpressionSegment = new CallExpressionSegment(
 						new[] { parentReturnValueNameToken }.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
@@ -320,14 +321,32 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 			}
 
+            var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
+            if (targetBuiltInFunction != null)
+            {
+                var nameOfSupportFunction = GetNameForBuiltInFunction(targetBuiltInFunction);
+                var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(nameOfSupportFunction, targetBuiltInFunction.LineIndex) }
+                    .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
+                return TranslateCallExpressionSegment(
+                    _supportRefName.Name,
+                    rewrittenMemberAccessTokens,
+                    callExpressionSegment.Arguments,
+                    scopeAccessInformation,
+                    indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
+                    targetIsKnownToBeBuiltInFunction: true
+                );
+            }
+
+            var targetReference = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
             var result = TranslateCallExpressionSegment(
-                _nameRewriter.GetMemberAccessTokenName(callExpressionSegment.MemberAccessTokens.First()),
+                targetReference,
                 callExpressionSegment.MemberAccessTokens.Skip(1),
                 callExpressionSegment.Arguments,
                 scopeAccessInformation,
-                0 // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
+                indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
+                targetIsKnownToBeBuiltInFunction: false
             );
-            var targetNameToken = callExpressionSegment.MemberAccessTokens.First() as NameToken;
+            var targetNameToken = firstMemberAccessToken as NameToken;
             if (targetNameToken != null)
             {
                 result = new TranslatedStatementContentDetailsWithContentType(
@@ -339,12 +358,27 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             return result;
         }
 
+        private string GetNameForBuiltInFunction(BuiltInFunctionToken builtInFunctionToken)
+        {
+            if (builtInFunctionToken == null)
+                throw new ArgumentNullException("builtInFunctionToken");
+
+            var supportFunction = typeof(IProvideVBScriptCompatFunctionality).GetMethod(
+                builtInFunctionToken.Content,
+                BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
+            );
+            if (supportFunction == null)
+                throw new NotSupportedException("Unsupported BuiltInFunctionToken content: " + builtInFunctionToken.Content);
+            return supportFunction.Name;
+        }
+
         private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
             string targetName,
             IEnumerable<IToken> targetMemberAccessTokens,
             IEnumerable<Expression> arguments,
             ScopeAccessInformation scopeAccessInformation,
-            int indexInCallSet)
+            int indexInCallSet,
+            bool targetIsKnownToBeBuiltInFunction)
         {
             if (string.IsNullOrWhiteSpace(targetName))
                 throw new ArgumentException("Null/blank targetName specified");
@@ -367,10 +401,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
             // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
             // to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to check for
-            // undeclared variables referenced in the arguments but that is all handled later on).
+            // undeclared variables referenced in the arguments but that is all handled later on). The same applies if the target is known to be
+            // a built-in function (such as CDate).
             DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
             CSharpName nameOfTargetContainerIfRequired;
-            if (indexInCallSet > 0)
+            if (targetIsKnownToBeBuiltInFunction || (indexInCallSet > 0))
             {
                 targetReferenceDetailsIfAvailable = null;
                 nameOfTargetContainerIfRequired = null;
@@ -417,7 +452,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             memberCallContent.Append(".ARGS");
                             for (var index = 0; index < argumentsArray.Length; index++)
                             {
-                                var argumentContent = TranslateAsArgumentContent(argumentsArray[index], scopeAccessInformation);
+                                var argumentContent = TranslateAsArgumentContent(
+                                    argumentsArray[index],
+                                    scopeAccessInformation,
+                                    forceAllArgumentsToBeByVal: targetIsKnownToBeBuiltInFunction
+                                );
                                 memberCallContent.Append(argumentContent.TranslatedContent);
                                 memberCallVariablesAccessed = memberCallVariablesAccessed.AddRange(
                                     argumentContent.VariablesAccessed
@@ -507,7 +546,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (argumentsArray.Length > 0)
             {
                 callExpressionContent.Append(", ");
-                var argumentProviderContent = TranslateAsArgumentProvider(argumentsArray, scopeAccessInformation);
+                var argumentProviderContent = TranslateAsArgumentProvider(argumentsArray, scopeAccessInformation, forceAllArgumentsToBeByVal: targetIsKnownToBeBuiltInFunction);
                 callExpressionContent.Append(argumentProviderContent.TranslatedContent);
                 callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
                     argumentProviderContent.VariablesAccessed
@@ -527,7 +566,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// an exception for null arguments or an argumentValues set containing any null references. It will never return null, it will raise an exception
         /// if unable to satisfy the request.
         /// </summary>
-        public TranslatedStatementContentDetails TranslateAsArgumentProvider(IEnumerable<Expression> argumentValues, ScopeAccessInformation scopeAccessInformation)
+        public TranslatedStatementContentDetails TranslateAsArgumentProvider(
+            IEnumerable<Expression> argumentValues,
+            ScopeAccessInformation scopeAccessInformation,
+            bool forceAllArgumentsToBeByVal)
         {
             if (argumentValues == null)
                 throw new ArgumentNullException("argumentValues");
@@ -543,7 +585,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if (argumentValue == null)
                     throw new ArgumentException("Null reference encountered in argumentValues set");
 
-                var argumentContent = TranslateAsArgumentContent(argumentValue, scopeAccessInformation);
+                var argumentContent = TranslateAsArgumentContent(argumentValue, scopeAccessInformation, forceAllArgumentsToBeByVal);
                 argumentProviderContent.Append(argumentContent.TranslatedContent);
                 variablesAccessed = variablesAccessed.AddRange(
                     argumentContent.VariablesAccessed
@@ -562,7 +604,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// this is just about setting up the IBuildCallArgumentProviders data so that any ByRef arguments CAN be updated on the caller
         /// where required.
         /// </summary>
-        private TranslatedStatementContentDetails TranslateAsArgumentContent(Expression argumentValue, ScopeAccessInformation scopeAccessInformation)
+        private TranslatedStatementContentDetails TranslateAsArgumentContent(
+            Expression argumentValue,
+            ScopeAccessInformation scopeAccessInformation,
+            bool forceAllArgumentsToBeByVal)
         {
             if (argumentValue == null)
                 throw new ArgumentNullException("argumentValue");
@@ -570,7 +615,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
 
             bool isConfirmedToBeByVal;
-            if (argumentValue.Segments.Count() > 1)
+            if (forceAllArgumentsToBeByVal)
+            {
+                // If the arguments are for a function that is known to only take ByVal arguments (all of the built-in functions, such as CDate,
+                // for example, then we can skip the hard work and set isConfirmedToBeByVal to true straight away)
+                isConfirmedToBeByVal = true;
+            }
+            else if (argumentValue.Segments.Count() > 1)
             {
                 // If there are multiple segments here then it must be ByVal (it's fairly difficult to actually not be ByVal - it basically boils
                 // down to being a simple variable reference - eg. "a" - or one or more array accesses - eg. "a(0)" or "a(0, 1)" or "a(0)(1)"
@@ -754,7 +805,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			// "a(0, 1)(2)" is effectively passed as "RefIfArray(a, (0, 1), (2))". If it only checked whether the (2) argument was for an array
 			// access or a function/property call then it would ignore whether the (0, 1) arguments were for array access or function/property.
 			// - Note: This RefIfArray call relies upon the extension method that takes a param array instead of an IEnumerable
-			var translatedContentForPossibleByRefArgumentSets = possibleByRefArgumentSets.Select(args => TranslateAsArgumentProvider(args, scopeAccessInformation));
+			var translatedContentForPossibleByRefArgumentSets = possibleByRefArgumentSets
+                .Select(args => TranslateAsArgumentProvider(args, scopeAccessInformation, forceAllArgumentsToBeByVal: false));
             return new TranslatedStatementContentDetails(
                 string.Format(
                     ".RefIfArray({0}, {1})",
@@ -806,7 +858,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         callSetItemExpression.MemberAccessTokens,
                         callSetItemExpression.Arguments,
                         scopeAccessInformation,
-                        index
+                        index,
+                        targetIsKnownToBeBuiltInFunction: false
                     );
                 }
                 

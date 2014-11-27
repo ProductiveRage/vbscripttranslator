@@ -48,6 +48,9 @@ namespace Tester
         public int EQV(object l, object r) { throw new NotImplementedException(); }
         public int IMP(object l, object r) { throw new NotImplementedException(); }
 
+        // Builtin functions
+        public DateTime CDATE(object value) { throw new NotImplementedException(); }
+
         // Array definitions
         public void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter)
         {

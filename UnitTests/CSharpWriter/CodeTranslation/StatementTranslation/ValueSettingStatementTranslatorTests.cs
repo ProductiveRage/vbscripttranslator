@@ -178,6 +178,40 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
         }
 
+        [Fact]
+        public void BuiltInFunctionsNeedToBeMappedToFunctionsOnTheCompatSupportClassAndSpecifyAllArgumentsAsByVal()
+        {
+            // CDate(..) needs to be mapped to _.CDATE(..) and all arguments passed as ByVal, since no VBScript built-in functions manipulate the argument values.
+            // The use of an IProvideCallArguments implementation is still required to pass the arguments, though, since an incorrect number of arguments would
+            // result in a compile error in the translated C# code but would be a runtime error (which could be skipped over with ON ERROR RESUME NEXT) in
+            // VBScript.
+            var expressionToSet = new Expression(new IToken[]
+			{
+                new NameToken("a", 0)
+			});
+            var expressionToSetTo = new Expression(new IToken[]
+			{
+                new BuiltInFunctionToken("CDate", 0),
+                new OpenBrace(0),
+                new NameToken("a", 0),
+                new CloseBrace(0)
+			});
+            var expected = new TranslatedStatementContentDetails(
+                "_env.a = _.VAL(_.CALL(_, \"CDATE\", _.ARGS.Val(_env.a)))",
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
+            );
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
+            var actual = GetDefaultValueSettingStatementTranslator().Translate(
+                new ValueSettingStatement(
+                    expressionToSet,
+                    expressionToSetTo,
+                    ValueSettingStatement.ValueSetTypeOptions.Let
+                ),
+                scopeAccessInformation
+            );
+            Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
         /// <summary>
         /// This will return an empty ScopeAccessInformation that indicates an outermost scope without any statements - this does not describe a real scenario
         /// but allows us to set up data to exercise the code that the tests here are targetting

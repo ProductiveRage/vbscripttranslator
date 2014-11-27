@@ -15,6 +15,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// an exception for null arguments or an argumentValues set containing any null references. It will never return null, it will raise an exception
         /// if unable to satisfy the request.
         /// </summary>
-        TranslatedStatementContentDetails TranslateAsArgumentProvider(IEnumerable<Expression> argumentValues, ScopeAccessInformation scopeAccessInformation);
+        TranslatedStatementContentDetails TranslateAsArgumentProvider(
+            IEnumerable<Expression> argumentValues,
+            ScopeAccessInformation scopeAccessInformation,
+            bool forceAllArgumentsToBeByVal
+        );
     }
 }

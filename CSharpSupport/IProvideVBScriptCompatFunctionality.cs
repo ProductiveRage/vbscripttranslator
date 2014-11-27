@@ -46,9 +46,9 @@ namespace CSharpSupport
         void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter);
         void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter);
 
-        //int ABS(int value); // TODO: This is a temporary stand-in, limiting the input to int is probably not correct
-
         // Builtin functions
+        DateTime CDATE(object value);
+        //int ABS(int value); // TODO: This is a temporary stand-in, limiting the input to int is probably not correct
         /* TODO
             "ERR", // This is NOT a function (it's a value)
             "TIMER", // This IS a function (as are all of the below)
