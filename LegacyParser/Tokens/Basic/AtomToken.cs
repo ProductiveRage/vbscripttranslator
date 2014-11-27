@@ -368,6 +368,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
                     "DATEADD", "DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
                     "NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
+                    "DATE",
                     "ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
                     "HEX", "OCT", "FIX", "INT", "SNG",
                     "ASC", "ASCB", "ASCW",
@@ -377,8 +378,11 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "LEN", "LENB",
                     "LCASE", "UCASE",
                     "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
+                    "REPLACE",
                     "STRCOMP", "STRING",
-                    "LTRIM", "RTRIM", "TRIM"
+                    "LTRIM", "RTRIM", "TRIM",
+                    "SPLIT", "ARRAY", "ERASE", "JOIN",
+                    "EVAL", "EXECUTE", "EXECUTEGLOBAL"
                 }
             );
         }
