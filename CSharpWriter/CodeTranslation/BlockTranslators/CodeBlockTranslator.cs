@@ -16,7 +16,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         protected readonly CSharpName _supportRefName, _envClassName, _envRefName, _outerClassName, _outerRefName;
         protected readonly VBScriptNameRewriter _nameRewriter;
 		protected readonly TempValueNameGenerator _tempNameGenerator;
-        protected readonly ITranslateIndividualStatements _statementTranslator;
+        private readonly ITranslateIndividualStatements _statementTranslator;
 		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(

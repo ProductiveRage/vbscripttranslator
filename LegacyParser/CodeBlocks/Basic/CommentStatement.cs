@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class CommentStatement : ICodeBlock
+    public class CommentStatement : INonExecutableCodeBlock
     {
         // =======================================================================================
         // CLASS INITIALISATION

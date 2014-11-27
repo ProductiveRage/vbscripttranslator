@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class BlankLine : ICodeBlock
+    public class BlankLine : INonExecutableCodeBlock
     {
         // =======================================================================================
         // VBScript BASE SOURCE RE-GENERATION

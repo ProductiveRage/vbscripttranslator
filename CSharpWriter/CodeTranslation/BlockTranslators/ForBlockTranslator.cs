@@ -13,6 +13,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public class ForBlockTranslator : CodeBlockTranslator
     {
+        private readonly ITranslateIndividualStatements _statementTranslator;
         private readonly ILogInformation _logger;
         public ForBlockTranslator(
             CSharpName supportRefName,
@@ -27,9 +28,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             ILogInformation logger)
             : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
         {
+            if (statementTranslator == null)
+                throw new ArgumentNullException("statementTranslator");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
+            _statementTranslator = statementTranslator;
             _logger = logger;
         }
 
