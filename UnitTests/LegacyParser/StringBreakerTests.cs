@@ -140,5 +140,26 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        /// <summary>
+        /// If there were two comments on adjacent lines and the second has leading whitespace before the comment symbol then this whitespace would be incorrectly
+        /// interpreted as unprocessed content, which must be terminated with an end-of-statement token. Instead, the content should be identified only as two
+        /// comments.
+        /// </summary>
+        [Fact]
+        public void NonLineReturningWhiteSpaceBetweenCommentsIsIgnored()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new CommentToken(" Comment 1", 0),
+                    new CommentToken(" Comment 2", 1)
+                },
+                StringBreaker.SegmentString(
+                    "' Comment 1\n ' Comment 2"
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }

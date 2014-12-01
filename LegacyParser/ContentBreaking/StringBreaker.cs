@@ -99,11 +99,12 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             if (!prevToken.Content.TrimEnd(WhiteSpaceCharsExceptLineReturn).EndsWith("\n"))
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
-                                tokens.Add(new UnprocessedContentToken(
-                                    prevToken.Content.TrimEnd('\t', ' '),
-                                    prevToken.LineIndex
-                                ));
-                                tokens.Add(new EndOfStatementSameLineToken(prevToken.LineIndex));
+                                var unprocessedContentToRecord = prevToken.Content.TrimEnd('\t', ' ');
+                                if (unprocessedContentToRecord != "")
+                                {
+                                    tokens.Add(new UnprocessedContentToken(unprocessedContentToRecord, prevToken.LineIndex));
+                                    tokens.Add(new EndOfStatementSameLineToken(prevToken.LineIndex));
+                                }
                             }
                         }
                     }

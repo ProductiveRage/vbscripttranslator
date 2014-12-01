@@ -11,8 +11,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
     {
         public UnprocessedContentToken(string content, int lineIndex)
         {
-            if (content == null)
-                throw new ArgumentNullException("content");
+            if (string.IsNullOrEmpty(content))
+                throw new ArgumentException("Null/blank content specified");
             if (lineIndex < 0)
                 throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
 
