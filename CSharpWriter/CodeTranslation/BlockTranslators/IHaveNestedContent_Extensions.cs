@@ -26,6 +26,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         return true;
                     continue;
                 }
+                var forEachBlock = codeBlock as ForEachBlock;
+                if (forEachBlock != null)
+                {
+                    if (ContainsMismatchedExitThatMustBeHandledAtThisLevel(forEachBlock, expectedExitType: ExitStatement.ExitableStatementType.For))
+                        return true;
+                    continue;
+                }
                 var doBlock = codeBlock as DoBlock;
                 if (doBlock != null)
                 {
@@ -33,7 +40,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         return true;
                     continue;
                 }
-                if ((codeBlock is ILoopOverNestedContent) && (forBlock == null) && (doBlock == null))
+                if ((codeBlock is ILoopOverNestedContent) && (forBlock == null) && (forEachBlock == null) && (doBlock == null))
                 {
                     // Sanity checking - if there's another looping construct then this method won't be dealing with it properly!
                     throw new ArgumentException("Unexpected ILoopOverNestedContent type: " + codeBlock.GetType());
