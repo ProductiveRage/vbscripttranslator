@@ -46,34 +46,86 @@ namespace CSharpSupport
         void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter);
         void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter);
 
-        // Builtin functions
-        DateTime CDATE(object value);
-        //int ABS(int value); // TODO: This is a temporary stand-in, limiting the input to int is probably not correct
+        // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple
+        // parameters and overloads to deal with optional parameters)
+        // - Type conversions
+        object CBYTE(object value);
+        object CBOOL(object value);
+        object CDBL(object value);
+        object CDATE(object value);
+        object CINT(object value);
+        object CLNG(object value);
+        object CSNG(object value);
+        string CSTR(object value);
+        string INT(object value);
+        string STRING(object value);
+        // - String functions
+        object ASC(object value);
+        object ASCB(object value);
+        object ASCW(object value);
+        object CHR(object value);
+        object CHRB(object value);
+        object CHRW(object value);
+        object INSTR(object value);
+        object INSTRREV(object value);
+        object LEN(object value);
+        object LENB(object value);
+        object LEFT(object value);
+        object LEFTB(object value);
+        object RIGHT(object value);
+        object RIGHTB(object value);
+        object REPLACE(object value);
+        object SPACE(object value);
+        object SPLIT(object value);
+        object STRCOMP(object value);
+        string TRIM(object value);
+        string LTRIM(object value);
+        string RTRIM(object value);
+        string LCASE(object value);
+        string UCASE(object value);
+        // - Type comparisons
+        object ISARRAY(object value);
+        object ISDATE(object value);
+        object ISEMPTY(object value);
+        object ISNULL(object value);
+        object ISNUMERIC(object value);
+        object ISOBJECT(object value);
+        object TYPENAME(object value);
+        object VARTYPE(object value);
+        // - Array functions
+        object ARRAY(object value);
+        object ERASE(object value);
+        object JOIN(object value);
+        object LBOUND(object value);
+        object UBOUND(object value);
+        // - Date functions
+        DateTime NOW();
+        DateTime DATE();
+        DateTime TIME();
+        object DATEADD(object value);
+        object DATESERIAL(object value);
+        object DATEVALUE(object value);
+        object TIMESERIAL(object value);
+        object TIMEVALUE(object value);
+        object NOW(object value);
+        object DAY(object value);
+        object MONTH(object value);
+        object YEAR(object value);
+        object WEEKDAY(object value);
+        object HOUR(object value);
+        object MINUTE(object value);
+        object SECOND(object value);
+        // - Object creation
+        object CREATEOBJECT(object value);
+        object GETOBJECT(object value);
+        object EVAL(object value);
+        object EXECUTE(object value);
+        object EXECUTEGLOBAL(object value);
+
         /* TODO
             "ERR", // This is NOT a function (it's a value)
             "TIMER", // This IS a function (as are all of the below)
-            "ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
-            "LBOUND", "UBOUND",
-            "VARTYPE", "TYPENAME",
-            "CREATEOBJECT", "GETOBJECT",
-            "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
-            "DATEADD", "DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
-            "NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
-            "ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
-            "HEX", "OCT", "FIX", "INT", "SNG",
-            "ASC", "ASCB", "ASCW",
-            "CHR", "CHRB", "CHRW",
-            "ASC", "ASCB", "ASCW",
-            "INSTR", "INSTRREV",
-            "LEN", "LENB",
-            "LCASE", "UCASE",
-            "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
-            "STRCOMP", "STRING",
-            "LTRIM", "RTRIM", "TRIM"
          */
-
-        // TODO: Split.. how was this missed off the list above?!
-        // - Splitting an empty string seems to return an empty array, rather than an array with a single element (that is a blank string)
 
 		// TODO: Integration RANDOMIZE functionality
 

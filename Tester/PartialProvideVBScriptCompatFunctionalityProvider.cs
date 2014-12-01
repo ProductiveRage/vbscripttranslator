@@ -48,8 +48,81 @@ namespace Tester
         public int EQV(object l, object r) { throw new NotImplementedException(); }
         public int IMP(object l, object r) { throw new NotImplementedException(); }
 
-        // Builtin functions
-        public DateTime CDATE(object value) { throw new NotImplementedException(); }
+        // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple parameters and
+        // overloads to deal with optional parameters)
+        // - Type conversions
+        public object CBYTE(object value) { throw new NotImplementedException(); }
+        public object CBOOL(object value) { throw new NotImplementedException(); }
+        public object CDBL(object value) { throw new NotImplementedException(); }
+        public object CDATE(object value) { throw new NotImplementedException(); }
+        public object CINT(object value) { throw new NotImplementedException(); }
+        public object CLNG(object value) { throw new NotImplementedException(); }
+        public object CSNG(object value) { throw new NotImplementedException(); }
+        public string CSTR(object value) { throw new NotImplementedException(); }
+        public string INT(object value) { throw new NotImplementedException(); }
+        public string STRING(object value) { throw new NotImplementedException(); }
+        // - String functions
+        public object ASC(object value) { throw new NotImplementedException(); }
+        public object ASCB(object value) { throw new NotImplementedException(); }
+        public object ASCW(object value) { throw new NotImplementedException(); }
+        public object CHR(object value) { throw new NotImplementedException(); }
+        public object CHRB(object value) { throw new NotImplementedException(); }
+        public object CHRW(object value) { throw new NotImplementedException(); }
+        public object INSTR(object value) { throw new NotImplementedException(); }
+        public object INSTRREV(object value) { throw new NotImplementedException(); }
+        public object LEN(object value) { throw new NotImplementedException(); }
+        public object LENB(object value) { throw new NotImplementedException(); }
+        public object LEFT(object value) { throw new NotImplementedException(); }
+        public object LEFTB(object value) { throw new NotImplementedException(); }
+        public object RIGHT(object value) { throw new NotImplementedException(); }
+        public object RIGHTB(object value) { throw new NotImplementedException(); }
+        public object REPLACE(object value) { throw new NotImplementedException(); }
+        public object SPACE(object value) { throw new NotImplementedException(); }
+        public object SPLIT(object value) { throw new NotImplementedException(); }
+        public object STRCOMP(object value) { throw new NotImplementedException(); }
+        public string TRIM(object value) { throw new NotImplementedException(); }
+        public string LTRIM(object value) { throw new NotImplementedException(); }
+        public string RTRIM(object value) { throw new NotImplementedException(); }
+        public string LCASE(object value) { throw new NotImplementedException(); }
+        public string UCASE(object value) { throw new NotImplementedException(); }
+        // - Type comparisons
+        public object ISARRAY(object value) { throw new NotImplementedException(); }
+        public object ISDATE(object value) { throw new NotImplementedException(); }
+        public object ISEMPTY(object value) { throw new NotImplementedException(); }
+        public object ISNULL(object value) { throw new NotImplementedException(); }
+        public object ISNUMERIC(object value) { throw new NotImplementedException(); }
+        public object ISOBJECT(object value) { throw new NotImplementedException(); }
+        public object TYPENAME(object value) { throw new NotImplementedException(); }
+        public object VARTYPE(object value) { throw new NotImplementedException(); }
+        // - Array functions
+        public object ARRAY(object value) { throw new NotImplementedException(); }
+        public object ERASE(object value) { throw new NotImplementedException(); }
+        public object JOIN(object value) { throw new NotImplementedException(); }
+        public object LBOUND(object value) { throw new NotImplementedException(); }
+        public object UBOUND(object value) { throw new NotImplementedException(); }
+        // - Date functions
+        public DateTime NOW() { throw new NotImplementedException(); }
+        public DateTime DATE() { throw new NotImplementedException(); }
+        public DateTime TIME() { throw new NotImplementedException(); }
+        public object DATEADD(object value) { throw new NotImplementedException(); }
+        public object DATESERIAL(object value) { throw new NotImplementedException(); }
+        public object DATEVALUE(object value) { throw new NotImplementedException(); }
+        public object TIMESERIAL(object value) { throw new NotImplementedException(); }
+        public object TIMEVALUE(object value) { throw new NotImplementedException(); }
+        public object NOW(object value) { throw new NotImplementedException(); }
+        public object DAY(object value) { throw new NotImplementedException(); }
+        public object MONTH(object value) { throw new NotImplementedException(); }
+        public object YEAR(object value) { throw new NotImplementedException(); }
+        public object WEEKDAY(object value) { throw new NotImplementedException(); }
+        public object HOUR(object value) { throw new NotImplementedException(); }
+        public object MINUTE(object value) { throw new NotImplementedException(); }
+        public object SECOND(object value) { throw new NotImplementedException(); }
+        // - Object creation
+        public object CREATEOBJECT(object value) { throw new NotImplementedException(); }
+        public object GETOBJECT(object value) { throw new NotImplementedException(); }
+        public object EVAL(object value) { throw new NotImplementedException(); }
+        public object EXECUTE(object value) { throw new NotImplementedException(); }
+        public object EXECUTEGLOBAL(object value) { throw new NotImplementedException(); }
 
         // Array definitions
         public void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter)
