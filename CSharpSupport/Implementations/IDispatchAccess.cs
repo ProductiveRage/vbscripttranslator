@@ -245,12 +245,14 @@ namespace CSharpSupport.Implementations
                 );
                 if (hrRet != 0)
                 {
+                    var errorType = GetErrorMessageForHResult(hrRet);
+                    if (errorType == CommonErrors.DISP_E_MEMBERNOTFOUND)
+                        throw new MissingMemberException();
                     var message = "Failing attempting to invoke method with DispId " + dispId + ": ";
                     if ((excepInfo.bstrDescription ?? "").Trim() == "")
                         message += "Unspecified error";
                     else
                         message += excepInfo.bstrDescription;
-                    var errorType = GetErrorMessageForHResult(hrRet);
                     if (errorType != CommonErrors.Unknown)
                         message += " [" + errorType.ToString() + "]";
                     if (args.Length > 0)

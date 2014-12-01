@@ -1,10 +1,13 @@
 ﻿using CSharpSupport.Attributes;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace CSharpSupport.Implementations
 {
@@ -98,6 +101,52 @@ namespace CSharpSupport.Implementations
             if (!double.TryParse(valueString, out parsedValue))
                 throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
             return parsedValue;
+        }
+
+        /// <summary>
+        /// Layer an enumerable wrapper over a reference, if possible (an exception will be thrown if not)
+        /// </summary>
+        public IEnumerable ENUMERABLE(object o)
+        {
+            if (o == null)
+                throw new ArgumentNullException("o");
+
+            // Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and som COM object
+            var enumerable = o as IEnumerable;
+            if (enumerable != null)
+                return enumerable;
+
+            // If that fails then try using reflection to identify a parameter-elss GetEnumerator method that returns an IEnumerator
+            var getEnumeratorMethod = o.GetType().GetMethod("GetEnumerator", Type.EmptyTypes);
+            if ((getEnumeratorMethod != null) && typeof(IEnumerator).IsAssignableFrom(getEnumeratorMethod.ReturnType))
+            {
+                var enumerator = (IEnumerator)getEnumeratorMethod.Invoke(o, new object[0]);
+                if (enumerator == null)
+                    throw new ArgumentException("Object returned null value from GetEnumerator");
+                return new ManagedEnumeratorWrapper(enumerator);
+            }
+
+            // Failing that, attempt access through IDispatch - try calling the method with DispId -4 (if there is one) and casting the return
+            // value to IEnumVariant and then wrapping up into a managed IEnumerable
+            if (IDispatchAccess.ImplementsIDispatch(o))
+            {
+                object enumerator;
+                try
+                {
+                    enumerator = IDispatchAccess.Invoke<object>(o, IDispatchAccess.InvokeFlags.DISPATCH_METHOD, -4);
+                }
+                catch (MissingMemberException)
+                {
+                    throw new ArgumentException("IDispatch reference does not have a method with DispId -4");
+                }
+                var enumeratorAsEnumVariant = enumerator as IEnumVariant;
+                if (enumeratorAsEnumVariant == null)
+                    throw new ArgumentException("IDispatch reference has a DispId -4 return value that does not implement IEnumVariant");
+                return new ManagedEnumeratorWrapper(new IDispatchEnumeratorWrapper(enumeratorAsEnumVariant));
+            }
+
+            // Give up and throw the VBScript error message
+            throw new ArgumentException("Object not a collection");
         }
 
         /// <summary>
@@ -971,6 +1020,66 @@ namespace CSharpSupport.Implementations
                     (NumberOfArguments == cacheKey.NumberOfArguments)
                 );
             }
+        }
+
+        private class ManagedEnumeratorWrapper : IEnumerable
+        {
+            private readonly IEnumerator _enumerator;
+            public ManagedEnumeratorWrapper(IEnumerator enumerator)
+            {
+                if (enumerator == null)
+                    throw new ArgumentNullException("enumerator");
+
+                _enumerator = enumerator;
+            }
+
+            public IEnumerator GetEnumerator()
+            {
+                return _enumerator;
+            }
+        }
+
+        private class IDispatchEnumeratorWrapper : IEnumerator
+        {
+            private readonly IEnumVariant _enumerator;
+            private object _current;
+            public IDispatchEnumeratorWrapper(IEnumVariant enumerator)
+            {
+                if (enumerator == null)
+                    throw new ArgumentNullException("enumerator");
+
+                _enumerator = enumerator;
+                _current = null;
+            }
+
+            public object Current { get { return _current; } }
+
+            public bool MoveNext()
+            {
+                uint fetched;
+                _enumerator.Next(1, out _current, out fetched);
+                return fetched != 0;
+            }
+
+            public void Reset()
+            {
+                _enumerator.Reset();
+            }
+        }
+
+        [ComImport(), Guid("00020404-0000-0000-C000-000000000046"), InterfaceTypeAttribute(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IEnumVariant
+        {
+            // From https://github.com/mosa/Mono-Class-Libraries/blob/master/mcs/class/CustomMarshalers/System.Runtime.InteropServices.CustomMarshalers/EnumeratorToEnumVariantMarshaler.cs
+            [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
+            void Next(int celt, [MarshalAs(UnmanagedType.Struct)]out object rgvar, out uint pceltFetched);
+            [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
+            void Skip(uint celt);
+            [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
+            void Reset();
+            [return: MarshalAs(UnmanagedType.Interface)]
+            [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
+            IEnumVariant Clone();
         }
     }
 }

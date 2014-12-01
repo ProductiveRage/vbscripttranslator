@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 
 namespace CSharpSupport
 {
@@ -52,5 +53,10 @@ namespace CSharpSupport
         /// require a numeric value or null, otherwise an exception will be raised. Zero and null equate to false, non-zero numbers to true.
         /// </summary>
         bool IF(object o);
+
+        /// <summary>
+        /// Layer an enumerable wrapper over a reference, if possible (an exception will be thrown if not)
+        /// </summary>
+        IEnumerable ENUMERABLE(object o);
     }
 }
