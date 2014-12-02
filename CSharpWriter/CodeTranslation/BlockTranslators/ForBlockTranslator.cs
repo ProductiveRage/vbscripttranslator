@@ -187,13 +187,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ))
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "{0}.HANDLEERROR({1}, () =>",
+                            "{0}.HANDLEERROR({1}, () => {{",
                             _supportRefName.Name,
                             scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
                         ),
                         indentationDepth
-                    ))
-                    .Add(new TranslatedStatement("{", indentationDepth));
+                    ));
                 foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
                 {
                     translationResult = translationResult
@@ -298,13 +297,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "{0}.HANDLEERROR({1}, () =>",
+                            "{0}.HANDLEERROR({1}, () => {{",
                             _supportRefName.Name,
                             scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
                         ),
                         indentationDepth
-                    ))
-                    .Add(new TranslatedStatement("{", indentationDepth));
+                    ));
                 indentationDepth++;
             }
             string continuationCondition;

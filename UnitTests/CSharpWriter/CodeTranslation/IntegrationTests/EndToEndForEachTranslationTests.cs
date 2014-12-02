@@ -43,8 +43,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPING(errOn1);",
-                "_.HANDLEERROR(errOn1, () =>",
-                "{",
+                "_.HANDLEERROR(errOn1, () => {",
                 "    for each (_env.value in _.ENUMERABLE(_env.values)",
                 "    {",
                 "        _.HANDLEERROR(errOn1, () => {",
