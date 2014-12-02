@@ -12,52 +12,56 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private Expression expression;
-        private List<CommentStatement> openingComments;
-        private List<CaseBlockSegment> content;
-
+        private readonly List<CommentStatement> _openingComments;
+        private readonly List<CaseBlockSegment> _content;
         public SelectBlock(
             Expression expression,
-            List<CommentStatement> openingComments,
-            List<CaseBlockSegment> content)
+            IEnumerable<CommentStatement> openingComments,
+            IEnumerable<CaseBlockSegment> content)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
-            this.expression = expression;
-            if ((openingComments == null) || (openingComments.Count == 0))
-                this.openingComments = null;
-            else
-                this.openingComments = openingComments;
-            if ((content == null) || (content.Count == 0))
-                this.content = null;
-            else
-            {
-                foreach (CaseBlockSegment contentInner in content)
-                {
-                    if (contentInner == null)
-                        throw new ArgumentException("Encountered null inner content");
-                }
-                this.content = content;
-            }
+            if (openingComments == null)
+                throw new ArgumentNullException("openingComments");
+            if (content == null)
+                throw new ArgumentNullException("content");
+
+            _openingComments = openingComments.ToList();
+            if (_openingComments.Any(c => c == null))
+                throw new ArgumentException("Null reference encountered in openingComments set");
+
+            _content = content.ToList();
+            if (_openingComments.Any(c => c == null))
+                throw new ArgumentException("Null reference encountered in content set");
+            var firstUnsupportedContentSegment = _content.FirstOrDefault(c => !(c is CaseBlockExpressionSegment) && !(c is CaseBlockElseSegment));
+            if (firstUnsupportedContentSegment != null)
+                throw new ArgumentException("Unrecognised content element: " + firstUnsupportedContentSegment.GetType());
+            if (_content.First() is CaseBlockElseSegment)
+                throw new ArgumentException("First content element may not be a CaseBlockElseSegment");
+            if (((IEnumerable<CaseBlockSegment>)_content).Reverse().Skip(1).Any(c => c is CaseBlockElseSegment))
+                throw new ArgumentException("Only the last content segment may be a CaseBlockElseSegment (and only when there are multiple content segments)");
+
+            Expression = expression;
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
-        public Expression Expression
-        {
-            get { return this.expression; }
-        }
+        /// <summary>
+        /// This will never be null
+        /// </summary>
+        public Expression Expression { get; private set; }
 
-        public List<CommentStatement> OpeningComments
-        {
-            get { return this.openingComments; }
-        }
+        /// <summary>
+        /// This will never be null nor contain any null references, but it may be an empty set
+        /// </summary>
+        public IEnumerable<CommentStatement> OpeningComments { get { return _openingComments.AsReadOnly(); } }
 
-        public List<CaseBlockSegment> Content
-        {
-            get { return this.content; }
-        }
+        /// <summary>
+        /// This will never be null nor contain any null references, but it may be an empty set. All items will be CaseBlockExpressionSegment or
+        /// CaseBlockElseSegment instances and only the last segment may be a CaseBlockElseSegment (and only if there are multiple segments).
+        /// </summary>
+        public IEnumerable<CaseBlockSegment> Content { get { return _content.AsReadOnly(); } }
 
         /// <summary>
         /// This is a flattened list of all executable statements - for a function this will be the statements it contains but for an if block it
@@ -68,48 +72,58 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             get
             {
                 return new ICodeBlock[] { Expression }
-                    .Concat(Content.Select(c => c as CaseBlockExpressionSegment).Where(c => c != null).SelectMany(c => c.Values))
-                    .Concat(Content.SelectMany(c => c.Statements));
+                    .Concat(_content.Select(c => c as CaseBlockExpressionSegment).Where(c => c != null).SelectMany(c => c.Values))
+                    .Concat(_content.SelectMany(c => c.Statements));
             }
         }
 
         // =======================================================================================
         // DESCRIPTION CLASSES
         // =======================================================================================
-        public interface CaseBlockSegment
+        public abstract class CaseBlockSegment
         {
-            List<ICodeBlock> Statements { get; }
+            private readonly List<ICodeBlock> _statements;
+            protected CaseBlockSegment(IEnumerable<ICodeBlock> statements)
+            {
+                if (statements == null)
+                    throw new ArgumentNullException("statements");
+
+                _statements = statements.ToList();
+                if (_statements.Any(v => v == null))
+                    throw new ArgumentException("Null reference encountered in statements set");
+            }
+
+            /// <summary>
+            /// This will never be null nor contain any null references, but it may be an empty set
+            /// </summary>
+            public IEnumerable<ICodeBlock> Statements { get { return _statements.AsReadOnly(); } }
         }
 
         public class CaseBlockExpressionSegment : CaseBlockSegment
         {
-            private List<Expression> values;
-            private List<ICodeBlock> statements;
-            public CaseBlockExpressionSegment(List<Expression> values, List<ICodeBlock> statements)
+            private readonly List<Expression> _values;
+            private readonly List<ICodeBlock> _statements;
+            public CaseBlockExpressionSegment(IEnumerable<Expression> values, IEnumerable<ICodeBlock> statements) : base(statements)
             {
                 if (values == null)
                     throw new ArgumentNullException("values");
-                if (values.Count == 0)
-                    throw new ArgumentException("values is an empty list - invalid");
-                if (statements == null)
-                    throw new ArgumentNullException("statements");
-                this.values = values;
-                this.statements = statements;
+
+                _values = values.ToList();
+                if (_values.Any(v => v == null))
+                    throw new ArgumentException("Null reference encountered in openingComments set");
+                if (!_values.Any())
+                    throw new ArgumentException("values is an empty set  - invalid");
             }
-            public List<Expression> Values { get { return this.values; } }
-            public List<ICodeBlock> Statements { get { return this.statements; } }
+
+            /// <summary>
+            /// This will never be null, empty nor contain any null references
+            /// </summary>
+            public IEnumerable<Expression> Values { get { return _values.AsReadOnly(); } }
         }
         
         public class CaseBlockElseSegment : CaseBlockSegment
         {
-            private List<ICodeBlock> statements;
-            public CaseBlockElseSegment(List<ICodeBlock> statements)
-            {
-                if (statements == null)
-                    throw new ArgumentNullException("statements");
-                this.statements = statements;
-            }
-            public List<ICodeBlock> Statements{ get { return this.statements; } }
+            public CaseBlockElseSegment(IEnumerable<ICodeBlock> statements) : base(statements) { }
         }
 
         // =======================================================================================
@@ -121,32 +135,32 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// </summary>
         public string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
-            StringBuilder output = new StringBuilder();
+            var output = new StringBuilder();
             
             output.Append(indenter.Indent + "SELECT CASE ");
-            output.AppendLine(this.expression.GenerateBaseSource(new NullIndenter()));
+            output.AppendLine(Expression.GenerateBaseSource(new NullIndenter()));
 
-            if (this.openingComments != null)
+            if (_openingComments != null)
             {
-                foreach (CommentStatement statement in this.openingComments)
+                foreach (CommentStatement statement in _openingComments)
                     output.AppendLine(statement.GenerateBaseSource(indenter.Increase()));
                 output.AppendLine("");
             }
 
-            for (int index = 0; index < this.content.Count; index++)
+            for (int index = 0; index < _content.Count; index++)
             {
                 // Render branch start
-                CaseBlockSegment segment = this.content[index];
+                CaseBlockSegment segment = _content[index];
                 if (segment is CaseBlockExpressionSegment)
                 {
                     output.Append(indenter.Increase().Indent);
                     output.Append("CASE ");
-                    List<Expression> values = ((CaseBlockExpressionSegment)segment).Values;
-                    for (int indexValue = 0; indexValue < values.Count; indexValue++)
+                    var valuesArray = ((CaseBlockExpressionSegment)segment).Values.ToArray();
+                    for (int indexValue = 0; indexValue < valuesArray.Length; indexValue++)
                     {
-                        Expression statement = values[indexValue];
+                        Expression statement = valuesArray[indexValue];
                         output.Append(statement.GenerateBaseSource(new NullIndenter()));
-                        if (indexValue < (values.Count - 1))
+                        if (indexValue < (valuesArray.Length - 1))
                             output.Append(", ");
                     }
                     output.AppendLine("");
