@@ -111,20 +111,15 @@ namespace CSharpSupport.Implementations
             if (o == null)
                 throw new ArgumentNullException("o");
 
-            // Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and som COM object
+            // VBScript will only consider object references to be enumerable (unlike C#, which will consider a string to be an enumerable set
+            // characters, for example)
+            if (IsVBScriptValueType(o))
+                throw new ArgumentException("Object not a collection");
+
+            // Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object
             var enumerable = o as IEnumerable;
             if (enumerable != null)
                 return enumerable;
-
-            // If that fails then try using reflection to identify a parameter-elss GetEnumerator method that returns an IEnumerator
-            var getEnumeratorMethod = o.GetType().GetMethod("GetEnumerator", Type.EmptyTypes);
-            if ((getEnumeratorMethod != null) && typeof(IEnumerator).IsAssignableFrom(getEnumeratorMethod.ReturnType))
-            {
-                var enumerator = (IEnumerator)getEnumeratorMethod.Invoke(o, new object[0]);
-                if (enumerator == null)
-                    throw new ArgumentException("Object returned null value from GetEnumerator");
-                return new ManagedEnumeratorWrapper(enumerator);
-            }
 
             // Failing that, attempt access through IDispatch - try calling the method with DispId -4 (if there is one) and casting the return
             // value to IEnumVariant and then wrapping up into a managed IEnumerable

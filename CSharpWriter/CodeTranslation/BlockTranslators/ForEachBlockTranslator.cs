@@ -44,7 +44,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // The looped-over content must be of type "Reference" since VBScript won't enumerate over strings, for example, whereas C# would be happy to
+            // The looped-over content must be of type "Reference" since VBScript won't enumerate over strings, for example, whereas C# would be happy to.
+            // However, to make the output marginally easier to read, the ENUMERABLE method will deal with this logic and so the ExpressionReturnTypeOptions
+            // value passed to the statement translator is "NotSpecified".
             var translationResult = TranslationResult.Empty;
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
             {
@@ -60,7 +62,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement("{", indentationDepth));
                 indentationDepth++;
             }
-            var loopSourceContent = _statementTranslator.Translate(forEachBlock.LoopSrc, scopeAccessInformation, ExpressionReturnTypeOptions.Reference);
+            var loopSourceContent = _statementTranslator.Translate(forEachBlock.LoopSrc, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified);
             var undeclaredVariablesInLoopSourceContent = loopSourceContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
             foreach (var undeclaredVariable in undeclaredVariablesInLoopSourceContent)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
