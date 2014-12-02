@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
+    <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndForEachTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndFunctionTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndClassTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndDoTranslationTests.cs" />

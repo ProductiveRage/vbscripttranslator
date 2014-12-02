@@ -66,11 +66,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var undeclaredVariablesInLoopSourceContent = loopSourceContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
             foreach (var undeclaredVariable in undeclaredVariablesInLoopSourceContent)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            var rewrittenLoopVarName = _nameRewriter.GetMemberAccessTokenName(forEachBlock.LoopVar);
+            var loopVarTargetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVarName, _envRefName, _outerRefName, _nameRewriter);
+            if (loopVarTargetContainer != null)
+                rewrittenLoopVarName = loopVarTargetContainer.Name + "." + rewrittenLoopVarName;
             translationResult = translationResult
                 .Add(new TranslatedStatement(
                     string.Format(
-                        "for each (var {0} in {1}.ENUMERABLE({2})",
-                        _nameRewriter.GetMemberAccessTokenName(forEachBlock.LoopVar),
+                        "for each ({0} in {1}.ENUMERABLE({2})",
+                        rewrittenLoopVarName,
                         _supportRefName.Name,
                         loopSourceContent.TranslatedContent
                     ),
