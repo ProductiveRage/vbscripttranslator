@@ -99,7 +99,7 @@ namespace CSharpSupport.Implementations
             var valueString = value.ToString();
             double parsedValue;
             if (!double.TryParse(valueString, out parsedValue))
-                throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
+                throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into a numeric values)");
             return parsedValue;
         }
 

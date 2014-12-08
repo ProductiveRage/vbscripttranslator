@@ -135,8 +135,49 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				);
             }
 
-            var resultLeft = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
-            var resultRight = TranslateNonOperatorSegment(segments[2], scopeAccessInformation);
+            var segmentLeft = segments[0];
+            var segmentRight = segments[2];
+            bool mustConvertLeftValueToNumber, mustConvertRightValueToNumber;
+            if (operatorSegmentWithIndex.Segment.Token is ComparisonOperatorToken)
+            {
+                // If the operator segment is a ComparisonOperatorToken (not a LogicalOperatorToken and not any other type of OperatorToken, such
+                // as an arithmetic operation or string concatenation) then there are special rules to apply if one side of the operation is known
+                // to be a constant at compile time - namely, the other side must be parseable as a numeric value otherwise a "Type mismatch" will
+                // be raised. If both sides of the operation are variables and one of them is a numeric value and the other a word, then the
+                // comparison will return false but it won't raise an error.
+                if ((segmentLeft is NumericValueExpressionSegment) && (segmentRight is NumericValueExpressionSegment))
+                {
+                    // If both sides of an operation are numeric constants, then the comparison will be simple and not require any interfering in
+                    // terms of casting values at this point
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                }
+                else if ((segmentLeft is NumericValueExpressionSegment) || (segmentRight is NumericValueExpressionSegment))
+                {
+                    // However, if one side of an operation is a numeric constant, then the other side must be parseable as a number - otherwise
+                    // a "Type mismatch" error should be raised; the statement "IF ("aa" > 0) THEN" will error, for example
+                    mustConvertLeftValueToNumber = !(segmentLeft is NumericValueExpressionSegment);
+                    mustConvertRightValueToNumber = !(segmentRight is NumericValueExpressionSegment);
+                }
+                else
+                {
+                    // If neither side is a numeric constant then there is nothing to worry about (any complexities of how values should be
+                    // compared can be left up to the runtime comparison method implementation)
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                }
+            }
+            else
+            {
+                mustConvertLeftValueToNumber = false;
+                mustConvertRightValueToNumber = false;
+            }
+            var resultLeft = TranslateNonOperatorSegment(segmentLeft, scopeAccessInformation);
+            if (mustConvertLeftValueToNumber)
+                resultLeft = WrapTranslatedResultInNumericCast(resultLeft);
+            var resultRight = TranslateNonOperatorSegment(segmentRight, scopeAccessInformation);
+            if (mustConvertRightValueToNumber)
+                resultRight = WrapTranslatedResultInNumericCast(resultRight);
             return new TranslatedStatementContentDetails(
                 ApplyReturnTypeGuarantee(
 				    string.Format(
@@ -151,6 +192,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     segments[0].AllTokens.First().LineIndex
                 ),
                 resultLeft.VariablesAccessed.AddRange(resultRight.VariablesAccessed)
+            );
+        }
+
+        private TranslatedStatementContentDetailsWithContentType WrapTranslatedResultInNumericCast(TranslatedStatementContentDetailsWithContentType translatedStatement)
+        {
+            if (translatedStatement == null)
+                throw new ArgumentNullException("translatedStatement");
+
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
+                    "{0}.NUM({1})",
+                    _supportRefName.Name,
+                    translatedStatement.TranslatedContent
+                ),
+                ExpressionReturnTypeOptions.Value,
+                translatedStatement.VariablesAccessed
             );
         }
 
@@ -213,16 +270,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
+            // 2014-12-08 DWR: This previously wrapped the returned content in brackets - largely only because the source is a bracketed expression. But
+            // since they're always broken down to respect VBScript's operator precedence and then passed through functions for every operation, there
+            // is no benefit to adding further bracketing, so it's been removed.
             var translatedInnerContentDetails = Translate(
                 new Expression(bracketedExpressionSegment.Segments),
                 scopeAccessInformation,
                 ExpressionReturnTypeOptions.NotSpecified
             );
             return new TranslatedStatementContentDetailsWithContentType(
-                string.Format(
-                    "({0})",
-                    translatedInnerContentDetails.TranslatedContent
-                ),
+                translatedInnerContentDetails.TranslatedContent,
                 ExpressionReturnTypeOptions.NotSpecified,
                 translatedInnerContentDetails.VariablesAccessed
             );
