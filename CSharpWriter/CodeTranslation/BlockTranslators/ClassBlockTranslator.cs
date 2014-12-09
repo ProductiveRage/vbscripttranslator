@@ -37,14 +37,52 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // TODO: Add support for "class_initialize" and "class_terminate"
-            // - Ensure that the implicit error trapping is applied to these methods
+            // Outside of classes, functions may be declared multiple times - in which case the last one will take precedence and it will be as if the
+            // others never existed. Within classes, however, duplicated names are not allowed and would result in a "Name redefined" compile-time error.
+            var classFunctionsWithDuplicatedNames = classBlock.Statements
+                .Where(statement => statement is AbstractFunctionBlock)
+                .Cast<AbstractFunctionBlock>()
+                .GroupBy(function => function.Name.Content, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+            if (classFunctionsWithDuplicatedNames.Any())
+                throw new ArgumentException("The following function name are repeated with class " + classBlock.Name.Content + " (which is invalid): " + string.Join(", ", classFunctionsWithDuplicatedNames));
+
+            // Apply Class_Initialize / Class_Terminate validation - if they appear then they must be SUBs (not FUNCTIONs) and they may not have arguments
+            var classInitializeMethodIfAny = classBlock.Statements
+                .Where(statement => statement is AbstractFunctionBlock)
+                .Cast<AbstractFunctionBlock>()
+                .FirstOrDefault(function => function.Name.Content.Equals("Class_Initialize", StringComparison.OrdinalIgnoreCase));
+            if (classInitializeMethodIfAny != null)
+            {
+                if (!(classInitializeMethodIfAny is SubBlock) || classInitializeMethodIfAny.Parameters.Any())
+                    throw new ArgumentException("A class' Class_Initialize may only be a Sub (not a Function) with zero arguments - this is not the case in class " + classBlock.Name.Content);
+                if (!classInitializeMethodIfAny.Statements.Any(s => !(s is INonExecutableCodeBlock)))
+                {
+                    // If Class_Initialize doesn't do anything then there's no point adding the complexity of calling it (same for Class_Terminate,
+                    // except that there's even more complexity that can be avoided in that case - see below)
+                    classInitializeMethodIfAny = null;
+                }
+            }
+            var classTerminateMethodIfAny = classBlock.Statements
+                .Where(statement => statement is AbstractFunctionBlock)
+                .Cast<AbstractFunctionBlock>()
+                .FirstOrDefault(function => function.Name.Content.Equals("Class_Terminate", StringComparison.OrdinalIgnoreCase));
+            if (classTerminateMethodIfAny != null)
+            {
+                if (!(classTerminateMethodIfAny is SubBlock) || classTerminateMethodIfAny.Parameters.Any())
+                    throw new ArgumentException("A class' Class_Terminate may only be a Sub (not a Function) with zero arguments - this is not the case in class " + classBlock.Name.Content);
+                if (!classTerminateMethodIfAny.Statements.Any(s => !(s is INonExecutableCodeBlock)))
+                {
+                    // If Class_Terminate doesn't do anything then there's no point adding the complexity involved in supporting it
+                    classTerminateMethodIfAny = null;
+                }
+            }
 
             // Any error-trapping in the parent scope will not apply within the class and will have to be set explicitly within the methods and
             // properties if required
             scopeAccessInformation = scopeAccessInformation.SetErrorRegistrationToken(null);
 
-            // TODO: Require a variation of OuterScopeBlockTranslator's RemoveDuplicateFunctions (see notes on that method)
             var classContentTranslationResult = Translate(
                 classBlock.Statements.ToNonNullImmutableList(),
                 scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
@@ -64,7 +102,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 new NonNullImmutableList<VariableDeclaration>(), // The ExplicitVariableDeclarations will be translated separately below
                 new NonNullImmutableList<NameToken>() // We've just confirmed that there will be no UndeclaredVariablesAccessed references
             );
-            var translatedClassHeaderContent = TranslateClassHeader(classBlock, explicitVariableDeclarationsFromWithClass, indentationDepth);
+            var translatedClassHeaderContent = TranslateClassHeader(
+                classBlock,
+                scopeAccessInformation,
+                explicitVariableDeclarationsFromWithClass,
+                (classInitializeMethodIfAny == null) ? null : classInitializeMethodIfAny.Name,
+                (classTerminateMethodIfAny == null) ? null : classTerminateMethodIfAny.Name,
+                indentationDepth
+            );
             if (classContentTranslationResult.TranslatedStatements.Any())
                 translatedClassHeaderContent = translatedClassHeaderContent.Concat(new[] { new TranslatedStatement("", 0) });
 			return TranslationResult.Empty
@@ -105,11 +150,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 		private IEnumerable<TranslatedStatement> TranslateClassHeader(
             ClassBlock classBlock,
+            ScopeAccessInformation scopeAccessInformation,
             NonNullImmutableList<VariableDeclaration> explicitVariableDeclarationsFromWithinClass,
+            NameToken classInitializeMethodNameIfAny,
+            NameToken classTerminateMethodNameIfAny,
             int indentationDepth)
 		{
 			if (classBlock == null)
 				throw new ArgumentNullException("classBlock");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
             if (explicitVariableDeclarationsFromWithinClass == null)
                 throw new ArgumentNullException("explicitVariableDeclarationsFromWithClass");
 			if (indentationDepth < 0)
@@ -124,52 +174,125 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 inheritance = "";
 
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
-            return
-                new[]
+            TranslatedStatement classInitializeCallStatementsIfRequired;
+            if (classInitializeMethodNameIfAny == null)
+                classInitializeCallStatementsIfRequired = null;
+            else
+            {
+                // When Class_Initialize is called, it is treated as if ON ERROR RESUME NEXT is applied around the call - the first error will
+                // result in the method exiting, but the error won't be propagated up (so the caller will continue as if it hadn't happened).
+                // Wrapping the call in a try..catch simulates this behaviour (there is similar required for Class_Terminate).
+                classInitializeCallStatementsIfRequired = new TranslatedStatement(
+                    "try { " + _nameRewriter(classInitializeMethodNameIfAny).Name + "(); } catch { }",
+                    indentationDepth + 2
+                );
+            }
+            TranslatedStatement[] disposeImplementationStatements;
+            CSharpName disposedFlagNameIfAny;
+            string interfaceDeclaration;
+            if (classTerminateMethodNameIfAny == null)
+            {
+                disposeImplementationStatements = new TranslatedStatement[0];
+                disposedFlagNameIfAny = null;
+                interfaceDeclaration = "";
+            }
+            else
+            {
+                // If this class has a Clas_Terminate method, then the closest facsimile is a finalizer. However, in C# the garbage collector means
+                // that the execution of the finalizer is non-deterministic, while the VBScript interpreter's garbage collector resulted in these
+                // being executed predictably. In case a translated class requires this behaviour be maintained somehow, the best thing to do is
+                // to make the class implement IDisposable. Translated calling code will not know when to call Dispose on the classes written
+                // here, but if they are called from any other C# code written directly against the translated output, having the option of
+                // taking advantage of the IDisposable interface may be useful.
+                // - Note that when the finalizer is executed, the call to Dispose (which then calls the Class_Terminate method) is wrapped in
+                //   a try..catch for the same reason as the Class_Initialize call, as explained above
+                disposedFlagNameIfAny = _tempNameGenerator(new CSharpName("_disposed"), scopeAccessInformation);
+                disposeImplementationStatements = new[]
                 {
-                    new TranslatedStatement("[ComVisible(true)]", indentationDepth),
-                    new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
-                    new TranslatedStatement("public class " + className, indentationDepth),
-                    new TranslatedStatement("{", indentationDepth),
-                    new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
-                    new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
-                    new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1),
-                    new TranslatedStatement(
-                        string.Format(
-                            "public {0}({1} compatLayer, {2} env, {3} outer){4}",
-                            className,
-                            typeof(IProvideVBScriptCompatFunctionality).Name,
-                            _envClassName.Name,
-                            _outerClassName.Name,
-                            inheritance
-                        ),
-                        indentationDepth + 1
-                    ),
+                    new TranslatedStatement("~" + className + "()", indentationDepth + 1),
                     new TranslatedStatement("{", indentationDepth + 1),
-                    new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
-                    new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", indentationDepth + 3),
-                    new TranslatedStatement("if (env == null)", indentationDepth + 2),
-                    new TranslatedStatement("throw new ArgumentNullException(\"env\");", indentationDepth + 3),
-                    new TranslatedStatement("if (outer == null)", indentationDepth + 2),
-                    new TranslatedStatement("throw new ArgumentNullException(\"outer\");", indentationDepth + 3),
-                    new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
-                    new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
-                    new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2)
-                }
-                .Concat(
-                    explicitVariableDeclarationsFromWithinClass.Select(
-                        v => new TranslatedStatement(
-                            base.TranslateVariableInitialisation(v, ScopeLocationOptions.WithinClass),
-                            indentationDepth + 2
-                        )
+                    new TranslatedStatement("try { Dispose(false); } catch { }", indentationDepth + 2),
+                    new TranslatedStatement("}", indentationDepth + 1),
+                    new TranslatedStatement("", indentationDepth + 1),
+                    new TranslatedStatement("public void Dispose()", indentationDepth + 1),
+                    new TranslatedStatement("{", indentationDepth + 1),
+                    new TranslatedStatement("Dispose(true);", indentationDepth + 2),
+                    new TranslatedStatement("GC.SuppressFinalize(this);", indentationDepth + 2),
+                    new TranslatedStatement("}", indentationDepth + 1),
+                    new TranslatedStatement("", indentationDepth + 1),
+                    new TranslatedStatement("protected virtual void Dispose(bool disposing)", indentationDepth + 1),
+                    new TranslatedStatement("{", indentationDepth + 1),
+                    new TranslatedStatement("if (" + disposedFlagNameIfAny.Name + ")", indentationDepth + 2),
+                    new TranslatedStatement("return;", indentationDepth + 3),
+                    new TranslatedStatement("if (disposing)", indentationDepth + 2),
+                    new TranslatedStatement(_nameRewriter(classTerminateMethodNameIfAny).Name + "();", indentationDepth + 3),
+                    new TranslatedStatement(disposedFlagNameIfAny.Name + " = true;", indentationDepth + 2),
+                    new TranslatedStatement("}", indentationDepth + 1)
+                };
+                interfaceDeclaration = " : IDisposable";
+            }
+
+            var classHeaderStatements = new List<TranslatedStatement>
+            {
+                new TranslatedStatement("[ComVisible(true)]", indentationDepth),
+                new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
+                new TranslatedStatement("public class " + className + interfaceDeclaration, indentationDepth),
+                new TranslatedStatement("{", indentationDepth),
+                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1),
+            };
+            if (disposedFlagNameIfAny != null)
+            {
+                classHeaderStatements.Add(
+                    new TranslatedStatement("private bool " + disposedFlagNameIfAny.Name + " = false;", indentationDepth + 1)
+                );
+            }
+            classHeaderStatements.AddRange(new[] {
+                new TranslatedStatement(
+                    string.Format(
+                        "public {0}({1} compatLayer, {2} env, {3} outer){4}",
+                        className,
+                        typeof(IProvideVBScriptCompatFunctionality).Name,
+                        _envClassName.Name,
+                        _outerClassName.Name,
+                        inheritance
+                    ),
+                    indentationDepth + 1
+                ),
+                new TranslatedStatement("{", indentationDepth + 1),
+                new TranslatedStatement("if (compatLayer == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", indentationDepth + 3),
+                new TranslatedStatement("if (env == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(\"env\");", indentationDepth + 3),
+                new TranslatedStatement("if (outer == null)", indentationDepth + 2),
+                new TranslatedStatement("throw new ArgumentNullException(\"outer\");", indentationDepth + 3),
+                new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
+                new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
+                new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2)
+            });
+            if (classInitializeCallStatementsIfRequired != null)
+                classHeaderStatements.Add(classInitializeCallStatementsIfRequired);
+            classHeaderStatements.AddRange(
+                explicitVariableDeclarationsFromWithinClass.Select(
+                    v => new TranslatedStatement(
+                        base.TranslateVariableInitialisation(v, ScopeLocationOptions.WithinClass),
+                        indentationDepth + 2
                     )
                 )
-                .Concat(new[]
-                {
-                    new TranslatedStatement("}", indentationDepth + 1),
-                    new TranslatedStatement("", indentationDepth + 1)
-                })
-                .Concat(
+            );
+            classHeaderStatements.Add(
+                new TranslatedStatement("}", indentationDepth + 1)
+            );
+            if (disposeImplementationStatements.Any())
+            {
+                classHeaderStatements.Add(new TranslatedStatement("", indentationDepth + 1));
+                classHeaderStatements.AddRange(disposeImplementationStatements);
+            }
+            if (explicitVariableDeclarationsFromWithinClass.Any())
+            {
+                classHeaderStatements.Add(new TranslatedStatement("", indentationDepth + 1));
+                classHeaderStatements.AddRange(
                     explicitVariableDeclarationsFromWithinClass.Select(declaredVariableToInitialise =>
                         new TranslatedStatement(
                             string.Format(
@@ -181,6 +304,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         )
                     )
                 );
+            }
+            return classHeaderStatements;
 		}
 	}
 }
