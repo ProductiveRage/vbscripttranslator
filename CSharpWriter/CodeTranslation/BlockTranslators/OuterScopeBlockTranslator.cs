@@ -92,12 +92,26 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // Group the code blocks that need to be executed;
             Func<ICodeBlock, bool> isClassBlock = block => block is ClassBlock;
-            Func<ICodeBlock, bool> isFunctionBlock = block => block is FunctionBlock;
+            Func<ICodeBlock, bool> isFunctionBlock = block => block is AbstractFunctionBlock;
             var classBlocks = blocks.Where(isClassBlock);
-            var functionBlocks = blocks.Where(isFunctionBlock).Cast<FunctionBlock>();
-            foreach (var privateFunction in functionBlocks.Where(f => !f.IsPublic))
-                _logger.Warning("OuterScope function \"" + privateFunction.Name.Content + "\" is private, this is invalid and will be changed to public");
-            functionBlocks = functionBlocks.Select(f => new FunctionBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements)); // Force all OuterScope functions to be public
+            var functionBlocks = blocks.Where(isFunctionBlock).Cast<AbstractFunctionBlock>().Select(f =>
+            {
+                // Ensure that functions are in valid configurations - properties are not valid outside of classes and any non-public functions will
+                // be translated INTO public functions (since this there are no private external functions in VBScript)
+                if (f is PropertyBlock)
+                    throw new ArgumentException("Property encountered in OuterMostScope - these may only appear within classes: " + f.Name.Content);
+                if (!f.IsPublic)
+                {
+                    _logger.Warning("OuterScope function \"" + f.Name.Content + "\" is private, this is invalid and will be changed to public");
+                    if (f is FunctionBlock)
+                        return new FunctionBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements);
+                    else if (f is SubBlock)
+                        return new SubBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements);
+                    else
+                        throw new ArgumentException("Unsupported AbstractFunctionBlock type: " + f.GetType());
+                }
+                return f;
+            });
             var other = blocks.Where(block => !isClassBlock(block) && !isFunctionBlock(block));
 
             // TODO: The function and class (and any other) rearranging could be a problem with comments, try to do something about that?
