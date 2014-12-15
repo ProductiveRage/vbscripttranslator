@@ -259,7 +259,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (disposedFlagNameIfAny != null)
             {
                 classHeaderStatements.Add(
-                    new TranslatedStatement("private bool " + disposedFlagNameIfAny.Name + " = false;", indentationDepth + 1)
+                    new TranslatedStatement("private bool " + disposedFlagNameIfAny.Name + ";", indentationDepth + 1)
                 );
             }
             classHeaderStatements.AddRange(new[] {
@@ -285,6 +285,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
                 new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2)
             });
+            if (disposedFlagNameIfAny != null)
+            {
+                classHeaderStatements.Add(
+                    new TranslatedStatement("this." + disposedFlagNameIfAny.Name + " = false;", indentationDepth + 2)
+                );
+            }
             if (classInitializeCallStatementsIfRequired != null)
                 classHeaderStatements.Add(classInitializeCallStatementsIfRequired);
             classHeaderStatements.AddRange(
