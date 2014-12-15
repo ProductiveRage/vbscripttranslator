@@ -206,21 +206,26 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // taking advantage of the IDisposable interface may be useful.
                 // - Note that when the finalizer is executed, the call to Dispose (which then calls the Class_Terminate method) is wrapped in
                 //   a try..catch for the same reason as the Class_Initialize call, as explained above
+                // - Also note that IDisposable's public Dispose() method is explicitly implemented and that the method that this and the
+                //   finaliser call is named by "_tempNameGenerator" reference and that it is "private" instead of the more common (for
+                //   correct implementations of the disposable pattern) "protected virtual". This is explained below, where the class
+                //   header is generated.
                 disposedFlagNameIfAny = _tempNameGenerator(new CSharpName("_disposed"), scopeAccessInformation);
+                var disposeMethodName = _tempNameGenerator(new CSharpName("Dispose"), scopeAccessInformation);
                 disposeImplementationStatements = new[]
                 {
                     new TranslatedStatement("~" + className + "()", indentationDepth + 1),
                     new TranslatedStatement("{", indentationDepth + 1),
-                    new TranslatedStatement("try { Dispose(false); } catch { }", indentationDepth + 2),
+                    new TranslatedStatement("try { " + disposeMethodName.Name + "(false); } catch { }", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1),
                     new TranslatedStatement("", indentationDepth + 1),
-                    new TranslatedStatement("public void Dispose()", indentationDepth + 1),
+                    new TranslatedStatement("void IDisposable.Dispose()", indentationDepth + 1),
                     new TranslatedStatement("{", indentationDepth + 1),
-                    new TranslatedStatement("Dispose(true);", indentationDepth + 2),
+                    new TranslatedStatement(disposeMethodName.Name + "(true);", indentationDepth + 2),
                     new TranslatedStatement("GC.SuppressFinalize(this);", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1),
                     new TranslatedStatement("", indentationDepth + 1),
-                    new TranslatedStatement("protected virtual void Dispose(bool disposing)", indentationDepth + 1),
+                    new TranslatedStatement("private void " + disposeMethodName.Name + "(bool disposing)", indentationDepth + 1),
                     new TranslatedStatement("{", indentationDepth + 1),
                     new TranslatedStatement("if (" + disposedFlagNameIfAny.Name + ")", indentationDepth + 2),
                     new TranslatedStatement("return;", indentationDepth + 3),
@@ -232,11 +237,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 interfaceDeclaration = " : IDisposable";
             }
 
+            // The class is sealed to make the IDisposable implementation easier (where appropriate) - the recommended way to implement IDisposable
+            // is for there to be a "protected virtual void Dispose(bool disposing)" method, for use by the IDisposable's public Dispose() method,
+            // by the finaliser and by any derived types. However, there may be a "Dispose" method that comes from the VBScript source. We can work
+            // around this by explicitly implementating "IDisposable.Dispose" and by using the "_tempNameGenerator" reference to get a safe-to-use
+            // method name, for the boolean argument "Dispose" method - but then it won't follow the recommended pattern and be a method name
+            // "Dispose" that derived types can use. The easiest way around that is to make the classes sealed and then there are no derived
+            // types to worry about (this could be seen to be a limitation on the translated code, but since it's all being translated from
+            // VBScript where all types are dynamic, one class could just be swapped out for another entirely different one as long as it
+            // has the same methods and properties on it).
             var classHeaderStatements = new List<TranslatedStatement>
             {
                 new TranslatedStatement("[ComVisible(true)]", indentationDepth),
                 new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
-                new TranslatedStatement("public class " + className + interfaceDeclaration, indentationDepth),
+                new TranslatedStatement("public sealed class " + className + interfaceDeclaration, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
                 new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
                 new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
