@@ -20,7 +20,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = @"
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
-                _.STARTERRORTRAPPING(errOn1);
+                _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
                     _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
                 });
@@ -48,11 +48,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
                 _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
-                _.STARTERRORTRAPPING(errOn1);
+                _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
                     _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test2""));
                 });
-                _.STOPERRORTRAPPING(errOn1);
+                _.STOPERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test3""));
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);";
             Assert.Equal(
@@ -81,7 +81,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
                 if (_.IF(_.Constants.False))
                 {
-                    _.STARTERRORTRAPPING(errOn1);
+                    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 }
                 _.HANDLEERROR(errOn1, () => {
                     _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
@@ -105,7 +105,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = @"
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
-                _.STARTERRORTRAPPING(errOn1);
+                _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
                     _.CALL(_outer, ""func1"");
                 });
@@ -140,7 +140,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 {
                     object retVal1 = null;
                     var errOn2 = _.GETERRORTRAPPINGTOKEN();
-                    _.STARTERRORTRAPPING(errOn2);
+                    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
                     _.HANDLEERROR(errOn2, () => {
                         _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
                     });

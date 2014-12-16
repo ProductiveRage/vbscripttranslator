@@ -141,8 +141,8 @@ namespace CSharpSupport
         int GETERRORTRAPPINGTOKEN();
         void RELEASEERRORTRAPPINGTOKEN(int token);
 
-        void STARTERRORTRAPPING(int token);
-        void STOPERRORTRAPPING(int token);
+        void STARTERRORTRAPPINGANDCLEARANYERROR(int token);
+        void STOPERRORTRAPPINGANDCLEARANYERROR(int token);
         
         void HANDLEERROR(int token, Action action);
 

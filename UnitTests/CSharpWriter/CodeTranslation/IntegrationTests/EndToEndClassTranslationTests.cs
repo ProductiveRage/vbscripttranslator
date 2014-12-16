@@ -24,10 +24,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 [SourceClassName(""C1"")]
                 public sealed class c1
                 {
-                    private readonly IProvideVBScriptCompatFunctionality _;
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public c1(IProvideVBScriptCompatFunctionality compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -72,11 +72,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 [SourceClassName(""C1"")]
                 public sealed class c1 : IDisposable
                 {
-                    private readonly IProvideVBScriptCompatFunctionality _;
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
                     private bool _disposed1;
-                    public c1(IProvideVBScriptCompatFunctionality compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -141,10 +141,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 [SourceClassName(""C1"")]
                 public sealed class c1
                 {
-                    private readonly IProvideVBScriptCompatFunctionality _;
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public c1(IProvideVBScriptCompatFunctionality compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");

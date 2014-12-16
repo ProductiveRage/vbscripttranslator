@@ -111,7 +111,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = new[]
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
-                "_.STARTERRORTRAPPING(errOn1);",
+                "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "while (_.IF(() => _.IF(_.DIV(1, 0)), errOn1))",
                 "{",
                 "}",
@@ -134,7 +134,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = new[]
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
-                "_.STARTERRORTRAPPING(errOn1);",
+                "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "while (_.IF(() => !_.IF(_.DIV(1, 0)), errOn1))",
                 "{",
                 "}",

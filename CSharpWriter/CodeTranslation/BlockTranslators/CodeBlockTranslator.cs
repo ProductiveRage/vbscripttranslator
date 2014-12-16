@@ -461,19 +461,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentException("The ScopeAccessInformation's ErrorRegistrationTokenIfAny may not be null when the scope contains OnErrorResumeNext");
 
             // Note: Any time an "On Error Resume Next" statement is encountered, any current error information is cleared
-            return translationResult
-                .Add(new TranslatedStatement(
-                    _supportRefName.Name + ".CLEARANYERROR();",
-                    indentationDepth
-                ))
-                .Add(new TranslatedStatement(
-                    string.Format(
-                        "{0}.STARTERRORTRAPPING({1});",
-                        _supportRefName.Name,
-                        scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                    ),
-                    indentationDepth
-                ));
+            return translationResult.Add(new TranslatedStatement(
+                string.Format(
+                    "{0}.STARTERRORTRAPPINGANDCLEARANYERROR({1});",
+                    _supportRefName.Name,
+                    scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                ),
+                indentationDepth
+            ));
         }
 
         private TranslationResult TryToTranslateOnErrorGotoZero(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -482,23 +477,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (onErrorGotoZeroBlock == null)
                 return null;
 
-            // Any time an "On Error Goto 0" statement is encountered, any current error information is cleared
-            translationResult = translationResult.Add(new TranslatedStatement(
-                _supportRefName.Name + ".CLEARANYERROR();",
-                indentationDepth
-            ));
-
             // If this is a "On Error Goto 0" statement within a scope that does not contain an "On Error Resume Next" then it's redundant statement
-            // and can be ignored (other than clearing any error, which is dealt with above)
+            // and doesn't need to interact with the enable-disable-error-trapping-for-this-token logic, it only needs to clear any error
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
                 _logger.Warning("Ignoring ON ERROR GOTO 0 within a scope that contains no ON ERROR RESUME NEXT (line " + onErrorGotoZeroBlock.LineIndex + ")");
-                return translationResult;
+                return translationResult.Add(new TranslatedStatement(
+                    _supportRefName.Name + ".CLEARANYERROR();",
+                    indentationDepth
+                ));
             }
 
             return translationResult.Add(new TranslatedStatement(
                 string.Format(
-                    "{0}.STOPERRORTRAPPING({1});",
+                    "{0}.STOPERRORTRAPPINGANDCLEARANYERROR({1});",
                     _supportRefName.Name,
                     scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
                 ),

@@ -149,8 +149,8 @@ namespace Tester
         public int GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
         public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO
 
-        public void STARTERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
-        public void STOPERRORTRAPPING(int token) { throw new NotImplementedException(); } // TODO
+        public void STARTERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
+        public void STOPERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
 
         public void HANDLEERROR(int token, Action action) { throw new NotImplementedException(); } // TODO
 

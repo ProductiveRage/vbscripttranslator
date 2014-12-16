@@ -215,7 +215,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = new[]
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
-                "_.STARTERRORTRAPPING(errOn1);",
+                "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "double loopStart2 = 0, loopEnd3 = 0;",
                 "var loopConstraintsInitialised4 = false;",
                 "_.HANDLEERROR(errOn1, () => {",
@@ -260,7 +260,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = new[]
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
-                "_.STARTERRORTRAPPING(errOn1);",
+                "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "_.HANDLEERROR(errOn1, () => {",
                 "    for (_env.i = 1; _.NUM(_env.i) <= 10; _env.i = _.NUM(_env.i) + 1)",
                 "    {",
