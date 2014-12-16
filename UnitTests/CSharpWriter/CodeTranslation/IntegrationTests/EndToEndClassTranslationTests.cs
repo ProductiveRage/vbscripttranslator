@@ -35,9 +35,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             throw new ArgumentNullException(""env"");
                         if (outer == null)
                             throw new ArgumentNullException(""outer"");
-                        this._ = compatLayer;
-                        this._env = env;
-                        this._outer = outer;
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
                     }
 
                     public object name()
@@ -84,15 +84,19 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             throw new ArgumentNullException(""env"");
                         if (outer == null)
                             throw new ArgumentNullException(""outer"");
-                        this._ = compatLayer;
-                        this._env = env;
-                        this._outer = outer;
-                        this._disposed1 = false;
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                        _disposed1 = false;
                     }
 
                     ~c1()
                     {
-                        try { Dispose2(false); } catch { }
+                        try { Dispose2(false); }
+                        catch(Exception e)
+                        {
+                            try { _env.SETERROR(e); } catch { }
+                        }
                     }
 
                     void IDisposable.Dispose()
@@ -152,10 +156,14 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             throw new ArgumentNullException(""env"");
                         if (outer == null)
                             throw new ArgumentNullException(""outer"");
-                        this._ = compatLayer;
-                        this._env = env;
-                        this._outer = outer;
-                        try { class_initialize(); } catch { }
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                        try { class_initialize(); }
+                        catch(Exception e)
+                        {
+                            _env.SETERROR(e);
+                        }
                     }
 
                     public void class_initialize()

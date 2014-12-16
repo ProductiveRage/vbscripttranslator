@@ -136,7 +136,7 @@ namespace CSharpSupport
 		// TODO: Integration RANDOMIZE functionality
 
         void CLEARANYERROR();
-        void SETERROR(int number, string source, string description, bool raiseAsException);
+        void SETERROR(Exception e);
 
         int GETERRORTRAPPINGTOKEN();
         void RELEASEERRORTRAPPINGTOKEN(int token);

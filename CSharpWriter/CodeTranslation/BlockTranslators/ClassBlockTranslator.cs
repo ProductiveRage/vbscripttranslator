@@ -175,18 +175,24 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 inheritanceChainIfAny = "";
 
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
-            TranslatedStatement classInitializeCallStatementsIfRequired;
+            IEnumerable<TranslatedStatement> classInitializeCallStatements;
             if (classInitializeMethodNameIfAny == null)
-                classInitializeCallStatementsIfRequired = null;
+                classInitializeCallStatements = new TranslatedStatement[0];
             else
             {
                 // When Class_Initialize is called, it is treated as if ON ERROR RESUME NEXT is applied around the call - the first error will
                 // result in the method exiting, but the error won't be propagated up (so the caller will continue as if it hadn't happened).
                 // Wrapping the call in a try..catch simulates this behaviour (there is similar required for Class_Terminate).
-                classInitializeCallStatementsIfRequired = new TranslatedStatement(
-                    "try { " + _nameRewriter(classInitializeMethodNameIfAny).Name + "(); } catch { }",
-                    indentationDepth + 2
-                );
+                classInitializeCallStatements = new[] {
+                    new TranslatedStatement(
+                        "try { " + _nameRewriter(classInitializeMethodNameIfAny).Name + "(); }",
+                        indentationDepth + 2
+                    ),
+                    new TranslatedStatement("catch(Exception e)", indentationDepth + 2),
+                    new TranslatedStatement("{", indentationDepth + 2),
+                    new TranslatedStatement(_envRefName.Name + ".SETERROR(e);", indentationDepth + 3),
+                    new TranslatedStatement("}", indentationDepth + 2)
+                };
             }
             TranslatedStatement[] disposeImplementationStatements;
             CSharpName disposedFlagNameIfAny;
@@ -204,7 +210,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // here, but if they are called from any other C# code written directly against the translated output, having the option of
                 // taking advantage of the IDisposable interface may be useful.
                 // - Note that when the finalizer is executed, the call to Dispose (which then calls the Class_Terminate method) is wrapped in
-                //   a try..catch for the same reason as the Class_Initialize call, as explained above
+                //   a try..catch for the same reason as the Class_Initialize call, as explained above. The only difference is that here, when
+                //   we call _.SETERROR(e) there is - technically - a chance that the "_" reference will have been finalised. Managed references
+                //   should not be accessed in the finaliser if we're following the rules to the letter, but this entire structure around trying
+                //   to emulate Class_Terminate with a finaliser is a series of compromises, so this is the best we can do. The SETERROR call is
+                //   ALSO wrapped in a try..catch, just in case that reference really is no longer available.
                 // - Also note that IDisposable's public Dispose() method is explicitly implemented and that the method that this and the
                 //   finaliser call is named by "_tempNameGenerator" reference and that it is "private" instead of the more common (for
                 //   correct implementations of the disposable pattern) "protected virtual". This is explained below, where the class
@@ -215,7 +225,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 {
                     new TranslatedStatement("~" + className + "()", indentationDepth + 1),
                     new TranslatedStatement("{", indentationDepth + 1),
-                    new TranslatedStatement("try { " + disposeMethodName.Name + "(false); } catch { }", indentationDepth + 2),
+                    new TranslatedStatement("try { " + disposeMethodName.Name + "(false); }", indentationDepth + 2),
+                    new TranslatedStatement("catch(Exception e)", indentationDepth + 2),
+                    new TranslatedStatement("{", indentationDepth + 2),
+                    new TranslatedStatement("try { " + _envRefName.Name + ".SETERROR(e); } catch { }", indentationDepth + 3),
+                    new TranslatedStatement("}", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1),
                     new TranslatedStatement("", indentationDepth + 1),
                     new TranslatedStatement("void IDisposable.Dispose()", indentationDepth + 1),
@@ -283,18 +297,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 new TranslatedStatement("throw new ArgumentNullException(\"env\");", indentationDepth + 3),
                 new TranslatedStatement("if (outer == null)", indentationDepth + 2),
                 new TranslatedStatement("throw new ArgumentNullException(\"outer\");", indentationDepth + 3),
-                new TranslatedStatement("this." + _supportRefName.Name + " = compatLayer;", indentationDepth + 2),
-                new TranslatedStatement("this." + _envRefName.Name + " = env;", indentationDepth + 2),
-                new TranslatedStatement("this." + _outerRefName.Name + " = outer;", indentationDepth + 2)
+                new TranslatedStatement(_supportRefName.Name + " = compatLayer;", indentationDepth + 2),
+                new TranslatedStatement(_envRefName.Name + " = env;", indentationDepth + 2),
+                new TranslatedStatement(_outerRefName.Name + " = outer;", indentationDepth + 2)
             });
             if (disposedFlagNameIfAny != null)
             {
                 classHeaderStatements.Add(
-                    new TranslatedStatement("this." + disposedFlagNameIfAny.Name + " = false;", indentationDepth + 2)
+                    new TranslatedStatement(disposedFlagNameIfAny.Name + " = false;", indentationDepth + 2)
                 );
             }
-            if (classInitializeCallStatementsIfRequired != null)
-                classHeaderStatements.Add(classInitializeCallStatementsIfRequired);
+            classHeaderStatements.AddRange(classInitializeCallStatements);
             classHeaderStatements.AddRange(
                 explicitVariableDeclarationsFromWithinClass.Select(
                     v => new TranslatedStatement(

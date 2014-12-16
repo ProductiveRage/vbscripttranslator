@@ -144,7 +144,7 @@ namespace Tester
         }
 
         public void CLEARANYERROR() { } // TODO
-        public void SETERROR(int number, string source, string description, bool raiseAsException) { } // TODO
+        public void SETERROR(Exception e) { } // TODO
 
         public int GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
         public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO
