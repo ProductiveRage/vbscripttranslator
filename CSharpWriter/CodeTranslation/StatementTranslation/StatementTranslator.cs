@@ -420,7 +420,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (builtInFunctionToken == null)
                 throw new ArgumentNullException("builtInFunctionToken");
 
-            var supportFunction = typeof(IProvideVBScriptCompatFunctionality).GetMethod(
+            var supportFunction = typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).GetMethod(
                 builtInFunctionToken.Content,
                 BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
             );

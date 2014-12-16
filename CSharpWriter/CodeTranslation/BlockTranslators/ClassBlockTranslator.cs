@@ -166,12 +166,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             // C# doesn't support nameed indexed properties, so if there are any Get properties with a parameter or any Let/Set properties
-            // with multiple parameters (they need at least; the value to set) then we'll have to get creative
-            string inheritance;
+            // with multiple parameters (they need at least; the value to set) then we'll have to get creative - see notes in the
+            // TranslatedPropertyIReflectImplementation class
+            string inheritanceChainIfAny;
             if (classBlock.Statements.Where(s => s is PropertyBlock).Cast<PropertyBlock>().Any(p => p.IsPublic && p.IsIndexedProperty()))
-                inheritance = " : " + typeof(TranslatedPropertyIReflectImplementation).FullName;
+                inheritanceChainIfAny = " : " + typeof(TranslatedPropertyIReflectImplementation).FullName;
             else
-                inheritance = "";
+                inheritanceChainIfAny = "";
 
 			var className = _nameRewriter.GetMemberAccessTokenName(classBlock.Name);
             TranslatedStatement classInitializeCallStatementsIfRequired;
@@ -189,12 +190,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             TranslatedStatement[] disposeImplementationStatements;
             CSharpName disposedFlagNameIfAny;
-            string interfaceDeclaration;
             if (classTerminateMethodNameIfAny == null)
             {
                 disposeImplementationStatements = new TranslatedStatement[0];
                 disposedFlagNameIfAny = null;
-                interfaceDeclaration = "";
             }
             else
             {
@@ -234,7 +233,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement(disposedFlagNameIfAny.Name + " = true;", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1)
                 };
-                interfaceDeclaration = " : IDisposable";
+                if (inheritanceChainIfAny == "")
+                    inheritanceChainIfAny = " : ";
+                else
+                    inheritanceChainIfAny += ", ";
+                inheritanceChainIfAny += "IDisposable";
             }
 
             // The class is sealed to make the IDisposable implementation easier (where appropriate) - the recommended way to implement IDisposable
@@ -250,11 +253,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             {
                 new TranslatedStatement("[ComVisible(true)]", indentationDepth),
                 new TranslatedStatement("[SourceClassName(" + classBlock.Name.Content.ToLiteral() + ")]", indentationDepth),
-                new TranslatedStatement("public sealed class " + className + interfaceDeclaration, indentationDepth),
+                new TranslatedStatement("public sealed class " + className + inheritanceChainIfAny, indentationDepth),
                 new TranslatedStatement("{", indentationDepth),
-                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionality).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " " + _supportRefName.Name + ";", indentationDepth + 1),
                 new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", indentationDepth + 1),
-                new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1),
+                new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", indentationDepth + 1)
             };
             if (disposedFlagNameIfAny != null)
             {
@@ -265,12 +268,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             classHeaderStatements.AddRange(new[] {
                 new TranslatedStatement(
                     string.Format(
-                        "public {0}({1} compatLayer, {2} env, {3} outer){4}",
+                        "public {0}({1} compatLayer, {2} env, {3} outer)",
                         className,
-                        typeof(IProvideVBScriptCompatFunctionality).Name,
+                        typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name,
                         _envClassName.Name,
-                        _outerClassName.Name,
-                        inheritance
+                        _outerClassName.Name
                     ),
                     indentationDepth + 1
                 ),

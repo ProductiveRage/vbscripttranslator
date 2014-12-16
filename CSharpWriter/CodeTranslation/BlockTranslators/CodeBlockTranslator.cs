@@ -460,14 +460,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
                 throw new ArgumentException("The ScopeAccessInformation's ErrorRegistrationTokenIfAny may not be null when the scope contains OnErrorResumeNext");
 
-            return translationResult.Add(new TranslatedStatement(
-                string.Format(
-                    "{0}.STARTERRORTRAPPING({1});",
-                    _supportRefName.Name,
-                    scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                ),
-                indentationDepth
-            ));
+            // Note: Any time an "On Error Resume Next" statement is encountered, any current error information is cleared
+            return translationResult
+                .Add(new TranslatedStatement(
+                    _supportRefName.Name + ".CLEARANYERROR();",
+                    indentationDepth
+                ))
+                .Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}.STARTERRORTRAPPING({1});",
+                        _supportRefName.Name,
+                        scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                    ),
+                    indentationDepth
+                ));
         }
 
         private TranslationResult TryToTranslateOnErrorGotoZero(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
@@ -476,8 +482,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (onErrorGotoZeroBlock == null)
                 return null;
 
+            // Any time an "On Error Goto 0" statement is encountered, any current error information is cleared
+            translationResult = translationResult.Add(new TranslatedStatement(
+                _supportRefName.Name + ".CLEARANYERROR();",
+                indentationDepth
+            ));
+
             // If this is a "On Error Goto 0" statement within a scope that does not contain an "On Error Resume Next" then it's redundant statement
-            // and can be ignored
+            // and can be ignored (other than clearing any error, which is dealt with above)
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
                 _logger.Warning("Ignoring ON ERROR GOTO 0 within a scope that contains no ON ERROR RESUME NEXT (line " + onErrorGotoZeroBlock.LineIndex + ")");
@@ -692,7 +704,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
 			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
-		}
+        }
 
         private TranslationResult TryToTranslateStatementOrExpression(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{

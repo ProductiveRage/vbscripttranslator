@@ -3,7 +3,13 @@ using System.Collections.Generic;
 
 namespace CSharpSupport
 {
-	public interface IProvideVBScriptCompatFunctionality : IAccessValuesUsingVBScriptRules
+    /// <summary>
+    /// Note that the SETERROR and CLEARANYERROR methods in this class have no explicit way to be associated with a specific request, so there
+    /// should either be instances of implementations of this interface for each request (so that, in a very explicit manner, the error information
+    /// from one request can never spread over the error information from another request) or some sort of ThreadLocal or ThreadStatic trickery
+    /// may be required to separate this data.
+    /// </summary>
+	public interface IProvideVBScriptCompatFunctionalityToIndividualRequests : IAccessValuesUsingVBScriptRules
 	{
         // Arithemetic operators
         double POW(object l, object r);
@@ -128,6 +134,9 @@ namespace CSharpSupport
          */
 
 		// TODO: Integration RANDOMIZE functionality
+
+        void CLEARANYERROR();
+        void SETERROR(int number, string source, string description, bool raiseAsException);
 
         int GETERRORTRAPPINGTOKEN();
         void RELEASEERRORTRAPPINGTOKEN(int token);

@@ -9,7 +9,7 @@ namespace Tester
     /// This is intended to be built up over time and used with classes that are output by the translator. Clearly, at this point, it is noticeably lacking
     /// in working functionality, but it provides something, at least, to use to test the very simple programs that can be translated at this time.
     /// </summary>
-    public class PartialProvideVBScriptCompatFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionality
+    public class PartialProvideVBScriptCompatFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
         public PartialProvideVBScriptCompatFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter)
         {
@@ -142,6 +142,9 @@ namespace Tester
 
             throw new NotImplementedException(); // TODO
         }
+
+        public void CLEARANYERROR() { } // TODO
+        public void SETERROR(int number, string source, string description, bool raiseAsException) { } // TODO
 
         public int GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
         public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO

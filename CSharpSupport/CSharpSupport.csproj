@@ -49,7 +49,7 @@
     <Compile Include="Compat\TranslatedPropertyIReflectImplementation.cs" />
     <Compile Include="IProvideCallArguments.cs" />
     <Compile Include="VBScriptConstants.cs" />
-    <Compile Include="IProvideVBScriptCompatFunctionality.cs" />
+    <Compile Include="IProvideVBScriptCompatFunctionalityToIndividualRequests.cs" />
     <Compile Include="Attributes\IsDefault.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
