@@ -42,6 +42,7 @@
     <Compile Include="IBuildCallArgumentProviders_Extensions.cs" />
     <Compile Include="IBuildCallArgumentProviders.cs" />
     <Compile Include="Implementations\DefaultCallArgumentProvider.cs" />
+    <Compile Include="Implementations\DefaultRuntimeFunctionalityProvider.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />
     <Compile Include="Implementations\VBScriptEsqueValueRetriever.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules_Extensions.cs" />

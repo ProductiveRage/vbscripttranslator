@@ -3,15 +3,15 @@ using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;
 
-namespace Tester
+namespace CSharpSupport.Implementations
 {
     /// <summary>
     /// This is intended to be built up over time and used with classes that are output by the translator. Clearly, at this point, it is noticeably lacking
     /// in working functionality, but it provides something, at least, to use to test the very simple programs that can be translated at this time.
     /// </summary>
-    public class PartialProvideVBScriptCompatFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionalityToIndividualRequests
+    public class DefaultRuntimeFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
-        public PartialProvideVBScriptCompatFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter)
+        public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter)
         {
             Constants = new VBScriptConstants();
         }
@@ -143,6 +143,9 @@ namespace Tester
             throw new NotImplementedException(); // TODO
         }
 
+        // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
+        // - Should all "Type mismatch" errors thrown use a special exception that can be translated into the correct Err.Number??
+        
         public void CLEARANYERROR() { } // TODO
         public void SETERROR(Exception e) { } // TODO
 
