@@ -155,6 +155,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translatedStatements = translatedStatements.AddRange(new[]
                 {
                     new TranslatedStatement("using System;", 0),
+                    new TranslatedStatement("using System.Collections;", 0),
                     new TranslatedStatement("using System.Runtime.InteropServices;", 0),
                     new TranslatedStatement("using " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Namespace + ";", 0),
                     new TranslatedStatement("using " + typeof(SourceClassName).Namespace + ";", 0),
