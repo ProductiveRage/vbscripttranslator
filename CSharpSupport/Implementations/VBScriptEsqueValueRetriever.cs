@@ -104,6 +104,28 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.
+        /// Null (aka VBScript Empty) is acceptable and will result in null being returned. DBNull.Value (aka VBScript Null) is also acceptable and
+        /// will also result in itself being returned - this is the only case in which a non-null-and-non-string value will be returned. This
+        /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
+        /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
+        /// </summary>
+        public object STR(object o)
+        {
+            // Get the null-esque cases out of the way
+            if ((o == null) || (o == DBNull.Value))
+                return o;
+
+            // Try to extract the value-type data from the reference, dealing with the same null cases as above first
+            var value = VAL(o);
+            if ((value == null) || (value == DBNull.Value))
+                return value;
+
+            // Then we only need to call ToString (this, thankfully, works correctly for booleans - the casing is consistent between C# and VBScript)
+            return value.ToString();
+        }
+
+        /// <summary>
         /// Layer an enumerable wrapper over a reference, if possible (an exception will be thrown if not)
         /// </summary>
         public IEnumerable ENUMERABLE(object o)

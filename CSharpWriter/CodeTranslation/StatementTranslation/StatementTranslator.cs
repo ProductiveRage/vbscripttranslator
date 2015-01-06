@@ -137,20 +137,24 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var segmentLeft = segments[0];
             var segmentRight = segments[2];
-            bool mustConvertLeftValueToNumber, mustConvertRightValueToNumber;
+            bool mustConvertLeftValueToNumber, mustConvertRightValueToNumber, mustConvertLeftValueToString, mustConvertRightValueToString;
             if (operatorSegmentWithIndex.Segment.Token is ComparisonOperatorToken)
             {
                 // If the operator segment is a ComparisonOperatorToken (not a LogicalOperatorToken and not any other type of OperatorToken, such
                 // as an arithmetic operation or string concatenation) then there are special rules to apply if one side of the operation is known
                 // to be a constant at compile time - namely, the other side must be parseable as a numeric value otherwise a "Type mismatch" will
                 // be raised. If both sides of the operation are variables and one of them is a numeric value and the other a word, then the
-                // comparison will return false but it won't raise an error.
+                // comparison will return false but it won't raise an error. There is similar logic for string constants (but no equivalent
+                // for boolean constants).
+                // See http://blogs.msdn.com/b/ericlippert/archive/2004/07/30/202432.aspx for details about "hard types" that pertain to this
                 if ((segmentLeft is NumericValueExpressionSegment) && (segmentRight is NumericValueExpressionSegment))
                 {
                     // If both sides of an operation are numeric constants, then the comparison will be simple and not require any interfering in
                     // terms of casting values at this point
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
                 }
                 else if ((segmentLeft is NumericValueExpressionSegment) || (segmentRight is NumericValueExpressionSegment))
                 {
@@ -158,6 +162,33 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // a "Type mismatch" error should be raised; the statement "IF ("aa" > 0) THEN" will error, for example
                     mustConvertLeftValueToNumber = !(segmentLeft is NumericValueExpressionSegment);
                     mustConvertRightValueToNumber = !(segmentRight is NumericValueExpressionSegment);
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
+                }
+                else if ((segmentLeft is StringValueExpressionSegment) && (segmentRight is StringValueExpressionSegment))
+                {
+                    // If both sides of an operation are numeric constants, then the comparison will be simple and not require any interfering in
+                    // terms of casting values at this point
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
+                }
+                else if ((segmentLeft is StringValueExpressionSegment) || (segmentRight is StringValueExpressionSegment))
+                {
+                    // However, if one side of an operation is a string constant then the other side will be parsed as a string before the
+                    // comparison is made. This actually makes it more permissive, rather than more constricting (which the numeric value
+                    // coercing does). For example,
+                    //   If ("True" = true) Then
+                    // will match as the boolean true will be converted into the string "True" and this will match the constant. Unlike
+                    //   Dim vStringTrue: vStringTrue = "True"
+                    //   If (vStringTrue = true) Then
+                    // which will NOT match as the string value "True" does not match the boolean value true and the boolean value is not
+                    // converted into a string since there is no string constant in the statement.
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToString = !(segmentLeft is StringValueExpressionSegment);
+                    mustConvertRightValueToString = !(segmentRight is StringValueExpressionSegment);
                 }
                 else
                 {
@@ -165,19 +196,31 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // compared can be left up to the runtime comparison method implementation)
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
                 }
             }
             else
             {
                 mustConvertLeftValueToNumber = false;
                 mustConvertRightValueToNumber = false;
+                mustConvertLeftValueToString = false;
+                mustConvertRightValueToString = false;
             }
             var resultLeft = TranslateNonOperatorSegment(segmentLeft, scopeAccessInformation);
+            if (mustConvertLeftValueToNumber && mustConvertLeftValueToString)
+                throw new Exception("Something went wrong in the processing, both mustConvertLeftValueToNumber and mustConvertLeftValueToString are set for a comparison");
             if (mustConvertLeftValueToNumber)
                 resultLeft = WrapTranslatedResultInNumericCast(resultLeft);
+            else if (mustConvertLeftValueToString)
+                resultLeft = WrapTranslatedResultInStringConversion(resultLeft);
             var resultRight = TranslateNonOperatorSegment(segmentRight, scopeAccessInformation);
+            if (mustConvertRightValueToNumber && mustConvertRightValueToString)
+                throw new Exception("Something went wrong in the processing, both mustConvertRightValueToNumber and mustConvertRightValueToString are set for a comparison");
             if (mustConvertRightValueToNumber)
                 resultRight = WrapTranslatedResultInNumericCast(resultRight);
+            else if (mustConvertRightValueToString)
+                resultRight = WrapTranslatedResultInStringConversion(resultRight);
             return new TranslatedStatementContentDetails(
                 ApplyReturnTypeGuarantee(
 				    string.Format(
@@ -203,6 +246,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
                     "{0}.NUM({1})",
+                    _supportRefName.Name,
+                    translatedStatement.TranslatedContent
+                ),
+                ExpressionReturnTypeOptions.Value,
+                translatedStatement.VariablesAccessed
+            );
+        }
+
+        private TranslatedStatementContentDetailsWithContentType WrapTranslatedResultInStringConversion(TranslatedStatementContentDetailsWithContentType translatedStatement)
+        {
+            if (translatedStatement == null)
+                throw new ArgumentNullException("translatedStatement");
+
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
+                    "{0}.STR({1})",
                     _supportRefName.Name,
                     translatedStatement.TranslatedContent
                 ),
@@ -378,6 +437,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				}
 			}
 
+            // TODO: Add handling for BuiltInValueToken (ie. "Err" for "Err.Raise" calls - or "Err.Description" accesses?)
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
             if (targetBuiltInFunction != null)
             {

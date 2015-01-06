@@ -47,7 +47,16 @@ namespace CSharpSupport
         /// an object without an appropriate default property member) will.
         /// </summary>
         double NUM(object o);
-    
+
+        /// <summary>
+        /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.
+        /// Null (aka VBScript Empty) is acceptable and will result in null being returned. DBNull.Value (aka VBScript Null) is also acceptable and
+        /// will also result in itself being returned - this is the only case in which a non-null-and-non-string value will be returned. This
+        /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
+        /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
+        /// </summary>
+        object STR(object o);
+
         /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
         /// require a numeric value or null, otherwise an exception will be raised. Zero and null equate to false, non-zero numbers to true.
