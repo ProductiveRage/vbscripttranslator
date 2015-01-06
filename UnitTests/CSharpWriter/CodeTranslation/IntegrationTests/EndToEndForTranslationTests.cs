@@ -198,10 +198,14 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
         /// <summary>
         /// If there are non-compile-time-known-numeric-constant constraints and error-trapping may be enabled, then the constraints must be evaluated
-        /// first, and no further work undertaken if this fails. Then there must be error-trapping around the loop itself, so that if the termination
-        /// condition or loop-variable-addition/subtraction fails then the loop will terminate. Then there must be error-trapping around each statement
-        /// within the loop, so that if any one of them fails then the others may still be processed (if the error-trapping token is enabled at that
-        /// point during the runtime execution).
+        /// first. If these constraints are successfully evaluated, then the loop proceeds as would be expected, but there must be error-trapping around
+        /// the loop itself, so that if the termination condition or loop-variable-addition/subtraction fails then the loop will terminate. There must
+        /// also be error-trapping around each statement within the loop, so that if any one of them fails then the others may still be processed (if
+        /// the error-trapping token is enabled at that point during the runtime execution). HOWEVER, the craziest bit is that if evaluation of any
+        /// of the loop constraints fails then no further constraint evaluation will be attempted (they are processed in the order of From, To and
+        /// Step) but the loop WILL be executed once. For this iteration, the loop variable will not be altered (so it will be left as null in
+        /// this example, but if it had been set to "a" before the loop then it would remain set to "a") and neither the loop termination
+        /// condition nor the increment work will be attempted.
         /// </summary>
         [Fact]
         public void RuntimeVariableLoopBoundariesWithErrorTrapping()
@@ -223,14 +227,18 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "    loopEnd3 = _.NUM(_env.b);",
                 "    loopConstraintsInitialised4 = true;",
                 "});",
-                "if (loopConstraintsInitialised4 && (loopStart2 <= loopEnd3))",
+                "if (!loopConstraintsInitialised4 || (loopStart2 <= loopEnd3))",
                 "{",
                 "    _.HANDLEERROR(errOn1, () => {",
-                "        for (_env.i = loopStart2; _.NUM(_env.i) <= loopEnd3; _env.i = _.NUM(_env.i) + 1)",
+                "        for (_env.i = loopConstraintsInitialised4 ? loopStart2 : _env.i;",
+                "             !loopConstraintsInitialised4 || (_.NUM(_env.i) <= loopEnd3);",
+                "             _env.i = _.NUM(_env.i) + 1)",
                 "        {",
                 "            _.HANDLEERROR(errOn1, () => {",
                 "                _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
                 "            });",
+                "            if (!loopConstraintsInitialised4)",
+                "                break;",
                 "        }",
                 "    });",
                 "}",

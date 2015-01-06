@@ -46,6 +46,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // A note about ON ERROR RESUME NEXT and the intriguing behaviour it can introduce. The following will display "We're in the loop! i is Empty" -
+            //
+            //   On Error Resume Next
+            //   Dim i: For i = 1 To 1/0
+            //     WScript.Echo "We're in the loop! i is " & TypeName(i)
+            //   Next
+            //
+            // If error-trapping is enabled and one of the From, To or Step evaluation fails, no further constaints will be receive evaluation attempts but
+            // the loop WILL be entered.. once. Only once. And the loop variable will not be initialised when doing so (so, in the above example, it has
+            // the "Empty" value inside the loop - but if it had been set to "a" before the loop construct then it would still have value "a" within
+            // the loop).
+
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work.
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
@@ -269,12 +281,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            // If there are non-constant constraint(s) and error-trapping may be enabled, then ensure there is a guard clause that ensures that
-            // the constraints were successfully evalulated before considering entering the loop
+            // If there are non-constant constraint(s) and error-trapping is enabled and thee constraint evaluation fails, then VBScript will
+            // enter the loop once (only once, and it will not initialise the loop variable when doing so). In this case, we need to bypass
+            // the guard clause - it won't make sense anyway to compare loop constaints if we know that the constraint evaluation failed!
             if (constraintsInitialisedFlagNameIfAny != null)
             {
                 guardClause = string.Format(
-                    (guardClause == null) ? "({0})" : "({0} && {1})",
+                    (guardClause == null) ? "({0})" : "(!{0} || {1})",
                     constraintsInitialisedFlagNameIfAny.Name,
                     guardClause
                 );
@@ -337,6 +350,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     loopStep
                 );
             }
+            if (constraintsInitialisedFlagNameIfAny != null)
+            {
+                // If there is a chance that the constraint evaluation will fail but that processing may continue (ie. there's an ON ERROR RESUME NEXT
+                // in the current scope that may affect things) then the continuation condition gets a special condition that it will not be checked
+                // if the constraint evaluation did indeed fail. In such a case, VBScript will enter the loop once (without altering the loop variable
+                // value). To replicate this behaviour, if constraint evaluation fails then the loop WILL be entered once without the loop variable
+                // being altered and without the continuation condition being considered - instead, there is a "break" at the end of the loop which
+                // will be executed if the constraint evaluation failed, ensuring that the loop was indeed processed once, consistent with VBScript.
+                continuationCondition = string.Format(
+                    "!{0} || ({1})",
+                    constraintsInitialisedFlagNameIfAny.Name,
+                    continuationCondition
+                );
+            }
             string loopIncrementWithLeadingSpaceIfNonBlank;
             if ((numericLoopStepValueIfAny != null) && (numericLoopStepValueIfAny.Value == 0))
                 loopIncrementWithLeadingSpaceIfNonBlank = "";
@@ -350,16 +377,68 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     _supportRefName.Name
                 );
             }
-            translationResult = translationResult.Add(new TranslatedStatement(
-                string.Format(
-                    "for ({0} = {1}; {2};{3})",
+            string loopVarInitialiser;
+            if (constraintsInitialisedFlagNameIfAny == null)
+            {
+                loopVarInitialiser = string.Format(
+                    "{0} = {1}",
                     rewrittenLoopVariableName,
-                    loopStart,
-                    continuationCondition,
-                    loopIncrementWithLeadingSpaceIfNonBlank
-                ),
-                indentationDepth
-            ));
+                    loopStart
+                );
+            }
+            else
+            {
+                // If error-trapping is enabled and loop constaint evaluation fails, then the loop must be entered once but the loop variable's value may
+                // not be altered. This condition deals with that case; the loop variable is only set to the start value if all of the constraints were
+                // successfully initialised. Note that constraintsInitialisedFlagNameIfAny will only be non-null if error-trapping may take affect and
+                // if the loop constraints are not numeric constants known at translation time.
+                loopVarInitialiser = string.Format(
+                    "{0} = {1} ? {2} : {0}",
+                    rewrittenLoopVariableName,
+                    constraintsInitialisedFlagNameIfAny.Name,
+                    loopStart
+                );
+            }
+            if (constraintsInitialisedFlagNameIfAny == null)
+            {
+                // If there is no complicated were-loop-constraints-successfully-initialised logic to worry about (meaning that either error-trapping was
+                // not enabled or that all of the constraints were numeric constants), then render a nice and simple single-line loop construct.
+                // Note: There is not space before {2} so that if there is no loop increment required then the output doesn't look like it's missing
+                // something (this may be the case if the loop step is zero)
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "for ({0}; {1};{2})",
+                        loopVarInitialiser,
+                        continuationCondition,
+                        loopIncrementWithLeadingSpaceIfNonBlank
+                    ),
+                    indentationDepth
+                ));
+            }
+            else
+            {
+                // If there IS some possibility that loop constraint evaluation may fail at runtime, then the loop construct becomes much more complicated
+                // and so benefits from being broken over multiple lines. There is still a chance that the loop increment could be blank, so consider that
+                // and either break over two or three lines.
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "for ({0};",
+                        loopVarInitialiser
+                    ),
+                    indentationDepth
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    continuationCondition + ";" + ((loopIncrementWithLeadingSpaceIfNonBlank == "") ? ")" : ""),
+                    indentationDepth + 1
+                ));
+                if (loopIncrementWithLeadingSpaceIfNonBlank != "")
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        loopIncrementWithLeadingSpaceIfNonBlank.Trim() + ")",
+                        indentationDepth + 1
+                    ));
+                }
+            }
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
             var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forBlock, scopeAccessInformation);
             if (earlyExitNameIfAny != null)
@@ -372,6 +451,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             translationResult = translationResult.Add(
                 Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
             );
+            if (constraintsInitialisedFlagNameIfAny != null)
+            {
+                // If error-trapping is enabled and loop constaint evaluation failed, then the loop is entered once but the loop variable value is not
+                // altered and continuation criteria are never checked - instead, the loop exits after one pass in these circumstances
+                translationResult = translationResult
+                    .Add(new TranslatedStatement("if (!" + constraintsInitialisedFlagNameIfAny.Name + ")", indentationDepth + 1))
+                    .Add(new TranslatedStatement("break;", indentationDepth + 2));
+            }
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
             {
