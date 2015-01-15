@@ -408,7 +408,7 @@ namespace CSharpSupport.Implementations
                 ? GetDefaultGetMethods(targetType, argumentsArray.Length)
                 : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
             if (!possibleMethods.Any())
-                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription); // TODO: Throw Type Mismatch
 
             var method = possibleMethods.First();
             var targetParameter = Expression.Parameter(typeof(object), "target");
@@ -883,29 +883,83 @@ namespace CSharpSupport.Implementations
             if (numberOfArguments < 0)
                 throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
-            // Note: Considered filtering out methods that have a void ReturnType but then we wouldn't be able to call functions that originated from
-            // VBScript SUBSs, which would be a problem! Null will be returned if the method is successfully invoked, if the method's ReturnType is
-            // void. Valid source script would never try to access the value returned since a SUB never returns a value.
+            // There is some crazy behaviour around default member accesses when VBScript and COM are combined, which need to be reflected here. For
+            // example, if C# class is wrapped up as a COM object and consumed by VBScript and that class is decorated with ComVisible(true) and an
+            // unnamed parameter-less member access is made against that object - eg.
+            //
+            //   Set o = CreateObject("My.ComComponent")
+            //   If (o = "Test") Then
+            //    ' Something
+            //   End If
+            // 
+            // then various options are considered. If there is a method or property with DispId(0) then that is an obvious place to start, but an
+            // error will be raised if has arguments, since zero arguments are being passed in. Also, if multiple members are marked with DispId(0)
+            // then it doesn't know which to choose and they are all ignored. In this case, or the case of no DispId(0) members, there are further
+            // alternatives considered: If there is a method or property called "Value" with zero arguments then this will queried. If this is not
+            // available then the parameter-less "ToString" method will be called - but only if the type or one of its explicit base types declares
+            // ComVisible(true). All classes implicitly inherit the base type Object, which declares ComVisible(true), but if that is the only type
+            // in the inheritance tree that does then the "ToString" fallback is not considered. The "Value" property / method fallback is acceptable
+            // if it is on a type with ComVisible(false) so long as elsewhere in the inheritance tree there is a type other than Object which specifies
+            // ComVisible(true). This magic is actually something that happens when the class is exposed as COM and introduced by the C# compiler, it
+            // will set the ToString method to have DispId zero if nothing else does and if DispId(0) attributes are found for multiple methods (any-
+            // where in a type's inheritance tree) then it will also force the ToString method to have DispId zero (this is talked about in the book
+            // ".NET and COM: The Complete Interoperability Guide", though I'm yet to find a definitive reference for the default "Value" member
+            // assignment). Depending upon how the component is exposed when consumed through .net, none of this may be required - if we get true
+            // back when we call IDispatchAccess.ImplementsIDispatch(target) then IDispatch will be used to query the object and this code path
+            // will not be visited. This reflection-based approach is much more complex, but it allows us to cache a lambda for this particular
+            // member access on this target type, which means that we'll get some performance benefits if it's called many times. I fully suspect
+            // that, at this time, there are various scenarios which are not being handled correctly - I'm trying to cover the obvious cases that
+            // VBScript code would have to deal with and need to read ".NET and COM: The Complete Interoperability Guide" more thoroughly and try
+            // to apply all of that knowledge when I absorb it!
+            //
+            // One final thing to consider: these special cases should not apply to classes that were translated from VBScript source since these edge
+            // cases are something applied by the C# compiler and so would not have been applied to the original VBScript classes (if a VBScript class
+            // has no default method or property and is accessed in a manner as illustrated above, where the object reference needs to be processed as
+            // a value reference, then a Type Mismatch error would be raised - a parameter-less "Value" property would be no help if it wasn't explicitly
+            // declared to be default). Translated classes will have the "SourceClassName" attribute specifiede on them, which is what the following code
+            // uses to differentiate between translated classes and everything else.
+
+            // Try to locate methods and/or properties that meet the criteria; have the correct number of arguments and match the name or are default, if
+            // default member access is desired (dealing with the differing logic for translated-from-VBScript types and non-translated-from-VBScript).
             var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
-            return
-                type.GetMethods()
+            var typeWasTranslatedFromVBScript = TypeIsTranslatedFromVBScript(type);
+            var typeIsComVisible = TypeIsComVisible(type);
+            var typeHasAnyDispIdZeroMember = AnyDispIdZeroMemberExists(type);
+            var typeHasAmbiguousDispIdZeroMember = typeHasAnyDispIdZeroMember && DispIdZeroIsAmbiguous(type);
+            var allMethods = GetMethodsThatAreNotRelatedToProperties(type);
+            var applicableMethods = allMethods
                     .Where(m => nameMatcher(m.Name))
                     .Where(m => m.GetParameters().Length == numberOfArguments)
                     .Where(m =>
                         (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
-                        (m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
-                    )
-                .Concat(
-                    type.GetProperties()
-                        .Where(p => p.CanRead)
-                        .Where(p => nameMatcher(p.Name))
-                        .Where(p => p.GetIndexParameters().Length == numberOfArguments)
-                        .Where(p =>
-                            (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
-                            (p.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
-                        )
-                        .Select(p => p.GetGetMethod())
-                );
+                        (m.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
+                        (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(m))
+                    );
+            var readableProperties = type.GetProperties().Where(p => p.CanRead);
+            var applicableProperties = readableProperties
+                .Where(p => nameMatcher(p.Name))
+                .Where(p => p.GetIndexParameters().Length == numberOfArguments)
+                .Where(p =>
+                    (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
+                    (p.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
+                    (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(p))
+                )
+                .Select(p => p.GetGetMethod());
+
+            // If no matches were found and we're looking for a parameter-less default member access and the target type was not translated from VBScript
+            // source, then apply the other fallbacks that the C# compiler would have added to the IDispatch interface
+            var allOptions = applicableMethods.Concat(applicableProperties);
+            if (!allOptions.Any() && (defaultMemberBehaviour == DefaultMemberBehaviourOptions.MustBeDefault) && (numberOfArguments == 0) && !typeWasTranslatedFromVBScript && typeIsComVisible)
+            {
+                allOptions = allMethods.Where(m => !m.GetParameters().Any() && m.Name.Equals("Value", StringComparison.OrdinalIgnoreCase))
+                    .Concat(readableProperties.Where(p => !p.GetIndexParameters().Any() && p.Name.Equals("Value", StringComparison.OrdinalIgnoreCase)).Select(p => p.GetGetMethod()));
+                if (!allOptions.Any())
+                    allOptions = new[] { type.GetMethod("ToString", Type.EmptyTypes) };
+            }
+
+            // In the cases where multiple options are identified, sort by the most specific (members declared on the current type those declared further
+            // down in the inheritance tree)
+            return allOptions.OrderByDescending(m => GetMemberInheritanceDepth(m, type));
         }
 
         private IEnumerable<MethodInfo> GetSetMethods(
@@ -926,7 +980,7 @@ namespace CSharpSupport.Implementations
 
             var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
             return
-                type.GetMethods()
+                GetMethodsThatAreNotRelatedToProperties(type)
                     .Where(m => nameMatcher(m.Name))
                     .Where(m => m.GetParameters().Length == (numberOfArguments + 1)) // Method takes property arguments plus one for the value
                     .Where(m => m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is TranslatedProperty))
@@ -945,6 +999,30 @@ namespace CSharpSupport.Implementations
                         )
                         .Select(p => p.GetSetMethod())
                 );
+        }
+
+        private IEnumerable<MethodInfo> GetMethodsThatAreNotRelatedToProperties(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            return type.GetMethods() // This gets all public methods, whether they're declared in the specified type or anywhere in its inheritance tree
+                .Except(type.GetProperties().Where(p => p.CanRead).Select(p => p.GetGetMethod()))
+                .Except(type.GetProperties().Where(p => p.CanWrite).Select(p => p.GetSetMethod()));
+        }
+
+        private int GetMemberInheritanceDepth(MemberInfo memberInfo, Type type)
+        {
+            if (memberInfo == null)
+                throw new ArgumentNullException("memberInfo");
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            if (memberInfo.DeclaringType == type)
+                return 0;
+            if (type.BaseType == null)
+                throw new ArgumentException("memberInfo is not declared on type or anywhere in its inheritance tree");
+            return GetMemberInheritanceDepth(memberInfo, type.BaseType) + 1;
         }
 
         private Predicate<string> GetNameMatcher(string name, MemberNameMatchBehaviourOptions memberNameMatchBehaviour)
@@ -977,6 +1055,63 @@ namespace CSharpSupport.Implementations
             CaseInsensitive,
             Precise,
             UseNameRewriter
+        }
+
+        private bool TypeIsTranslatedFromVBScript(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            return type.GetCustomAttributes(typeof(SourceClassName), true).Any();
+        }
+
+        private bool TypeIsComVisible(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            // For a type to be considered ComVisible, there must be a ComVisible(true) attribute on it or one of its explicitly derived types, having it
+            // only on object (which everything implicitly derives from) is not sufficient since then everything would be ComVisible (since object has
+            // the ComVisible(true) attribute set)
+            if (type == typeof(object))
+                return false;
+
+            // We need to consider the ComVisible attributes on every class in the hierarchy (other than object - see above), so we specify inherit: false
+            // here and walk up the tree until we find a ComVisible(true) - any ComVisible(false) settings encountered can be ignored so long as one of
+            // the classes in the hierarchy has ComVisible(true).
+            if (type.GetCustomAttributes(typeof(ComVisibleAttribute), inherit: false).Cast<ComVisibleAttribute>().Any(a => a.Value))
+                return true;
+
+            if (type.BaseType == null)
+                return false;
+
+            return TypeIsComVisible(type.BaseType);
+        }
+
+        private bool MemberHasDispIdZero(MemberInfo memberInfo)
+        {
+            if (memberInfo == null)
+                throw new ArgumentNullException("memberInfo");
+
+            return memberInfo.GetCustomAttributes(typeof(DispIdAttribute), inherit: true)
+                .Cast<DispIdAttribute>()
+                .Any(attribute => attribute.Value == 0);
+        }
+
+        private bool AnyDispIdZeroMemberExists(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            return type.GetMembers().Any(m => MemberHasDispIdZero(m));
+        }
+
+        private bool DispIdZeroIsAmbiguous(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            return type.GetMembers().Count(m => MemberHasDispIdZero(m)) > 1;
         }
 
         /// <summary>
