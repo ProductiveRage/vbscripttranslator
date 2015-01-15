@@ -5,6 +5,10 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
+        // Note: There are a class of testst that are not present here - where one or both sides of the comparison are an object reference. In these cases, the EQ
+        // implementation on the DefaultRuntimeFunctionalityProvider class pushes these through the VAL method in order to extract a value for comparison (if this
+        // fails then a Type Mismatch error is raised). When values are present on both sides, the logic tested here is applied. The tests for the VAL method will
+        // cover the logic regarding this, we don't need to duplicate it here. The same goes for arrays - the VAL logic will handle it.
         public class EQ
         {
             [Fact]
@@ -157,9 +161,29 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 );
             }
 
-            // TODO: Strings vs booleans
+            [Fact]
+            public void NumericContentStringValueDoesNotEqualNumericValue()
+            {
+                // Recall that the VBScript expression ("12" = 12) will return true, but if v12String = "12" and v12 = 12 then (v12String = v12) will return
+                // false. For cases where string or number literals are present in the comparison, the translator must cast the other side so that they both
+                // are consistent but the EQ method does not have to deal with it - so, here, "12" does not equal 12.
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ("12", 12)
+                );
+            }
 
-            // TODO: Strings vs numbers
+            [Fact]
+            public void BooleanContentStringValueDoesNotEqualBooleanValue()
+            {
+                // See the note in NumericContentStringValueDoesNotEqualNumericValue about literals - the same applies here; while ("True" = True) will return
+                // true, if vTrueString = "True" and vTrue = True then (vTrueString = vTrue) return false and it is only this latter case that EQ must deal
+                // with, any special handling regarding literals must be dealt with by the translator before getting to EQ.
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ("True", true)
+                );
+            }
 
             [Fact]
             public void TrueDoesNotEqualEmpty()
@@ -194,48 +218,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 Assert.Equal(
                     DBNull.Value,
                     GetDefaultRuntimeFunctionalityProvider().EQ(false, DBNull.Value)
-                );
-            }
-
-            // TODO: Objects - with and without default members
-            // - ADODB.Field?
-            // - Does VBScript consider "Item" or "Value" as default even if not DispId zero? Is this only for non-VBScript-originating types>
-            // ********** Leave all of this to the VAL tests
-
-            [Fact]
-            public void DefaultMemberIsRequiredForPropertyReferences()
-            {
-                Assert.Throws<ArgumentException>(() =>
-                {
-                    GetDefaultRuntimeFunctionalityProvider().EQ(new object(), "Test");
-                });
-            }
-
-            [Fact]
-            public void IDispatchDefaultMemberIsAccessedOnPropertyReference()
-            {
-                dynamic recordset = Activator.CreateInstance(Type.GetTypeFromProgID("ADODB.Recordset"));
-                recordset.Fields.Append("Name", 200, 50, 4);
-                recordset.Open();
-                recordset.AddNew();
-                recordset.Fields["Name"].Value = "Test";
-                Assert.Equal(
-                    true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(recordset.Fields["Name"], "Test")
-                );
-            }
-
-            [Fact]
-            public void ImplicitNamedDefaultMemberIsAccessedOnPropertyReference()
-            {
-                dynamic recordset = Activator.CreateInstance(Type.GetTypeFromProgID("ADODB.Recordset"));
-                recordset.Fields.Append("Name", 200, 50, 4);
-                recordset.Open();
-                recordset.AddNew();
-                recordset.Fields["Name"].Value = "Test";
-                Assert.Equal(
-                    true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(recordset.Fields["Name"], "Test")
                 );
             }
         }

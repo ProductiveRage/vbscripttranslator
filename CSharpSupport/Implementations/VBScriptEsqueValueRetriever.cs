@@ -74,7 +74,7 @@ namespace CSharpSupport.Implementations
             if (o == null)
                 return 0;
             if (o == DBNull.Value)
-                throw new Exception("Invalid use of Null");
+                throw new ArgumentException("Invalid use of Null");
 
             // Now some other quick and easy (and common) ones (this method is used by the FOR translation so having this quick casts is helpful)
             if (o is bool)
@@ -101,6 +101,15 @@ namespace CSharpSupport.Implementations
             if (!double.TryParse(valueString, out parsedValue))
                 throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into a numeric values)");
             return parsedValue;
+        }
+
+        /// <summary>
+        /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned (it
+        /// is not a valid input for NUM).
+        /// </summary>
+        public object NULLABLENUM(object o)
+        {
+            return (o == DBNull.Value) ? DBNull.Value : (object)NUM(o);
         }
 
         /// <summary>

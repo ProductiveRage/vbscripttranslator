@@ -100,7 +100,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NUM(_env.i), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
                     "{",
                     "}"
                 };
@@ -172,7 +172,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NUM(_.Constants.False), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(_.Constants.False), 1)))",
                     "{",
                     "}"
                 };
@@ -220,7 +220,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NUM(_env.i), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
                     "{",
                     "}"
                 };
@@ -295,7 +295,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NUM(\"aa\"), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(\"aa\"), 1)))",
                     "{",
                     "}"
                 };

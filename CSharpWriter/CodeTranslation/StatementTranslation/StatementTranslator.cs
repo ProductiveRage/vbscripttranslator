@@ -243,9 +243,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (translatedStatement == null)
                 throw new ArgumentNullException("translatedStatement");
 
+            // Note: We have to use NULLABLENUM here rather than NUM since VBScript Null is acceptable in cases such as
+            //   If (Null = 1) Then
+            // but it is not in other cases where NUM must be used such as
+            //   For i = Null To 10
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
-                    "{0}.NUM({1})",
+                    "{0}.NULLABLENUM({1})",
                     _supportRefName.Name,
                     translatedStatement.TranslatedContent
                 ),

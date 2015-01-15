@@ -31,22 +31,22 @@ namespace CSharpSupport.Implementations
         // String concatenation
         public string CONCAT(object l, object r) { throw new NotImplementedException(); }
 
-        // Logical operators
-        public int NOT(object o) { throw new NotImplementedException(); }
-        public int AND(object l, object r) { throw new NotImplementedException(); }
-        public int OR(object l, object r) { throw new NotImplementedException(); }
-        public int XOR(object l, object r) { throw new NotImplementedException(); }
+        // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
+        public object NOT(object o) { throw new NotImplementedException(); }
+        public object AND(object l, object r) { throw new NotImplementedException(); }
+        public object OR(object l, object r) { throw new NotImplementedException(); }
+        public object XOR(object l, object r) { throw new NotImplementedException(); }
 
-        // Comparison operators
-        public int EQ(object l, object r) { throw new NotImplementedException(); }
-        public int NOTEQ(object l, object r) { throw new NotImplementedException(); }
-        public int LT(object l, object r) { throw new NotImplementedException(); }
-        public int GT(object l, object r) { throw new NotImplementedException(); }
-        public int LTE(object l, object r) { throw new NotImplementedException(); }
-        public int GTE(object l, object r) { throw new NotImplementedException(); }
-        public int IS(object l, object r) { throw new NotImplementedException(); }
-        public int EQV(object l, object r) { throw new NotImplementedException(); }
-        public int IMP(object l, object r) { throw new NotImplementedException(); }
+        // Comparison operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
+        public object EQ(object l, object r) { throw new NotImplementedException(); }
+        public object NOTEQ(object l, object r) { throw new NotImplementedException(); }
+        public object LT(object l, object r) { throw new NotImplementedException(); }
+        public object GT(object l, object r) { throw new NotImplementedException(); }
+        public object LTE(object l, object r) { throw new NotImplementedException(); }
+        public object GTE(object l, object r) { throw new NotImplementedException(); }
+        public object IS(object l, object r) { throw new NotImplementedException(); }
+        public object EQV(object l, object r) { throw new NotImplementedException(); }
+        public object IMP(object l, object r) { throw new NotImplementedException(); }
 
         // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple parameters and
         // overloads to deal with optional parameters)

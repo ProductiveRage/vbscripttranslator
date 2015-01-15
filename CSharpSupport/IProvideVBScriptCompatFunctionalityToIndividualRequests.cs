@@ -24,22 +24,48 @@ namespace CSharpSupport
         // String concatenation
         string CONCAT(object l, object r);
 
-        // Logical operators
-        int NOT(object o);
-        int AND(object l, object r);
-        int OR(object l, object r);
-        int XOR(object l, object r);
+        // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
+        object NOT(object o);
+        object AND(object l, object r);
+        object OR(object l, object r);
+        object XOR(object l, object r);
 
         // Comparison operators
-        int EQ(object l, object r);
-        int NOTEQ(object l, object r);
-        int LT(object l, object r);
-        int GT(object l, object r);
-        int LTE(object l, object r);
-        int GTE(object l, object r);
-        int IS(object l, object r);
-        int EQV(object l, object r);
-        int IMP(object l, object r);
+        // TODO: Document.. EQ performs equality checks between values but does not perform any type coercion in the comparison - so the string
+        // "1" and the number 1 are not considered equal. There are crazy rules about comparisons between "hard-typed" constants, but these must
+        // be handled elsewhere, EQ will not have any handling for it. Arguments will be forced into value types and the default values compared
+        // (if there is no default then an "Object doesn't support this property or method" error will the raised). Object equality may be
+        // performed using the IS method. EQ will return a boolean. When running scripts through CScript, WScript.Echo True will print
+        // out "-1" while WScript.Echo "" & True will print "True" - so it's not always obvious when True is being returned and the
+        // result shown, but it should be a boolean returned from EQ. In ASP, using Response.Write, "True" is always output, with
+        // or without string concatenation. Boolean equality checks do have some interesting logic, since all of the below are true:
+        //   v1 = True
+        //   v2 = -1
+        //   If (True = -1) Then
+        //   If (v1 = -1) Then
+        //   If (v1 = v2) Then
+        // The first two may be explained by the numeric constants, but there is no numeric constant in the third case - just a variable with a
+        // boolean value and a variable with a numeric value, but they are found to match.
+        // TODO: Ensure that Empty special cases are handled
+        //     Dim v1: v1 = "":     If (Empty = v1)    Then ' True
+        //                          If (Empty = 0)     Then ' True
+        //     Dim v2: v2 = 0:      If (Empty = v2)    Then ' True
+        //                          If (Empty = False) Then ' True
+        //     Dim v3: v3 = False:  If (Empty = v3)    Then ' True
+        // None of the above comparisons are true if Empty is replaced with Null  (these return VBScript Null if one or both sides of the comparison
+        // are VBScript Null)
+        object EQ(object l, object r);
+        object NOTEQ(object l, object r);
+        object LT(object l, object r);
+        object GT(object l, object r);
+        object LTE(object l, object r);
+        object GTE(object l, object r);
+        object IS(object l, object r);
+        object EQV(object l, object r);
+        object IMP(object l, object r);
+
+        // TODO: Add a NEW method so that instantiated objects can be tracked and disposed of at the end of the request? (Instead of new'ing them
+        // up directly in the translated code).
 
         // Array definitions - TODO: Note that dimensions may be an empty set for NEWARRAY (such that "Dim a()" creates an empty array), though
         // it is not permissible for RESIZEARRAY (since "ReDim b()" is not valid, nor is "ReDim b", there must be at least one dimension). If
