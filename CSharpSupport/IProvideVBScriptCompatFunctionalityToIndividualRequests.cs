@@ -170,6 +170,9 @@ namespace CSharpSupport
         void STARTERRORTRAPPINGANDCLEARANYERROR(int token);
         void STOPERRORTRAPPINGANDCLEARANYERROR(int token);
         
+        // If this allows an error to be raised (ie. the error token does not have error-trapping currently enabled) then the token is then implicitly
+        // released (so RELEASEERRORTRAPPINGTOKEN must be called at scope termination points if no errors occur or if they are all trapped, but if
+        // there is an early exit due to an error not being caught, then the token will still be released)
         void HANDLEERROR(int token, Action action);
 
         // The error-handling IF behaviour described below sounds unbelievable, but it's true as demonstrated by the script -
