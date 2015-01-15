@@ -39,6 +39,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTestsShared.cs" />
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_EQ.cs" />
     <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndForEachTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndFunctionTranslationTests.cs" />
