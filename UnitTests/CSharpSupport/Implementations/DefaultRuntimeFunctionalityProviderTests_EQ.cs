@@ -17,7 +17,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(1, null)
+                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, null)
                 );
             }
 
@@ -27,7 +27,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, null)
+                    GetDefaultRuntimeFunctionalityProvider().EQ(1, null)
                 );
             }
 
@@ -195,7 +195,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Fact]
-            public void FalseDoesNotEqualEmpty()
+            public void FalseEqualsEmpty()
             {
                 Assert.Equal(
                     true,
@@ -218,6 +218,26 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 Assert.Equal(
                     DBNull.Value,
                     GetDefaultRuntimeFunctionalityProvider().EQ(false, DBNull.Value)
+                );
+            }
+
+            [Fact]
+            public void TrueEqualsMinusOne()
+            {
+                // Dim vTrue, vMinusOne: vTrue = True: vMinusOne = -1: If (vTrue = vMinusOne) Then ' True
+                Assert.Equal(
+                    true,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(true, -1)
+                );
+            }
+
+            [Fact]
+            public void FalseEqualsZero()
+            {
+                // Dim vFalse, vZero: vFalse = False: vZero = 0: If (vFalse = vZero) Then ' True
+                Assert.Equal(
+                    true,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(false, 0)
                 );
             }
         }
