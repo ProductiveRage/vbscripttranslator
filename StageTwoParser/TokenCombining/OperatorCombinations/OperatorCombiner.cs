@@ -9,10 +9,11 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
     /// <summary>
     /// In VBScript, arbitrary runs of + and - operators are acceptable (this is not the case for any other operators). These can be condensed without
     /// changing the meaning. The most obvious is "1 + -1" which may become "1 - 1" but "1-+---+2" is allowable in VBScript but may be reduced to "1+2"
-    /// as the negative signs cancel each other out. There may still be some unnecessary "+" symbols are "1 / +2" is valid in VBScript, which may be
+    /// as the negative signs cancel each other out. There may still be some unnecessary "+" symbols as "1 / +2" is valid in VBScript, which may be
     /// reduced to "1 / 2". Note that "1 / -2" would not be altered (but the NumberRebuilder should be used to construct a NumericValueToken which
     /// incorporates both the "-" and the "2", leaving only a single operator; the "/"). This method is also responsible for combinination of
-    /// particular operators such as ">" and "=" becoming "=".
+    /// particular operators such as ">" and "=" becoming "=". The tokens must be passed through the NumberRebuilder before applying this
+    /// processing.
     /// </summary>
     public static class OperatorCombiner
     {
@@ -24,7 +25,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
             // Handle +/- sign combinations
             var additionSubtractionRewrittenTokens = new List<IToken>();
             var buffer = new List<OperatorToken>();
-            var previousToken = (IToken)null;
+            var previousTokenIfAny = (IToken)null;
             foreach (var token in tokens)
             {
                 if (token == null)
@@ -33,26 +34,51 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                 var combinableOperator = TryToGetAsAdditionOrSubtractionToken(token);
                 if (combinableOperator == null)
                 {
+                    var bufferHadContentThatWasReducedToNothing = false;
                     if (buffer.Any())
                     {
                         var condensedToken = CondenseNegations(buffer);
-                        if (!IsTokenRedundant(condensedToken, previousToken))
+                        if (IsTokenRedundant(condensedToken, previousTokenIfAny))
                         {
                             // If this is a "+" and the last token was an OperatorToken, then this one is redundant (eg. "1 * +1")
-                            additionSubtractionRewrittenTokens.Add(condensedToken);
+                            bufferHadContentThatWasReducedToNothing = true;
                         }
+                        else
+                            additionSubtractionRewrittenTokens.Add(condensedToken);
                         buffer.Clear();
                     }
+
+                    // When a minus-sign/addition-sign buffer is flattened and can be reduced to nothing, if the next token is a numeric value then we
+                    // need to apply a bit of a dirty hack since VBScript gives numeric literals special treatment in some cases but does not consider
+                    // --1 to be a numeric literal (for example). So we can not replace --1 with 1 since it would change the meaning of some code. To
+                    // illustrate, consider the following:
+                    //   If ("a" = 1) Then
+                    //   If ("a" = --1) Then
+                    //   If ("a" = +-1) Then
+                    // The first example will result in a Type Mismatch since the numeric literal forces the "a" to be parsed as a number (which fails).
+                    // However, the second and third examples return false since their right hand side values are not considered to be numeric literals
+                    // and so the left hand sides need not be parsed as numeric values. The workaround is to identify these situations and to wrap the
+                    // number if a CSng call. This will not affect the numeric value but it will prevent it from being identified as a numeric literal
+                    // later on (this is important to the StatementTranslator).
+                    var wrapTokenInCSngCall = bufferHadContentThatWasReducedToNothing && (token is NumericValueToken);
+                    if (wrapTokenInCSngCall)
+                    {
+                        additionSubtractionRewrittenTokens.Add(new BuiltInFunctionToken("CSng", token.LineIndex));
+                        additionSubtractionRewrittenTokens.Add(new OpenBrace(token.LineIndex));
+                    }
                     additionSubtractionRewrittenTokens.Add(token);
-                    previousToken = token;
+                    if (wrapTokenInCSngCall)
+                        additionSubtractionRewrittenTokens.Add(new CloseBrace(token.LineIndex));
+                    previousTokenIfAny = token;
                 }
                 else
                     buffer.Add(combinableOperator);
             }
             if (buffer.Any())
             {
+                // Note: We don't need to copy all of the logic from above - in fact we can't, since we don't have a current token reference
                 var condensedToken = CondenseNegations(buffer);
-                if (!IsTokenRedundant(condensedToken, previousToken))
+                if (!IsTokenRedundant(condensedToken, previousTokenIfAny))
                     additionSubtractionRewrittenTokens.Add(condensedToken);
             }
 

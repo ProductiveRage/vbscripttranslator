@@ -92,7 +92,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             /// if one side is a number.
             /// </summary>
             [Fact]
-            public void NumericConstantComparedToVariableRequiresTheVariableBeParsedToNumber()
+            public void NonNegativeNumericConstantComparedToVariableRequiresTheVariableBeParsedToNumber()
             {
                 var source = @"
 			        If (i = 1) Then
@@ -101,6 +101,28 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var expected = new[]
                 {
                     "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
+                    "{",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// Negative numbers are not considered to be numeric literals, they do not get the special treatment
+            /// </summary>
+            [Fact]
+            public void NegativeNumericConstantsDoNotGetSpecialTreatment()
+            {
+                var source = @"
+			        If (i = -1) Then
+			        End If
+                ";
+                var expected = new[]
+                {
+                    "if (_.IF(_.EQ(_env.i, -1)))",
                     "{",
                     "}"
                 };
@@ -221,6 +243,55 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var expected = new[]
                 {
                     "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
+                    "{",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// If a numeric value has TWO minus signs then you might think that they would cancel out and it be left as a positive numeric literal,
+            /// to be processed as such. This is not the case, the minus signs prevent it from being categorised as a literal. The OperatorCombiner
+            /// class that will remove those double negatives but, if they are followed by a numeric constant, will wrap that constant in a CSng
+            /// call so that it is obvious that it is not a literal.
+            /// </summary>
+            [Fact]
+            public void DoubleNegativesAreRemovedButCanPreventsNumericLiteralSpecialBehaviour()
+            {
+                var source = @"
+			        If (""12"" = --12) Then
+			        End If
+                ";
+                var expected = new[]
+                {
+                    "if (_.IF(_.EQ(\"12\", _.STR(_.CALL(_, \"CSNG\", _.ARGS.Val(12))))))",
+                    "{",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// This is extremely similar to DoubleNegativesAreRemovedButCanPreventsNumericLiteralSpecialBehaviour except that it is a single plus
+            /// sign that is removed rather than double minus sign. Both have no effect on the value itself, but they do affect whether or not it
+            /// is treated as a literal (it is not).
+            /// </summary>
+            [Fact]
+            public void PlusSignBeforeNumberPreventsNumericLiteralSpecialBehaviour()
+            {
+                var source = @"
+			        If (""12"" = +12) Then
+			        End If
+                ";
+                var expected = new[]
+                {
+                    "if (_.IF(_.EQ(\"12\", _.STR(_.CALL(_, \"CSNG\", _.ARGS.Val(12))))))",
                     "{",
                     "}"
                 };

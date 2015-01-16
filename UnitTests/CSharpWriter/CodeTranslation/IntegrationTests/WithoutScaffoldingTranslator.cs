@@ -111,7 +111,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     atomTokens.Add(token);
             }
 
-            return NumberRebuilder.Rebuild(OperatorCombiner.Combine(atomTokens)).ToList();
+            // Note the NumberRebuilder must process the tokens before the OperatorCombiner
+            return OperatorCombiner.Combine(NumberRebuilder.Rebuild(atomTokens)).ToList();
         }
     }
 }

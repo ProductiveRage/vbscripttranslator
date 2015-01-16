@@ -147,7 +147,21 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // comparison will return false but it won't raise an error. There is similar logic for string constants (but no equivalent
                 // for boolean constants).
                 // See http://blogs.msdn.com/b/ericlippert/archive/2004/07/30/202432.aspx for details about "hard types" that pertain to this
-                if ((segmentLeft is NumericValueExpressionSegment) && (segmentRight is NumericValueExpressionSegment))
+                // - Update: This only applies to numeric values if they are non-negative. It also doesn't apply if they WOULD be non-negative
+                //   if multiple negative signs were remove - eg. the following conditions do NOT count as containing numeric literals:
+                //     If ("a" = -1) Then
+                //     If ("a" = --1) Then
+                //     If ("a" = +1) Then
+                //   The first is a negative number, the second looks like it could be considered to be a positive number but the VBScript
+                //   interpreter will not cancel out those double negative signs and still consider it a literal. When source content is
+                //   being parsed, this must be considered (currently the OperatorCombiner will replace --1 with CSng(1) so that it's
+                //   obvious to the processing here that it should not be a numeric literal - if it replaced --1 with 1 then it WOULD
+                //   look like a numeric literal here and there would be an inconsistency with the VBScript interpreter).
+                var segmentLeftAsNumericValue = segmentLeft as NumericValueExpressionSegment;
+                var segmentRightAsNumericValue = segmentRight as NumericValueExpressionSegment;
+                var segmentLeftIsNonNegativeNumericValue = (segmentLeftAsNumericValue != null) && (segmentLeftAsNumericValue.Token.Value >= 0);
+                var segmentRightIsNonNegativeNumericValue = (segmentRightAsNumericValue != null) && (segmentRightAsNumericValue.Token.Value >= 0);
+                if ((segmentLeftAsNumericValue != null) && (segmentRightAsNumericValue != null))
                 {
                     // If both sides of an operation are numeric constants, then the comparison will be simple and not require any interfering in
                     // terms of casting values at this point
@@ -156,12 +170,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
-                else if ((segmentLeft is NumericValueExpressionSegment) || (segmentRight is NumericValueExpressionSegment))
+                else if (segmentLeftIsNonNegativeNumericValue || segmentRightIsNonNegativeNumericValue)
                 {
                     // However, if one side of an operation is a numeric constant, then the other side must be parseable as a number - otherwise
                     // a "Type mismatch" error should be raised; the statement "IF ("aa" > 0) THEN" will error, for example
-                    mustConvertLeftValueToNumber = !(segmentLeft is NumericValueExpressionSegment);
-                    mustConvertRightValueToNumber = !(segmentRight is NumericValueExpressionSegment);
+                    mustConvertLeftValueToNumber = !segmentLeftIsNonNegativeNumericValue;
+                    mustConvertRightValueToNumber = !segmentRightIsNonNegativeNumericValue;
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
@@ -568,6 +582,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         );
                         if (argumentsArray.Any())
                         {
+                            // TODO: Can we add support to call builtin functions directly, if the argument counts match and all arguments on the
+                            // builtin function are type "object"? This would tidy up the CSng hack around numeric literals.
                             memberCallContent.Append(", ");
                             memberCallContent.Append(_supportRefName.Name);
                             memberCallContent.Append(".ARGS");
