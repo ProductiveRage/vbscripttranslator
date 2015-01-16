@@ -38,6 +38,14 @@ namespace CSharpSupport.Implementations
         public object XOR(object l, object r) { throw new NotImplementedException(); }
 
         // Comparison operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
+        /// <summary>
+        /// This will return DBNull.Value or boolean value. VBScript has rules about comparisons between "hard-typed" values (aka literals), such
+        /// that a comparison between (a = 1) requires that the value "a" be parsed into a numeric value (resulting in a Type Mismatch if this is
+        /// not possible). However, this logic must be handled by the translation process before the EQ method is called. Both comparison values
+        /// must be treated as non-object-references, so if they are not when passed in then the method will try to retrieve non-object values
+        /// from them - if this fails then a Type Mismatch error will be raised. If there are no issues in preparing both comparison values,
+        /// this will return DBNull.Value if either value is DBNull.Value and a boolean otherwise.
+        /// </summary>
         public object EQ(object l, object r) { throw new NotImplementedException(); }
         public object NOTEQ(object l, object r) { throw new NotImplementedException(); }
         public object LT(object l, object r) { throw new NotImplementedException(); }
