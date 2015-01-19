@@ -59,7 +59,9 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                     // However, the second and third examples return false since their right hand side values are not considered to be numeric literals
                     // and so the left hand sides need not be parsed as numeric values. The workaround is to identify these situations and to wrap the
                     // number if a CSng call. This will not affect the numeric value but it will prevent it from being identified as a numeric literal
-                    // later on (this is important to the StatementTranslator).
+                    // later on (this is important to the StatementTranslator).Note: This is why the NumberRebuilder must have done its work before
+					// we get here, since ++1.2 must be recognised as "+", "+", "1.2" so that it can be translated into "CSng(1.2)", rather than
+					// still being "+", "+", "1", ".", "2", which would translated into "CSng(1).2", which would be invalid.
                     var wrapTokenInCSngCall = bufferHadContentThatWasReducedToNothing && (token is NumericValueToken);
                     if (wrapTokenInCSngCall)
                     {
