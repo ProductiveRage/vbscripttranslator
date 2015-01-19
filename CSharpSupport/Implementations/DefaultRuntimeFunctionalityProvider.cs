@@ -53,7 +53,7 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value; // If one or both sides of the comparison are "Null" then this is what is returned
             if ((l == null) && (r == null))
                 return true; // If both sides are Empty then they are considered to match
-            if ((l == null) || (r == null))
+            else if ((l == null) || (r == null))
             {
                 // The default values of VBScript primitives (number, strings and booleans) are considered to match Empty
                 var nonNullValue = l ?? r;
@@ -61,6 +61,7 @@ namespace CSharpSupport.Implementations
                 || ((nonNullValue as string) == "")
                 || ((nonNullValue is bool) && !(bool)nonNullValue))
                     return true;
+                return false;
             }
 
             // Booleans have some funny behaviour in that they will match values of other types (numbers, but not strings unless string literals
