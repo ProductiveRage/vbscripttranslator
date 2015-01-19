@@ -102,7 +102,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public class CaseBlockExpressionSegment : CaseBlockSegment
         {
             private readonly List<Expression> _values;
-            private readonly List<ICodeBlock> _statements;
             public CaseBlockExpressionSegment(IEnumerable<Expression> values, IEnumerable<ICodeBlock> statements) : base(statements)
             {
                 if (values == null)
