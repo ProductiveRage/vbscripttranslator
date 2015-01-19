@@ -138,7 +138,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, true)
+                    GetDefaultRuntimeFunctionalityProvider().EQ(-1.1, true)
                 );
             }
 
@@ -147,7 +147,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, false)
+                    GetDefaultRuntimeFunctionalityProvider().EQ(-1.1, false)
                 );
             }
 
@@ -184,6 +184,24 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 Assert.Equal(
                     DBNull.Value,
                     GetDefaultRuntimeFunctionalityProvider().EQ("", DBNull.Value)
+                );
+            }
+
+            [Fact]
+            public void EmptyStringDoesNotEqualsTrue()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ("", true)
+                );
+            }
+
+            [Fact]
+            public void EmptyStringDoesNotEqualsFalse()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ("", false)
                 );
             }
 
@@ -272,6 +290,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 Assert.Equal(
                     true,
                     GetDefaultRuntimeFunctionalityProvider().EQ(true, -1)
+                );
+            }
+
+            [Fact]
+            public void TrueEqualsDoubleMinusOne()
+            {
+                Assert.Equal(
+                    true,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(true, -1.0d)
                 );
             }
 

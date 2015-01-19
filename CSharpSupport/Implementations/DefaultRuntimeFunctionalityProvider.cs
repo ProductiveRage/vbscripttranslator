@@ -41,7 +41,73 @@ namespace CSharpSupport.Implementations
         /// from them - if this fails then a Type Mismatch error will be raised. If there are no issues in preparing both comparison values,
         /// this will return DBNull.Value if either value is DBNull.Value and a boolean otherwise.
         /// </summary>
-        public object EQ(object l, object r) { throw new NotImplementedException(); }
+        public object EQ(object l, object r)
+        {
+            // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
+            // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
+            l = VAL(l);
+            r = VAL(r);
+            
+            // Let's get the outliers out of the way; VBScript Null and Empty..
+            if ((l == DBNull.Value) || (r == DBNull.Value))
+                return DBNull.Value; // If one or both sides of the comparison are "Null" then this is what is returned
+            if ((l == null) && (r == null))
+                return true; // If both sides are Empty then they are considered to match
+            if ((l == null) || (r == null))
+            {
+                // The default values of VBScript primitives (number, strings and booleans) are considered to match Empty
+                var nonNullValue = l ?? r;
+                if ((IsNumericType(nonNullValue) && (Convert.ToDouble(nonNullValue)) == 0)
+                || ((nonNullValue as string) == "")
+                || ((nonNullValue is bool) && !(bool)nonNullValue))
+                    return true;
+            }
+
+            // Booleans have some funny behaviour in that they will match values of other types (numbers, but not strings unless string literals
+            // are in the comparison, which is not logic that this method has to deal with). If one of the values is a boolean and the other isn't,
+            // and none of the special cases are met, then there must not be a match.
+            if ((l is bool) && (r is bool))
+                return (bool)l == (bool)r;
+            else if ((l is bool) || (r is bool))
+            {
+                var boolValue = (bool)((l is bool) ? l : r);
+                var nonBoolValue = (l is bool) ? r : l;
+                if (!IsNumericType(nonBoolValue))
+                    return false;
+                return (boolValue && (Convert.ToDouble(nonBoolValue) == -1)) || (!boolValue && (Convert.ToDouble(nonBoolValue) == 0));
+            }
+
+            // Now consider numbers on one or both sides - all special cases are out of the way now so they're either equal or they're not (both
+            // sides must be numbers, otherwise it's a non-match)
+            if (IsNumericType(l) && IsNumericType(r))
+                return Convert.ToDouble(l) == Convert.ToDouble(r);
+            else if (IsNumericType(l) || IsNumericType(r))
+                return false;
+
+            // Now do the same for strings and then dates - same deal; they must have consistent types AND values
+            if ((l is string) && (r is string))
+                return (string)l == (string)r;
+            else if ((l is string) || (r is string))
+                return false;
+            if ((l is DateTime) && (r is DateTime))
+                return (DateTime)l == (DateTime)r;
+
+            // Frankly, if we get here then I have no idea what's happened. It will be much easier to identify issues (if any are encountered) if an
+            // exception is raised rather than a false response return
+            throw new NotSupportedException("Don't know how to compare values of type " + l.GetType() + " and " + r.GetType());
+        }
+
+        private bool IsNumericType(object l)
+        {
+            if (l == null)
+                return false;
+            if (l.GetType().IsEnum)
+                return true;
+            return
+                (l is int) || (l is byte) || (l is char) || (l is decimal) || (l is double) || (l is float) || (l is int) ||
+                (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
+        }
+
         public object NOTEQ(object l, object r) { throw new NotImplementedException(); }
         public object LT(object l, object r) { throw new NotImplementedException(); }
         public object GT(object l, object r) { throw new NotImplementedException(); }
