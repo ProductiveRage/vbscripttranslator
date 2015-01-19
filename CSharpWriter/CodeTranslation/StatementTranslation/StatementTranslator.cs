@@ -459,9 +459,43 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
             if (targetBuiltInFunction != null)
             {
-                var nameOfSupportFunction = GetNameForBuiltInFunction(targetBuiltInFunction);
-                var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(nameOfSupportFunction, targetBuiltInFunction.LineIndex) }
+                var supportFunctionDetails = GetDetailsOfBuiltInFunction(targetBuiltInFunction, callExpressionSegment.Arguments.Count());
+                var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.Name, targetBuiltInFunction.LineIndex) }
                     .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
+
+                // If the call expression is a single-argument call to "CSng" and the argument is a numeric literal, we can skip the call entirely. We could
+                // do similar for other functions (and this may happen in the future), but CSng jumps out at me due to the hack in the OperatorCombiner, where
+                // CSng calls are injected into source code for cases where what appear to be number literals must not be treated as number literals (see that
+                // class for more details).
+                if (supportFunctionDetails.Name.Equals("CSng", StringComparison.OrdinalIgnoreCase))
+                {
+                    if ((callExpressionSegment.Arguments.Count() == 1) && (callExpressionSegment.Arguments.Single().Segments.Count() == 1))
+                    {
+                        var singleArgumentSegment = callExpressionSegment.Arguments.Single().Segments.Single();
+                        var singleArgumentSegmentAsNumericValue = singleArgumentSegment as NumericValueExpressionSegment;
+                        if (singleArgumentSegmentAsNumericValue != null)
+                        {
+                            return new TranslatedStatementContentDetailsWithContentType(
+                                singleArgumentSegmentAsNumericValue.Token.Content,
+                                ExpressionReturnTypeOptions.Value,
+                                new NonNullImmutableList<NameToken>()
+                            );
+                        }
+                    }
+                }
+
+                // If supportFunctionDetails.DesiredNumberOfArgumentsMatchedAgainst is not null then there is a support function that has the same number of
+                // arguments as this callExpressionSegment, all of which as not output parameters and not ref parameters and all of which are of type "object".
+                // This means that we can express this more directly, without relying upon an "argument provider" - eg.
+                //   _.CDate(value)
+                // instead of
+                //   _.CALL(_, "CDate", _.ARGS.VAL(value))
+                // If these conditions are not met then we have to use the argument provider - if, for example, the support function requires a string parameter
+                // then we can't be sure that the argument we have at this point is a string. If there is no support function that matches the segment's number
+                // of arguments then this must fail at runtime, not compile time, and so the "CALL" method approach is required.
+                if (supportFunctionDetails.DesiredNumberOfArgumentsMatchedAgainst != null)
+                    return TranslateAsDirectSupportFunctionCall(supportFunctionDetails.Name, callExpressionSegment.Arguments, scopeAccessInformation);
+
                 return TranslateCallExpressionSegment(
                     _supportRefName.Name,
                     rewrittenMemberAccessTokens,
@@ -493,18 +527,38 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             return result;
         }
 
-        private string GetNameForBuiltInFunction(BuiltInFunctionToken builtInFunctionToken)
+        /// <summary>
+        /// This will try to return information about a built in function that matches the name of the specified builtInFunctionToken. It will also try to match
+        /// a method signature that has parameters that are all of type object and that are not out or ref - if it identifies such a signature where the number
+        /// of these paramaters matches the specified desiredNumberOfArguments, then the return value will have a DesiredNumberOfArgumentsMatchedAgainst value
+        /// that is consistent with desiredNumberOfArguments, otherwise it will be null. This information affects how the support function may be called.
+        /// </summary>
+        private BuiltInFunctionDetails GetDetailsOfBuiltInFunction(BuiltInFunctionToken builtInFunctionToken, int desiredNumberOfArguments)
         {
             if (builtInFunctionToken == null)
                 throw new ArgumentNullException("builtInFunctionToken");
+            if (desiredNumberOfArguments < 0)
+                throw new ArgumentOutOfRangeException("desiredNumberOfArguments", "may not be a negative value");
 
-            var supportFunction = typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).GetMethod(
-                builtInFunctionToken.Content,
-                BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
-            );
-            if (supportFunction == null)
+            var supportFunctionMatches = typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests)
+                .GetMethods(BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name.Equals(builtInFunctionToken.Content, StringComparison.OrdinalIgnoreCase));
+            if (!supportFunctionMatches.Any())
                 throw new NotSupportedException("Unsupported BuiltInFunctionToken content: " + builtInFunctionToken.Content);
-            return supportFunction.Name;
+
+            var idealMatch = supportFunctionMatches
+                .Where(m => m.GetParameters().All(p => !p.IsOut && !p.ParameterType.IsByRef && p.ParameterType == typeof(object)))
+                .FirstOrDefault(m => m.GetParameters().Length == desiredNumberOfArguments);
+            if (idealMatch != null)
+            {
+                // If location a support function with the desired number of arguments (in the correct format; "in only" and type "object") then return a
+                // BuiltInFunctionDetails with the name from that match (just in case the case of the function name varies - the match above is case insensitive)
+                return new BuiltInFunctionDetails(idealMatch.Name, desiredNumberOfArguments);
+            }
+            // If a match was found for the name but not the desired number of arguments then return a result with null "desiredNumberOfArgumentsMatchedAgainst"
+            // value (it doesn't matter which of the names we select - for cases where they vary by case, which is not expected but not impossible - so just
+            // return the first matched support function name)
+            return new BuiltInFunctionDetails(supportFunctionMatches.First().Name, null);
         }
 
         private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
@@ -582,8 +636,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         );
                         if (argumentsArray.Any())
                         {
-                            // TODO: Can we add support to call builtin functions directly, if the argument counts match and all arguments on the
-                            // builtin function are type "object"? This would tidy up the CSng hack around numeric literals.
                             memberCallContent.Append(", ");
                             memberCallContent.Append(_supportRefName.Name);
                             memberCallContent.Append(".ARGS");
@@ -730,6 +782,57 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
             return new TranslatedStatementContentDetails(
                 argumentProviderContent.ToString(),
+                variablesAccessed
+            );
+        }
+
+        /// <summary>
+        /// If a call expression is for a support function and all of the arguments are of type object and none of them are out or ref arguments, and the number
+        /// of arguments in a call expression matches the signature of the support function, then the support function can be called directly instead of going
+        /// thorough a CALL execution. This makes the output code less verbose. If there is no matching signature then CALL must be used so that the argument
+        /// mismatch becomes a runtime error, rather than compile time (since that's what VBScript does).
+        /// </summary>
+        private TranslatedStatementContentDetailsWithContentType TranslateAsDirectSupportFunctionCall(
+            string functionName,
+            IEnumerable<Expression> argumentValues,
+            ScopeAccessInformation scopeAccessInformation)
+        {
+            if (string.IsNullOrWhiteSpace(functionName))
+                throw new ArgumentOutOfRangeException("Null/blank functionName specified");
+            if (argumentValues == null)
+                throw new ArgumentNullException("argumentValues");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var variablesAccessed = new NonNullImmutableList<NameToken>();
+            var supportFunctionCallContent = new StringBuilder();
+            supportFunctionCallContent.Append(_supportRefName.Name);
+            supportFunctionCallContent.Append(".");
+            supportFunctionCallContent.Append(functionName);
+            supportFunctionCallContent.Append("(");
+            foreach (var indexedArgumentValue in argumentValues.Select((arg, index) => new { Argument = arg, Index = index }))
+            {
+                var argumentValue = indexedArgumentValue.Argument;
+                if (argumentValue == null)
+                    throw new ArgumentException("Null reference encountered in argumentValues set");
+
+                if (indexedArgumentValue.Index > 0)
+                    supportFunctionCallContent.Append(", ");
+
+                var argumentContent = Translate(
+                    argumentValue,
+                    scopeAccessInformation,
+                    ExpressionReturnTypeOptions.NotSpecified
+                );
+                supportFunctionCallContent.Append(argumentContent.TranslatedContent);
+                variablesAccessed = variablesAccessed.AddRange(
+                    argumentContent.VariablesAccessed
+                );
+            }
+            supportFunctionCallContent.Append(")");
+            return new TranslatedStatementContentDetailsWithContentType(
+                supportFunctionCallContent.ToString(),
+                ExpressionReturnTypeOptions.NotSpecified,
                 variablesAccessed
             );
         }
@@ -1222,6 +1325,31 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             /// This will never be null
             /// </summary>
             public ExpressionReturnTypeOptions ContentType { get; private set; }
+        }
+
+        private class BuiltInFunctionDetails
+        {
+            public BuiltInFunctionDetails(string name, int? desiredNumberOfArgumentsMatchedAgainst)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                    throw new ArgumentException("Null/blank name specified");
+
+                Name = name;
+                DesiredNumberOfArgumentsMatchedAgainst = desiredNumberOfArgumentsMatchedAgainst;
+            }
+
+            /// <summary>
+            /// This will never be null or blank
+            /// </summary>
+            public string Name { get; private set; }
+
+            /// <summary>
+            /// If details of this function were requested with a desired number of parameters to match, then this will be that number if it was possible
+            /// to location a support function with the requested name and that number of parameters so long as every parameter was "in only" (not "out"
+            /// and not "ref") and of type object. If a function with the requested name was available but not with the desired number of parameters,
+            /// this will be null.
+            /// </summary>
+            public int? DesiredNumberOfArgumentsMatchedAgainst { get; private set; }
         }
     }
 }
