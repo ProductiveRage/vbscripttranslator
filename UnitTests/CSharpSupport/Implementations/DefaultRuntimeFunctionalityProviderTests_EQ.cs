@@ -311,6 +311,77 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     GetDefaultRuntimeFunctionalityProvider().EQ(false, 0)
                 );
             }
+
+            [Fact]
+            public void DateComparedToNullIsNull()
+            {
+                Assert.Equal(
+                    DBNull.Value,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(new DateTime(2015, 1, 19, 22, 52, 0), DBNull.Value)
+                );
+            }
+
+            [Fact]
+            public void NonZeroDateDoesNotEqualEmpty()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(new DateTime(2015, 1, 19, 22, 52, 0), null)
+                );
+            }
+
+            /// <summary>
+            /// The ZeroDate is returned from DateSerial(0, 0, 0) and could feasibly be found to match Empty since the sort-of zero values for booleans,
+            /// numbers and strings match Empty. However, this is not the case.
+            /// </summary>
+            [Fact]
+            public void ZeroDateDoesNotEqualEmpty()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, null)
+                );
+            }
+
+            /// <summary>
+            /// This is explains similar logic to ZeroDateDoesNotEqualEmpty - should the minimum value that VBScript can describe (which is potentially
+            /// consider zero to its internals) be found to equal Empty? No, it should not.
+            /// </summary>
+            [Fact]
+            public void EarliestPossibleDateDoesNotEqualEmpty()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.EarliestPossibleDate, null)
+                );
+            }
+
+            [Fact]
+            public void ZeroDateDoesNotEqualFalse()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, false)
+                );
+            }
+
+            [Fact]
+            public void ZeroDateDoesNotEqualZero()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, 0)
+                );
+            }
+
+            [Fact]
+            public void ZeroDateDoesNotEqualEmptyString()
+            {
+                Assert.Equal(
+                    false,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, "")
+                );
+            }
         }
     }
 }
