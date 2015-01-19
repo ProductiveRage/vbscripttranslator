@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CSharpSupport;
+using CSharpSupport.Exceptions;
+using System;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -11,6 +13,48 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         // cover the logic regarding this, we don't need to duplicate it here. The same goes for arrays - the VAL logic will handle it.
         public class EQ
         {
+            [Fact]
+            public void EmptyEqualsEmpty()
+            {
+                Assert.Equal(
+                    true,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(null, null)
+                );
+            }
+
+            [Fact]
+            public void NullComparedToNullIsNull()
+            {
+                Assert.Equal(
+                    DBNull.Value,
+                    GetDefaultRuntimeFunctionalityProvider().EQ(DBNull.Value, DBNull.Value)
+                );
+            }
+
+            /// <summary>
+            /// Anything compared to Nothing will error, this is just an example case to illustrate that (if ANYTHING would get a free pass it would be DBNull.Value
+            /// but not even it does)
+            /// </summary>
+            [Fact]
+            public void NullComparedToNothingErrors()
+            {
+                var nothing = VBScriptConstants.Nothing;
+                Assert.Throws<ObjectVariableNotSetException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().EQ(DBNull.Value, nothing);
+                });
+            }
+
+            [Fact]
+            public void NothingComparedToNothingErrors()
+            {
+                var nothing = VBScriptConstants.Nothing;
+                Assert.Throws<ObjectVariableNotSetException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().EQ(nothing, nothing);
+                });
+            }
+
             [Fact]
             public void MinusOneDoesNotEqualEmpty()
             {
