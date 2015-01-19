@@ -385,7 +385,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 			{
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
-						"{0}.Constants.Nothing",
+                        "VBScriptConstants.Nothing",
 						_supportRefName.Name
 					),
 					ExpressionReturnTypeOptions.Reference,
@@ -402,7 +402,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 				throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
 			return new TranslatedStatementContentDetailsWithContentType(
 				string.Format(
-					"{0}.Constants.{1}",
+                    "VBScriptConstants.{1}",
 					_supportRefName.Name,
 					constantProperty.Name
 				),

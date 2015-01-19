@@ -79,7 +79,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = @"
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
-                if (_.IF(_.Constants.False))
+                if (_.IF(VBScriptConstants.False))
                 {
                     _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 }

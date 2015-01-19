@@ -11,12 +11,7 @@ namespace CSharpSupport.Implementations
     /// </summary>
     public class DefaultRuntimeFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
-        public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter)
-        {
-            Constants = new VBScriptConstants();
-        }
-
-        public VBScriptConstants Constants { get; private set; }
+        public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter) { }
 
         // Arithemetic operators
         public double POW(object l, object r) { throw new NotImplementedException(); }

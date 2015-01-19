@@ -179,7 +179,5 @@ namespace CSharpSupport
         /// as true, since this is VBScript's behaviour. It will throw an exception for a null valueEvaluator or an invalid errorToken.
         /// </summary>
         bool IF(Func<object> valueEvaluator, int errorToken);
-
-        VBScriptConstants Constants { get; }
     }
 }

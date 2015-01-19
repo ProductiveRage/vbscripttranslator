@@ -76,7 +76,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "public object f1()",
                 "{",
-                "    return _.Constants.Nothing;",
+                "    return VBScriptConstants.Nothing;",
                 "}"
             };
             Assert.Equal(
