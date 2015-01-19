@@ -1,4 +1,5 @@
 ﻿using CSharpSupport.Attributes;
+using CSharpSupport.Exceptions;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -39,6 +40,10 @@ namespace CSharpSupport.Implementations
             if (IsVBScriptValueType(o))
                 return o;
 
+            // Note: The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the
+            // implementation details of DispatchWrapper, so we need to perform the check in the following manner:
+            if ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null)
+                throw new ObjectVariableNotSetException();
             if (o == null)
                 throw new Exception("Object expected (failed trying to extract value type data from null reference)");
 
@@ -1128,7 +1133,7 @@ namespace CSharpSupport.Implementations
         /// </summary>
         private bool IsVBScriptValueType(object o)
         {
-            return ((o == null) || (o is ValueType) || (o is string));
+            return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string));
         }
 
         private sealed class InvokerCacheKey
