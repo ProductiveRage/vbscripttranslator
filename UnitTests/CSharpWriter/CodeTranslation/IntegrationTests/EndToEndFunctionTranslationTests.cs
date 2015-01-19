@@ -24,7 +24,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "public object f1()",
                 "{",
                 "    // Test simple-return-format functions",
-                "    return _.VAL(_.CALL(_, \"CDATE\", _.ARGS.Val(\"2007-04-01\")));",
+                "    return _.VAL(_.CDATE(\"2007-04-01\"));",
                 "}"
             };
             Assert.Equal(

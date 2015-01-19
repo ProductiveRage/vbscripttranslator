@@ -120,7 +120,7 @@ namespace CSharpSupport
         DateTime DATE();
         DateTime TIME();
         object DATEADD(object value);
-        object DATESERIAL(object value);
+        object DATESERIAL(object year, object month, object date);
         object DATEVALUE(object value);
         object TIMESERIAL(object value);
         object TIMEVALUE(object value);

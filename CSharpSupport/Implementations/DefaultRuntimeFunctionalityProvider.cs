@@ -113,7 +113,7 @@ namespace CSharpSupport.Implementations
         public DateTime DATE() { throw new NotImplementedException(); }
         public DateTime TIME() { throw new NotImplementedException(); }
         public object DATEADD(object value) { throw new NotImplementedException(); }
-        public object DATESERIAL(object value) { throw new NotImplementedException(); }
+        public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
         public object DATEVALUE(object value) { throw new NotImplementedException(); }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
         public object TIMEVALUE(object value) { throw new NotImplementedException(); }

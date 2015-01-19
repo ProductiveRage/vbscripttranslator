@@ -267,7 +267,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR(_.CALL(_, \"CSNG\", _.ARGS.Val(12))))))",
+                    "if (_.IF(_.EQ(\"12\", _.STR(12))))",
                     "{",
                     "}"
                 };
@@ -291,7 +291,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR(_.CALL(_, \"CSNG\", _.ARGS.Val(12))))))",
+                    "if (_.IF(_.EQ(\"12\", _.STR(12))))",
                     "{",
                     "}"
                 };

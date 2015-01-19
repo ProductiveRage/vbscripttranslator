@@ -179,12 +179,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         }
 
         [Fact]
-        public void BuiltInFunctionsNeedToBeMappedToFunctionsOnTheCompatSupportClassAndSpecifyAllArgumentsAsByVal()
+        public void BuiltInFunctionsAreMappedToTheSupportClassAndMayBeCalledDirectlyIfArgumentCountsMatch()
         {
-            // CDate(..) needs to be mapped to _.CDATE(..) and all arguments passed as ByVal, since no VBScript built-in functions manipulate the argument values.
-            // The use of an IProvideCallArguments implementation is still required to pass the arguments, though, since an incorrect number of arguments would
-            // result in a compile error in the translated C# code but would be a runtime error (which could be skipped over with ON ERROR RESUME NEXT) in
-            // VBScript.
+            // CDate(..) needs to be mapped to _.CDATE(..) - this may be called directly if the correct number of arguments are specified. If an incorrect number
+            // of arguments is passed then the support function must be executed via the "CALL" method (so that the error arises at runtime, rather than compile
+            // time, in order to be consistent with VBScript), see BuiltInFunctionsAreMappedToTheSupportClassButMayNotBeCalledDirectlyIfArgumentCountsMatch.
             var expressionToSet = new Expression(new IToken[]
 			{
                 new NameToken("a", 0)
@@ -197,8 +196,44 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new CloseBrace(0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_env.a = _.VAL(_.CALL(_, \"CDATE\", _.ARGS.Val(_env.a)))",
+                "_env.a = _.VAL(_.CDATE(_env.a))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
+            );
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
+            var actual = GetDefaultValueSettingStatementTranslator().Translate(
+                new ValueSettingStatement(
+                    expressionToSet,
+                    expressionToSetTo,
+                    ValueSettingStatement.ValueSetTypeOptions.Let
+                ),
+                scopeAccessInformation
+            );
+            Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
+        [Fact]
+        public void BuiltInFunctionsAreMappedToTheSupportClassButMayNotBeCalledDirectlyIfArgumentCountsMatch()
+        {
+            // This is a complement to BuiltInFunctionsAreMappedToTheSupportClassAndMayBeCalledDirectlyIfArgumentCountsMatch, where an incorrect number of
+            // arguments is being passed to a support function. As such, it may not be called directly and must pass through the "CALL" method, so that the
+            // mistake becomes a runtime error rather than compile time. On the plus side, all of the support functions may be called with ByVal parameters,
+            // so the translated code is slightly more succinct that it would be if they had to support ByRef.
+            var expressionToSet = new Expression(new IToken[]
+			{
+                new NameToken("a", 0)
+			});
+            var expressionToSetTo = new Expression(new IToken[]
+			{
+                new BuiltInFunctionToken("CDate", 0),
+                new OpenBrace(0),
+                new NameToken("a", 0),
+                new ArgumentSeparatorToken(",", 0),
+                new NameToken("b", 0),
+                new CloseBrace(0)
+			});
+            var expected = new TranslatedStatementContentDetails(
+                "_env.a = _.VAL(_.CALL(_, \"CDATE\", _.ARGS.Val(_env.a).Val(_env.b)))",
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0), new NameToken("b", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
             var actual = GetDefaultValueSettingStatementTranslator().Translate(
