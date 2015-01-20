@@ -44,7 +44,8 @@ namespace CSharpSupport.Implementations
         /// from them - if this fails then a Type Mismatch error will be raised. If there are no issues in preparing both comparison values,
         /// this will return DBNull.Value if either value is DBNull.Value and a boolean otherwise.
         /// </summary>
-        public object EQ(object l, object r)
+        public object EQ(object l, object r) { return ToVBScriptNullableBool(EQ_Internal(l, r)); }
+        private bool? EQ_Internal(object l, object r)
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
             // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
@@ -53,7 +54,7 @@ namespace CSharpSupport.Implementations
             
             // Let's get the outliers out of the way; VBScript Null and Empty..
             if ((l == DBNull.Value) || (r == DBNull.Value))
-                return DBNull.Value; // If one or both sides of the comparison are "Null" then this is what is returned
+                return null; // If one or both sides of the comparison are "Null" then this is what is returned
             if ((l == null) && (r == null))
                 return true; // If both sides are Empty then they are considered to match
             else if ((l == null) || (r == null))
@@ -114,27 +115,17 @@ namespace CSharpSupport.Implementations
 
         public object NOTEQ(object l, object r)
         {
-            // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
-            // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
-            l = VAL(l);
-            r = VAL(r);
-
-            // If one or both sides of the comparison as VBScript Null then that is what is returned
-            if ((l == DBNull.Value) || (r == DBNull.Value))
-                return DBNull.Value;
-
-            // Otherwise, it's a negation of EQ (which should return a true or false since the "Null" cases have been handled)
-            var eq = EQ(l, r);
-            if (eq is bool)
-                return !(bool)eq;
-
-            var lTypeName = (l == null) ? "null" : l.GetType().Name;
-            throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
+            // We can just reverse EQ_Internal's result here, unless it returns null - if it returns null then it means that comparison was not
+            // meaningful (one or both sides were DBNull.Value) and so DBNull.Value should be returned.
+            var opposingEqualityResult = EQ_Internal(l, r);
+            if (opposingEqualityResult == null)
+                return null;
+            return !opposingEqualityResult.Value;
         }
 
-        public object LT(object l, object r) { return LTE(l, r, allowEquals: false); }
-        public object LTE(object l, object r) { return LTE(l, r, allowEquals: true); }
-        private object LTE(object l, object r, bool allowEquals)
+        public object LT(object l, object r) { return ToVBScriptNullableBool(LT_Internal(l, r, allowEquals: false)); }
+        public object LTE(object l, object r) { return ToVBScriptNullableBool(LT_Internal(l, r, allowEquals: true)); }
+        private bool? LT_Internal(object l, object r, bool allowEquals)
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
             // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
@@ -143,7 +134,7 @@ namespace CSharpSupport.Implementations
 
             // If one or both sides of the comparison as VBScript Null then that is what is returned
             if ((l == DBNull.Value) || (r == DBNull.Value))
-                return DBNull.Value;
+                return null;
 
             // Check the equality case first, since there may be an early exit we can make (this should return a true or false since the "Null" cases
             // have been handled) - if the values ARE equal then either return true (if allowEquals is true) or false (if allowEquals is false). If
@@ -186,8 +177,34 @@ namespace CSharpSupport.Implementations
             throw new NotImplementedException(); // TODO
         }
 
-        public object GT(object l, object r) { throw new NotImplementedException(); }
-        public object GTE(object l, object r) { throw new NotImplementedException(); }
+        public object GT(object l, object r) { return ToVBScriptNullableBool(GT_Internal(l, r, allowEquals: false)); }
+        public object GTE(object l, object r) { return ToVBScriptNullableBool(GT_Internal(l, r, allowEquals: true)); }
+        private bool? GT_Internal(object l, object r, bool allowEquals)
+        {
+            // This can just LT_Internal, rather than trying to deal with too much logic itself. When calling LT_Internal, the "allowEquals" value must be
+            // the opposite of what we have here - if we are considering GTE then we want !LT (since the equality case should be a match here and not a
+            // result which is inverted), if we are considering GT here then we want !LTE (since then equality case would not be a match and LTE would
+            // return true for equal l and r values and we would want to invert that result). If LT_Internal returns null, then it means that the
+            // comparison is not meaningful (in other words, DBNull.Value was on one or both sides and so DBNull.Value should be returned for
+            // any comparison - whether EQ, NOTEQ, LT, GT, etc..)
+            var opposingLessThanResult = LT_Internal(l, r, !allowEquals);
+            if (opposingLessThanResult == null)
+                return null;
+            return !opposingLessThanResult.Value;
+        }
+
+        /// <summary>
+        /// VBScript has comparisons that will return true, false or Null (meaning DBNull.Value) which is a return type that is difficult to represent
+        /// without resorting to "object" (which could be anything) or an enum (which wouldn't be the end of the world). I think the best approach,
+        /// though, is to return a nullable bool from methods internally and then translate this for VBScript (so null becomes DBNull.Value)
+        /// </summary>
+        private static object ToVBScriptNullableBool(bool? value)
+        {
+            if (value == null)
+                return DBNull.Value;
+            return value.Value;
+        }
+
         public object IS(object l, object r) { throw new NotImplementedException(); }
         public object EQV(object l, object r) { throw new NotImplementedException(); }
         public object IMP(object l, object r) { throw new NotImplementedException(); }
