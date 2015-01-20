@@ -7,7 +7,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
-        // Note: There are a class of testst that are not present here - where one or both sides of the comparison are an object reference. In these cases, the EQ
+        // Note: There are a class of tests that are not present here - where one or both sides of the comparison are an object reference. In these cases, the EQ
         // implementation on the DefaultRuntimeFunctionalityProvider class pushes these through the VAL method in order to extract a value for comparison (if this
         // fails then a Type Mismatch error is raised). When values are present on both sides, the logic tested here is applied. The tests for the VAL method will
         // cover the logic regarding this, we don't need to duplicate it here. The same goes for arrays - the VAL logic will handle it.
