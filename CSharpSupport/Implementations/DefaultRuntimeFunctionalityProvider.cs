@@ -1,7 +1,10 @@
 ﻿using CSharpSupport;
+using CSharpSupport.Attributes;
 using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace CSharpSupport.Implementations
 {
@@ -95,7 +98,7 @@ namespace CSharpSupport.Implementations
 
             // Frankly, if we get here then I have no idea what's happened. It will be much easier to identify issues (if any are encountered) if an
             // exception is raised rather than a false response return
-            throw new NotSupportedException("Don't know how to compare values of type " + l.GetType() + " and " + r.GetType());
+            throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
         }
 
         private bool IsNumericType(object l)
@@ -109,10 +112,81 @@ namespace CSharpSupport.Implementations
                 (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
         }
 
-        public object NOTEQ(object l, object r) { throw new NotImplementedException(); }
-        public object LT(object l, object r) { throw new NotImplementedException(); }
+        public object NOTEQ(object l, object r)
+        {
+            // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
+            // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
+            l = VAL(l);
+            r = VAL(r);
+
+            // If one or both sides of the comparison as VBScript Null then that is what is returned
+            if ((l == DBNull.Value) || (r == DBNull.Value))
+                return DBNull.Value;
+
+            // Otherwise, it's a negation of EQ (which should return a true or false since the "Null" cases have been handled)
+            var eq = EQ(l, r);
+            if (eq is bool)
+                return !(bool)eq;
+
+            var lTypeName = (l == null) ? "null" : l.GetType().Name;
+            throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
+        }
+
+        public object LT(object l, object r) { return LTE(l, r, allowEquals: false); }
+        public object LTE(object l, object r) { return LTE(l, r, allowEquals: true); }
+        private object LTE(object l, object r, bool allowEquals)
+        {
+            // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
+            // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
+            l = VAL(l);
+            r = VAL(r);
+
+            // If one or both sides of the comparison as VBScript Null then that is what is returned
+            if ((l == DBNull.Value) || (r == DBNull.Value))
+                return DBNull.Value;
+
+            // Check the equality case first, since there may be an early exit we can make (this should return a true or false since the "Null" cases
+            // have been handled) - if the values ARE equal then either return true (if allowEquals is true) or false (if allowEquals is false). If
+            // not then we'll have to do more work.
+            var eq = EQ(l, r);
+            if (eq is bool)
+            {
+                if ((bool)eq)
+                    return allowEquals;
+            }
+            else
+                throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
+
+            // Many of the special cases around null (VBScript's Empty) have been handled by the EQ call above, but there are more.. if Empty is
+            // compared to a number then it is treated as zero. If it is compared to a boolean True then True is treated as -1 (the a comparison
+            // between False and Empty should have been already handled since they are considered equal).
+            if ((l == null) || (r == null))
+            {
+                if ((l == null) && (r == null))
+                    throw new Exception("The Empty/Empty case should already have been handled - we should never get here!");
+                var nonNullValue = l ?? r;
+                if (nonNullValue is string)
+                {
+                    // Strings are always "bigger" than non-strings (except for the weird cases where they're equal, but that's already dealt
+                    // with) - see http://blogs.msdn.com/b/ericlippert/archive/2004/07/30/202432.aspx ("any string is greater than any number")
+                    return l == null; // If l is null then the RHS is a string and so l is less than r (return true), if r is null then it's the opposite
+                }
+                else if (IsNumericType(nonNullValue))
+                {
+                    var lAsNumber = (l == null) ? 0 : Convert.ToDouble(l);
+                    var rAsNumber = (r == null) ? 0 : Convert.ToDouble(r);
+                    return lAsNumber < rAsNumber;
+                }
+            }
+
+
+
+            // TODO: Dates??!
+
+            throw new NotImplementedException(); // TODO
+        }
+
         public object GT(object l, object r) { throw new NotImplementedException(); }
-        public object LTE(object l, object r) { throw new NotImplementedException(); }
         public object GTE(object l, object r) { throw new NotImplementedException(); }
         public object IS(object l, object r) { throw new NotImplementedException(); }
         public object EQV(object l, object r) { throw new NotImplementedException(); }
@@ -162,7 +236,20 @@ namespace CSharpSupport.Implementations
         public object ISNULL(object value) { throw new NotImplementedException(); }
         public object ISNUMERIC(object value) { throw new NotImplementedException(); }
         public object ISOBJECT(object value) { throw new NotImplementedException(); }
-        public object TYPENAME(object value) { throw new NotImplementedException(); }
+        public object TYPENAME(object value)
+        {
+            if (value == null)
+                return "Null";
+            if (value == DBNull.Value)
+                return "Empty";
+            if ((value is DispatchWrapper) && ((DispatchWrapper)value).WrappedObject == null)
+                return "Nothing";
+            var type = value.GetType();
+            var sourceClassName = type.GetCustomAttributes(typeof(SourceClassName), inherit: true).FirstOrDefault() as SourceClassName;
+            if (sourceClassName != null)
+                return sourceClassName.Name;
+            return value.GetType().Name; // TODO: Does this deal with COM objects such as "Recordset" or will it show "_COMObject" (or whatever)
+        }
         public object VARTYPE(object value) { throw new NotImplementedException(); }
         // - Array functions
         public object ARRAY(object value) { throw new NotImplementedException(); }
@@ -214,7 +301,6 @@ namespace CSharpSupport.Implementations
         }
 
         // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
-        // - Should all "Type mismatch" errors thrown use a special exception that can be translated into the correct Err.Number??
         
         public void CLEARANYERROR() { } // TODO
         public void SETERROR(Exception e) { } // TODO

@@ -45,14 +45,14 @@ namespace CSharpSupport.Implementations
             if ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null)
                 throw new ObjectVariableNotSetException();
             if (o == null)
-                throw new Exception("Object expected (failed trying to extract value type data from null reference)");
+                throw new TypeMismatchException("Object expected (failed trying to extract value type data from null reference)"); // TODO: Confirm this is a "Type mismatch"
 
             var defaultValueFromObject = InvokeGetter(o, null, new object[0]);
             if (IsVBScriptValueType(defaultValueFromObject))
                 return defaultValueFromObject;
 
             // We don't recursively try defaults, so if this default is still not a value type then we're out of luck
-            throw new Exception("Object expected (default method/property of object also returned non-value type data)");
+            throw new TypeMismatchException("Object expected (default method/property of object also returned non-value type data)"); // TODO: Confirm this is a "Type mismatch"
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace CSharpSupport.Implementations
             var valueString = value.ToString();
             double parsedValue;
             if (!double.TryParse(valueString, out parsedValue))
-                throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into a numeric values)");
+                throw new TypeMismatchException("[string \"" + valueString + "\"] (unable to translate into a numeric values)");
             return parsedValue;
         }
 
@@ -198,7 +198,7 @@ namespace CSharpSupport.Implementations
             var valueString = value.ToString();
             double parsedValue;
             if (!double.TryParse(valueString, out parsedValue))
-                throw new ArgumentException("Type Mismatch: [string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
+                throw new TypeMismatchException("[string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
             return parsedValue != 0;
         }
 
@@ -422,7 +422,7 @@ namespace CSharpSupport.Implementations
                 ? GetDefaultGetMethods(targetType, argumentsArray.Length)
                 : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
             if (!possibleMethods.Any())
-                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription); // TODO: Throw Type Mismatch
+                throw new TypeMismatchException("Unable to identify " + errorMessageMemberDescription);
 
             var method = possibleMethods.First();
             var targetParameter = Expression.Parameter(typeof(object), "target");

@@ -1,5 +1,6 @@
 ﻿using CSharpSupport;
 using CSharpSupport.Attributes;
+using CSharpSupport.Exceptions;
 using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;
@@ -144,7 +145,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         [Fact]
         public void IFThrowsExceptionForBlanksString()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Throws<TypeMismatchException>(() =>
             {
                 (new VBScriptEsqueValueRetriever(name => name)).IF("");
             });
@@ -153,7 +154,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         [Fact]
         public void IFThrowsExceptionForNonNumericString()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Throws<TypeMismatchException>(() =>
             {
                 (new VBScriptEsqueValueRetriever(name => name)).IF("one");
             });

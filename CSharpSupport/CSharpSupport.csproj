@@ -39,6 +39,7 @@
     <Compile Include="Compat\BasicIReflectImplementation.cs" />
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
+    <Compile Include="Exceptions\TypeMismatchException.cs" />
     <Compile Include="Exceptions\ObjectVariableNotSetException.cs" />
     <Compile Include="IBuildCallArgumentProviders_Extensions.cs" />
     <Compile Include="IBuildCallArgumentProviders.cs" />
