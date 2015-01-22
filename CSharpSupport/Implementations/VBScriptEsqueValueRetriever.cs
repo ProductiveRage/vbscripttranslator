@@ -40,19 +40,24 @@ namespace CSharpSupport.Implementations
             if (IsVBScriptValueType(o))
                 return o;
 
-            // Note: The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the
-            // implementation details of DispatchWrapper, so we need to perform the check in the following manner:
-            if ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null)
+            if (IsVBScriptNothing(o))
                 throw new ObjectVariableNotSetException();
-            if (o == null)
-                throw new TypeMismatchException("Object expected (failed trying to extract value type data from null reference)"); // TODO: Confirm this is a "Type mismatch"
 
             var defaultValueFromObject = InvokeGetter(o, null, new object[0]);
             if (IsVBScriptValueType(defaultValueFromObject))
                 return defaultValueFromObject;
 
             // We don't recursively try defaults, so if this default is still not a value type then we're out of luck
-            throw new TypeMismatchException("Object expected (default method/property of object also returned non-value type data)"); // TODO: Confirm this is a "Type mismatch"
+            throw new ObjectVariableNotSetException("Object expected (default method/property of object also returned non-value type data)");
+        }
+
+        /// <summary>
+        /// The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the implementation details of
+        /// DispatchWrapper. This method delivers a reliable way to test for it.
+        /// </summary>
+        protected bool IsVBScriptNothing(object o)
+        {
+            return ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null);
         }
 
         /// <summary>
@@ -400,7 +405,7 @@ namespace CSharpSupport.Implementations
                     }
                     catch (Exception e)
                     {
-                        throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
+                        throw new ObjectVariableNotSetException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
                     }
                 }
                 return (invokeTarget, invokeArguments) =>
@@ -425,7 +430,7 @@ namespace CSharpSupport.Implementations
                 ? GetDefaultGetMethods(targetType, argumentsArray.Length)
                 : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
             if (!possibleMethods.Any())
-                throw new TypeMismatchException("Unable to identify " + errorMessageMemberDescription);
+                throw new ObjectVariableNotSetException("Unable to identify " + errorMessageMemberDescription);
 
             var method = possibleMethods.First();
             var targetParameter = Expression.Parameter(typeof(object), "target");
