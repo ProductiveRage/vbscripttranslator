@@ -71,7 +71,10 @@ namespace CSharpSupport.Implementations
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
         /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
-        /// an object without an appropriate default property member) will.
+        /// an object without an appropriate default property member) will. This is used by translated code and is very similar to the
+        /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, though it may apply different rules where appropriate
+        /// since it is not bound to the behaviour of a built-in VBScript method - for example, if the input is a date, then that
+        /// date will be returned unaltered
         /// </summary>
         public double NUM(object o)
         {
@@ -109,8 +112,8 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned (it
-        /// is not a valid input for NUM).
+        /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
+        /// (it is not a valid input for NUM).
         /// </summary>
         public object NULLABLENUM(object o)
         {
