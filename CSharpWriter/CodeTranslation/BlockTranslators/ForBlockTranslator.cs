@@ -370,10 +370,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             else
             {
                 loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
-                    " {0} = {3}.NUM({0}) {1} {2}",
+                    " {0} = {2}.ADD({0}, {1})",
                     rewrittenLoopVariableName,
-                    ((numericLoopStepValueIfAny == null) || (numericLoopStepValueIfAny.Value >= 0)) ? "+" : "-",
-                    ((numericLoopStepValueIfAny == null) || (numericLoopStepValueIfAny.Value >= 0)) ? loopStep : Math.Abs(numericLoopStepValueIfAny.Value).ToString(),
+                    (numericLoopStepValueIfAny == null) ? loopStep : numericLoopStepValueIfAny.Value.ToString(), // TODO: Why not just loopStep, why the numericLoopStepValueIfAny check?
                     _supportRefName.Name
                 );
             }
