@@ -126,9 +126,14 @@ namespace CSharpSupport
         public static int vbShortTime { get { return 4; } }
 
         /// <summary>
+        /// This is the date that VBScript returns for CDate(0)
+        /// </summary>
+        public static DateTime ZeroDate { get { return new DateTime(1899, 12, 30); } }
+
+        /// <summary>
         /// This is the date that VBScript returns for DateSerial(0, 0, 0)
         /// </summary>
-        public static DateTime ZeroDate { get { return new DateTime(1999, 11, 30); } }
+        public static DateTime ZeroDateSerial { get { return new DateTime(1999, 11, 30); } }
 
         /// <summary>
         /// This is the earliest date that VBScript will represent - equivalent to DateAdd("d", -29, DateAdd("m", -10, DateAdd("yyyy", -1899, DateSerial(0, 0, 0))))
