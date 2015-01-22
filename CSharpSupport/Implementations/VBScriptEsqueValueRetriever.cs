@@ -81,39 +81,41 @@ namespace CSharpSupport.Implementations
         /// since it is not bound to the behaviour of a built-in VBScript method - for example, if the input is a date, then that
         /// date will be returned unaltered
         /// </summary>
-        public double NUM(object o)
+        public object NUM(object o)
         {
-            // Get the null-esque cases out of the way
-            if (o == null)
-                return 0;
+            // The behaviour here feels very similar to CDBL, but there important are differences illustrated by the following cases:
+            //
+            //   Dim i: For i = 1  To 5
+            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer"
+            //   Next
+            //
+            //   Dim i: For i = 1  To 5
+            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer" for first loop and "Date" for the rest (shows 1, 01/01/1900, 02/01/1900, 03/01/1900, 04/01/1900)
+            //     i = CDate(i)
+            //   Next
+            //
+            //   Dim i: For i = 1  To 5
+            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer" for first loop and "Double" for the rest
+            //     i = "" & i
+            //   Next
+            //
+            // I think we can deal with some special cases first and then handle off to the same sort of logic as CDBL would (making use of
+            // the GetAsNumber method).
+
+            // We always need a non-object reference here (all the same rules around default member access on objects can be followed) except
+            // that DBNull.Value is not acceptable here
+            o = VAL(o);
             if (o == DBNull.Value)
-                throw new ArgumentException("Invalid use of Null");
+                throw new InvalidUseOfNullException();
 
-            // Now some other quick and easy (and common) ones (this method is used by the FOR translation so having this quick casts is helpful)
-            if (o is bool)
-            {
-                if ((bool)o)
-                    return -1;
-                return 0;
-            }
-            if (o is double)
-                return (double)o;
-            if (o is int)
-                return (double)(int)o;
+            // If the value is a numeric type or DateTime, then ensure that it is passed straight back out, maintaining the type (this deals with the first
+            // two special cases above)
+            if (IsDotNetNumericType(o) || (o is DateTime))
+                return o;
 
-            // Try to extract the value-type data from the reference, dealing with the false-Empty/Null cases first
-            var value = VAL(o);
-            if (value == null)
-                return 0;
-            if (value == DBNull.Value)
-                throw new Exception("Invalid use of Null");
-
-            // Then fall back to parsing as a string
-            var valueString = value.ToString();
-            double parsedValue;
-            if (!double.TryParse(valueString, out parsedValue))
-                throw new TypeMismatchException("[string \"" + valueString + "\"] (unable to translate into a numeric values)");
-            return parsedValue;
+            // Everything else can be handled by trying to parse the value into a double, this deals with the third special case and
+            // (hopefully) everything else
+            return GetAsNumber<double>(o, Convert.ToDouble);
         }
 
         /// <summary>
@@ -123,6 +125,82 @@ namespace CSharpSupport.Implementations
         public object NULLABLENUM(object o)
         {
             return (o == DBNull.Value) ? DBNull.Value : (object)NUM(o);
+        }
+
+        protected bool IsDotNetNumericType(object l)
+        {
+            if (l == null)
+                return false;
+            return
+                IsDotNetIntegerType(l) ||
+                (l is decimal) || (l is double) || (l is float);
+        }
+
+        private bool IsDotNetIntegerType(object l)
+        {
+            if (l == null)
+                return false;
+            if (l.GetType().IsEnum)
+                return true;
+            return (l is byte) || (l is char) || (l is int) || (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
+        }
+
+        /// <summary>
+        /// This is used by NUM but may also be used by implementation of CINT, CSNG, CDBL and the like - it handles special cases of types such as Empty
+        /// or booleans (and with error cases such as blanks string or VBScript Null) to try to extract a number. This number will be passed through the
+        /// specified converter to ensure that it is translated into the desired type. If there are no applicable special cases then the value will be
+        /// passed through the VAL function and then through the processor (if this fails then a TypeMismatchException will be raised).
+        /// </summary>
+        protected T GetAsNumber<T>(object value, Func<object, T> converter) where T : struct
+        {
+            if (converter == null)
+                throw new ArgumentNullException("nonSpecialCaseProcessor");
+
+            // Try all of the special cases (Empty, Date, etc..) to see if we can get a number. This may throw an exception (such as InvalidUseOfNullException)
+            // which must be thrown here and not wrapped in the try..catch below.
+            object valueToConvert = TryToGetNumberConsideringSpecialCases(value);
+
+            // If there was no special case result returned then just pass the original value through VAL (since it mustn't be an object reference - if it
+            // IS an object reference, then we need to try to access a default member - or throw an exception trying). Then THIS value is passed through
+            // the converter.
+            if (valueToConvert == null)
+                valueToConvert = VAL(value);
+
+            try
+            {
+                return converter(valueToConvert ?? value);
+            }
+            catch (Exception e)
+            {
+                throw new TypeMismatchException(e);
+            }
+        }
+
+        /// <summary>
+        /// There are some values which can be treated as numbers (such as Empty, booleans and dates), some which result in error if this is attempted
+        /// (such as blank strings and Null - aka DBNull.Value). This will return a number if a number could be extracted via one of these special cases
+        /// and throw an exception if it may not be allowed. If the value is not one of these special cases then null is returned (this allows the caller
+        /// to prevent any unnecessary type casting if it turns out that it has an integer or single, it neededn't be converted into a double, but
+        /// it means that the logic around these special cases need not be shared between CINT, CSNG, CDBL, etc..). Note that this will push the
+        /// value through the VAL method, so if value is not a value-type reference then it must be reducable to one (otherwise an exception
+        /// will be thrown).
+        /// </summary>
+        private double? TryToGetNumberConsideringSpecialCases(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return 0;
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException();
+            if (IsVBScriptNothing(value))
+                throw new ObjectVariableNotSetException();
+            if ((value as string) == "")
+                throw new TypeMismatchException();
+            if (value is bool)
+                return (bool)value ? -1 : 0;
+            if (value is DateTime)
+                return ((DateTime)value).Subtract(VBScriptConstants.ZeroDate).TotalDays;
+            return null;
         }
 
         /// <summary>

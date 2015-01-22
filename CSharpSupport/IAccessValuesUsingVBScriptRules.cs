@@ -48,7 +48,7 @@ namespace CSharpSupport
         /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, though it may apply different rules where appropriate
         /// since it is not bound to the behaviour of a built-in VBScript method.
         /// </summary>
-        double NUM(object o);
+        object NUM(object o);
 
         /// <summary>
         /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
