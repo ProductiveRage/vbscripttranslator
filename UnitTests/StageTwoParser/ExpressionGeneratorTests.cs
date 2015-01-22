@@ -113,7 +113,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     EXP(
                         CALL(
                             new[] { new NameToken("Test", 0) },
-                            new[] { new NumericValueToken(1, 0) }
+                            new[] { new NumericValueToken("1", 0) }
                         )
                     )
                 },
@@ -121,7 +121,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0)
                     },
                     directedWithReferenceIfAny: null
@@ -139,8 +139,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     EXP(
                         CALL(
                             new[] { new NameToken("Test", 0) },
-                            new[] { new NumericValueToken(1, 0) },
-                            new[] { new NumericValueToken(2, 0) }
+                            new[] { new NumericValueToken("1", 0) },
+                            new[] { new NumericValueToken("2",0) }
                         )
                     )
                 },
@@ -148,9 +148,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new IToken[] {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new ArgumentSeparatorToken(",", 0),
-                        new NumericValueToken(2, 0),
+                        new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
                     directedWithReferenceIfAny: null
@@ -171,10 +171,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                             EXP(
                                 CALL(
                                     new[] { new NameToken("Test2", 0) },
-                                    new[] { new NumericValueToken(1, 0) }
+                                    new[] { new NumericValueToken("1", 0) }
                                 )
                             ),
-                            EXP(CALL(new NumericValueToken(2, 0)))
+                            EXP(CALL(new NumericValueToken("2",0)))
                         )
                     )
                 },
@@ -184,10 +184,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new NameToken("Test2", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0),
                         new ArgumentSeparatorToken(",", 0),
-                        new NumericValueToken(2, 0),
+                        new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
                     directedWithReferenceIfAny: null
@@ -206,7 +206,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALLSET(
                             CALL(
                                 new[] { new NameToken("a", 0) },
-                                new[] { new NumericValueToken(0, 0) }
+                                new[] { new NumericValueToken("0", 0) }
                             ),
                             CALL(
                                 new[] { new NameToken("Test", 0) }
@@ -218,7 +218,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new IToken[] {
                         new NameToken("a", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
@@ -239,7 +239,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALLSET(
                             CALL(
                                 new[] { new NameToken("a", 0), new NameToken("b", 0) },
-                                new[] { new NumericValueToken(0, 0) }
+                                new[] { new NumericValueToken("0", 0) }
                             ),
                             CALL(
                                 new[] { new NameToken("Test", 0) }
@@ -253,7 +253,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("b", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
@@ -274,7 +274,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALLSET(
                             CALL(
                                 new[] { new NameToken("a", 0) },
-                                new[] { new NumericValueToken(0, 0) }
+                                new[] { new NumericValueToken("0", 0) }
                             ),
                             CALL(
                                 new[] { new NameToken("b", 0), new NameToken("Test", 0) }
@@ -285,7 +285,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 ExpressionGenerator.Generate(new IToken[] {
                         new NameToken("a", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new MemberAccessorToken(0),
                         new NameToken("b", 0),
@@ -308,10 +308,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         CALLSET(
                             CALL(
                                 new[] { new NameToken("a", 0) },
-                                new[] { new NumericValueToken(0, 0) }
+                                new[] { new NumericValueToken("0", 0) }
                             ),
                             CALLARGSONLY(
-                                new[] { new NumericValueToken(1, 0) }
+                                new[] { new NumericValueToken("1", 0) }
                             )
                         )
                     )
@@ -320,10 +320,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new IToken[] {
                         new NameToken("a", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0),
                     },
                     directedWithReferenceIfAny: null
@@ -413,7 +413,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                             OP(new OperatorToken("*", 0)),
                             CALL(
                                 new[] { new NameToken("c", 0) },
-                                new[] { new NumericValueToken(0, 0) }
+                                new[] { new NumericValueToken("0", 0) }
                             )
                         )
                     )
@@ -426,7 +426,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("*", 0),
                         new NameToken("c", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0)
                     },
                     directedWithReferenceIfAny: null
@@ -453,7 +453,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                                 OP(new OperatorToken("*", 0)),
                                 CALL(
                                     new[] { new NameToken("c", 0) },
-                                    new[] { new NumericValueToken(0, 0) }
+                                    new[] { new NumericValueToken("0", 0) }
                                 )
                             )
                         ),
@@ -469,7 +469,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("*", 0),
                         new NameToken("c", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new OperatorToken("+", 0),
                         new NameToken("d", 0),
@@ -608,10 +608,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                                         EXP(
                                             CALL(
                                                 new[] { new NameToken("Test", 0) },
-                                                new[] { new NumericValueToken(0, 0) }
+                                                new[] { new NumericValueToken("0", 0) }
                                             )
                                         ),
-                                        EXP(CALL(new NumericValueToken(1, 0)))
+                                        EXP(CALL(new NumericValueToken("1", 0)))
                                     )
                                 )
                             ),
@@ -634,10 +634,10 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(0, 0),
+                        new NumericValueToken("0", 0),
                         new CloseBrace(0),
                         new ArgumentSeparatorToken(",", 0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0),
                         new OperatorToken("+", 0),
                         new NameToken("e", 0),

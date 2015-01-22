@@ -112,6 +112,7 @@
     <Compile Include="Tokens\Basic\LogicalOperatorToken.cs" />
     <Compile Include="Tokens\Basic\NameToken.cs" />
     <Compile Include="Tokens\Basic\NumericValueToken.cs" />
+    <Compile Include="Tokens\Basic\NumericValueToken_Extensions.cs" />
     <Compile Include="Tokens\Basic\OpenBrace.cs" />
     <Compile Include="Tokens\Basic\CloseBrace.cs" />
     <Compile Include="Tokens\Basic\KeyWordToken.cs" />

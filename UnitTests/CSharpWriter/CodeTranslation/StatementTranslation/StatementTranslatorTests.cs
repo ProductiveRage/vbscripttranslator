@@ -173,7 +173,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 {
                     new CallSetItemExpressionSegment(
                         new[] { new NameToken("a", 0) },
-                        new[] { new Expression(new[] { new NumericValueExpressionSegment(new NumericValueToken(0, 0)) }) },
+                        new[] { new Expression(new[] { new NumericValueExpressionSegment(new NumericValueToken("0", 0)) }) },
                         null
                     ),
                     new CallSetItemExpressionSegment(

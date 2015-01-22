@@ -243,7 +243,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                                 // minus operator and the number into a single token (this is similar to some of the work performed by the
                                 // NumberRebuilder except that it doesn't analyse the code at this level and so could not pick up on this
                                 // particular combination)
-                                remainingTokens = new[] { new NumericValueToken(-numericValue.Value, numericValue.LineIndex) }
+                                remainingTokens = new[] { numericValue.GetNegative() }
                                     .Concat(remainingTokens.Skip(2))
                                     .ToArray();
                             }

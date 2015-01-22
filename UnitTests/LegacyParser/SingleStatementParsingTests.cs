@@ -22,9 +22,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new NameToken("WScript", 0),
                             new MemberAccessorOrDecimalPointToken(".", 0),
                             new NameToken("Echo", 0),
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                             new MemberAccessorOrDecimalPointToken(".", 0),
-                            new NumericValueToken(1, 0)
+                            new NumericValueToken("1", 0)
                         },
                         Statement.CallPrefixOptions.Absent
                     )
@@ -47,9 +47,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new MemberAccessorOrDecimalPointToken(".", 0),
                             new NameToken("Echo", 0),
                             new OpenBrace(0),
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                             new MemberAccessorOrDecimalPointToken(".", 0),
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                             new CloseBrace(0)
                         },
                         Statement.CallPrefixOptions.Absent
@@ -94,14 +94,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         {
                             new NameToken("a", 0),
                             new OpenBrace(0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new ArgumentSeparatorToken(",", 0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -122,14 +122,14 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         {
                             new NameToken("a", 0),
                             new OpenBrace(0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new ArgumentSeparatorToken(",", 0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new CloseBrace(0),
                         }),
                         new Expression(new[]
                         {
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                         }),
                         ValueSettingStatement.ValueSetTypeOptions.Let
                     )
@@ -150,9 +150,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         {
                             new NameToken("a", 0),
                             new OpenBrace(0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new ArgumentSeparatorToken(",", 0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new CloseBrace(0),
                         }),
                         new Expression(new[]
@@ -180,12 +180,12 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                             new OpenBrace(0),
                             new NameToken("GetValue", 0),
                             new OpenBrace(0),
-                            new NumericValueToken(1, 0),
+                            new NumericValueToken("1", 0),
                             new ArgumentSeparatorToken(",", 0),
-                            new NumericValueToken(3, 0),
+                            new NumericValueToken("3", 0),
                             new CloseBrace(0),
                             new ArgumentSeparatorToken(",", 0),
-                            new NumericValueToken(0, 0),
+                            new NumericValueToken("0", 0),
                             new CloseBrace(0),
                         }),
                         new Expression(new[]

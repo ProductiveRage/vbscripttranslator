@@ -115,14 +115,14 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (isCloseBrace(content))
                 return new CloseBrace(lineIndex);
 
-            float numericValue;
-            if (float.TryParse(content, out numericValue))
-                return new NumericValueToken(numericValue, lineIndex);
+            double numericValue;
+            if (double.TryParse(content, out numericValue))
+                return new NumericValueToken(content, lineIndex);
 			if (content.StartsWith("&h", StringComparison.InvariantCultureIgnoreCase))
 			{
-				int numericHexValue;
-				if (int.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
-					return new NumericValueToken(numericHexValue, lineIndex);
+				double numericHexValue;
+				if (double.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
+					return new NumericValueToken(numericHexValue.ToString(), lineIndex);
 			}
 
             return null;

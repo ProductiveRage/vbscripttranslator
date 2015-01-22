@@ -35,8 +35,9 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
         public NumericValueToken TryToExpressNumericValueTokenFromCurrentTokens()
         {
             double value;
-            if (double.TryParse(string.Join("", Tokens.Select(t => t.Content)), out value))
-                return new NumericValueToken(value, Tokens.First().LineIndex);
+            var combinedTokenContent = string.Join("", Tokens.Select(t => t.Content));
+            if (double.TryParse(combinedTokenContent, out value))
+                return new NumericValueToken(combinedTokenContent, Tokens.First().LineIndex);
             return null;
         }
 

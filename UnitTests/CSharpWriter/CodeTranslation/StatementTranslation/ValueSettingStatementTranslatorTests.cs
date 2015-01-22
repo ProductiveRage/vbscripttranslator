@@ -22,7 +22,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			});
             var expressionToSetTo = new Expression(new[]
 			{
-                new NumericValueToken(1, 0)
+                new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
                 "_env.a = 1",
@@ -49,7 +49,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			});
             var expressionToSetTo = new Expression(new[]
 			{
-                new NumericValueToken(1, 0)
+                new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
                 "_outer.a = 1",
@@ -81,12 +81,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			{
                 new NameToken("a", 0),
                 new OpenBrace(0),
-                new NumericValueToken(1, 0),
+                new NumericValueToken("1", 0),
                 new CloseBrace(0)
 			});
             var expressionToSetTo = new Expression(new[]
 			{
-                new NumericValueToken(1, 0)
+                new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
                 "_.SET(1, _outer.a, null, _.ARGS.Val(1))",
@@ -118,12 +118,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			{
                 new NameToken("a", 0),
                 new OpenBrace(0),
-                new NumericValueToken(1, 0),
+                new NumericValueToken("1", 0),
                 new CloseBrace(0)
 			});
             var expressionToSetTo = new Expression(new[]
 			{
-                new NumericValueToken(1, 0)
+                new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
                 "_.SET(1, _env.a, null, _.ARGS.Val(1))",
@@ -151,12 +151,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
 			{
                 new NameToken("a", 0),
                 new OpenBrace(0),
-                new NumericValueToken(1, 0),
+                new NumericValueToken("1", 0),
                 new CloseBrace(0)
 			});
             var expressionToSetTo = new Expression(new[]
 			{
-                new NumericValueToken(1, 0)
+                new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
                 "_.SET(1, _.CALL(_outer, \"a\"), null, _.ARGS.Val(1))",

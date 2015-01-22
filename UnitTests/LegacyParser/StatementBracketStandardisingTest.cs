@@ -32,7 +32,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 {
                     new NameToken("Test", 0),
                     new OpenBrace(0),
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
@@ -53,7 +53,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new OpenBrace(0),
                     new NameToken("Test", 0),
                     new OpenBrace(0),
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new CloseBrace(0),
                     new CloseBrace(0)
                 };
@@ -132,7 +132,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 {
                     new NameToken("Test", 0),
                     new OpenBrace(0),
-                    new NumericValueToken(-1, 0),
+                    new NumericValueToken("-1", 0),
                     new CloseBrace(0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Present);
@@ -254,7 +254,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 {
                     new NameToken("Test", 0),
                     new OperatorToken("-", 0),
-                    new NumericValueToken(1, 0)
+                    new NumericValueToken("1", 0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -262,7 +262,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(-1, 0),
+                        new NumericValueToken("-1", 0),
                         new CloseBrace(0)
                     },
                     statement.GetBracketStandardisedTokens(),
@@ -277,7 +277,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new IToken[]
                     {
                         new NameToken("Test", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
@@ -286,7 +286,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0)
                     },
                     statement.GetBracketStandardisedTokens(),
@@ -305,7 +305,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NameToken("a", 0),
                         new MemberAccessorOrDecimalPointToken(".", 0),
                         new NameToken("Test", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     },
                     Statement.CallPrefixOptions.Absent
                 );
@@ -316,7 +316,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new MemberAccessorOrDecimalPointToken(".", 0),
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new CloseBrace(0)
                     },
                     statement.GetBracketStandardisedTokens(),
@@ -362,9 +362,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 var tokens = new IToken[]
                 {
                     new NameToken("Test", 0),
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new ArgumentSeparatorToken(",", 0),
-                    new NumericValueToken(2, 0)
+                    new NumericValueToken("2",0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -372,9 +372,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new ArgumentSeparatorToken(",", 0),
-                        new NumericValueToken(2, 0),
+                        new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
                     statement.GetBracketStandardisedTokens(),
@@ -394,9 +394,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 {
                     new NameToken("Test", 0),
                     new OperatorToken("-", 0),
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new ArgumentSeparatorToken(",", 0),
-                    new NumericValueToken(2, 0)
+                    new NumericValueToken("2",0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
                 Assert.Equal(
@@ -404,9 +404,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     {
                         new NameToken("Test", 0),
                         new OpenBrace(0),
-                        new NumericValueToken(-1, 0),
+                        new NumericValueToken("-1", 0),
                         new ArgumentSeparatorToken(",", 0),
-                        new NumericValueToken(2, 0),
+                        new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
                     statement.GetBracketStandardisedTokens(),

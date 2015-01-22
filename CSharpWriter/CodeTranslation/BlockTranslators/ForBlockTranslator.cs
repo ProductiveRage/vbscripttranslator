@@ -118,7 +118,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             string loopStep;
             var numericLoopStepValueIfAny = (forBlock.LoopStep == null)
-                ? new NumericValueToken(1, forBlock.LoopTo.Tokens.Last().LineIndex) // Default to Step 1 if no LoopStep expression was specified
+                ? new NumericValueToken("1", forBlock.LoopTo.Tokens.Last().LineIndex) // Default to Step 1 if no LoopStep expression was specified
                 : TryToGetExpressionAsNumericConstant(forBlock.LoopStep);
             if ((numericLoopStepValueIfAny == null) && (forBlock.LoopStep.Tokens.Count() == 2))
             {
@@ -129,7 +129,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var firstLoopStepToken = forBlock.LoopStep.Tokens.First();
                 var lastLoopStepTokenAsNumericValueToken = forBlock.LoopStep.Tokens.Last() as NumericValueToken;
                 if ((firstLoopStepToken is OperatorToken) && (firstLoopStepToken.Content == "-") && (lastLoopStepTokenAsNumericValueToken != null))
-                    numericLoopStepValueIfAny = new NumericValueToken(-lastLoopStepTokenAsNumericValueToken.Value, lastLoopStepTokenAsNumericValueToken.LineIndex);
+                    numericLoopStepValueIfAny = lastLoopStepTokenAsNumericValueToken.GetNegative();
             }
             if (numericLoopStepValueIfAny != null)
                 loopStep = numericLoopStepValueIfAny.Value.ToString();

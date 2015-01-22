@@ -80,9 +80,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new OperatorToken("/", 0),
-                    new NumericValueToken(0, 0)
+                    new NumericValueToken("0", 0)
                 },
                 TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("1/0", 0)),
                 new TokenSetComparer()
@@ -99,9 +99,9 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new OperatorToken("\\", 0),
-                    new NumericValueToken(0, 0)
+                    new NumericValueToken("0", 0)
                 },
                 TokenBreaker.BreakUnprocessedToken(new UnprocessedContentToken("1\\0", 0)),
                 new TokenSetComparer()

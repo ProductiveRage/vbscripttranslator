@@ -14,17 +14,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new OperatorToken("-", 0),
-                    new NumericValueToken(1, 0)
+                    new NumericValueToken("1", 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new OperatorToken("+", 0),
                         new OperatorToken("-", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -37,17 +37,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new OperatorToken("+", 0),
-                    new NumericValueToken(1, 0)
+                    new NumericValueToken("1", 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new OperatorToken("-", 0),
                         new OperatorToken("-", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -58,25 +58,25 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void OneMultipliedByPlusOne()
         {
             // When operators are removed entirely by the OperatorCombiner, if they are removed from in front of numeric values, the numeric value is wrapped
-            // up in a CSng call so that it is clear to the processing following it that it is not a numeric literal (but the CSng call will not affect its
+            // up in a CDbl call so that it is clear to the processing following it that it is not a numeric literal (but the CDbl call will not affect its
             // value).
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new OperatorToken("*", 0),
-                    new BuiltInFunctionToken("CSng", 0),
+                    new BuiltInFunctionToken("CDbl", 0),
                     new OpenBrace(0),
-                    new NumericValueToken(1, 0),
+                    new NumericValueToken("1", 0),
                     new CloseBrace(0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(1, 0),
+                        new NumericValueToken("1", 0),
                         new OperatorToken("*", 0),
                         new OperatorToken("+", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     }
                 ),
                 new TokenSetComparer()
@@ -89,17 +89,17 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new IToken[]
                 {
-                    new NumericValueToken(2, 0),
+                    new NumericValueToken("2",0),
                     new ComparisonOperatorToken(">=", 0),
-                    new NumericValueToken(1, 0)
+                    new NumericValueToken("1", 0)
                 },
                 OperatorCombiner.Combine(
                     new IToken[]
                     {
-                        new NumericValueToken(2, 0),
+                        new NumericValueToken("2",0),
                         new ComparisonOperatorToken(">", 0),
                         new ComparisonOperatorToken("=", 0),
-                        new NumericValueToken(1, 0)
+                        new NumericValueToken("1", 0)
                     }
                 ),
                 new TokenSetComparer()
