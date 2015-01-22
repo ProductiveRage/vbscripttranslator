@@ -185,13 +185,13 @@ namespace CSharpSupport.Implementations
         // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple parameters and
         // overloads to deal with optional parameters)
         // - Type conversions
-        public object CBYTE(object value) { throw new NotImplementedException(); }
+        public byte CBYTE(object value) { return GetAsNumber<byte>(value, Convert.ToByte); }
         public object CBOOL(object value) { throw new NotImplementedException(); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
         public object CDATE(object value) { throw new NotImplementedException(); }
-        public object CINT(object value) { throw new NotImplementedException(); }
-        public object CLNG(object value) { throw new NotImplementedException(); }
-        public object CSNG(object value) { throw new NotImplementedException(); }
+        public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); } // TODO: Confirm appropriate response type (Int16?)
+        public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
+        public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
         public string CSTR(object value) { throw new NotImplementedException(); }
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object value) { throw new NotImplementedException(); }
@@ -213,7 +213,12 @@ namespace CSharpSupport.Implementations
         public object REPLACE(object value) { throw new NotImplementedException(); }
         public object SPACE(object value) { throw new NotImplementedException(); }
         public object SPLIT(object value) { throw new NotImplementedException(); }
-        public object STRCOMP(object value) { throw new NotImplementedException(); }
+        public object STRCOMP(object string1, object string2) { return STRCOMP(string1, string2, 0); }
+        public object STRCOMP(object string1, object string2, object compare) { return ToVBScriptNullable<int>(STRCOMP_Internal(string1, string2, compare)); }
+        private int? STRCOMP_Internal(object string1, object string2, object compare)
+        {
+            throw new NotImplementedException();
+        }
         public string TRIM(object value) { throw new NotImplementedException(); }
         public string LTRIM(object value) { throw new NotImplementedException(); }
         public string RTRIM(object value) { throw new NotImplementedException(); }
@@ -232,7 +237,7 @@ namespace CSharpSupport.Implementations
                 return "Null";
             if (value == DBNull.Value)
                 return "Empty";
-            if ((value is DispatchWrapper) && ((DispatchWrapper)value).WrappedObject == null)
+            if (base.IsVBScriptNothing(value))
                 return "Nothing";
             var type = value.GetType();
             var sourceClassName = type.GetCustomAttributes(typeof(SourceClassName), inherit: true).FirstOrDefault() as SourceClassName;
@@ -309,6 +314,19 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("valueEvaluator");
 
             throw new NotImplementedException(); // TODO
+        }
+
+        /// <summary>
+        /// VBScript has comparisons that will return true, false or Null (meaning DBNull.Value) which is a return type that is difficult to represent
+        /// without resorting to "object" (which could be anything) or an enum (which wouldn't be the end of the world). I think the best approach,
+        /// though, is to return a nullable bool from methods internally and then translate this for VBScript (so null becomes DBNull.Value).
+        /// The same approach works for other non-nullable types.
+        /// </summary>
+        private static object ToVBScriptNullable<T>(T? value) where T : struct
+        {
+            if (value == null)
+                return DBNull.Value;
+            return value.Value;
         }
     }
 }

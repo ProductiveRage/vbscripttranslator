@@ -66,13 +66,13 @@ namespace CSharpSupport
         // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple
         // parameters and overloads to deal with optional parameters)
         // - Type conversions
-        object CBYTE(object value);
+        byte CBYTE(object value);
         object CBOOL(object value);
         double CDBL(object value);
         object CDATE(object value);
-        object CINT(object value);
-        object CLNG(object value);
-        object CSNG(object value);
+        Int16 CINT(object value);
+        int CLNG(object value);
+        float CSNG(object value);
         string CSTR(object value);
         string INT(object value);
         string STRING(object value);
@@ -94,7 +94,8 @@ namespace CSharpSupport
         object REPLACE(object value);
         object SPACE(object value);
         object SPLIT(object value);
-        object STRCOMP(object value);
+        object STRCOMP(object string1, object string2);
+        object STRCOMP(object string1, object string2, object compare);
         string TRIM(object value);
         string LTRIM(object value);
         string RTRIM(object value);
