@@ -15,11 +15,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (token == null)
                 throw new ArgumentNullException("token");
 
-            //var numericVlau
-            //var aa = 1.;
-            // C# already uses Double with decimal numbers, so we don't need any special case there
+            // C# already uses Double with decimal numbers, so we don't need any special case if the number is expressed as a decimal with numbers both before
+            // and after the decimal point (eg. "1.2"). However, VBScript throws another curve ball and supports numbers with a decimal point with no digits
+            // after it (eg. "1."). This is not valid in C# ("Identifier expected") so we have to slap a zero on the end (making it "1.0", which will be
+            // defined as a double). Note that there is no such issue when leading with the decimal point (".1" is valid VBScript AND C# code).
             if (token.Content.Contains("."))
-                return token.Content;
+                return token.Content + (token.Content.EndsWith(".") ? "0" : "");
 
             // C# will default to int (Int32) for integers, we need to override this for smaller values
             if ((token.Value >= Int16.MinValue) && (token.Value <= Int16.MaxValue))
@@ -60,12 +61,27 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             return function.Content.Equals("CDbl", StringComparison.OrdinalIgnoreCase);
         }
 
-        public static BuiltInFunctionToken GetSafeWrapperFunction(this NumericValueToken token)
+        /// <summary>
+        /// During the translation process, it may be necessary to wrap up numeric literals such that they are not then considered to be numeric literals
+        /// when further processing is done (see the OperatorCombiner and the StatementTranslator for details about cases where this may happen - around
+        /// comparisons of values / literals). The numeric value dictates what wrapper function will be appropriate and not affect its type - if a VBScript
+        /// "Integer" is wrapped in a CDbl call, then the return type is changed to "Double". If VBScript considers a value to be an "Integer" then it must
+        /// be wrapped in a CInt call in order to prevent changing the value's type. This function determines what built-in function is acceptable. It will
+        /// never return null and it will only throw an exception if the token argument is null since all numbers can be safely wrapped.
+        /// </summary>
+        public static string GetSafeWrapperFunctionName(this NumericValueToken token)
         {
             if (token == null)
                 throw new ArgumentNullException("token");
 
-            throw new NotImplementedException(); // TODO
+            // If it's a decimal then we need to use CDbl
+            if (token.Content.Contains("."))
+                return "CDbl";
+            if ((token.Value >= Int16.MinValue) && (token.Value <= Int16.MaxValue))
+                return "CInt";
+            if ((token.Value >= Int32.MinValue) || (token.Value <= Int32.MaxValue))
+                return "CLng";
+            return "CDbl";
         }
 
         public static NumericValueToken GetNegative(this NumericValueToken token)
