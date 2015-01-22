@@ -25,7 +25,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// <summary>
         /// This will never be null or blank, nor have any leading or trailing whitespace. It will always be parseable as a numeric value.
         /// </summary>
-        public new string Content { get; private set; }
+        public new string Content { get { return base.Content; } }
 
         public double Value { get; private set; }
     }
