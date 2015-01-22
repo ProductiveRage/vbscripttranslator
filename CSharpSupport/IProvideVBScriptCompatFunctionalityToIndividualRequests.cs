@@ -68,7 +68,7 @@ namespace CSharpSupport
         // - Type conversions
         object CBYTE(object value);
         object CBOOL(object value);
-        object CDBL(object value);
+        double CDBL(object value);
         object CDATE(object value);
         object CINT(object value);
         object CLNG(object value);

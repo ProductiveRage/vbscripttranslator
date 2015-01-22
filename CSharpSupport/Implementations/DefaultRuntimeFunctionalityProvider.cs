@@ -1,5 +1,6 @@
 ﻿using CSharpSupport;
 using CSharpSupport.Attributes;
+using CSharpSupport.Exceptions;
 using CSharpSupport.Implementations;
 using System;
 using System.Collections.Generic;
@@ -44,7 +45,7 @@ namespace CSharpSupport.Implementations
         /// from them - if this fails then a Type Mismatch error will be raised. If there are no issues in preparing both comparison values,
         /// this will return DBNull.Value if either value is DBNull.Value and a boolean otherwise.
         /// </summary>
-        public object EQ(object l, object r) { return ToVBScriptNullableBool(EQ_Internal(l, r)); }
+        public object EQ(object l, object r) { return ToVBScriptNullable(EQ_Internal(l, r)); }
         private bool? EQ_Internal(object l, object r)
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
@@ -61,7 +62,7 @@ namespace CSharpSupport.Implementations
             {
                 // The default values of VBScript primitives (number, strings and booleans) are considered to match Empty
                 var nonNullValue = l ?? r;
-                if ((IsNumericType(nonNullValue) && (Convert.ToDouble(nonNullValue)) == 0)
+                if ((base.IsDotNetNumericType(nonNullValue) && (Convert.ToDouble(nonNullValue)) == 0)
                 || ((nonNullValue as string) == "")
                 || ((nonNullValue is bool) && !(bool)nonNullValue))
                     return true;
@@ -77,16 +78,16 @@ namespace CSharpSupport.Implementations
             {
                 var boolValue = (bool)((l is bool) ? l : r);
                 var nonBoolValue = (l is bool) ? r : l;
-                if (!IsNumericType(nonBoolValue))
+                if (!base.IsDotNetNumericType(nonBoolValue))
                     return false;
                 return (boolValue && (Convert.ToDouble(nonBoolValue) == -1)) || (!boolValue && (Convert.ToDouble(nonBoolValue) == 0));
             }
 
             // Now consider numbers on one or both sides - all special cases are out of the way now so they're either equal or they're not (both
             // sides must be numbers, otherwise it's a non-match)
-            if (IsNumericType(l) && IsNumericType(r))
+            if (base.IsDotNetNumericType(l) && base.IsDotNetNumericType(r))
                 return Convert.ToDouble(l) == Convert.ToDouble(r);
-            else if (IsNumericType(l) || IsNumericType(r))
+            else if (base.IsDotNetNumericType(l) || base.IsDotNetNumericType(r))
                 return false;
 
             // Now do the same for strings and then dates - same deal; they must have consistent types AND values
@@ -102,17 +103,6 @@ namespace CSharpSupport.Implementations
             throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
         }
 
-        private bool IsNumericType(object l)
-        {
-            if (l == null)
-                return false;
-            if (l.GetType().IsEnum)
-                return true;
-            return
-                (l is int) || (l is byte) || (l is char) || (l is decimal) || (l is double) || (l is float) || (l is int) ||
-                (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
-        }
-
         public object NOTEQ(object l, object r)
         {
             // We can just reverse EQ_Internal's result here, unless it returns null - if it returns null then it means that comparison was not
@@ -123,8 +113,8 @@ namespace CSharpSupport.Implementations
             return !opposingEqualityResult.Value;
         }
 
-        public object LT(object l, object r) { return ToVBScriptNullableBool(LT_Internal(l, r, allowEquals: false)); }
-        public object LTE(object l, object r) { return ToVBScriptNullableBool(LT_Internal(l, r, allowEquals: true)); }
+        public object LT(object l, object r) { return ToVBScriptNullable(LT_Internal(l, r, allowEquals: false)); }
+        public object LTE(object l, object r) { return ToVBScriptNullable(LT_Internal(l, r, allowEquals: true)); }
         private bool? LT_Internal(object l, object r, bool allowEquals)
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
@@ -139,46 +129,41 @@ namespace CSharpSupport.Implementations
             // Check the equality case first, since there may be an early exit we can make (this should return a true or false since the "Null" cases
             // have been handled) - if the values ARE equal then either return true (if allowEquals is true) or false (if allowEquals is false). If
             // not then we'll have to do more work.
-            var eq = EQ(l, r);
-            if (eq is bool)
-            {
-                if ((bool)eq)
-                    return allowEquals;
-            }
-            else
+            var eq = EQ_Internal(l, r);
+            if (eq == null)
                 throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
+            if (eq.Value)
+                return allowEquals;
 
-            // Many of the special cases around null (VBScript's Empty) have been handled by the EQ call above, but there are more.. if Empty is
-            // compared to a number then it is treated as zero. If it is compared to a boolean True then True is treated as -1 (the a comparison
-            // between False and Empty should have been already handled since they are considered equal).
-            if ((l == null) || (r == null))
+            // Deal with string special cases next - if both are strings then perform a string comparison. If only one is a string, and it is not blank,
+            // then that value is bigger (so if it's on the left then return false and if it's on the right then return true). Blank strings get special
+            // handling and are effectively treated as zero (see further down).
+            var lString = l as string;
+            var rString = r as string;
+            if ((lString != null) && (rString != null))
             {
-                if ((l == null) && (r == null))
-                    throw new Exception("The Empty/Empty case should already have been handled - we should never get here!");
-                var nonNullValue = l ?? r;
-                if (nonNullValue is string)
-                {
-                    // Strings are always "bigger" than non-strings (except for the weird cases where they're equal, but that's already dealt
-                    // with) - see http://blogs.msdn.com/b/ericlippert/archive/2004/07/30/202432.aspx ("any string is greater than any number")
-                    return l == null; // If l is null then the RHS is a string and so l is less than r (return true), if r is null then it's the opposite
-                }
-                else if (IsNumericType(nonNullValue))
-                {
-                    var lAsNumber = (l == null) ? 0 : Convert.ToDouble(l);
-                    var rAsNumber = (r == null) ? 0 : Convert.ToDouble(r);
-                    return lAsNumber < rAsNumber;
-                }
+                var stringComparisonResult = STRCOMP_Internal(lString, rString, 0);
+                if ((stringComparisonResult == null) || (stringComparisonResult.Value == 0))
+                    throw new NotSupportedException("Don't know how to compare values of type " + TYPENAME(l) + " and " + TYPENAME(r));
+                return stringComparisonResult.Value < 0;
             }
+            if ((lString != null) && (lString != ""))
+                return false;
+            if ((rString != null) && (rString != ""))
+                return true;
 
-
-
-            // TODO: Dates??!
-
-            throw new NotImplementedException(); // TODO
+            // Now we should only have values which can treated as numeric
+            // - Actual numbers
+            // - Booleans (which return zero or minus one when passed through CDBL)
+            // - Null aka VBScript Empty (which returns zero when passed through CDBL)
+            // - Blank strings (which can not be passed through CDBL without causing an error, but which we can treat as zero)
+            var lNumeric = (lString == "") ? 0 : CDBL(l);
+            var rNumeric = (rString == "") ? 0 : CDBL(r);
+            return lNumeric < rNumeric;
         }
 
-        public object GT(object l, object r) { return ToVBScriptNullableBool(GT_Internal(l, r, allowEquals: false)); }
-        public object GTE(object l, object r) { return ToVBScriptNullableBool(GT_Internal(l, r, allowEquals: true)); }
+        public object GT(object l, object r) { return ToVBScriptNullable(GT_Internal(l, r, allowEquals: false)); }
+        public object GTE(object l, object r) { return ToVBScriptNullable(GT_Internal(l, r, allowEquals: true)); }
         private bool? GT_Internal(object l, object r, bool allowEquals)
         {
             // This can just LT_Internal, rather than trying to deal with too much logic itself. When calling LT_Internal, the "allowEquals" value must be
@@ -193,18 +178,6 @@ namespace CSharpSupport.Implementations
             return !opposingLessThanResult.Value;
         }
 
-        /// <summary>
-        /// VBScript has comparisons that will return true, false or Null (meaning DBNull.Value) which is a return type that is difficult to represent
-        /// without resorting to "object" (which could be anything) or an enum (which wouldn't be the end of the world). I think the best approach,
-        /// though, is to return a nullable bool from methods internally and then translate this for VBScript (so null becomes DBNull.Value)
-        /// </summary>
-        private static object ToVBScriptNullableBool(bool? value)
-        {
-            if (value == null)
-                return DBNull.Value;
-            return value.Value;
-        }
-
         public object IS(object l, object r) { throw new NotImplementedException(); }
         public object EQV(object l, object r) { throw new NotImplementedException(); }
         public object IMP(object l, object r) { throw new NotImplementedException(); }
@@ -214,7 +187,7 @@ namespace CSharpSupport.Implementations
         // - Type conversions
         public object CBYTE(object value) { throw new NotImplementedException(); }
         public object CBOOL(object value) { throw new NotImplementedException(); }
-        public object CDBL(object value) { throw new NotImplementedException(); }
+        public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
         public object CDATE(object value) { throw new NotImplementedException(); }
         public object CINT(object value) { throw new NotImplementedException(); }
         public object CLNG(object value) { throw new NotImplementedException(); }
