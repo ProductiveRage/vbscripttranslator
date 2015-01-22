@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpSupport.Exceptions;
+using System;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -19,7 +20,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void Null()
             {
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<InvalidUseOfNullException>(() =>
                 {
                     GetDefaultRuntimeFunctionalityProvider().NUM(DBNull.Value);
                 });
@@ -73,7 +74,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void TwoIntegersSeparatedByWhitespace()
             {
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<TypeMismatchException>(() =>
                 {
                     GetDefaultRuntimeFunctionalityProvider().NUM("1 1");
                 });
@@ -91,7 +92,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void PseudoNumberWithMultipleDecimalPoints()
             {
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<TypeMismatchException>(() =>
                 {
                     GetDefaultRuntimeFunctionalityProvider().NUM("1.1.0");
                 });
