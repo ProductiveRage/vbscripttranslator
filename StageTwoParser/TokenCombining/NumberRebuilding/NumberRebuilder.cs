@@ -47,11 +47,11 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
             }
             if (numberContent.Tokens.Any())
             {
-                var numericValue = numberContent.TryToExpressNumberFromTokens();
-                if (numericValue == null)
+                var numbericValueToken = numberContent.TryToExpressNumericValueTokenFromCurrentTokens();
+                if (numbericValueToken == null)
                     rebuiltTokens.AddRange(numberContent.Tokens);
                 else
-                    rebuiltTokens.Add(new NumericValueToken(numericValue.Value, numberContent.Tokens.First().LineIndex));
+                    rebuiltTokens.Add(numbericValueToken);
             }
             return rebuiltTokens.Select(t => (t is MemberAccessorOrDecimalPointToken) ? new MemberAccessorToken(t.LineIndex) : t);
         }

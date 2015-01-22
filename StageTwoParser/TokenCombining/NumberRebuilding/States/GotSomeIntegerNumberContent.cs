@@ -36,12 +36,12 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             // - Try to extract the number content so far and express that as a new token
             // - Return a "processedTokens" set of this and the current token (we don't need to worry about trying to process
             //   that here since it's not valid for two number tokens to exist adjacently with nothing in between)
-            var number = numberContent.TryToExpressNumberFromTokens();
-            if (number == null)
+            var numbericValueToken = numberContent.TryToExpressNumericValueTokenFromCurrentTokens();
+            if (numbericValueToken == null)
                 throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
             return new TokenProcessResult(
                 new PartialNumberContent(),
-                new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex), token },
+                new[] { numbericValueToken, token },
                 Common.GetDefaultProcessor(tokens)
             );
         }

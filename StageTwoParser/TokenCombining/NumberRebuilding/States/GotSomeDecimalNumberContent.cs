@@ -30,12 +30,12 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             // If we hit a numeric token, though, then things ARE going well and we can conclude the number search and incorporate the current token
             if (token is NumericValueToken)
             {
-                var number = numberContent.AddToken(token).TryToExpressNumberFromTokens();
-                if (number == null)
+                var numbericValueToken = numberContent.AddToken(token).TryToExpressNumericValueTokenFromCurrentTokens();
+                if (numbericValueToken == null)
                     throw new Exception("numberContent should describe a number, null was returned from TryToExpressNumberFromTokens - invalid content");
                 return new TokenProcessResult(
                     new PartialNumberContent(),
-                    new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex) },
+                    new[] { numbericValueToken },
                     Common.GetDefaultProcessor(tokens)
                 );
             }
@@ -43,8 +43,8 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
             {
                 // If we hit any other token then hopefully things have gone well and we extracted a number, but not have processed the current
                 // token (we don't have to try to process it as number content since it's not valid for two number tokens to exist adjacently)
-                var number = numberContent.TryToExpressNumberFromTokens();
-                if (number == null)
+                var numbericValueToken = numberContent.TryToExpressNumericValueTokenFromCurrentTokens();
+                if (numbericValueToken == null)
                 {
                     if ((numberContent.Tokens.Count() == 1) && numberContent.Tokens.Single().Is<MemberAccessorOrDecimalPointToken>())
                     {
@@ -63,7 +63,7 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding.Stat
                 }
                 return new TokenProcessResult(
                     new PartialNumberContent(),
-                    new[] { new NumericValueToken(number.Value, numberContent.Tokens.First().LineIndex), token },
+                    new[] { numbericValueToken, token },
                     Common.GetDefaultProcessor(tokens)
                 );
             }

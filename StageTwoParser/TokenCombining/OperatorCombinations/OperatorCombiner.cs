@@ -58,18 +58,18 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations
                     // The first example will result in a Type Mismatch since the numeric literal forces the "a" to be parsed as a number (which fails).
                     // However, the second and third examples return false since their right hand side values are not considered to be numeric literals
                     // and so the left hand sides need not be parsed as numeric values. The workaround is to identify these situations and to wrap the
-                    // number if a CSng call. This will not affect the numeric value but it will prevent it from being identified as a numeric literal
+                    // number if a CDbl call. This will not affect the numeric value but it will prevent it from being identified as a numeric literal
                     // later on (this is important to the StatementTranslator).Note: This is why the NumberRebuilder must have done its work before
-					// we get here, since ++1.2 must be recognised as "+", "+", "1.2" so that it can be translated into "CSng(1.2)", rather than
-					// still being "+", "+", "1", ".", "2", which would translated into "CSng(1).2", which would be invalid.
-                    var wrapTokenInCSngCall = bufferHadContentThatWasReducedToNothing && (token is NumericValueToken);
-                    if (wrapTokenInCSngCall)
+                    // we get here, since ++1.2 must be recognised as "+", "+", "1.2" so that it can be translated into "CDbl(1.2)", rather than
+                    // still being "+", "+", "1", ".", "2", which would translated into "CDbl(1).2", which would be invalid.
+                    var wrapTokenInCDblCall = bufferHadContentThatWasReducedToNothing && (token is NumericValueToken);
+                    if (wrapTokenInCDblCall)
                     {
-                        additionSubtractionRewrittenTokens.Add(new BuiltInFunctionToken("CSng", token.LineIndex));
+                        additionSubtractionRewrittenTokens.Add(new BuiltInFunctionToken("CDbl", token.LineIndex));
                         additionSubtractionRewrittenTokens.Add(new OpenBrace(token.LineIndex));
                     }
                     additionSubtractionRewrittenTokens.Add(token);
-                    if (wrapTokenInCSngCall)
+                    if (wrapTokenInCDblCall)
                         additionSubtractionRewrittenTokens.Add(new CloseBrace(token.LineIndex));
                     previousTokenIfAny = token;
                 }

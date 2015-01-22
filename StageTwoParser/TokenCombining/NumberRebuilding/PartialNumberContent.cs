@@ -32,11 +32,11 @@ namespace VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding
         /// a partial attempt at constructing a number and, if there are are no more tokens to process, then all of the tokens may be pulled back out as
         /// unprocessed
         /// </summary>
-        public double? TryToExpressNumberFromTokens()
+        public NumericValueToken TryToExpressNumericValueTokenFromCurrentTokens()
         {
             double value;
             if (double.TryParse(string.Join("", Tokens.Select(t => t.Content)), out value))
-                return value;
+                return new NumericValueToken(value, Tokens.First().LineIndex);
             return null;
         }
 
