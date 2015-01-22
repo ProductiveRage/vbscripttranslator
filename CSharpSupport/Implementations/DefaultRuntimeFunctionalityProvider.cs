@@ -317,6 +317,37 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// This is used by implementation of CINT, CSNG, CDBL and the like - it handles special cases of types such as Empty or booleans (and with error cases
+        /// such as blanks string or VBScript Null) to try to extract a number. This number will be passed through the specified converter to ensure that it is
+        /// translated into the desired type. If there are no applicable special cases then the value will be passed through the VAL function and then through
+        /// the processor (if this fails then a TypeMismatchException will be raised).
+        /// </summary>
+        private T GetAsNumber<T>(object value, Func<object, T> converter) where T : struct
+        {
+            if (converter == null)
+                throw new ArgumentNullException("nonSpecialCaseProcessor");
+
+            // Try all of the special cases (Empty, Date, etc..) to see if we can get a number. This may throw an exception (such as InvalidUseOfNullException)
+            // which must be thrown here and not wrapped in the try..catch below.
+            object valueToConvert = base.TryToGetNumberConsideringSpecialCases(value);
+
+            // If there was no special case result returned then just pass the original value through VAL (since it mustn't be an object reference - if it
+            // IS an object reference, then we need to try to access a default member - or throw an exception trying). Then THIS value is passed through
+            // the converter.
+            if (valueToConvert == null)
+                valueToConvert = VAL(value);
+
+            try
+            {
+                return converter(valueToConvert ?? value);
+            }
+            catch (Exception e)
+            {
+                throw new TypeMismatchException(e);
+            }
+        }
+
+        /// <summary>
         /// VBScript has comparisons that will return true, false or Null (meaning DBNull.Value) which is a return type that is difficult to represent
         /// without resorting to "object" (which could be anything) or an enum (which wouldn't be the end of the world). I think the best approach,
         /// though, is to return a nullable bool from methods internally and then translate this for VBScript (so null becomes DBNull.Value).

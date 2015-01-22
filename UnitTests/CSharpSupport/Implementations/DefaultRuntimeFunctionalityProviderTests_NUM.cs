@@ -48,7 +48,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void PositiveIntegerString()
             {
                 Assert.Equal(
-                    12,
+                    12d, // VBScript parses string into Doubles, even if there is no decimal fraction
                     GetDefaultRuntimeFunctionalityProvider().NUM("12")
                 );
             }
@@ -57,7 +57,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void PositiveIntegerStringWithLeadingWhitespace()
             {
                 Assert.Equal(
-                    12,
+                    12d, // VBScript parses string into Doubles, even if there is no decimal fraction
                     GetDefaultRuntimeFunctionalityProvider().NUM(" 12")
                 );
             }
@@ -66,7 +66,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void PositiveIntegerStringWithTrailingWhitespace()
             {
                 Assert.Equal(
-                    12,
+                    12d, // VBScript parses string into Doubles, even if there is no decimal fraction
                     GetDefaultRuntimeFunctionalityProvider().NUM("12 ")
                 );
             }

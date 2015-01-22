@@ -154,7 +154,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 //     If ("a" = +1) Then
                 //   The first is a negative number, the second looks like it could be considered to be a positive number but the VBScript
                 //   interpreter will not cancel out those double negative signs and still consider it a literal. When source content is
-                //   being parsed, this must be considered (currently the OperatorCombiner will replace --1 with CSng(1) so that it's
+                //   being parsed, this must be considered (currently the OperatorCombiner will replace --1 with CDbl(1) so that it's
                 //   obvious to the processing here that it should not be a numeric literal - if it replaced --1 with 1 then it WOULD
                 //   look like a numeric literal here and there would be an inconsistency with the VBScript interpreter).
                 var segmentLeftAsNumericValue = segmentLeft as NumericValueExpressionSegment;
@@ -301,7 +301,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (numericValueSegment != null)
             {
                 return new TranslatedStatementContentDetailsWithContentType(
-                    numericValueSegment.Token.Content,
+                    numericValueSegment.Token.AsCSharpValue(),
                     ExpressionReturnTypeOptions.Value,
                     new NonNullImmutableList<NameToken>()
                 );
@@ -463,25 +463,18 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.Name, targetBuiltInFunction.LineIndex) }
                     .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
 
-                // If the call expression is a single-argument call to "CSng" and the argument is a numeric literal, we can skip the call entirely. We could
-                // do similar for other functions (and this may happen in the future), but CSng jumps out at me due to the hack in the OperatorCombiner, where
-                // CSng calls are injected into source code for cases where what appear to be number literals must not be treated as number literals (see that
-                // class for more details).
-                if (supportFunctionDetails.Name.Equals("CSng", StringComparison.OrdinalIgnoreCase))
+                // If the call expression is a single-argument call to "CDbl" and the argument is a numeric literal that VBScript would declare as "Double",
+                // we can skip the call entirely. Likewise for "CInt" / "Integer" and "CLng" / "Long". The OperatorCombiner identifies some cases where what
+                // appear to be numeric literals must not be treated as numeric literal later on in the process, so it wraps them in a "CInt" / "CLng" / "CDbl"
+                // call (whichever is appropriate) - this code allows us to remove those injected functions right at the very last minute without changing the
+                // meaning of the translate code. (Note: It is elsewhere in this class where it is important whether tokens should be given "special treatment"
+                // as number literals in comparisons or not).
+                if ((callExpressionSegment.Arguments.Count() == 1) && (callExpressionSegment.Arguments.Single().Segments.Count() == 1))
                 {
-                    if ((callExpressionSegment.Arguments.Count() == 1) && (callExpressionSegment.Arguments.Single().Segments.Count() == 1))
-                    {
-                        var singleArgumentSegment = callExpressionSegment.Arguments.Single().Segments.Single();
-                        var singleArgumentSegmentAsNumericValue = singleArgumentSegment as NumericValueExpressionSegment;
-                        if (singleArgumentSegmentAsNumericValue != null)
-                        {
-                            return new TranslatedStatementContentDetailsWithContentType(
-                                singleArgumentSegmentAsNumericValue.Token.Content,
-                                ExpressionReturnTypeOptions.Value,
-                                new NonNullImmutableList<NameToken>()
-                            );
-                        }
-                    }
+                    var singleArgumentSegment = callExpressionSegment.Arguments.Single().Segments.Single();
+                    var singleArgumentSegmentAsNumericValue = singleArgumentSegment as NumericValueExpressionSegment;
+                    if ((singleArgumentSegmentAsNumericValue != null) && singleArgumentSegmentAsNumericValue.Token.IsSafeToUnwrapFrom(targetBuiltInFunction))
+                        return TranslateNonOperatorSegment(singleArgumentSegmentAsNumericValue, scopeAccessInformation);
                 }
 
                 // If supportFunctionDetails.DesiredNumberOfArgumentsMatchedAgainst is not null then there is a support function that has the same number of
