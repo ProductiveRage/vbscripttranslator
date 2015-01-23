@@ -25,7 +25,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_env.a = 1",
+                "_env.a = (Int16)1",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -41,7 +41,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         }
 
         [Fact]
-        public void OutmostScopeDeclaredSimpleValueTypeUpdate()
+        public void OutermostScopeDeclaredSimpleValueTypeUpdate()
         {
             var expressionToSet = new Expression(new IToken[]
 			{
@@ -52,7 +52,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_outer.a = 1",
+                "_outer.a = (Int16)1",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
@@ -75,7 +75,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         /// If "a" is declared as a variable in "a(0) = 1" then access will be attempted as an array or default indexed function or property
         /// </summary>
         [Fact]
-        public void OutmostScopeDeclaredSimpleValueTypeUpdateOfArray()
+        public void OutermostScopeDeclaredSimpleValueTypeUpdateOfArray()
         {
             var expressionToSet = new Expression(new IToken[]
 			{
@@ -89,7 +89,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(1, _outer.a, null, _.ARGS.Val(1))",
+                "_.SET((Int16)1, _outer.a, null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
@@ -109,7 +109,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         }
 
         /// <summary>
-        /// If "a" is undeclared then it is implicitly treated as a variable (so this is very similar to OutmostScopeDeclaredSimpleValueTypeUpdateOfArray)
+        /// If "a" is undeclared then it is implicitly treated as a variable (so this is very similar to OutermostScopeDeclaredSimpleValueTypeUpdateOfArray)
         /// </summary>
         [Fact]
         public void UndeclaredSimpleValueTypeUpdateOfArray()
@@ -126,7 +126,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(1, _env.a, null, _.ARGS.Val(1))",
+                "_.SET((Int16)1, _env.a, null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -159,7 +159,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET(1, _.CALL(_outer, \"a\"), null, _.ARGS.Val(1))",
+                "_.SET((Int16)1, _.CALL(_outer, \"a\"), null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(

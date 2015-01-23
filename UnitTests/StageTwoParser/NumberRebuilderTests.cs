@@ -58,7 +58,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken("0.1", 0)
+                    new NumericValueToken(".1", 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
@@ -118,7 +118,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             Assert.Equal(
                 new[]
                 {
-                    new NumericValueToken("-0.1", 0)
+                    new NumericValueToken("-.1", 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]
@@ -184,7 +184,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 new IToken[]
                 {
                     new NameToken("fnc", 0),
-                    new NumericValueToken("0.1", 0)
+                    new NumericValueToken(".1", 0)
                 },
                 NumberRebuilder.Rebuild(
                     new IToken[]

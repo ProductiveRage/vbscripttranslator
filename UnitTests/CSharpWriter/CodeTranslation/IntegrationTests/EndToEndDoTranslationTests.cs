@@ -14,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "while (_.IF(_.GT(_.NULLABLENUM(_env.i), 10)))",
+                "while (_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)))",
                 "{",
                 "}"
             };
@@ -33,7 +33,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "while (!_.IF(_.GT(_.NULLABLENUM(_env.i), 10)))",
+                "while (!_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)))",
                 "{",
                 "}"
             };
@@ -54,7 +54,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "do",
                 "{",
-                "} while (_.IF(_.GT(_.NULLABLENUM(_env.i), 10)));"
+                "} while (_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -73,7 +73,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "do",
                 "{",
-                "} while (!_.IF(_.GT(_.NULLABLENUM(_env.i), 10)));"
+                "} while (!_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -112,7 +112,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
-                "while (_.IF(() => _.IF(_.DIV(1, 0)), errOn1))",
+                "while (_.IF(() => _.IF(_.DIV((Int16)1, (Int16)0)), errOn1))",
                 "{",
                 "}",
                 "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
@@ -135,7 +135,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
-                "while (_.IF(() => !_.IF(_.DIV(1, 0)), errOn1))",
+                "while (_.IF(() => !_.IF(_.DIV((Int16)1, (Int16)0)), errOn1))",
                 "{",
                 "}",
                 "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"

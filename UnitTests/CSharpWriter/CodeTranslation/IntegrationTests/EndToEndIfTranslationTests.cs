@@ -100,7 +100,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), (Int16)1)))",
                     "{",
                     "}"
                 };
@@ -122,7 +122,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_env.i, -1)))",
+                    "if (_.IF(_.EQ(_env.i, (Int16)(-1))))",
                     "{",
                     "}"
                 };
@@ -147,7 +147,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(1, 2)))",
+                    "if (_.IF(_.EQ((Int16)1, (Int16)2)))",
                     "{",
                     "}"
                 };
@@ -194,7 +194,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NULLABLENUM(VBScriptConstants.False), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(VBScriptConstants.False), (Int16)1)))",
                     "{",
                     "}"
                 };
@@ -218,7 +218,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_env.i, _.ADD(1, 0))))",
+                    "if (_.IF(_.EQ(_env.i, _.ADD((Int16)1, (Int16)0))))",
                     "{",
                     "}"
                 };
@@ -242,7 +242,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(_env.i), (Int16)1)))",
                     "{",
                     "}"
                 };
@@ -254,9 +254,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
             /// <summary>
             /// If a numeric value has TWO minus signs then you might think that they would cancel out and it be left as a positive numeric literal,
-            /// to be processed as such. This is not the case, the minus signs prevent it from being categorised as a literal. The OperatorCombiner
-            /// class that will remove those double negatives but, if they are followed by a numeric constant, will wrap that constant in a CSng
-            /// call so that it is obvious that it is not a literal.
+            /// to be processed as such. This is not the case since the minus signs prevent it from being categorised as a literal. The OperatorCombiner
+            /// class will remove those double negatives but, if they are followed by a numeric constant, will wrap that constant in a CInt, CLng or CDbl
+            /// call (depending upon the numeric value) so that it is obvious that it is not a literal (although, actually, the translator is clever enough
+            /// to see when this might have happened and the CInt / CLng / CDbl call gets removed after it has done its job of preventing the values from
+            /// being treated as a literal where it matters in the translation process.
             /// </summary>
             [Fact]
             public void DoubleNegativesAreRemovedButCanPreventsNumericLiteralSpecialBehaviour()
@@ -267,7 +269,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR(12))))",
+                    "if (_.IF(_.EQ(\"12\", _.STR((Int16)12))))",
                     "{",
                     "}"
                 };
@@ -291,7 +293,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR(12))))",
+                    "if (_.IF(_.EQ(\"12\", _.STR((Int16)12))))",
                     "{",
                     "}"
                 };
@@ -366,7 +368,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NULLABLENUM(\"aa\"), 1)))",
+                    "if (_.IF(_.EQ(_.NULLABLENUM(\"aa\"), (Int16)1)))",
                     "{",
                     "}"
                 };

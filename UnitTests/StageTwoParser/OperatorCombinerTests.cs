@@ -58,14 +58,14 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void OneMultipliedByPlusOne()
         {
             // When operators are removed entirely by the OperatorCombiner, if they are removed from in front of numeric values, the numeric value is wrapped
-            // up in a CDbl call so that it is clear to the processing following it that it is not a numeric literal (but the CDbl call will not affect its
-            // value).
+            // up in a CInt, CLng or CDbl call so that it is clear to the processing following it that it is not a numeric literal (but a function is chosen
+            // that will its value - so here, for the small value 1 it is CInt).
             Assert.Equal(
                 new IToken[]
                 {
                     new NumericValueToken("1", 0),
                     new OperatorToken("*", 0),
-                    new BuiltInFunctionToken("CDbl", 0),
+                    new BuiltInFunctionToken("CInt", 0),
                     new OpenBrace(0),
                     new NumericValueToken("1", 0),
                     new CloseBrace(0)
