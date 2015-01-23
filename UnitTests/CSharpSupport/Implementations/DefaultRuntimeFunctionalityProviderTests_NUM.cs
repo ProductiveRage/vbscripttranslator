@@ -45,6 +45,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Fact]
+            public void BlankString()
+            {
+                Assert.Throws<TypeMismatchException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().NUM("");
+                });
+            }
+
+            [Fact]
             public void PositiveIntegerString()
             {
                 Assert.Equal(
@@ -96,6 +105,17 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 {
                     GetDefaultRuntimeFunctionalityProvider().NUM("1.1.0");
                 });
+            }
+
+            [Fact]
+            public void DateAndTime()
+            {
+                // TODO: Explain
+                Assert.Equal(
+                    42026.8410300926d,
+                    (double)GetDefaultRuntimeFunctionalityProvider().NUM(new DateTime(2015, 1, 22, 20, 11, 5, 0)),
+                    10 // This test fails without specifying precision
+                );
             }
 
             // TODO: String with underscores, hashes, exclamation marks

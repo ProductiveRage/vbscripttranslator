@@ -78,37 +78,24 @@ namespace CSharpSupport.Implementations
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
         /// an object without an appropriate default property member) will. This is used by translated code and is very similar to the
         /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, though it may apply different rules where appropriate
-        /// since it is not bound to the behaviour of a built-in VBScript method - for example, if the input is a date, then that
-        /// date will be returned unaltered
+        /// since it is not bound to the behaviour of a built-in VBScript method.
         /// </summary>
         public object NUM(object o)
         {
-            // The behaviour here feels very similar to CDBL, but there important are differences illustrated by the following cases:
+            // The NUM function is only used in translated loops' termination conditions - eg.
             //
-            //   Dim i: For i = 1  To 5
-            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer"
-            //   Next
+            //   for (i = 1; _.NUM(i) < 5; i = _.ADD(5, 1))
+            //   {
+            //   }
             //
-            //   Dim i: For i = 1  To 5
-            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer" for first loop and "Date" for the rest (shows 1, 01/01/1900, 02/01/1900, 03/01/1900, 04/01/1900)
-            //     i = CDate(i)
-            //   Next
+            // So it is only to allow comparisons between the loop variable's current value and the point at which it should stop. It was previously
+            // used to increment the loop variable as well, but instead ADD is being used to do that now. The difference between the two is that the NUM
+            // call performs only a comparison and doesn't directly affect any values, whereas ADD returns a new value and it is important to maintain types
+            // - eg. it is possible for the loop variable to be set to a date, then each loop increment the date must be advanced but maintained as a date,
+            // not converted into a numeric type.
             //
-            //   Dim i: For i = 1  To 5
-            //     WScript.Echo i & " [" & TypeName(i) & "]" ' Reports type as "Integer" for first loop and "Double" for the rest
-            //     i = "" & i
-            //   Next
-
-            // We always need a non-object reference here (all the same rules around default member access on objects can be followed) except
-            // that DBNull.Value is not acceptable here
-            o = VAL(o);
-            if (o == DBNull.Value)
-                throw new InvalidUseOfNullException();
-
-            // If the value is a numeric type or DateTime, then ensure that it is passed straight back out, maintaining the type (this deals with the first two
-            // special cases above)
-            if (IsDotNetNumericType(o) || (o is DateTime))
-                return o;
+            // In summary: All we are doing here is trying to extract a numeric value for comparison purposes. If we get a date then we need to translate
+            // that into a number.
 
             // Next, try all of the common "numeric special cases" (Empty, True, a Date, etc..) to see if we can get a number. This may throw an exception (such
             // as TypeMismatchException for blank string) or it may return null if there were no problems but none of the numeric special cases applied.
