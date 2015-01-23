@@ -24,7 +24,11 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 
             // C# will default to int (Int32) for integers, we need to override this for smaller values
             if ((token.Value >= Int16.MinValue) && (token.Value <= Int16.MaxValue))
+            {
+                if (token.Content.StartsWith("-"))
+                    return "(Int16)(-" + token.Content.Substring(1) + ")";
                 return "(Int16)" + token.Content;
+            }
             
             // When Int32 would overflow, C# will bump to Int64, we need to override this to use Double.
             if ((token.Value < Int32.MinValue) || (token.Value > Int32.MaxValue))
