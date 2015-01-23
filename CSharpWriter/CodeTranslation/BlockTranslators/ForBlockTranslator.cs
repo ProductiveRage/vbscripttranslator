@@ -65,7 +65,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             string loopStart;
             var numericLoopStartValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopFrom);
             if (numericLoopStartValueIfAny != null)
-                loopStart = numericLoopStartValueIfAny.Value.ToString();
+                loopStart = numericLoopStartValueIfAny.AsCSharpValue();
             else
             {
                 // If the start value is not a simple numeric constant then we'll need to declare a variable for it. This variable will never need to be
@@ -93,7 +93,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             string loopEnd;
             var numericLoopEndValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopTo);
             if (numericLoopEndValueIfAny != null)
-                loopEnd = numericLoopEndValueIfAny.Value.ToString();
+                loopEnd = numericLoopEndValueIfAny.AsCSharpValue();
             else
             {
                 // Same logic as for the loopStart value above applies here
@@ -132,7 +132,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     numericLoopStepValueIfAny = lastLoopStepTokenAsNumericValueToken.GetNegative();
             }
             if (numericLoopStepValueIfAny != null)
-                loopStep = numericLoopStepValueIfAny.Value.ToString();
+                loopStep = numericLoopStepValueIfAny.AsCSharpValue();
             else
             {
                 // Same logic as for the loopStart/loopEnd value above applies here
@@ -224,6 +224,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ))
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
+
+            // TODO: Could this be tidied up with us of LTE and GTE??? That would remove the NUM calls (and allow NUM to be dropped entirely?0
 
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
             // - If the loop is descending but a negative step is not specified then the loop will not be entered and so might as well not be
@@ -324,7 +326,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 if (numericLoopStepValueIfAny.Value >= 0)
                 {
                     continuationCondition = string.Format(
-                        "{0}.NUM({1}) <= {2}",
+                        "{0}.NUM({1}) <= {2}", // TODO: Replace with LTE call (and drop NUM)?
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
                         loopEnd
@@ -333,7 +335,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 else
                 {
                     continuationCondition = string.Format(
-                        "{0}.NUM({1}) >= {2}",
+                        "{0}.NUM({1}) >= {2}", // TODO: Replace with GTE call (and drop NUM)?
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
                         loopEnd
@@ -342,6 +344,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
+                // TODO: Replace with LTE and GTE calls (and drop NUM)?
                 continuationCondition = string.Format(
                     "(({3} >= 0) && ({0}.NUM({1}) <= {2})) || (({3} < 0) && ({0}.NUM({1}) >= {2}))",
                     _supportRefName.Name,
@@ -372,7 +375,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
                     " {0} = {2}.ADD({0}, {1})",
                     rewrittenLoopVariableName,
-                    (numericLoopStepValueIfAny == null) ? loopStep : numericLoopStepValueIfAny.Value.ToString(), // TODO: Why not just loopStep, why the numericLoopStepValueIfAny check?
+                    loopStep,
                     _supportRefName.Name
                 );
             }
