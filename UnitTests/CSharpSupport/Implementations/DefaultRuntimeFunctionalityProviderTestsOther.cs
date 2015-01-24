@@ -5,14 +5,14 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
-        public class NULLABLENUM
+        public class NullableNUM
         {
             [Fact]
             public void NullToNumber()
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().NULLABLENUM(DBNull.Value)
+                    GetDefaultRuntimeFunctionalityProvider().NullableNUM(DBNull.Value)
                 );
             }
         }

@@ -82,7 +82,7 @@ namespace CSharpSupport.Implementations
         /// </summary>
         public object NUM(object o)
         {
-            // The NUM function is only used in translated loops' termination conditions - eg.
+            // The NUM function is only used in translated loops' termination conditions - eg. TODO: This is wrong! It's used for loop start evaluation as well
             //
             //   for (i = 1; _.NUM(i) < 5; i = _.ADD(5, 1))
             //   {
@@ -119,7 +119,7 @@ namespace CSharpSupport.Implementations
         /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
         /// (it is not a valid input for NUM).
         /// </summary>
-        public object NULLABLENUM(object o)
+        public object NullableNUM(object o)
         {
             return (o == DBNull.Value) ? DBNull.Value : (object)NUM(o);
         }

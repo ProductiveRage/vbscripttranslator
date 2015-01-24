@@ -14,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "for (_outer.i = (Int16)1; _.NUM(_outer.i) <= (Int16)5; _outer.i = _.ADD(_outer.i, (Int16)1))",
+                "for (_outer.i = (Int16)1; _.StrictLTE(_outer.i, (Int16)5); _outer.i = _.ADD(_outer.i, (Int16)1))",
                 "{",
                 "}"
             };
@@ -50,7 +50,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "for (_outer.i = (Int16)5; _.NUM(_outer.i) >= (Int16)1; _outer.i = _.ADD(_outer.i, (Int16)(-1)))",
+                "for (_outer.i = (Int16)5; _.StrictGTE(_outer.i, (Int16)1); _outer.i = _.SUBT(_outer.i, (Int16)1))",
                 "{",
                 "}"
             };
@@ -69,7 +69,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "for (_outer.i = (Int16)1; _.NUM(_outer.i) <= (Int16)5;)",
+                "for (_outer.i = (Int16)1; _.StrictLTE(_outer.i, (Int16)5);)",
                 "{",
                 "}"
             };
@@ -136,7 +136,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "for (_outer.i = (Int16)1; _.NUM(_outer.i) <= (Int16)5; _outer.i = _.ADD(_outer.i, (Int16)2))",
+                "for (_outer.i = (Int16)1; _.StrictLTE(_outer.i, (Int16)5); _outer.i = _.ADD(_outer.i, (Int16)2))",
                 "{",
                 "}"
             };
@@ -155,7 +155,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "for (_outer.i = (Int16)5; _.NUM(_outer.i) >= (Int16)1; _outer.i = _.ADD(_outer.i, (Int16)(-1)))",
+                "for (_outer.i = (Int16)5; _.StrictGTE(_outer.i, (Int16)1); _outer.i = _.SUBT(_outer.i, (Int16)1))",
                 "{",
                 "}"
             };
@@ -180,12 +180,15 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "var loopStart1 = _.NUM(_env.a);",
-                "var loopEnd2 = _.NUM(_env.b);",
-                "var loopStep3 = _.NUM(_env.c);",
-                "if (((loopStart1 <= loopEnd2) && (loopStep3 >= 0)) || ((loopStart1 > loopEnd2) && (loopStep3 < 0)))",
+                "var loopStart1 = _.CDBL(_env.a);",
+                "var loopEnd2 = _.CDBL(_env.b);",
+                "var loopStep3 = _.CDBL(_env.c);",
+                "if (((loopStart1 <= loopEnd2) && (loopStep3 >= 0))",
+                "|| ((loopStart1 > loopEnd2) && (loopStep3 < 0)))",
                 "{",
-                "for (_env.i = loopStart1; ((loopStep3 >= 0) && (_.NUM(_env.i) <= loopEnd2)) || ((loopStep3 < 0) && (_.NUM(_env.i) >= loopEnd2)); _env.i = _.ADD(_env.i, loopStep3))",
+                "for (_env.i = loopStart1;",
+                "    ((loopStep3 >= 0) && _.StrictLTE(_env.i, loopEnd2)) || ((loopStep3 < 0) && _.StrictGTE(_env.i, loopEnd2));",
+                "     _env.i = _.ADD(_env.i, loopStep3))",
                 "{",
                 "}",
                 "}"
@@ -223,15 +226,15 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "double loopStart2 = 0, loopEnd3 = 0;",
                 "var loopConstraintsInitialised4 = false;",
                 "_.HANDLEERROR(errOn1, () => {",
-                "    loopStart2 = _.NUM(_env.a);",
-                "    loopEnd3 = _.NUM(_env.b);",
+                "    loopStart2 = _.CDBL(_env.a);",
+                "    loopEnd3 = _.CDBL(_env.b);",
                 "    loopConstraintsInitialised4 = true;",
                 "});",
                 "if (!loopConstraintsInitialised4 || (loopStart2 <= loopEnd3))",
                 "{",
                 "    _.HANDLEERROR(errOn1, () => {",
                 "        for (_env.i = loopConstraintsInitialised4 ? loopStart2 : _env.i;",
-                "             !loopConstraintsInitialised4 || (_.NUM(_env.i) <= loopEnd3);",
+                "             !loopConstraintsInitialised4 || (_.StrictLTE(_env.i, loopEnd3));",
                 "             _env.i = _.ADD(_env.i, (Int16)1))",
                 "        {",
                 "            _.HANDLEERROR(errOn1, () => {",
@@ -270,7 +273,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "_.HANDLEERROR(errOn1, () => {",
-                "    for (_env.i = (Int16)1; _.NUM(_env.i) <= (Int16)10; _env.i = _.ADD(_env.i, (Int16)1))",
+                "    for (_env.i = (Int16)1; _.StrictLTE(_env.i, (Int16)10); _env.i = _.ADD(_env.i, (Int16)1))",
                 "    {",
                 "        _.HANDLEERROR(errOn1, () => {",
                 "            _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",

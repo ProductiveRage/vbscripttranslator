@@ -115,6 +115,28 @@ namespace CSharpSupport.Implementations
 
         public object LT(object l, object r) { return ToVBScriptNullable(LT_Internal(l, r, allowEquals: false)); }
         public object LTE(object l, object r) { return ToVBScriptNullable(LT_Internal(l, r, allowEquals: true)); }
+        /// <summary>
+        /// This takes the logic from LT but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which LT has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        public bool StrictLT(object l, object r)
+        {
+            var result = LT_Internal(l, r, allowEquals: false);
+            if (result == null)
+                throw new InvalidUseOfNullException();
+            return result.Value;
+        }
+        /// <summary>
+        /// This takes the logic from LTE but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which LTE has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        public bool StrictLTE(object l, object r)
+        {
+            var result = LT_Internal(l, r, allowEquals: true);
+            if (result == null)
+                throw new InvalidUseOfNullException();
+            return result.Value;
+        }
         private bool? LT_Internal(object l, object r, bool allowEquals)
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
@@ -164,6 +186,28 @@ namespace CSharpSupport.Implementations
 
         public object GT(object l, object r) { return ToVBScriptNullable(GT_Internal(l, r, allowEquals: false)); }
         public object GTE(object l, object r) { return ToVBScriptNullable(GT_Internal(l, r, allowEquals: true)); }
+        /// <summary>
+        /// This takes the logic from GT but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which GT has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        public bool StrictGT(object l, object r)
+        {
+            var result = GT_Internal(l, r, allowEquals: false);
+            if (result == null)
+                throw new InvalidUseOfNullException();
+            return result.Value;
+        }
+        /// <summary>
+        /// This takes the logic from GTE but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which GTE has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        public bool StrictGTE(object l, object r)
+        {
+            var result = GT_Internal(l, r, allowEquals: true);
+            if (result == null)
+                throw new InvalidUseOfNullException();
+            return result.Value;
+        }
         private bool? GT_Internal(object l, object r, bool allowEquals)
         {
             // This can just LT_Internal, rather than trying to deal with too much logic itself. When calling LT_Internal, the "allowEquals" value must be

@@ -14,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "while (_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)))",
+                "while (_.IF(_.GT(_.NullableNUM(_env.i), (Int16)10)))",
                 "{",
                 "}"
             };
@@ -33,7 +33,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "while (!_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)))",
+                "while (!_.IF(_.GT(_.NullableNUM(_env.i), (Int16)10)))",
                 "{",
                 "}"
             };
@@ -54,7 +54,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "do",
                 "{",
-                "} while (_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)));"
+                "} while (_.IF(_.GT(_.NullableNUM(_env.i), (Int16)10)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -73,7 +73,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "do",
                 "{",
-                "} while (!_.IF(_.GT(_.NULLABLENUM(_env.i), (Int16)10)));"
+                "} while (!_.IF(_.GT(_.NullableNUM(_env.i), (Int16)10)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),

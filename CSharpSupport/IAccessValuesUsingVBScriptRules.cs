@@ -54,7 +54,7 @@ namespace CSharpSupport
         /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
         /// (it is not a valid input for NUM).
         /// </summary>
-        object NULLABLENUM(object o);
+        object NullableNUM(object o);
 
         /// <summary>
         /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.

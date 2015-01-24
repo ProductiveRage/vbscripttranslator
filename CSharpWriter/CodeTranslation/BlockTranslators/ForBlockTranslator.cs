@@ -80,7 +80,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
                     loopStartName,
                     string.Format(
-                        "{0}.NUM({1})",
+                        "{0}.CDBL({1})",
                         _supportRefName.Name,
                         loopStartExpressionContent.TranslatedContent
                     )
@@ -106,7 +106,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
                     loopEndName,
                     string.Format(
-                        "{0}.NUM({1})",
+                        "{0}.CDBL({1})",
                         _supportRefName.Name,
                         loopEndExpressionContent.TranslatedContent
                     )
@@ -145,7 +145,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopConstraintInitialisersWhereRequired.Add(Tuple.Create(
                     loopStepName,
                     string.Format(
-                        "{0}.NUM({1})",
+                        "{0}.CDBL({1})",
                         _supportRefName.Name,
                         loopStepExpressionContent.TranslatedContent
                     )
@@ -159,6 +159,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
             // to deal with here (this will have been determined in the work above).
+            // - Note: These fixed constraints are stored as as doubles (where error-trapping is involved, the variables are explicitly declared as
+            //   double, though otherwise var is used when CDBL is called). This means that the loop termination conditions are simpler, since we
+            //   only need to call NUM on the loop variable - which may be set to anything by code within the loop - we can rest safe in the knowledge
+            //   that the constraints are always numeric since they are doubles. If the loop variable is set to a date type within the loop (which is
+            //   valid VBScript), then the loop constraints comparisons will be fine (StrictLTE can compare a date to a double, for example). We can't
+            //   use NUM to evaluate the contraints, since that returns an object (since it might return an int, a double, a date.. anything that
+            //   VBScript considers to be a numeric type).
             var translationResult = TranslationResult.Empty;
             CSharpName constraintsInitialisedFlagNameIfAny;
             if (!loopConstraintInitialisersWhereRequired.Any())
@@ -185,7 +192,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "double {0};",
+                            "double {0};", // See notes above as to why these are doubles (all dynamic loop constraints are evaluated to doubles)
                             string.Join(", ", loopConstraintInitialisersWhereRequired.Select(c => c.Item1.Name + " = 0"))
                         ),
                         indentationDepth
@@ -225,13 +232,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
 
-            // TODO: Could this be tidied up with us of LTE and GTE??? That would remove the NUM calls (and allow NUM to be dropped entirely?0
-
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
             // - If the loop is descending but a negative step is not specified then the loop will not be entered and so might as well not be
             //   included in the translated content
             // - If the loop is ascending then a positive OR zero step must be specified
-            string guardClause;
+            var guardClauseLines = new NonNullImmutableList<string>();
             if ((numericLoopStartValueIfAny != null) && (numericLoopEndValueIfAny != null) && (numericLoopStepValueIfAny != null))
             {
                 if ((numericLoopStartValueIfAny.Value > numericLoopEndValueIfAny.Value) && (numericLoopStepValueIfAny.Value >= 0))
@@ -244,21 +249,22 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     _logger.Warning("Optimising out ascending FOR loop that has a negative step specified");
                     return TranslationResult.Empty;
                 }
-                guardClause = null;
             }
             else if (numericLoopStepValueIfAny != null)
             {
                 // If the step is a known numeric constant, then the guard clause only needs to compare the from and to constaints (at least
                 // one of which must not be a known constant, otherwise we'd be in the above condition)
+                // - Note: loopStart and loopEnd are both variables of type double, so we know we can do a straight comparison and don't have to
+                //   rely upon methods such as StrictLTE
                 if (numericLoopStepValueIfAny.Value >= 0)
                 {
                     // Ascending loop or infinite loop (step zero, which is supported in VBScript), start must not be greater than end
-                    guardClause = string.Format("({0} <= {1})", loopStart, loopEnd);
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0} <= {1})", loopStart, loopEnd));
                 }
                 else
                 {
                     // Descending loop, start must be greater than end
-                    guardClause = string.Format("({0} > {1})", loopStart, loopEnd);
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0} > {1})", loopStart, loopEnd));
                 }
             }
             else if ((numericLoopStartValueIfAny != null) && (numericLoopEndValueIfAny != null))
@@ -266,21 +272,31 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // If the from and to bounds are known to be constants, but not the step then we just need to ensure that the step matches the
                 // direction of from and to at runtime. Note: A step of zero will cause an infinite loop, but only if from <= to (the loop will
                 // not be executed if it is descending and has a step of zero)
+                // - Note: loopStart and loopEnd are both variables of type double, so we know we can do a straight comparison and don't have to
+                //   rely upon methods such as StrictLTE
                 if (numericLoopStartValueIfAny.Value <= numericLoopEndValueIfAny.Value)
-                    guardClause = string.Format("({0} >= 0)", loopStep);
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0} >= 0)", loopStep));
                 else
-                    guardClause = string.Format("({0} < 0)", loopStep);
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0} < 0)", loopStep));
             }
             else
             {
                 // There are no more shortcuts now, we need to check at runtime that loopStep is negative for a descending loop and non-negative
                 // for a non-descending loop
-                guardClause = string.Format(
-                    "((({0} <= {1}) && ({2} >= 0)) || (({0} > {1}) && ({2} < 0)))",
+                // - Note: loopStart and loopEnd are both variables of type double, so we know we can do a straight comparison and don't have to
+                //   rely upon methods such as StrictLTE
+                guardClauseLines = guardClauseLines.Add(string.Format(
+                    "((({0} <= {1}) && ({2} >= 0))",
                     loopStart,
                     loopEnd,
                     loopStep
-                );
+                ));
+                guardClauseLines = guardClauseLines.Add(string.Format(
+                    "|| (({0} > {1}) && ({2} < 0)))",
+                    loopStart,
+                    loopEnd,
+                    loopStep
+                ));
             }
 
             // If there are non-constant constraint(s) and error-trapping is enabled and thee constraint evaluation fails, then VBScript will
@@ -288,11 +304,29 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // the guard clause - it won't make sense anyway to compare loop constaints if we know that the constraint evaluation failed!
             if (constraintsInitialisedFlagNameIfAny != null)
             {
-                guardClause = string.Format(
-                    (guardClause == null) ? "({0})" : "(!{0} || {1})",
-                    constraintsInitialisedFlagNameIfAny.Name,
-                    guardClause
-                );
+                // If the guard clases have already been split up over multiple lines then insert a fresh line, otherwise just bang it in
+                // front of the single line (unless there is no content, in which case this will become the only guard clause line)
+                if (!guardClauseLines.Any())
+                    guardClauseLines = guardClauseLines.Add("(" + constraintsInitialisedFlagNameIfAny.Name + ")");
+                else if (guardClauseLines.Count == 1)
+                {
+                    guardClauseLines = new NonNullImmutableList<string>(new[]
+                    {
+                        string.Format(
+                            "(!{0} || {1})",
+                            constraintsInitialisedFlagNameIfAny.Name,
+                            guardClauseLines.Single()
+                        )
+                    });
+                }
+                else
+                {
+                    guardClauseLines = new NonNullImmutableList<string>(
+                        new[] { "(!" + constraintsInitialisedFlagNameIfAny.Name + " ||" }
+                        .Concat(guardClauseLines.Take(guardClauseLines.Count - 1))
+                        .Concat(new[] { guardClauseLines.Last() + ")" })
+                    );
+                }
             }
 
             var rewrittenLoopVariableName = _nameRewriter.GetMemberAccessTokenName(forBlock.LoopVar);
@@ -300,11 +334,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (targetContainer != null)
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
 
-            if (guardClause != null)
+            if (guardClauseLines.Any())
             {
-                translationResult = translationResult
-                    .Add(new TranslatedStatement("if " + guardClause, indentationDepth))
-                    .Add(new TranslatedStatement("{", indentationDepth));
+                translationResult = translationResult.Add(new TranslatedStatement("if " + guardClauseLines.First(), indentationDepth));
+                foreach (var guardClauseLine in guardClauseLines.Skip(1))
+                    translationResult = translationResult.Add(new TranslatedStatement(guardClauseLine, indentationDepth));
+                translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                 indentationDepth++;
             }
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
@@ -326,7 +361,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 if (numericLoopStepValueIfAny.Value >= 0)
                 {
                     continuationCondition = string.Format(
-                        "{0}.NUM({1}) <= {2}", // TODO: Replace with LTE call (and drop NUM)?
+                        "{0}.StrictLTE({1}, {2})",
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
                         loopEnd
@@ -335,7 +370,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 else
                 {
                     continuationCondition = string.Format(
-                        "{0}.NUM({1}) >= {2}", // TODO: Replace with GTE call (and drop NUM)?
+                        "{0}.StrictGTE({1}, {2})",
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
                         loopEnd
@@ -344,9 +379,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                // TODO: Replace with LTE and GTE calls (and drop NUM)?
+                // Note: loopStep is a variable of type double, so we know we can do straight comparisons between it and zero, we don't need to rely
+                // upon methods such as StrictLTE
                 continuationCondition = string.Format(
-                    "(({3} >= 0) && ({0}.NUM({1}) <= {2})) || (({3} < 0) && ({0}.NUM({1}) >= {2}))",
+                    "(({3} >= 0) && {0}.StrictLTE({1}, {2})) || (({3} < 0) && {0}.StrictGTE({1}, {2}))",
                     _supportRefName.Name,
                     rewrittenLoopVariableName,
                     loopEnd,
@@ -372,12 +408,28 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopIncrementWithLeadingSpaceIfNonBlank = "";
             else
             {
-                loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
-                    " {0} = {2}.ADD({0}, {1})",
-                    rewrittenLoopVariableName,
-                    loopStep,
-                    _supportRefName.Name
-                );
+                if ((numericLoopStepValueIfAny != null) && (numericLoopStepValueIfAny.Value < 0))
+                {
+                    // If the step is known to be a negative numeric constant value, then use SUBT instead of ADD. If it's a small step value then it
+                    // will cast to an Int16, so using SUBT instead of ADD allows the following (slight) improvement to readability:
+                    //   _env.i = _.ADD(_env.i, (Int16)(-1))
+                    //   _env.i = _.SUBT(_env.i, (Int16)1)
+                    loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
+                        " {0} = {2}.SUBT({0}, {1})",
+                        rewrittenLoopVariableName,
+                        numericLoopStepValueIfAny.GetNegative().AsCSharpValue(),
+                        _supportRefName.Name
+                    );
+                }
+                else
+                {
+                    loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
+                        " {0} = {2}.ADD({0}, {1})",
+                        rewrittenLoopVariableName,
+                        loopStep,
+                        _supportRefName.Name
+                    );
+                }
             }
             string loopVarInitialiser;
             if (constraintsInitialisedFlagNameIfAny == null)
@@ -401,11 +453,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     loopStart
                 );
             }
-            if (constraintsInitialisedFlagNameIfAny == null)
+            if ((constraintsInitialisedFlagNameIfAny == null) && (numericLoopStepValueIfAny != null))
             {
                 // If there is no complicated were-loop-constraints-successfully-initialised logic to worry about (meaning that either error-trapping was
                 // not enabled or that all of the constraints were numeric constants), then render a nice and simple single-line loop construct.
-                // Note: There is not space before {2} so that if there is no loop increment required then the output doesn't look like it's missing
+                // Note: There is no space before {2} so that if there is no loop increment required then the output doesn't look like it's missing
                 // something (this may be the case if the loop step is zero)
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format(
@@ -467,7 +519,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
             }
-            if (guardClause != null)
+            if (guardClauseLines.Any())
             {
                 indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));

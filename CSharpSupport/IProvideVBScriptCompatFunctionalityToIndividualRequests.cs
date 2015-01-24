@@ -48,6 +48,26 @@ namespace CSharpSupport
         object IS(object l, object r);
         object EQV(object l, object r);
         object IMP(object l, object r);
+        /// <summary>
+        /// This takes the logic from LT but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which LT has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        bool StrictLT(object l, object r);
+        /// <summary>
+        /// This takes the logic from LTE but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which LTE has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        bool StrictLTE(object l, object r);
+        /// <summary>
+        /// This takes the logic from GT but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which GT has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        bool StrictGT(object l, object r);
+        /// <summary>
+        /// This takes the logic from GTE but throws an exception if a DBNull.Value is taken as part of the comparison (which is how it is able to
+        /// return a boolean, rather than an object - which GTE has to since it may return a boolean OR DBNull.Value)
+        /// </summary>
+        bool StrictGTE(object l, object r);
 
         // TODO: Add a NEW method so that instantiated objects can be tracked and disposed of at the end of the request? (Instead of new'ing them
         // up directly in the translated code).
