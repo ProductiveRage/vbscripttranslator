@@ -25,6 +25,33 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         /// <summary>
+        /// A loop that exceeds the range of the VBScript "Integer" will result in the loop variable being set to a larger type so that it can describe all of the
+        /// values within the loop. Note that there is special handling to identify the case when all loop constraints are constants within VBScript's "Integer"
+        /// range, which is why the test AscendingLoopWithImplicitStep does not require an addition "loopStart" variable. That shortcut is not in play here
+        /// and so a "loopStart" variable IS required (to determine what type to use to cover the range from (Int16)1 to 32768 - which is implicitly an
+        /// Int32 (aka "int") when compiled as C#.
+        /// </summary>
+        [Fact]
+        public void AscendingLoopThatRollsOverLoopVariableIntoLongType()
+        {
+            var source = @"
+                Dim i: For i = 1 To 32768
+                Next
+            ";
+            var expected = new[]
+            {
+                "var loopStart1 = _.NUM((Int16)1, 32768);",
+                "for (_outer.i = loopStart1; _.StrictLTE(_outer.i, 32768); _outer.i = _.ADD(_outer.i, 1))",
+                "{",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
         /// If the loop range is in the opposite direction to step then it will never be entered in VBScript and so there's no pointing emitting any C# code (this
         /// can only be done if the loop start, end and step are known at compile time - here the start and end are numeric and the loop is implicitly one)
         /// </summary>
@@ -51,6 +78,29 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = new[]
             {
                 "for (_outer.i = (Int16)5; _.StrictGTE(_outer.i, 1); _outer.i = _.SUBT(_outer.i, 1))",
+                "{",
+                "}"
+            };
+            Assert.Equal(
+                expected,
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// A fractional step on an otherwise small integer range changes the loop variable from being a VBScript "Integer" to a "Double"
+        /// </summary>
+        [Fact]
+        public void DescendingLoopWithExplicitFractionalStep()
+        {
+            var source = @"
+                Dim i: For i = 1 To 5 Step 0.1
+                Next
+            ";
+            var expected = new[]
+            {
+                "var loopStart1 = _.NUM((Int16)1, 0.1);",
+                "for (_outer.i = loopStart1; _.StrictLTE(_outer.i, 5); _outer.i = _.ADD(_outer.i, 0.1))",
                 "{",
                 "}"
             };
