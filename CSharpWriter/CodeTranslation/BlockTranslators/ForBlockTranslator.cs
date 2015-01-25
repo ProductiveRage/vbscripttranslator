@@ -91,11 +91,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopEndName,
                     string.Format(
-                        "{0}.CDBL({1})",
+                        "{0}.NUM({1})",
                         _supportRefName.Name,
                         loopEndExpressionContent.TranslatedContent
-                    ),
-                    "double"
+                    )
                 ));
                 loopEnd = loopEndName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
@@ -136,11 +135,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopStepName,
                     string.Format(
-                        "{0}.CDBL({1})",
+                        "{0}.NUM({1})",
                         _supportRefName.Name,
                         loopStepExpressionContent.TranslatedContent
-                    ),
-                    "double"
+                    )
                 ));
                 loopStep = loopStepName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
@@ -208,8 +206,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         loopStartExpressionContent.TranslatedContent,
                         numericValuesTheTypeMustBeAbleToContain.Any() ? ", " : "",
                         string.Join(", ", numericValuesTheTypeMustBeAbleToContain)
-                    ),
-                    "object"
+                    )
                 ));
                 loopStart = loopStartName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
@@ -225,13 +222,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
             // to deal with here (this will have been determined in the work above).
-            // - Note: The loopEnd and loopStep fixed constraints are stored as as doubles (where error-trapping is involved, the variables are explicitly
-            //   declared as double, though otherwise var is used when CDBL is called). This means that the loop termination conditions are simpler, since
-            //   we only need to call NUM on the loop variable - which may be set to anything by code within the loop - we can rest safe in the knowledge
-            //   that these constraints are always numeric since they are doubles. However, loopStart has to be an object since it could be any of the
-            //   VBScript "numeric" types and its type is what the loop variable is assigned when the loop begins; so if the "from" value is a DateTime
-            //   then the loop variable starts as a DateTime and is incremented as a DateTime each iteration. So guard clauses involving loopStart
-            //   need to use support functions such as StrictLTE.
             var translationResult = TranslationResult.Empty;
             CSharpName constraintsInitialisedFlagNameIfAny;
             if (!loopConstraintInitialisersWhereRequired.Any())
@@ -254,19 +244,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                constraintsInitialisedFlagNameIfAny = _tempNameGenerator(new CSharpName("loopConstraintsInitialised"), scopeAccessInformation);
-                foreach (var loopConstraint in loopConstraintInitialisersWhereRequired)
+                if (loopConstraintInitialisersWhereRequired.Any())
                 {
-                    translationResult = translationResult
-                        .Add(new TranslatedStatement(
-                            string.Format(
-                                "{0} {1} = 0;",
-                                loopConstraint.TypeNameIfPostponingSetting,
-                                loopConstraint.VariableName.Name
-                            ),
-                            indentationDepth
-                        ));
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        "object " + string.Join(", ", loopConstraintInitialisersWhereRequired.Select(l => l.VariableName.Name + " = 0")) + ";",
+                        indentationDepth
+                    ));
                 }
+                constraintsInitialisedFlagNameIfAny = _tempNameGenerator(new CSharpName("loopConstraintsInitialised"), scopeAccessInformation);
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
@@ -397,7 +382,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 else
                 {
                     // Descending loop, start must be greater than end
-                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictGT({1} > {2})", _supportRefName.Name, loopStart, loopEnd));
+                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictGT({1}, {2})", _supportRefName.Name, loopStart, loopEnd));
                 }
             }
             else if ((numericLoopStartValueIfAny != null) && (numericLoopEndValueIfAny != null))
@@ -406,23 +391,23 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // direction of from and to at runtime. Note: A step of zero will cause an infinite loop, but only if from <= to (the loop will
                 // not be executed if it is descending and has a step of zero)
                 if (numericLoopStartValueIfAny.Value <= numericLoopEndValueIfAny.Value)
-                    guardClauseLines = guardClauseLines.Add(string.Format("({0} >= 0)", loopStep));
+                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictGTE({1}, 0)", _supportRefName.Name, loopStep));
                 else
-                    guardClauseLines = guardClauseLines.Add(string.Format("({0} < 0)", loopStep));
+                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictLT({1}. 0)", _supportRefName.Name, loopStep));
             }
             else
             {
                 // There are no more shortcuts now, we need to check at runtime that loopStep is negative for a descending loop and non-negative
                 // for a non-descending loop
                 guardClauseLines = guardClauseLines.Add(string.Format(
-                    "(({0}.StrictLTE({1}, {2}) && ({3} >= 0))",
+                    "(({0}.StrictLTE({1}, {2}) && {0}.StrictGTE({3}, 0))",
                     _supportRefName.Name,
                     loopStart,
                     loopEnd,
                     loopStep
                 ));
                 guardClauseLines = guardClauseLines.Add(string.Format(
-                    "|| ({0}.StrictGT({1}, {2}) && ({3} < 0)))",
+                    "|| ({0}.StrictGT({1}, {2}) && {0}.StrictLT({3}, 0)))",
                     _supportRefName.Name,
                     loopStart,
                     loopEnd,
@@ -513,7 +498,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             {
                 // Note: If loopEnd is a known numeric constant then we can render just its value instead of its translated content - see note above
                 continuationCondition = string.Format(
-                    "(({3} >= 0) && {0}.StrictLTE({1}, {2})) || (({3} < 0) && {0}.StrictGTE({1}, {2}))",
+                    "({0}.StrictGTE({3}, 0) && {0}.StrictLTE({1}, {2})) || ({0}.StrictLT({3}, 0) && {0}.StrictGTE({1}, {2}))",
                     _supportRefName.Name,
                     rewrittenLoopVariableName,
                     (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString(),
@@ -728,18 +713,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
         private class LoopConstraintInitialiser
         {
-            public LoopConstraintInitialiser(CSharpName variableName, string initialisationContent, string typeNameIfPostponingSetting)
+            public LoopConstraintInitialiser(CSharpName variableName, string initialisationContent)
             {
                 if (variableName == null)
                     throw new ArgumentNullException("variableName");
                 if (string.IsNullOrWhiteSpace(initialisationContent))
                     throw new ArgumentException("Null/blank initialisationContent specified");
-                if (string.IsNullOrWhiteSpace(typeNameIfPostponingSetting))
-                    throw new ArgumentException("Null/blank typeNameIfPostponingSetting specified");
 
                 VariableName = variableName;
                 InitialisationContent = initialisationContent;
-                TypeNameIfPostponingSetting = typeNameIfPostponingSetting;
             }
 
             /// <summary>
@@ -751,21 +733,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             /// This will never be null or blank
             /// </summary>
             public string InitialisationContent { get; private set; }
-
-            /// <summary>
-            /// This will never be null or blank
-            /// </summary>
-            public string TypeNameIfPostponingSetting { get; private set; }
         }
 
         private class LoopStartConstraintInitialiser : LoopConstraintInitialiser
         {
-            public LoopStartConstraintInitialiser(
-                CSharpName variableName,
-                string initialisationContentIgnoringTypesOfOtherConstraints,
-                string initialisationContent,
-                string typeNameIfPostponingSetting)
-                : base(variableName, initialisationContent, typeNameIfPostponingSetting)
+            public LoopStartConstraintInitialiser(CSharpName variableName, string initialisationContentIgnoringTypesOfOtherConstraints, string initialisationContent)
+                : base(variableName, initialisationContent)
             {
                 if (string.IsNullOrWhiteSpace(initialisationContentIgnoringTypesOfOtherConstraints))
                     throw new ArgumentException("Null/blank initialisationContentIgnoringTypesOfOtherConstraints specified");
