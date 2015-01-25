@@ -44,11 +44,16 @@ namespace CSharpSupport
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
         /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
-        /// an object without an appropriate default property member) will. This is used by translated code and is very similar to the
-        /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, though it may apply different rules where appropriate
-        /// since it is not bound to the behaviour of a built-in VBScript method.
+        /// an object without an appropriate default property member) will. This is used by translated code and is similar in many ways to the
+        /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, but it will not always return a double - it may return Int16,
+        /// Int32, DateTime or other types. If there are numericValuesTheTypeMustBeAbleToContain values specified, then each of these will be
+        /// passed through NUM as well and then the returned value's type will be such that it can contain all of those values (eg. if o is
+        /// 1 and there are no numericValuesTheTypeMustBeAbleToContain then an Int16 will be returned, but if the return value must also be
+        /// able to contain 32,768 then an Int32 representation will be returned. This means that this function may throw an overflow
+        /// exception - if, for example, o is a date and it is asked to contain a numeric value that is would result in a date outside of
+        /// the VBScript supported range then an overflow exception would be raised).
         /// </summary>
-        object NUM(object o);
+        object NUM(object o, params object[] numericValuesTheTypeMustBeAbleToContain);
 
         /// <summary>
         /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned

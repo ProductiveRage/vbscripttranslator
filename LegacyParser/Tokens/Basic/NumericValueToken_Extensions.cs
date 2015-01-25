@@ -40,6 +40,18 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         }
 
         /// <summary>
+        /// Would this number be represented by a VBScript "Integer"? This depends upon the size of the number and how it was defined ("1." would be a double,
+        /// for example, due to the decimal point and 1,000,000 would be too large to be a VBScript Integer = .net Int16)
+        /// </summary>
+        public static bool IsVBScriptInteger(this NumericValueToken token)
+        {
+            if (token == null)
+                throw new ArgumentNullException("token");
+
+            return !token.Content.Contains(".") && (token.Value >= Int16.MinValue) && (token.Value <= Int16.MaxValue);
+        }
+
+        /// <summary>
         /// Some numbers can be "unwrapped" from VBScript number-casting functions if it would not alter the number's type - eg. in VBScript, the number 1 is
         /// considered an Integer, which is what CInt(1) returns, so CInt(1) can be replaced with the number 1 with no functional effect. However, CLng(1)
         /// could NOT be replaced with 1 since the type would become "Integer" instead of "Long". This method reports whether or not a particular unwrapping

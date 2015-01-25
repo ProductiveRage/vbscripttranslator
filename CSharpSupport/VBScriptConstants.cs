@@ -139,5 +139,11 @@ namespace CSharpSupport
         /// This is the earliest date that VBScript will represent - equivalent to DateAdd("d", -29, DateAdd("m", -10, DateAdd("yyyy", -1899, DateSerial(0, 0, 0))))
         /// </summary>
         public static DateTime EarliestPossibleDate { get { return new DateTime(100, 1, 1); } }
+
+        /// <summary>
+        /// This is the latest date that VBScript will represent - trying to call DateSerial with parameters for a later date or trying to cast a number to
+        /// a date that would be later than this date will fail (the first with an "Invalid procedure call or argument" and the latter with an "Overflow")
+        /// </summary>
+        public static DateTime LatestPossibleDate { get { return new DateTime(100, 1, 1); } }
     }
 }

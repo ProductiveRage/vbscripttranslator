@@ -76,43 +76,84 @@ namespace CSharpSupport.Implementations
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
         /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
-        /// an object without an appropriate default property member) will. This is used by translated code and is very similar to the
-        /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, though it may apply different rules where appropriate
-        /// since it is not bound to the behaviour of a built-in VBScript method.
+        /// an object without an appropriate default property member) will. This is used by translated code and is similar in many ways to the
+        /// IProvideVBScriptCompatFunctionalityToIndividualRequests.CDBL method, but it will not always return a double - it may return Int16,
+        /// Int32, DateTime or other types. If there are numericValuesTheTypeMustBeAbleToContain values specified, then each of these will be
+        /// passed through NUM as well and then the returned value's type will be such that it can contain all of those values (eg. if o is
+        /// 1 and there are no numericValuesTheTypeMustBeAbleToContain then an Int16 will be returned, but if the return value must also be
+        /// able to contain 32,768 then an Int32 representation will be returned. This means that this function may throw an overflow
+        /// exception - if, for example, o is a date and it is asked to contain a numeric value that is would result in a date outside of
+        /// the VBScript supported range then an overflow exception would be raised).
         /// </summary>
-        public object NUM(object o)
+        public object NUM(object o, params object[] numericValuesTheTypeMustBeAbleToContain)
         {
-            // The NUM function is only used in translated loops' termination conditions - eg. TODO: This is wrong! It's used for loop start evaluation as well
-            //
-            //   for (i = 1; _.NUM(i) < 5; i = _.ADD(5, 1))
-            //   {
-            //   }
-            //
-            // So it is only to allow comparisons between the loop variable's current value and the point at which it should stop. It was previously
-            // used to increment the loop variable as well, but instead ADD is being used to do that now. The difference between the two is that the NUM
-            // call performs only a comparison and doesn't directly affect any values, whereas ADD returns a new value and it is important to maintain types
-            // - eg. it is possible for the loop variable to be set to a date, then each loop increment the date must be advanced but maintained as a date,
-            // not converted into a numeric type.
-            //
-            // In summary: All we are doing here is trying to extract a numeric value for comparison purposes. If we get a date then we need to translate
-            // that into a number.
+            // Before we try anything, we need to call VAL to ensure we don't have something VBScript wouldn't consider a "value type"
+            o = VAL(o);
 
-            // Next, try all of the common "numeric special cases" (Empty, True, a Date, etc..) to see if we can get a number. This may throw an exception (such
-            // as TypeMismatchException for blank string) or it may return null if there were no problems but none of the numeric special cases applied.
-            object valueToConvert = TryToGetNumberConsideringSpecialCases(o);
-            if (valueToConvert != null)
+            // Now, check whether it's a DateTime. If so, then don't try any harder to extract a value from it - VBScript considers DateTime
+            // to be a numeric type.
+            object valueToConvert;
+            if (o is DateTime)
+                valueToConvert = o;
+            else
+            {
+                // Next, try all of the common "numeric special cases" (Empty, True, a Date, etc..) to see if we can get a number. This may
+                // throw an exception (such as TypeMismatchException for blank string) or it may return null if there were no problems but none
+                // of the numeric special cases applied.
+                valueToConvert = TryToGetNumberConsideringSpecialCases(o);
+                if (valueToConvert == null)
+                {
+                    // The last chance we have is to try to try to parse the value into a double. If this fails then it's a Type mismatch.
+                    try
+                    {
+                        valueToConvert = Convert.ToDouble(o);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new TypeMismatchException(e);
+                    }
+                }
+            }
+
+            // Now we have a numeric value, we need to check numericValuesTheTypeMustBeAbleToContain. They all must be parseable as numbers.
+            // Since NUM may return a DateTime, we need to special-case that into a double using the same logic as VBScript would. If there
+            // are no related values to check then we can exit. Otherwise we need to ensure that the type we return can contain them all..
+            var relatedNumericValues = (numericValuesTheTypeMustBeAbleToContain ?? new object[0])
+                .Select(v => NUM(v))
+                .Select(v => (v is DateTime) ? DateToDouble((DateTime)v) : Convert.ToDouble(v))
+                .ToArray();
+            if (!relatedNumericValues.Any())
                 return valueToConvert;
 
-            // The last chance we have is to try to try to parse the value into a double. This will address the final special case - changing the loop variable
-            // into a string within the loop will result in it being changed into a Double when the loop increments. If this fails then it's a Type mismatch.
-            try
+            // DateTime is a special case here - if "o" is a DateTime then the returned value must be a DateTime. If there are related values
+            // that would exceed VBScript's expressible date range then an Overflow error occurs. (Most other types can be expanded - if the
+            // was an Int16 but there are related values that exceed Int16's range then a different type will be returned).
+            var minRelatedValue = relatedNumericValues.Min();
+            var maxRelatedValue = relatedNumericValues.Max();
+            if (valueToConvert is DateTime)
             {
-                return Convert.ToDouble(o);
+                if ((DoubleToDate(minRelatedValue) < VBScriptConstants.EarliestPossibleDate)
+                || (DoubleToDate(maxRelatedValue) > VBScriptConstants.LatestPossibleDate))
+                    throw new OverflowException();
+                return valueToConvert;
             }
-            catch (Exception e)
-            {
-                throw new TypeMismatchException(e);
-            }
+
+            // Double is another special case, since it's the biggest type option - there's nowhere to go after that!
+            if (valueToConvert is double)
+                return valueToConvert;
+
+            // So.. we need to determine out what range the current type can contain and either return it (if its range is large enough) or
+            // we need to bump it up a type (using the same logic that VBScript would)
+            var minAndMaxValuesThatCanBeStoredInCurrentType = GetStorableRangeForNumericType(valueToConvert.GetType());
+            if ((minAndMaxValuesThatCanBeStoredInCurrentType.Item1 <= minRelatedValue)
+            && (minAndMaxValuesThatCanBeStoredInCurrentType.Item2 >= maxRelatedValue))
+                return valueToConvert;
+            else if ((Int16.MinValue <= minRelatedValue) && (Int16.MaxValue >= maxRelatedValue))
+                return Convert.ToInt16(valueToConvert);
+            else if ((Int32.MinValue <= minRelatedValue) && (Int32.MaxValue >= maxRelatedValue))
+                return Convert.ToInt32(valueToConvert);
+            else
+                return Convert.ToDouble(valueToConvert);
         }
 
         /// <summary>
@@ -142,6 +183,44 @@ namespace CSharpSupport.Implementations
             return (l is byte) || (l is char) || (l is int) || (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
         }
 
+        private Tuple<double, double> GetStorableRangeForNumericType(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            if (type.IsEnum)
+                type = type.GetEnumUnderlyingType();
+
+            if (type == typeof(byte))
+                return Tuple.Create(Convert.ToDouble(byte.MinValue), Convert.ToDouble(byte.MinValue));
+            else if (type == typeof(char))
+                return Tuple.Create(Convert.ToDouble(char.MinValue), Convert.ToDouble(char.MinValue));
+            else if (type == typeof(int))
+                return Tuple.Create(Convert.ToDouble(int.MinValue), Convert.ToDouble(int.MinValue));
+            else if (type == typeof(long))
+                return Tuple.Create(Convert.ToDouble(long.MinValue), Convert.ToDouble(long.MinValue));
+            else if (type == typeof(sbyte))
+                return Tuple.Create(Convert.ToDouble(sbyte.MinValue), Convert.ToDouble(sbyte.MinValue));
+            else if (type == typeof(short))
+                return Tuple.Create(Convert.ToDouble(short.MinValue), Convert.ToDouble(short.MinValue));
+            else if (type == typeof(uint))
+                return Tuple.Create(Convert.ToDouble(uint.MinValue), Convert.ToDouble(uint.MinValue));
+            else if (type == typeof(ulong))
+                return Tuple.Create(Convert.ToDouble(ulong.MinValue), Convert.ToDouble(ulong.MinValue));
+            else if (type == typeof(ushort))
+                return Tuple.Create(Convert.ToDouble(ushort.MinValue), Convert.ToDouble(ushort.MinValue));
+            else if (type == typeof(uint))
+                return Tuple.Create(Convert.ToDouble(uint.MinValue), Convert.ToDouble(uint.MinValue));
+            else if (type == typeof(decimal))
+                return Tuple.Create(Convert.ToDouble(decimal.MinValue), Convert.ToDouble(decimal.MinValue));
+            else if (type == typeof(double))
+                return Tuple.Create(Convert.ToDouble(double.MinValue), Convert.ToDouble(double.MinValue));
+            else if (type == typeof(float))
+                return Tuple.Create(Convert.ToDouble(float.MinValue), Convert.ToDouble(float.MinValue));
+            else                
+                throw new NotSupportedException("Don't know what to do with this type: " + type.ToString());
+        }
+
         /// <summary>
         /// There are some values which can be treated as numbers (such as Empty, booleans and dates), some of which result in error if this is attempted
         /// (such as blank strings and Null - aka DBNull.Value). This will return a number if a number could be extracted via one of these special cases
@@ -163,8 +242,18 @@ namespace CSharpSupport.Implementations
             if (value is bool)
                 return (bool)value ? -1 : 0; // Return an "Integer" for True / False
             if (value is DateTime)
-                return ((DateTime)value).Subtract(VBScriptConstants.ZeroDate).TotalDays; // Return a "Double" for dates
+                return DateToDouble((DateTime)value);
             return null;
+        }
+
+        private double DateToDouble(DateTime value)
+        {
+            return ((DateTime)value).Subtract(VBScriptConstants.ZeroDate).TotalDays;
+        }
+
+        private DateTime DoubleToDate(double value)
+        {
+            return VBScriptConstants.ZeroDate.AddDays(value);
         }
 
         /// <summary>
