@@ -231,6 +231,7 @@ namespace CSharpSupport.Implementations
         // - Type conversions
         public byte CBYTE(object value) { return GetAsNumber<byte>(value, Convert.ToByte); }
         public object CBOOL(object value) { throw new NotImplementedException(); }
+        public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
         public object CDATE(object value) { throw new NotImplementedException(); }
         public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); } // TODO: Confirm appropriate response type (Int16?)

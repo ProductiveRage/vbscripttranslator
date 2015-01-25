@@ -12,7 +12,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void Empty()
             {
                 Assert.Equal(
-                    0,
+                    (Int16)0,
                     GetDefaultRuntimeFunctionalityProvider().NUM(null)
                 );
             }
@@ -30,7 +30,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void True()
             {
                 Assert.Equal(
-                    -1,
+                    (Int16)(-1),
                     GetDefaultRuntimeFunctionalityProvider().NUM(true)
                 );
             }
@@ -39,7 +39,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void False()
             {
                 Assert.Equal(
-                    0,
+                    (Int16)0,
                     GetDefaultRuntimeFunctionalityProvider().NUM(false)
                 );
             }
@@ -117,10 +117,43 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 );
             }
 
+            [Fact]
+            public void BytesWithAnInteger()
+            {
+                // In a loop "FOR i = CBYTE(1) TO CBYTE(5) STEP 1", the "Integer" step of 1 (this would happen with an implicit step too, since that defaults
+                // to an "Integer" 1), the loop variable will be "Integer" since it must be a type that can contain all of the constraints. In order to have
+                // a loop variable of type "Byte" the loop would need to be of the form "FOR i = CBYTE(1) TO CBYTE(5) STEP CBYTE(1)".
+                Assert.Equal(
+                    (Int16)1,
+                    GetDefaultRuntimeFunctionalityProvider().NUM((byte)1, (byte)5, (Int16)1)
+                );
+            }
+
+            [Fact]
+            public void DateWithDoublesThatAreWithinDateAcceptableRange()
+            {
+                var date = new DateTime(2015, 1, 22, 20, 11, 5, 0);
+                Assert.Equal(
+                    new DateTime(2015, 1, 22, 20, 11, 5, 0),
+                    GetDefaultRuntimeFunctionalityProvider().NUM(date, 1d)
+                );
+            }
+
+            [Fact]
+            public void DateWithDoublesThatAreNotWithinDateAcceptableRange()
+            {
+                Assert.Throws<OverflowException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().NUM(new DateTime(2015, 1, 25, 17, 16, 0), double.MaxValue);
+                });
+            }
+
             // TODO: String with underscores, hashes, exclamation marks
 
             // TODO: Negatives
             // TODO: Multiple negatives
+
+            // TODO: Add some tests with numericValuesTheTypeMustBeAbleToContain values, particularly around dates (and decimals)
         }
     }
 }

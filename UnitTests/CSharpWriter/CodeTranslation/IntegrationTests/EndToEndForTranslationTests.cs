@@ -230,14 +230,14 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "var loopEnd1 = _.CDBL(_env.b);",
-                "var loopStep2 = _.CDBL(_env.c);",
+                "var loopEnd1 = _.NUM(_env.b);",
+                "var loopStep2 = _.NUM(_env.c);",
                 "var loopStart3 = _.NUM(_env.a, loopEnd1, loopStep2);",
-                "if ((_.StrictLTE(loopStart3, loopEnd1) && (loopStep2 >= 0))",
-                "|| (_.StrictGT(loopStart3, loopEnd1) && (loopStep2 < 0)))",
+                "if ((_.StrictLTE(loopStart3, loopEnd1) && _.StrictGTE(loopStep2, 0))",
+                "|| (_.StrictGT(loopStart3, loopEnd1) && _.StrictLT(loopStep2, 0)))",
                 "{",
                 "for (_env.i = loopStart3;",
-                "    ((loopStep2 >= 0) && _.StrictLTE(_env.i, loopEnd1)) || ((loopStep2 < 0) && _.StrictGTE(_env.i, loopEnd1));",
+                "    (_.StrictGTE(loopStep2, 0) && _.StrictLTE(_env.i, loopEnd1)) || (_.StrictLT(loopStep2, 0) && _.StrictGTE(_env.i, loopEnd1));",
                 "     _env.i = _.ADD(_env.i, loopStep2))",
                 "{",
                 "}",
@@ -273,11 +273,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
-                "double loopEnd2 = 0;",
-                "object loopStart3 = 0;",
+                "object loopEnd2 = 0, loopStart3 = 0;",
                 "var loopConstraintsInitialised4 = false;",
                 "_.HANDLEERROR(errOn1, () => {",
-                "    loopEnd2 = _.CDBL(_env.b);",
+                "    loopEnd2 = _.NUM(_env.b);",
+                "    loopStart3 = _.NUM(_env.a);",
+                "    if (loopStart3 is DateTime)",
+                "        _env.i = loopStart3;",
                 "    loopStart3 = _.NUM(_env.a, loopEnd2);",
                 "    loopConstraintsInitialised4 = true;",
                 "});",
@@ -340,5 +342,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         // TODO: Various variable-ascending/descending/step combinations
+
+        // TODO: Tests showing that CBool is never applicable for loop variable type but CByte is - but only if every loop constraint is of type byte
+        //   For i = CByte(0) To CByte(1)               ' Loop type "Integer"
+        //   For i = CByte(0) To CByte(1) Step CByte(1) ' Loop type "Byte"
+        //   For i = CBool(0) To CBool(1) Step CBool(1) ' Loop type "Integer"
     }
 }

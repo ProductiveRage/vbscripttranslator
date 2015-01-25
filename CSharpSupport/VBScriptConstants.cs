@@ -144,6 +144,6 @@ namespace CSharpSupport
         /// This is the latest date that VBScript will represent - trying to call DateSerial with parameters for a later date or trying to cast a number to
         /// a date that would be later than this date will fail (the first with an "Invalid procedure call or argument" and the latter with an "Overflow")
         /// </summary>
-        public static DateTime LatestPossibleDate { get { return new DateTime(100, 1, 1); } }
+        public static DateTime LatestPossibleDate { get { return new DateTime(9999, 12, 31, 23, 59, 59); } }
     }
 }
