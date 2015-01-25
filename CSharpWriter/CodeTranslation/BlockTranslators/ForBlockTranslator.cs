@@ -64,6 +64,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // a VBScript "Integer" (Int16) but in "FOR i = 1 TO 32768" loopStart needs to be a VBScript "Long" (Int32) since VBScript tries to arrange for
             // the loop variable to be of a type that doesn't need to change each iteration. (It's possible for code within the loop to change the loop
             // variable's type, but that's another story).
+            // - Note: VBScript does not seem willing to consider the types Boolean or Byte to be elligible for use as a loop variable. This maybe isn't
+            //   THAT surprising for Boolean but it seems strange for Byte. Regardless, the loop variable "i" in both examples is of type "Integer":
+            //     For i = CBool(0) TO CBool(1)
+            //     For i = CByte(0) TO CByte(1) ' Even though CByte returns type "Byte", the loop variable "i" here is always "Integer"
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
             var loopConstraintInitialisersWhereRequired = new List<LoopConstraintInitialiser>();
             string loopEnd;
@@ -184,11 +188,22 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ExpressionReturnTypeOptions.NotSpecified
                 );
 
+                // The LoopStartConstraintInitialiser takes both two "initialisation content" parameters - one to initialise its content without taking
+                // into account the other constraints and one that DOES take into account the others. This will be important further down since if a
+                // loop's constraints are all individually evaluated ok and error-trapping is enabled and the loop start value is a Date but one of
+                // the others would cause an Overflow, the loop will be entered once with the loop variable set to the loop start Date value. This
+                // is different to the case where error-trapping is enabled and one of the loop constraint evaluation fails; in that case, the
+                // loop will still be entered once but the loop variable will not be set.
                 var loopStartName = _tempNameGenerator(new CSharpName("loopStart"), scopeAccessInformation);
-                loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
+                loopConstraintInitialisersWhereRequired.Add(new LoopStartConstraintInitialiser(
                     loopStartName,
                     string.Format(
-                        "{0}.NUM({1}{2}{3})",
+                        "{0}.NUM({1})", // This is the format of the content where other types are never taken into account
+                        _supportRefName.Name,
+                        loopStartExpressionContent.TranslatedContent
+                    ),
+                    string.Format(
+                        "{0}.NUM({1}{2}{3})", // This is the initialisation content where other types will be taken into account, where relevant
                         _supportRefName.Name,
                         loopStartExpressionContent.TranslatedContent,
                         numericValuesTheTypeMustBeAbleToContain.Any() ? ", " : "",
@@ -201,6 +216,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     loopStartExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
                 );
             }
+
+            var rewrittenLoopVariableName = _nameRewriter.GetMemberAccessTokenName(forBlock.LoopVar);
+            var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
+            if (targetContainer != null)
+                rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
 
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
@@ -263,17 +283,81 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         ),
                         indentationDepth
                     ));
+                LoopStartConstraintInitialiser loopStartConstraintInitialiserIfAny = null;
                 foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
                 {
+                    // Error-trapping may be enabled when this emitted code is being executed, so we need to consider the special case with Date loop variables
+                    // and how they may overflow, which is why the start constraint's InitialisationContentIgnoringTypesOfOtherConstraints content is used here.
+                    // When there are no dates to worry about, and error-trapping is enabled, then either all loop constraints evaluate fine and the loop executes
+                    // as normal or one of the loop constraints fails to evaluate and the loop is (bizarrely) executed once only, without setting the loop variable.
+                    // However, if the individual constraints all evaulate ok and error-trapping is enabled but the loop start value is a Date while another value
+                    // is a numeric value that would overflow Date, then the loop is entered once and the loop variable is set to that start date. To achieve this,
+                    // we try to initialise loopStart without considering loopEnd or loopStep - if this fails then it's the standard loop-constraint-evaluation-fail
+                    // and so the loop variable will not be set and the loop will be executed once only. If, however, loopStart is evaulated successfully in isolation,
+                    // then the loop variable is set to then and then loopStart will be re-evaluated with consideration to loopEnd and loopStart - if this fails, then
+                    // the loop-constraints-initialised flag is still false and so the loop will be executed only once BUT this time the loop variable is set to the
+                    // first evaluation of loopStart. This works because a Date is the only value type that may be evaluated as a number in isolation but fail when
+                    // loopEnd and loopStep are considered (if loopStart was an Int16 and loopEnd an Int32 then the loop variable type will be expanded to fit the
+                    // entire range, but this is not possible if loopStart is a DateTime and loopEnd a Double outside of the VBScript Date range since there is
+                    // no "bigger" type that is still a date for the loop variable to use). These lines are all processed within a HANDLEERROR call, so when one of
+                    // then fails, the subsequent lines will not be called - this is how the try-to-set-loopStart logic twice works.
+                    string initialisationContentToUse;
+                    if (loopConstraintInitialiser is LoopStartConstraintInitialiser)
+                    {
+                        if (loopStartConstraintInitialiserIfAny != null)
+                            throw new Exception("The loopStartConstraintInitialisers set shouldn't have more than one LoopStartConstraintInitialiser!");
+                        loopStartConstraintInitialiserIfAny = (LoopStartConstraintInitialiser)loopConstraintInitialiser;
+                        initialisationContentToUse = loopStartConstraintInitialiserIfAny.InitialisationContentIgnoringTypesOfOtherConstraints;
+                    }
+                    else
+                        initialisationContentToUse = loopConstraintInitialiser.InitialisationContent;
                     translationResult = translationResult
                         .Add(new TranslatedStatement(
                             string.Format(
                                 "{0} = {1};",
                                 loopConstraintInitialiser.VariableName.Name,
-                                loopConstraintInitialiser.InitialisationContent
+                                initialisationContentToUse
                             ),
                             indentationDepth + 1
                         ));
+                }
+                if (loopStartConstraintInitialiserIfAny != null)
+                {
+                    // This is logic explained above - where the loopStart value may be set twice to deal with overflow errors with loops with a Date-type loop variable.
+                    // Note: If the loop-start initialisation does not depend upon loopEnd or loopStep then the InitialisationContentIgnoringTypesOfOtherConstraints value
+                    // will be the same as loopStartConstraintInitialiserIfAny and there's no additional work to do (this may be the case if loopEnd and loopStart are both
+                    // constants of type Int16 since they wouldn't have any effect on the loop variable).
+                    if (loopStartConstraintInitialiserIfAny.InitialisationContent != loopStartConstraintInitialiserIfAny.InitialisationContentIgnoringTypesOfOtherConstraints)
+                    {
+                        // Actually, we ONLY set the loop variable to the loopStart value that was determined before considering loopEnd and loopStep if the loopStart is
+                        // found to be a DateTime - this is so that the following two examples work (note that in both cases it is assumed that ON ERROR RESUME NEXT is
+                        // in play since otherwise the loops won't be entered at all since there is an overflow error):
+                        //   FOR i = Date() To 10000000 ' The loop will be entered once, "i" will be set to Date()
+                        //   FOR i = 10000000 To Date() ' The loop will be entered once, "i" will NOT be set
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            string.Format(
+                                "if ({0} is DateTime)",
+                                loopStart
+                            ),
+                            indentationDepth + 1
+                        ));
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            string.Format(
+                                "{0} = {1};",
+                                rewrittenLoopVariableName,
+                                loopStart
+                            ),
+                            indentationDepth + 2
+                        ));
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            string.Format(
+                                "{0} = {1};",
+                                loopStart,
+                                loopStartConstraintInitialiserIfAny.InitialisationContent
+                            ),
+                            indentationDepth + 1
+                        ));
+                    }
                 }
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
@@ -375,11 +459,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     );
                 }
             }
-
-            var rewrittenLoopVariableName = _nameRewriter.GetMemberAccessTokenName(forBlock.LoopVar);
-            var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
-            if (targetContainer != null)
-                rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
 
             if (guardClauseLines.Any())
             {
@@ -677,6 +756,30 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             /// This will never be null or blank
             /// </summary>
             public string TypeNameIfPostponingSetting { get; private set; }
+        }
+
+        private class LoopStartConstraintInitialiser : LoopConstraintInitialiser
+        {
+            public LoopStartConstraintInitialiser(
+                CSharpName variableName,
+                string initialisationContentIgnoringTypesOfOtherConstraints,
+                string initialisationContent,
+                string typeNameIfPostponingSetting)
+                : base(variableName, initialisationContent, typeNameIfPostponingSetting)
+            {
+                if (string.IsNullOrWhiteSpace(initialisationContentIgnoringTypesOfOtherConstraints))
+                    throw new ArgumentException("Null/blank initialisationContentIgnoringTypesOfOtherConstraints specified");
+
+                InitialisationContentIgnoringTypesOfOtherConstraints = initialisationContentIgnoringTypesOfOtherConstraints;
+            }
+
+            /// <summary>
+            /// This will never be null or blank. It might be the same as InitialisationContent or it might be different, depending upon the source
+            /// code being translated. If it is the same then there were no other loop constraints that could affect the loop start value. If it
+            /// is different then there are other loop constraints which might affect it. It is important to be able to do the work in two parts
+            /// when error-trapping is enabled (see where this class is used for more details).
+            /// </summary>
+            public string InitialisationContentIgnoringTypesOfOtherConstraints { get; private set; }
         }
     }
 }
