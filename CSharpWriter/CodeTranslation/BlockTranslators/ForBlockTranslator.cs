@@ -170,21 +170,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                // When determining what type the loop variable should be (eg. Int16 in "FOR i = 1 to 5" or Int32 in "FOR i = 1 TO 32768" or Double in
-                // "FOR i = 1 TO 10 STEP 0.1"), the loop end and loop step values may affect the loop start value. However, if the loop end and step
-                // values are compile-time numeric constants that are known to be of type VBScript "Integer" (Int16) then they won't affect the
-                // loop variable type at all, so they needn't be considered.
-                var numericValuesTheTypeMustBeAbleToContain = new List<string>();
-                if ((numericLoopEndValueIfAny == null) || !numericLoopEndValueIfAny.IsVBScriptInteger())
-                    numericValuesTheTypeMustBeAbleToContain.Add(loopEnd);
-                if ((numericLoopStepValueIfAny == null) || !numericLoopStepValueIfAny.IsVBScriptInteger())
-                    numericValuesTheTypeMustBeAbleToContain.Add(loopStep);
-
+                // Note: Previously assumed that if the loop end and/or step values were known integer constants that they could be ignored when determining
+                // the loop variable. This is incorrect since "FOR i = CBYTE(1) TO CBYTE(5)" results in the loop variable "i" being an "Integer" since the
+                // implicit step is of type "Integer", in order for "i" to be of type "Byte" the loop must be "FOR i = CBYTE(1) TO CBYTE(5) STEP CBYTE(1)".
+                // However, there is one a minor shortcut we can take, don't include duplicate values in the NUM call - so if we have "FOR i = 1 To a", the
+                // loop start and step are the same, so instead of emitting "NUM((Int16)1, a, (Int16)1)" trim it down to "NUM((Int16)1, a)".
                 var loopStartExpressionContent = _statementTranslator.Translate(
                     forBlock.LoopFrom,
                     scopeAccessInformation,
                     ExpressionReturnTypeOptions.NotSpecified
                 );
+                var numericValuesTheTypeMustBeAbleToContain = new List<string>();
+                if (loopEnd != loopStartExpressionContent.TranslatedContent)
+                    numericValuesTheTypeMustBeAbleToContain.Add(loopEnd);
+                if ((loopStep != loopStartExpressionContent.TranslatedContent) && (loopStep != loopEnd))
+                    numericValuesTheTypeMustBeAbleToContain.Add(loopStep);
 
                 // The LoopStartConstraintInitialiser takes both two "initialisation content" parameters - one to initialise its content without taking
                 // into account the other constraints and one that DOES take into account the others. This will be important further down since if a
@@ -377,12 +377,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 if (numericLoopStepValueIfAny.Value >= 0)
                 {
                     // Ascending loop or infinite loop (step zero, which is supported in VBScript), start must not be greater than end
-                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictLTE({1}, {2})", _supportRefName.Name, loopStart, loopEnd));
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0}.StrictLTE({1}, {2}))", _supportRefName.Name, loopStart, loopEnd));
                 }
                 else
                 {
                     // Descending loop, start must be greater than end
-                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictGT({1}, {2})", _supportRefName.Name, loopStart, loopEnd));
+                    guardClauseLines = guardClauseLines.Add(string.Format("({0}.StrictGT({1}, {2}))", _supportRefName.Name, loopStart, loopEnd));
                 }
             }
             else if ((numericLoopStartValueIfAny != null) && (numericLoopEndValueIfAny != null))

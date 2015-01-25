@@ -99,7 +99,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "var loopStart1 = _.NUM((Int16)1, 0.1);",
+                "var loopStart1 = _.NUM((Int16)1, (Int16)5, 0.1);",
                 "for (_outer.i = loopStart1; _.StrictLTE(_outer.i, 5); _outer.i = _.ADD(_outer.i, 0.1))",
                 "{",
                 "}"
@@ -280,10 +280,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "    loopStart3 = _.NUM(_env.a);",
                 "    if (loopStart3 is DateTime)",
                 "        _env.i = loopStart3;",
-                "    loopStart3 = _.NUM(_env.a, loopEnd2);",
+                "    loopStart3 = _.NUM(_env.a, loopEnd2, (Int16)1);",
                 "    loopConstraintsInitialised4 = true;",
                 "});",
-                "if (!loopConstraintsInitialised4 || _.StrictLTE(loopStart3, loopEnd2))",
+                "if (!loopConstraintsInitialised4 || (_.StrictLTE(loopStart3, loopEnd2)))",
                 "{",
                 "    _.HANDLEERROR(errOn1, () => {",
                 "        for (_env.i = loopConstraintsInitialised4 ? loopStart3 : _env.i;",
@@ -341,11 +341,68 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
-        // TODO: Various variable-ascending/descending/step combinations
+        /// <summary>
+        /// A loop variable may be of type "Byte" but only if the start, end and step values are all of type "Byte" - if there is no step explicitly
+        /// specified then the default "Integer" 1 will be used and so the loop variable will become type "Integer" (this test doesn't really show
+        /// this completely since the translated code is not executed and it would depend upon the support class implementation but it seemed like
+        /// it was worth recording here to make the point, also see the NUM test "BytesWithAnInteger")
+        /// </summary>
+        [Fact]
+        public void ByteLoopStartAndEndValuesWithImplicitStepWillGetAnIntegerStep()
+        {
+            var source = @"
+                Dim i: For i = CByte(1) To CByte(5)
+                Next
+            ";
+            var expected = new[]
+            {
+                "var loopEnd1 = _.NUM(_.CBYTE((Int16)5));",
+                "var loopStart2 = _.NUM(_.CBYTE((Int16)1), loopEnd1, (Int16)1);",
+                "if (_.StrictLTE(loopStart2, loopEnd1))",
+                "{",
+                "    for (_outer.i = loopStart2; _.StrictLTE(_outer.i, loopEnd1); _outer.i = _.ADD(_outer.i, 1))",
+                "    {",
+                "    }",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
 
-        // TODO: Tests showing that CBool is never applicable for loop variable type but CByte is - but only if every loop constraint is of type byte
-        //   For i = CByte(0) To CByte(1)               ' Loop type "Integer"
-        //   For i = CByte(0) To CByte(1) Step CByte(1) ' Loop type "Byte"
-        //   For i = CBool(0) To CBool(1) Step CBool(1) ' Loop type "Integer"
+        /// <summary>
+        /// This is the complement to ByteLoopStartAndEndValuesWithImplicitStepWillGetAnIntegerStep, it illustrates how a loop would be constructed
+        /// in order to have the loop variable be of type "Byte".
+        /// </summary>
+        [Fact]
+        public void ByteLoopStartAndEndAndStepValuesWillGetByteLoopVariable()
+        {
+            var source = @"
+                Dim i: For i = CByte(1) To CByte(5) Step CByte(1)
+                Next
+            ";
+            var expected = new[]
+            {
+                "var loopEnd1 = _.NUM(_.CBYTE((Int16)5));",
+                "var loopStep2 = _.NUM(_.CBYTE((Int16)1));",
+                "var loopStart3 = _.NUM(_.CBYTE((Int16)1), loopEnd1, loopStep2);",
+                "if ((_.StrictLTE(loopStart3, loopEnd1) && _.StrictGTE(loopStep2, 0))",
+                "|| (_.StrictGT(loopStart3, loopEnd1) && _.StrictLT(loopStep2, 0)))",
+                "{",
+                "    for (_outer.i = loopStart3;",
+                "        (_.StrictGTE(loopStep2, 0) && _.StrictLTE(_outer.i, loopEnd1)) || (_.StrictLT(loopStep2, 0) && _.StrictGTE(_outer.i, loopEnd1));",
+                "         _outer.i = _.ADD(_outer.i, loopStep2))",
+                "    {",
+                "    }",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        // TODO: Various variable-ascending/descending/step combinations
     }
 }
