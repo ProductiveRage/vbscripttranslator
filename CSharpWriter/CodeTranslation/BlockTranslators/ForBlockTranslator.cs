@@ -407,32 +407,37 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             {
                 if (numericLoopStepValueIfAny.Value >= 0)
                 {
+                    // Note: If loopEnd is a known numeric constant then we can render just its value (eg. "1") instead of its translated content, which
+                    // would include type information (eg. "(Int16)1") since this will make the final output a little more succinct (and the type information
+                    // that we're skipping will have no effect on the StrictLTE call). This is most obvious for really simple loops but it doesn't hurt to
+                    // try to make the more complicated ones shorter (since they get increasingly complicated and verbose as dynamic loop constraints and
+                    // potential error-trapping are added!).
                     continuationCondition = string.Format(
                         "{0}.StrictLTE({1}, {2})",
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
-                        loopEnd
+                        (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString()
                     );
                 }
                 else
                 {
+                    // Note: If loopEnd is a known numeric constant then we can render just its value instead of its translated content - see note above
                     continuationCondition = string.Format(
                         "{0}.StrictGTE({1}, {2})",
                         _supportRefName.Name,
                         rewrittenLoopVariableName,
-                        loopEnd
+                        (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString()
                     );
                 }
             }
             else
             {
-                // Note: loopStep is a variable of type double, so we know we can do straight comparisons between it and zero, we don't need to rely
-                // upon methods such as StrictLTE
+                // Note: If loopEnd is a known numeric constant then we can render just its value instead of its translated content - see note above
                 continuationCondition = string.Format(
                     "(({3} >= 0) && {0}.StrictLTE({1}, {2})) || (({3} < 0) && {0}.StrictGTE({1}, {2}))",
                     _supportRefName.Name,
                     rewrittenLoopVariableName,
-                    loopEnd,
+                    (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString(),
                     loopStep
                 );
             }
