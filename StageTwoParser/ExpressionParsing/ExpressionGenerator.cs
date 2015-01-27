@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -488,38 +487,6 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     expressionSegments.Add(new CallSetExpressionSegment(callSetItemExpressionSegmentBuffer));
             }
             return new Expression(expressionSegments);
-        }
-
-        private static NewInstanceExpressionSegment TryToGetAsNewInstanceExpression(IExpressionSegment segment)
-        {
-            if (segment == null)
-                throw new ArgumentNullException("segment");
-
-            CallSetItemExpressionSegment callExpressionSegment;
-            if (segment is CallSetExpressionSegment)
-            {
-                var callSetExpressionSegment = segment as CallSetExpressionSegment;
-                if (callSetExpressionSegment.CallExpressionSegments.Count() > 1)
-                    return null;
-                callExpressionSegment = callSetExpressionSegment.CallExpressionSegments.Single();
-            }
-            else
-                callExpressionSegment = segment as CallExpressionSegment;
-            if (callExpressionSegment == null)
-                return null;
-
-            if ((callExpressionSegment.MemberAccessTokens.Count() != 2) || callExpressionSegment.Arguments.Any())
-                return null;
-
-            var memberAccessToken0 = callExpressionSegment.MemberAccessTokens.First();
-            if (!memberAccessToken0.Content.Equals("new", StringComparison.InvariantCultureIgnoreCase))
-                return null;
-
-            var memberAccessToken1 = callExpressionSegment.MemberAccessTokens.ElementAt(1) as NameToken;
-            if (memberAccessToken1 == null)
-                return null;
-
-            return new NewInstanceExpressionSegment(memberAccessToken1);
         }
 
         /// <summary>
