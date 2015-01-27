@@ -90,34 +90,70 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // Note: There is no need to check for identically-named classes since that would cause a "Name Redefined" error even if Option Explicit was not enabled
             blocks = RemoveDuplicateFunctions(blocks);
 
-            // Group the code blocks that need to be executed;
-            Func<ICodeBlock, bool> isClassBlock = block => block is ClassBlock;
-            Func<ICodeBlock, bool> isFunctionBlock = block => block is AbstractFunctionBlock;
-            var classBlocks = blocks.Where(isClassBlock);
-            var functionBlocks = blocks.Where(isFunctionBlock).Cast<AbstractFunctionBlock>().Select(f =>
+            // Group the code blocks that need to be executed (the functions from the outermost scope need to go into a "global references" class
+            // which will appear after any other classes, which will appear after everything else)
+            var commentBuffer = new NonNullImmutableList<CommentStatement>();
+            var annotatedFunctions = new NonNullImmutableList<Annotated<AbstractFunctionBlock>>();
+            var annotatedClasses = new NonNullImmutableList<Annotated<ClassBlock>>();
+            var otherBlocks = new NonNullImmutableList<ICodeBlock>();
+            foreach (var block in blocks)
             {
-                // Ensure that functions are in valid configurations - properties are not valid outside of classes and any non-public functions will
-                // be translated INTO public functions (since this there are no private external functions in VBScript)
-                if (f is PropertyBlock)
-                    throw new ArgumentException("Property encountered in OuterMostScope - these may only appear within classes: " + f.Name.Content);
-                if (!f.IsPublic)
+                var comment = block as CommentStatement;
+                if (comment != null)
                 {
-                    _logger.Warning("OuterScope function \"" + f.Name.Content + "\" is private, this is invalid and will be changed to public");
-                    if (f is FunctionBlock)
-                        return new FunctionBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements);
-                    else if (f is SubBlock)
-                        return new SubBlock(true, f.IsDefault, f.Name, f.Parameters, f.Statements);
-                    else
-                        throw new ArgumentException("Unsupported AbstractFunctionBlock type: " + f.GetType());
+                    commentBuffer = commentBuffer.Add(comment);
+                    continue;
                 }
-                return f;
-            });
-            var other = blocks.Where(block => !isClassBlock(block) && !isFunctionBlock(block));
+                var functionBlock = block as AbstractFunctionBlock;
+                if (functionBlock != null)
+                {
+                    annotatedFunctions = annotatedFunctions.Add(new Annotated<AbstractFunctionBlock>(commentBuffer, functionBlock));
+                    commentBuffer = new NonNullImmutableList<CommentStatement>();
+                    continue;
+                }
+                var classBlock = block as ClassBlock;
+                if (classBlock != null)
+                {
+                    annotatedClasses = annotatedClasses.Add(new Annotated<ClassBlock>(commentBuffer, classBlock));
+                    commentBuffer = new NonNullImmutableList<CommentStatement>();
+                    continue;
+                }
+                otherBlocks = otherBlocks.AddRange(commentBuffer).Add(block);
+                commentBuffer = new NonNullImmutableList<CommentStatement>();
+            }
+            if (commentBuffer.Any())
+                otherBlocks = otherBlocks.AddRange(commentBuffer);
 
-            // TODO: The function and class (and any other) rearranging could be a problem with comments, try to do something about that?
-            // - eg. if there are comments for a function on the lines just before the function (outside the function rather than inside it) then they
-            //   will get left behind when the functions are moved down
-            // - or just remove comments entirely since the translated code is bearing less and less relation to the source?
+            // Ensure that functions are in valid configurations - properties are not valid outside of classes and any non-public functions will
+            // be translated INTO public functions (since this there are no private external functions in VBScript)
+            annotatedFunctions = annotatedFunctions
+                .Select(f =>
+                {
+                    if (f.CodeBlock is PropertyBlock)
+                        throw new ArgumentException("Property encountered in OuterMostScope - these may only appear within classes: " + f.CodeBlock.Name.Content);
+                    if (!f.CodeBlock.IsPublic)
+                    {
+                        _logger.Warning("OuterScope function \"" + f.CodeBlock.Name.Content + "\" is private, this is invalid and will be changed to public");
+                        if (f.CodeBlock is FunctionBlock)
+                        {
+                            return new Annotated<AbstractFunctionBlock>(
+                                f.LeadingComments,
+                                new FunctionBlock(true, f.CodeBlock.IsDefault, f.CodeBlock.Name, f.CodeBlock.Parameters, f.CodeBlock.Statements)
+                            );
+                        }
+                        else if (f.CodeBlock is SubBlock)
+                        {
+                            return new Annotated<AbstractFunctionBlock>(
+                                f.LeadingComments,
+                                new SubBlock(true, f.CodeBlock.IsDefault, f.CodeBlock.Name, f.CodeBlock.Parameters, f.CodeBlock.Statements)
+                            );
+                        }
+                        else
+                            throw new ArgumentException("Unsupported AbstractFunctionBlock type: " + f.GetType());
+                    }
+                    return f;
+                })
+                .ToNonNullImmutableList();
 
             var scopeAccessInformation = ScopeAccessInformation.FromOutermostScope(
                 _startClassName, // A placeholder name is required for an OutermostScope instance and so is required by this method
@@ -132,7 +168,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             var outerExecutableBlocksTranslationResult = Translate(
-                other.ToNonNullImmutableList(),
+                otherBlocks.ToNonNullImmutableList(),
                 scopeAccessInformation,
                 3 // indentationDepth
             );
@@ -143,8 +179,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 new NonNullImmutableList<VariableDeclaration>(),
                 outerExecutableBlocksTranslationResult.UndeclaredVariablesAccessed
             );
+
             var classBlocksTranslationResult = Translate(
-                TrimTrailingBlankLines(classBlocks.ToNonNullImmutableList()),
+                TrimTrailingBlankLines(
+                    annotatedClasses.SelectMany(c => c.LeadingComments.Cast<ICodeBlock>().Concat(new[] { c.CodeBlock })).ToNonNullImmutableList()
+                ),
                 scopeAccessInformation,
                 2 // indentationDepth
             );
@@ -285,12 +324,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     );
                 }
             }
-            foreach (var functionBlock in functionBlocks)
+            foreach (var annotatedFunctionBlock in annotatedFunctions)
             {
                 translatedStatements = translatedStatements.Add(new TranslatedStatement("", 1));
                 translatedStatements = translatedStatements.AddRange(
                     Translate(
-                        new NonNullImmutableList<ICodeBlock>(new[] { functionBlock }),
+                        annotatedFunctionBlock.LeadingComments.Cast<ICodeBlock>().Concat(new[] { annotatedFunctionBlock.CodeBlock }).ToNonNullImmutableList(),
                         scopeAccessInformation,
                         3 // indentationDepth
                     ).TranslatedStatements
@@ -365,7 +404,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             return result;
         }
-
+        
 		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
 			if (blocks == null)
@@ -417,5 +456,29 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				blocks = blocks.RemoveAt(removeIndex);
 			return blocks;
 		}
+
+        private class Annotated<T> where T : ICodeBlock
+        {
+            public Annotated(NonNullImmutableList<CommentStatement> leadingComments, T codeBlock)
+            {
+                if (leadingComments == null)
+                    throw new ArgumentNullException("leadingComments");
+                if (codeBlock == null)
+                    throw new ArgumentNullException("codeBlock");
+
+                LeadingComments = leadingComments;
+                CodeBlock = codeBlock;
+            }
+
+            /// <summary>
+            /// This will never be null (though it may be empty)
+            /// </summary>
+            public NonNullImmutableList<CommentStatement> LeadingComments { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public T CodeBlock { get; private set; }
+        }
     }
 }
