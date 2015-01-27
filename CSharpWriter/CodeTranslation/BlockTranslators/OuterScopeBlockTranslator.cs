@@ -387,7 +387,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("}", 0), // Close namespace
                 });
             }
-            return translatedStatements;
+
+            // Moving the functions and classes around can sometimes leaving extraneous blank lines in their wake. This tidies them up. (This would also result in
+            // runs of blank lines in the source being reduced to a single line, not just runs that were introduced by the rearranging, but I can't see how that
+            // could be a big problem).
+            return RemoveRunsOfBlankLines(translatedStatements);
         }
 
         private NonNullImmutableList<ICodeBlock> TrimTrailingBlankLines(NonNullImmutableList<ICodeBlock> blocks)
@@ -403,6 +407,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     result = result.Insert(block, 0);
             }
             return result;
+        }
+
+        private NonNullImmutableList<TranslatedStatement> RemoveRunsOfBlankLines(NonNullImmutableList<TranslatedStatement> translatedStatements)
+        {
+            if (translatedStatements == null)
+                throw new ArgumentNullException("translatedStatements");
+
+            return translatedStatements
+                .Select((s, i) => ((i == 0) || (s.Content != "") || (translatedStatements[i - 1].Content != "")) ? s : null)
+                .Where(s => s != null)
+                .ToNonNullImmutableList();
         }
         
 		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
