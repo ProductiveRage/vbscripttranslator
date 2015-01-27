@@ -55,7 +55,7 @@ namespace CSharpSupport.Implementations
         /// The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the implementation details of
         /// DispatchWrapper. This method delivers a reliable way to test for it.
         /// </summary>
-        protected bool IsVBScriptNothing(object o)
+        private bool IsVBScriptNothing(object o)
         {
             return ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null);
         }
@@ -102,10 +102,12 @@ namespace CSharpSupport.Implementations
                 {
                     valueToConvert = GetAsVBScriptNumber(o);
                 }
+                catch (SpecificVBScriptException)
+                {
+                    throw;
+                }
                 catch (Exception e)
                 {
-                    if (e is SpecificVBScriptException)
-                        throw;
                     throw new TypeMismatchException(e);
                 }
             }
@@ -129,10 +131,13 @@ namespace CSharpSupport.Implementations
                 var relatedNonDateNumericValuesAsDouble = relatedNumericValues
                     .Where(v => !(v is DateTime)) // Ignore Dates since they obviously can't cause a Date overflow!
                     .Select(v => Convert.ToDouble(v));
-                if ((relatedNonDateNumericValuesAsDouble.Min() < DateToDouble(VBScriptConstants.EarliestPossibleDate))
-                || (relatedNonDateNumericValuesAsDouble.Max() > DateToDouble(VBScriptConstants.LatestPossibleDate)))
-                    throw new OverflowException();
-                return valueToConvert;
+                if (relatedNonDateNumericValuesAsDouble.Any())
+                {
+                    if ((relatedNonDateNumericValuesAsDouble.Min() < DateToDouble(VBScriptConstants.EarliestPossibleDate))
+                    || (relatedNonDateNumericValuesAsDouble.Max() > DateToDouble(VBScriptConstants.LatestPossibleDate)))
+                        throw new OverflowException();
+                }
+                return (valueToConvert is DateTime) ? valueToConvert : DoubleToDate(Convert.ToDouble(valueToConvert));
             }
 
             // If turns out that Decimal is a special case as well.. even when there is a loop constraint that is sufficiently large that
@@ -142,14 +147,15 @@ namespace CSharpSupport.Implementations
             // rather than calling Convert.ToDouble for everything).
             var relatedNumericValuesAsDouble = relatedNumericValues
                 .Select(v => Convert.ToDouble(v));
-            var minRelatedValue = relatedNumericValuesAsDouble.Min();
-            var maxRelatedValue = relatedNumericValuesAsDouble.Max();
             if ((valueToConvert is Decimal) || relatedNumericValues.Any(v => v is Decimal))
             {
-                if ((minRelatedValue < (double)VBScriptConstants.MinCurrencyValue)
-                || (maxRelatedValue > (double)VBScriptConstants.MaxCurrencyValue))
-                    throw new OverflowException();
-                return valueToConvert;
+                if (relatedNumericValues.Any())
+                {
+                    if ((relatedNumericValuesAsDouble.Min() < (double)VBScriptConstants.MinCurrencyValue)
+                    || (relatedNumericValuesAsDouble.Max() > (double)VBScriptConstants.MaxCurrencyValue))
+                        throw new OverflowException();
+                }
+                return (valueToConvert is Decimal) ? valueToConvert : Convert.ToDecimal(valueToConvert);
             }
 
             // So now we know that the valueToConvert and numericValuesTheTypeMustBeAbleToContain are not all of the same type and that
@@ -187,24 +193,6 @@ namespace CSharpSupport.Implementations
         public object NullableNUM(object o)
         {
             return (o == DBNull.Value) ? DBNull.Value : (object)NUM(o);
-        }
-
-        protected bool IsDotNetNumericType(object l)
-        {
-            if (l == null)
-                return false;
-            return
-                IsDotNetIntegerType(l) ||
-                (l is decimal) || (l is double) || (l is float);
-        }
-
-        private bool IsDotNetIntegerType(object l)
-        {
-            if (l == null)
-                return false;
-            if (l.GetType().IsEnum)
-                return true;
-            return (l is byte) || (l is char) || (l is int) || (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
         }
 
         /// <summary>
@@ -260,7 +248,7 @@ namespace CSharpSupport.Implementations
         /// push the value through the VAL method, so if value is not a value-type reference then it must be reducable to one (otherwise an exception
         /// will be thrown).
         /// </summary>
-        protected object TryToGetNumberConsideringSpecialCases(object value)
+        private object TryToGetNumberConsideringSpecialCases(object value)
         {
             value = VAL(value);
             if (value == null)

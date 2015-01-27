@@ -1,8 +1,7 @@
-﻿using CSharpSupport;
-using CSharpSupport.Attributes;
+﻿using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
-using CSharpSupport.Implementations;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -11,11 +10,23 @@ namespace CSharpSupport.Implementations
 {
     /// <summary>
     /// This is intended to be built up over time and used with classes that are output by the translator. Clearly, at this point, it is noticeably lacking
-    /// in working functionality, but it provides something, at least, to use to test the very simple programs that can be translated at this time.
+    /// in working functionality, but it provides something, at least, to use to test the very simple programs that can be translated at this time. Note
+    /// that this implementations takes an IAccessValuesUsingVBScriptRules implementation as a dependency - this is because the life time of this class
+    /// should be a single run of a translated program (partly because the SETERROR and CLEARANYERROR methods have no explicit way to be associated with
+    /// a specific request but also so that IDisposable instances that are created by translated code can be tidied up at the end of the request, not
+    /// quite as quickly as with VBScript's deterministic garbage collector but hopefully a reasonable facsimilie). The IAccessValuesUsingVBScriptRules
+    /// implementation, meanwhile, might want to live a lot longer if it is caching CALL method targets.
     /// </summary>
-    public class DefaultRuntimeFunctionalityProvider : VBScriptEsqueValueRetriever, IProvideVBScriptCompatFunctionalityToIndividualRequests
+    public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
-        public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter) : base(nameRewriter) { }
+        private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
+        public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter, IAccessValuesUsingVBScriptRules valueRetriever)
+        {
+            if (valueRetriever == null)
+                throw new ArgumentNullException("valueRetriever");
+
+            _valueRetriever = valueRetriever;
+        }
 
         // Arithemetic operators
         public double POW(object l, object r) { throw new NotImplementedException(); }
@@ -23,7 +34,11 @@ namespace CSharpSupport.Implementations
         public double MULT(object l, object r) { throw new NotImplementedException(); }
         public int INTDIV(object l, object r) { throw new NotImplementedException(); }
         public double MOD(object l, object r) { throw new NotImplementedException(); }
-        public double ADD(object l, object r) { throw new NotImplementedException(); }
+        public double ADD(object l, object r)
+        {
+            // See https://msdn.microsoft.com/en-us/library/kd1e4aey(v=vs.84).aspx
+            throw new NotImplementedException();
+        }
         public double SUBT(object o) { throw new NotImplementedException(); }
         public double SUBT(object l, object r) { throw new NotImplementedException(); }
 
@@ -62,7 +77,7 @@ namespace CSharpSupport.Implementations
             {
                 // The default values of VBScript primitives (number, strings and booleans) are considered to match Empty
                 var nonNullValue = l ?? r;
-                if ((base.IsDotNetNumericType(nonNullValue) && (Convert.ToDouble(nonNullValue)) == 0)
+                if ((IsDotNetNumericType(nonNullValue) && (Convert.ToDouble(nonNullValue)) == 0)
                 || ((nonNullValue as string) == "")
                 || ((nonNullValue is bool) && !(bool)nonNullValue))
                     return true;
@@ -78,16 +93,16 @@ namespace CSharpSupport.Implementations
             {
                 var boolValue = (bool)((l is bool) ? l : r);
                 var nonBoolValue = (l is bool) ? r : l;
-                if (!base.IsDotNetNumericType(nonBoolValue))
+                if (!IsDotNetNumericType(nonBoolValue))
                     return false;
                 return (boolValue && (Convert.ToDouble(nonBoolValue) == -1)) || (!boolValue && (Convert.ToDouble(nonBoolValue) == 0));
             }
 
             // Now consider numbers on one or both sides - all special cases are out of the way now so they're either equal or they're not (both
             // sides must be numbers, otherwise it's a non-match)
-            if (base.IsDotNetNumericType(l) && base.IsDotNetNumericType(r))
+            if (IsDotNetNumericType(l) && IsDotNetNumericType(r))
                 return Convert.ToDouble(l) == Convert.ToDouble(r);
-            else if (base.IsDotNetNumericType(l) || base.IsDotNetNumericType(r))
+            else if (IsDotNetNumericType(l) || IsDotNetNumericType(r))
                 return false;
 
             // Now do the same for strings and then dates - same deal; they must have consistent types AND values
@@ -282,13 +297,32 @@ namespace CSharpSupport.Implementations
                 return "Null";
             if (value == DBNull.Value)
                 return "Empty";
-            if (base.IsVBScriptNothing(value))
+            if (IsVBScriptNothing(value))
                 return "Nothing";
             var type = value.GetType();
             var sourceClassName = type.GetCustomAttributes(typeof(SourceClassName), inherit: true).FirstOrDefault() as SourceClassName;
             if (sourceClassName != null)
                 return sourceClassName.Name;
-            return value.GetType().Name; // TODO: Does this deal with COM objects such as "Recordset" or will it show "_COMObject" (or whatever)
+
+            // TODO: This needs to deal with numeric types much better - eg. "Int16" => "Integer" - have they all been covered now?
+            if (type == typeof(bool))
+                return "Boolean";
+            if (type == typeof(byte))
+                return "Byte";
+            if (type == typeof(Int16))
+                return "Integer";
+            if (type == typeof(Int32))
+                return "Long";
+            if (type == typeof(double))
+                return "Double";
+            if (type == typeof(DateTime))
+                return "Date";
+            if (type == typeof(Decimal))
+                return "Currency";
+
+            // TODO: Does this deal with COM objects such as "Recordset" or will it show "_COMObject" (or whatever)
+            // - If ComVisible then step through the type inheritance tree for the first ComVisible(true) and use that class' Type Name?
+            return value.GetType().Name;
         }
         public object VARTYPE(object value) { throw new NotImplementedException(); }
         // - Array functions
@@ -298,9 +332,9 @@ namespace CSharpSupport.Implementations
         public object LBOUND(object value) { throw new NotImplementedException(); }
         public object UBOUND(object value) { throw new NotImplementedException(); }
         // - Date functions
-        public DateTime NOW() { throw new NotImplementedException(); }
-        public DateTime DATE() { throw new NotImplementedException(); }
-        public DateTime TIME() { throw new NotImplementedException(); }
+        public DateTime NOW() { return DateTime.Now; }
+        public DateTime DATE() { return DateTime.Now.Date; }
+        public DateTime TIME() { return new DateTime(DateTime.Now.TimeOfDay.Ticks); }
         public object DATEADD(object value) { throw new NotImplementedException(); }
         public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
         public object DATEVALUE(object value) { throw new NotImplementedException(); }
@@ -351,7 +385,12 @@ namespace CSharpSupport.Implementations
         public void STARTERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
         public void STOPERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
 
-        public void HANDLEERROR(int token, Action action) { throw new NotImplementedException(); } // TODO
+        public void HANDLEERROR(int token, Action action)
+        {
+            // TODO: Implement this properly
+            try { action(); }
+            catch { }
+        }
 
         public bool IF(Func<object> valueEvaluator, int errorToken)
         {
@@ -372,24 +411,51 @@ namespace CSharpSupport.Implementations
             if (converter == null)
                 throw new ArgumentNullException("nonSpecialCaseProcessor");
 
-            // Try all of the special cases (Empty, Date, etc..) to see if we can get a number. This may throw an exception (such as InvalidUseOfNullException)
-            // which must be thrown here and not wrapped in the try..catch below.
-            object valueToConvert = base.TryToGetNumberConsideringSpecialCases(value);
-
-            // If there was no special case result returned then just pass the original value through VAL (since it mustn't be an object reference - if it
-            // IS an object reference, then we need to try to access a default member - or throw an exception trying). Then THIS value is passed through
-            // the converter.
-            if (valueToConvert == null)
-                valueToConvert = VAL(value);
-
+            value = _valueRetriever.NUM(value);
+            if (value is DateTime)
+                value = DateToDouble((DateTime)value);
+            if (value is T)
+                return (T)value;
             try
             {
-                return converter(valueToConvert ?? value);
+                return converter(value);
             }
             catch (Exception e)
             {
                 throw new TypeMismatchException(e);
             }
+        }
+
+        private bool IsDotNetNumericType(object l)
+        {
+            if (l == null)
+                return false;
+            return
+                IsDotNetIntegerType(l) ||
+                (l is decimal) || (l is double) || (l is float);
+        }
+
+        private bool IsDotNetIntegerType(object l)
+        {
+            if (l == null)
+                return false;
+            if (l.GetType().IsEnum)
+                return true;
+            return (l is byte) || (l is char) || (l is int) || (l is long) || (l is sbyte) || (l is short) || (l is uint) || (l is ulong) || (l is ushort);
+        }
+
+        /// <summary>
+        /// The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the implementation details of
+        /// DispatchWrapper. This method delivers a reliable way to test for it.
+        /// </summary>
+        private bool IsVBScriptNothing(object o)
+        {
+            return ((o is DispatchWrapper) && ((DispatchWrapper)o).WrappedObject == null);
+        }
+
+        private double DateToDouble(DateTime value)
+        {
+            return ((DateTime)value).Subtract(VBScriptConstants.ZeroDate).TotalDays;
         }
 
         /// <summary>
@@ -403,6 +469,48 @@ namespace CSharpSupport.Implementations
             if (value == null)
                 return DBNull.Value;
             return value.Value;
+        }
+
+        // Feed all of these straight through to the _valueRetriever we have
+        public IBuildCallArgumentProviders ARGS
+        {
+            get { return _valueRetriever.ARGS; }
+        }
+        public object CALL(object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
+        {
+            return _valueRetriever.CALL(target, members, argumentProvider);
+        }
+        public void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
+        {
+            _valueRetriever.SET(valueToSetTo, target, optionalMemberAccessor, argumentProvider);
+        }
+        public object VAL(object o)
+        {
+            return _valueRetriever.VAL(o);
+        }
+        public object OBJ(object o)
+        {
+            return _valueRetriever.OBJ(o);
+        }
+        public object NUM(object o, params object[] numericValuesTheTypeMustBeAbleToContain)
+        {
+            return _valueRetriever.NUM(o, numericValuesTheTypeMustBeAbleToContain);
+        }
+        public object NullableNUM(object o)
+        {
+            return _valueRetriever.NullableNUM(o);
+        }
+        public object STR(object o)
+        {
+            return _valueRetriever.STR(o);
+        }
+        public bool IF(object o)
+        {
+            return _valueRetriever.IF(o);
+        }
+        public IEnumerable ENUMERABLE(object o)
+        {
+            return _valueRetriever.ENUMERABLE(o);
         }
     }
 }
