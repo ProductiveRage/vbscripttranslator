@@ -460,7 +460,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (targetBuiltInFunction != null)
             {
                 var supportFunctionDetails = GetDetailsOfBuiltInFunction(targetBuiltInFunction, callExpressionSegment.Arguments.Count());
-                var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.Name, targetBuiltInFunction.LineIndex) }
+                var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.SupportFunctionName, targetBuiltInFunction.LineIndex) }
                     .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
 
                 // If the call expression is a single-argument call to "CDbl" and the argument is a numeric literal that VBScript would declare as "Double",
@@ -487,7 +487,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // then we can't be sure that the argument we have at this point is a string. If there is no support function that matches the segment's number
                 // of arguments then this must fail at runtime, not compile time, and so the "CALL" method approach is required.
                 if (supportFunctionDetails.DesiredNumberOfArgumentsMatchedAgainst != null)
-                    return TranslateAsDirectSupportFunctionCall(supportFunctionDetails.Name, callExpressionSegment.Arguments, scopeAccessInformation);
+                    return TranslateAsDirectSupportFunctionCall(supportFunctionDetails, callExpressionSegment.Arguments, scopeAccessInformation);
 
                 return TranslateCallExpressionSegment(
                     _supportRefName.Name,
@@ -546,12 +546,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             {
                 // If location a support function with the desired number of arguments (in the correct format; "in only" and type "object") then return a
                 // BuiltInFunctionDetails with the name from that match (just in case the case of the function name varies - the match above is case insensitive)
-                return new BuiltInFunctionDetails(idealMatch.Name, desiredNumberOfArguments);
+                return new BuiltInFunctionDetails(builtInFunctionToken, idealMatch.Name, desiredNumberOfArguments);
             }
             // If a match was found for the name but not the desired number of arguments then return a result with null "desiredNumberOfArgumentsMatchedAgainst"
             // value (it doesn't matter which of the names we select - for cases where they vary by case, which is not expected but not impossible - so just
             // return the first matched support function name)
-            return new BuiltInFunctionDetails(supportFunctionMatches.First().Name, null);
+            return new BuiltInFunctionDetails(builtInFunctionToken, supportFunctionMatches.First().Name, null);
         }
 
         private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
@@ -786,12 +786,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// mismatch becomes a runtime error, rather than compile time (since that's what VBScript does).
         /// </summary>
         private TranslatedStatementContentDetailsWithContentType TranslateAsDirectSupportFunctionCall(
-            string functionName,
+            BuiltInFunctionDetails function,
             IEnumerable<Expression> argumentValues,
             ScopeAccessInformation scopeAccessInformation)
         {
-            if (string.IsNullOrWhiteSpace(functionName))
-                throw new ArgumentOutOfRangeException("Null/blank functionName specified");
+            if (function == null)
+                throw new ArgumentNullException("function");
             if (argumentValues == null)
                 throw new ArgumentNullException("argumentValues");
             if (scopeAccessInformation == null)
@@ -801,7 +801,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var supportFunctionCallContent = new StringBuilder();
             supportFunctionCallContent.Append(_supportRefName.Name);
             supportFunctionCallContent.Append(".");
-            supportFunctionCallContent.Append(functionName);
+            supportFunctionCallContent.Append(function.SupportFunctionName);
             supportFunctionCallContent.Append("(");
             foreach (var indexedArgumentValue in argumentValues.Select((arg, index) => new { Argument = arg, Index = index }))
             {
@@ -811,6 +811,17 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 if (indexedArgumentValue.Index > 0)
                     supportFunctionCallContent.Append(", ");
+
+                // If this is a builtin function that is known to return a numeric type and it has a numeric constant as its argument(s), then we can emit
+                // just the numeric value and drop any type information, since this will be thrown away when the number-returning function does its work
+                // - eg. don't emit "CDBL((Int16)1)" since it's going to return a double so the Int16 type information is useless, "CDBL(1)" is no less
+                // useful while being more succinct (and more natural when compared to the source it's being translated from)
+                var argumentValueAsNumericConstant = TryToGetExpressionAsSingleNumericValueExpressionSegment(argumentValue);
+                if ((argumentValueAsNumericConstant != null) && function.Token.GuaranteedToReturnNumericContent)
+                {
+                    supportFunctionCallContent.Append(argumentValueAsNumericConstant.Token.Value);
+                    continue;
+                }
 
                 var argumentContent = Translate(
                     argumentValue,
@@ -828,6 +839,17 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 ExpressionReturnTypeOptions.NotSpecified,
                 variablesAccessed
             );
+        }
+
+        private NumericValueExpressionSegment TryToGetExpressionAsSingleNumericValueExpressionSegment(Expression expression)
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+
+            if (expression.Segments.Count() != 1)
+                return null;
+
+            return expression.Segments.Single() as NumericValueExpressionSegment;
         }
 
         /// <summary>
@@ -1322,19 +1344,27 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
         private class BuiltInFunctionDetails
         {
-            public BuiltInFunctionDetails(string name, int? desiredNumberOfArgumentsMatchedAgainst)
+            public BuiltInFunctionDetails(BuiltInFunctionToken token, string supportFunctionName, int? desiredNumberOfArgumentsMatchedAgainst)
             {
-                if (string.IsNullOrWhiteSpace(name))
+                if (token == null)
+                    throw new ArgumentNullException("token");
+                if (string.IsNullOrWhiteSpace(supportFunctionName))
                     throw new ArgumentException("Null/blank name specified");
 
-                Name = name;
+                Token = token;
+                SupportFunctionName = supportFunctionName;
                 DesiredNumberOfArgumentsMatchedAgainst = desiredNumberOfArgumentsMatchedAgainst;
             }
 
             /// <summary>
+            /// This will never be null
+            /// </summary>
+            public BuiltInFunctionToken Token { get; private set; }
+
+            /// <summary>
             /// This will never be null or blank
             /// </summary>
-            public string Name { get; private set; }
+            public string SupportFunctionName { get; private set; }
 
             /// <summary>
             /// If details of this function were requested with a desired number of parameters to match, then this will be that number if it was possible

@@ -357,25 +357,27 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         protected static bool isVBScriptFunction(string atomContent)
         {
+            if (isVBScriptFunctionThatAlwaysReturnsNumericContent(atomContent))
+                return true;
             return isType(
                 atomContent,
                 new string[]
                 {
+                    // Note: Some of these functions sound like they would be returned by isVBScriptFunctionThatAlwaysReturnsNumericContent but they
+                    // return null in some cases and so are not applicable - eg. "INT" will return Null if Null is passed in    
                     "ISEMPTY", "ISNULL", "ISOBJECT", "ISNUMERIC", "ISDATE", "ISEMPTY", "ISNULL", "ISARRAY",
                     "LBOUND", "UBOUND",
                     "VARTYPE", "TYPENAME",
                     "CREATEOBJECT", "GETOBJECT",
-                    "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CBOOL", "CSTR", "CDATE",
-                    "DATEADD", "DATESERIAL", "DATEVALUE", "TIMESERIAL", "TIMEVALUE",
-                    "NOW", "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
-                    "DATE",
-                    "ABS", "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
-                    "HEX", "OCT", "FIX", "INT", "SNG",
-                    "ASC", "ASCB", "ASCW",
+                    "CBOOL", "CSTR",
+                    "DATEVALUE", "TIMEVALUE",
+                    "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
+                    "ABS",
+                    "HEX", "OCT", "FIX",
+                    "INT",
                     "CHR", "CHRB", "CHRW",
-                    "ASC", "ASCB", "ASCW",
                     "INSTR", "INSTRREV",
-                    "LEN", "LENB",
+                    "LEN", "LENB", // return null
                     "LCASE", "UCASE",
                     "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
                     "REPLACE",
@@ -383,6 +385,28 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "LTRIM", "RTRIM", "TRIM",
                     "SPLIT", "ARRAY", "ERASE", "JOIN",
                     "EVAL", "EXECUTE", "EXECUTEGLOBAL"
+                }
+            );
+        }
+
+        /// <summary>
+        /// Does the content appear to represent a VBScript function that is guaranteed to return a numeric value - eg. the "CDBL" method. This does
+        /// not include functions that will ever return Null (such as ABS, which returns Null if Null is provided as the argument). An exception will
+        /// be raised for null, blank or whitespace-containing input.
+        /// </summary>
+        protected static bool isVBScriptFunctionThatAlwaysReturnsNumericContent(string atomContent)
+        {
+            // These must ONLY include those that will never return null - TODO: Ensure didn't lose any functions in creating this
+            return isType(
+                atomContent,
+                new string[]
+                {
+                    "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CDATE",
+                    "DATEADD", "DATESERIAL", "TIMESERIAL",
+                    "NOW", "DATE",
+                    "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
+                    "HEX", "OCT", "FIX", "INT", "SNG",
+                    "ASC", "ASCB", "ASCW"
                 }
             );
         }

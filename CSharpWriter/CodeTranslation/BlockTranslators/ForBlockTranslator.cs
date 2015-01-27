@@ -8,6 +8,7 @@ using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using StageTwoExpressionParsing = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -81,24 +82,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                // Same logic as for the loopStart value above applies here
-                var loopEndExpressionContent = _statementTranslator.Translate(
-                    forBlock.LoopTo,
-                    scopeAccessInformation,
-                    ExpressionReturnTypeOptions.NotSpecified
-                );
+                var numericLoopEndContent = WrapInNUMCallIfRequired(forBlock.LoopTo, scopeAccessInformation);
                 var loopEndName = _tempNameGenerator(new CSharpName("loopEnd"), scopeAccessInformation);
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopEndName,
-                    string.Format(
-                        "{0}.NUM({1})",
-                        _supportRefName.Name,
-                        loopEndExpressionContent.TranslatedContent
-                    )
+                    numericLoopEndContent.TranslatedContent
                 ));
                 loopEnd = loopEndName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
-                    loopEndExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
+                    numericLoopEndContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
                 );
             }
             string loopStep;
@@ -125,24 +117,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                // Same logic as for the loopStart/loopEnd value above applies here
-                var loopStepExpressionContent = _statementTranslator.Translate(
-                    forBlock.LoopStep,
-                    scopeAccessInformation,
-                    ExpressionReturnTypeOptions.NotSpecified
-                );
+                var numericLoopStepContent = WrapInNUMCallIfRequired(forBlock.LoopStep, scopeAccessInformation);
                 var loopStepName = _tempNameGenerator(new CSharpName("loopStep"), scopeAccessInformation);
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopStepName,
-                    string.Format(
-                        "{0}.NUM({1})",
-                        _supportRefName.Name,
-                        loopStepExpressionContent.TranslatedContent
-                    )
+                    numericLoopStepContent.TranslatedContent
                 ));
                 loopStep = loopStepName.Name;
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.AddRange(
-                    loopStepExpressionContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
+                    numericLoopStepContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)
                 );
             }
 
@@ -665,6 +648,58 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             return translationResult.AddUndeclaredVariables(undeclaredVariableReferencesAccessedByLoopConstraints);
 		}
+
+        /// <summary>
+        /// If the expression is guaranteed to return a true numeric value (not null, not empty, not a boolean) then we don't need to wrap it in a NUM call
+        /// (if the expression does not meet these criteria then this function will return content that does include a NUM call)
+        /// </summary>
+        private TranslatedStatementContentDetails WrapInNUMCallIfRequired(Expression expression, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var translatedExpressionContent = _statementTranslator.Translate(
+                expression,
+                scopeAccessInformation,
+                ExpressionReturnTypeOptions.NotSpecified
+            );
+            if (IsCallingBuiltInNumberReturningFunction(expression, scopeAccessInformation))
+                return translatedExpressionContent;
+            return new TranslatedStatementContentDetails(
+                string.Format(
+                    "{0}.NUM({1})",
+                    _supportRefName.Name,
+                    translatedExpressionContent.TranslatedContent
+                ),
+                translatedExpressionContent.VariablesAccessed
+            );
+        }
+
+        private bool IsCallingBuiltInNumberReturningFunction(Expression expression, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var expressions =
+                  StageTwoExpressionParsing.ExpressionGenerator.Generate(
+                      expression.Tokens,
+                      (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken()
+                  )
+                  .ToArray();
+            if ((expressions.Length != 1) || (expressions[0].Segments.Count() != 1))
+                return false;
+            var callExpression = expressions[0].Segments.Single() as StageTwoExpressionParsing.CallExpressionSegment;
+            if (callExpression == null)
+                return false;
+            if (callExpression.MemberAccessTokens.Count() != 1)
+                return false;
+            var builtInFunctionToken = callExpression.MemberAccessTokens.Single() as BuiltInFunctionToken;
+            return (builtInFunctionToken != null) && builtInFunctionToken.GuaranteedToReturnNumericContent;
+        }
 
         private NumericValueToken TryToGetExpressionAsNumericConstant(Expression expression)
         {
