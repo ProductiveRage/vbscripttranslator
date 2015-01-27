@@ -17,15 +17,40 @@ namespace CSharpSupport.Implementations
     /// quite as quickly as with VBScript's deterministic garbage collector but hopefully a reasonable facsimilie). The IAccessValuesUsingVBScriptRules
     /// implementation, meanwhile, might want to live a lot longer if it is caching CALL method targets.
     /// </summary>
-    public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests
+    public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests, IDisposable
     {
         private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
+        private readonly List<IDisposable> _disposableReferencesToClearAfterTheRequest;
         public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter, IAccessValuesUsingVBScriptRules valueRetriever)
         {
             if (valueRetriever == null)
                 throw new ArgumentNullException("valueRetriever");
 
             _valueRetriever = valueRetriever;
+            _disposableReferencesToClearAfterTheRequest = new List<IDisposable>();
+        }
+
+        ~DefaultRuntimeFunctionalityProvider()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                foreach (var disposableResource in _disposableReferencesToClearAfterTheRequest)
+                {
+                    try { disposableResource.Dispose(); }
+                    catch { }
+                }
+            }
         }
 
         // Arithemetic operators
@@ -354,6 +379,24 @@ namespace CSharpSupport.Implementations
         public object EVAL(object value) { throw new NotImplementedException(); }
         public object EXECUTE(object value) { throw new NotImplementedException(); }
         public object EXECUTEGLOBAL(object value) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// This returns the value without any immediate processing, but may keep a reference to it and dispose of it (where applicable) after
+        /// the request completes (to try to avoid resources from not being cleaned up in the absence of the VBScript deterministic garbage
+        /// collection - classes with a Class_Terminate function are translated into IDisposable types and, while IDisposable.Dispose will not
+        /// be called by the translated code, it may be called after the request ends if the requests are tracked here. This will throw an
+        /// exception for a null value.
+        /// </summary>
+        public object NEW(object value)
+        {
+            if (value == null)
+                throw new ArgumentNullException("value");
+
+            var disposableResource = value as IDisposable;
+            if (disposableResource != null)
+                _disposableReferencesToClearAfterTheRequest.Add(disposableResource);
+            return value;
+        }
 
         // Array definitions
         public void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter)

@@ -1136,11 +1136,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (!Enum.IsDefined(typeof(LegacyParser.ScopeLocationOptions), scopeLocation))
                 throw new ArgumentOutOfRangeException("scopeLocation");
 
+            // Send the new instance to the NEW method so that it can be tracked and forcibly disposed of after ther request
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
-                    "new {0}({1}, {2}, {3})",
-                    _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
+                    "{0}.NEW(new {1}({0}, {2}, {3}))",
                     _supportRefName.Name,
+                    _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
                     _envRefName.Name,
                     _outerRefName.Name
                 ),

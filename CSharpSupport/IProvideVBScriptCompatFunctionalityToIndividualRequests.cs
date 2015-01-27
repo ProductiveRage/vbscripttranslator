@@ -69,8 +69,14 @@ namespace CSharpSupport
         /// </summary>
         bool StrictGTE(object l, object r);
 
-        // TODO: Add a NEW method so that instantiated objects can be tracked and disposed of at the end of the request? (Instead of new'ing them
-        // up directly in the translated code).
+        /// <summary>
+        /// This returns the value without any immediate processing, but may keep a reference to it and dispose of it (where applicable) after
+        /// the request completes (to try to avoid resources from not being cleaned up in the absence of the VBScript deterministic garbage
+        /// collection - classes with a Class_Terminate function are translated into IDisposable types and, while IDisposable.Dispose will not
+        /// be called by the translated code, it may be called after the request ends if the requests are tracked here. This will throw an
+        /// exception for a null value.
+        /// </summary>
+        object NEW(object value);
 
         // Array definitions - TODO: Note that dimensions may be an empty set for NEWARRAY (such that "Dim a()" creates an empty array), though
         // it is not permissible for RESIZEARRAY (since "ReDim b()" is not valid, nor is "ReDim b", there must be at least one dimension). If
