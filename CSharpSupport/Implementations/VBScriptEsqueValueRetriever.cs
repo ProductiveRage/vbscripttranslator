@@ -124,24 +124,37 @@ namespace CSharpSupport.Implementations
             // Int16's range then a different type will be returned).
             //   eg. For i = Date() To 1000000
             //   eg. For i = 1 To Date()
-            var relatedNonDateNumericValuesAsDouble = relatedNumericValues
-                .Where(v => !(v is DateTime)) // Ignore Dates since they obviously can't cause a Date overflow!
-                .Select(v => Convert.ToDouble(v));
-            var minRelatedValue = relatedNonDateNumericValuesAsDouble.Min();
-            var maxRelatedValue = relatedNonDateNumericValuesAsDouble.Max();
             if ((valueToConvert is DateTime) || relatedNumericValues.Any(v => v is DateTime))
             {
-                var eeeeee = DateToDouble(VBScriptConstants.EarliestPossibleDate); // TODO
-                var llllll = DateToDouble(VBScriptConstants.LatestPossibleDate); // TODO
-                if ((minRelatedValue < DateToDouble(VBScriptConstants.EarliestPossibleDate))
-                || (maxRelatedValue > DateToDouble(VBScriptConstants.LatestPossibleDate)))
+                var relatedNonDateNumericValuesAsDouble = relatedNumericValues
+                    .Where(v => !(v is DateTime)) // Ignore Dates since they obviously can't cause a Date overflow!
+                    .Select(v => Convert.ToDouble(v));
+                if ((relatedNonDateNumericValuesAsDouble.Min() < DateToDouble(VBScriptConstants.EarliestPossibleDate))
+                || (relatedNonDateNumericValuesAsDouble.Max() > DateToDouble(VBScriptConstants.LatestPossibleDate)))
+                    throw new OverflowException();
+                return valueToConvert;
+            }
+
+            // If turns out that Decimal is a special case as well.. even when there is a loop constraint that is sufficiently large that
+            // it requires a Double and will not fit into the VBScript Currency, the loop variable type remains type Currency and will
+            // overflow (note that the relatedNumericValuesAsDouble set defined below will never have to consider dates since if any
+            // of the values are dates then we will have exited above, so we don't have to worry about doing a TotalDays calculation
+            // rather than calling Convert.ToDouble for everything).
+            var relatedNumericValuesAsDouble = relatedNumericValues
+                .Select(v => Convert.ToDouble(v));
+            var minRelatedValue = relatedNumericValuesAsDouble.Min();
+            var maxRelatedValue = relatedNumericValuesAsDouble.Max();
+            if ((valueToConvert is Decimal) || relatedNumericValues.Any(v => v is Decimal))
+            {
+                if ((minRelatedValue < (double)VBScriptConstants.MinCurrencyValue)
+                || (maxRelatedValue > (double)VBScriptConstants.MaxCurrencyValue))
                     throw new OverflowException();
                 return valueToConvert;
             }
 
             // So now we know that the valueToConvert and numericValuesTheTypeMustBeAbleToContain are not all of the same type and that
             // none of them are dates. What we need to do now is take the "biggest" of all of these types and use that.
-            var biggestTypeWithConverter = new[] { valueToConvert }.Concat(relatedNumericValues.Select(v => GetAsVBScriptNumber(v)))
+            return new[] { valueToConvert }.Concat(relatedNumericValues.Select(v => GetAsVBScriptNumber(v)))
                 .Select(v =>
                 {
                     // Note: Even though double can hold larger numbers then decimal, VBScript prefers decimal - eg. in the loop
@@ -162,8 +175,9 @@ namespace CSharpSupport.Implementations
                         return Tuple.Create<int, Func<object, object>>(6, value => Convert.ToDecimal(value));
                     throw new ArgumentException("Unsupported numeric type: " + v.GetType());
                 })
-                .Last();
-            return biggestTypeWithConverter.Item2(valueToConvert);
+                .OrderBy(v => v.Item1)
+                .Last()
+                .Item2(valueToConvert);
         }
 
         /// <summary>

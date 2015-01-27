@@ -302,9 +302,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         // in play since otherwise the loops won't be entered at all since there is an overflow error):
                         //   FOR i = Date() To 10000000 ' The loop will be entered once, "i" will be set to Date()
                         //   FOR i = 10000000 To Date() ' The loop will be entered once, "i" will NOT be set
+                        // Update: The same logic applies to Decimal (Currency in VBScript) since this is the only other type that VBScript sticks to even when it needs
+                        // to move up to a larger data type (such as Double). The below two examples are equivalent to the above and exhibit the same behaviour (note
+                        // that the max value for a Currency is  922,337,203,685,477.5807 - see https://msdn.microsoft.com/en-us/library/9e7a57cf%28v=vs.84%29.aspx)
+                        //   FOR i = CCur(922337203685475) TO CCur(922337203685476) STEP CDBL("9223372036854760") ' Loop is entered once, "i" is set to a Currency value
+                        //   FOR i = CDbl("9223372036854760") TO CCur(922337203685475) STEP -1 ' Loop is entered once but "i" will not be set
                         translationResult = translationResult.Add(new TranslatedStatement(
                             string.Format(
-                                "if ({0} is DateTime)",
+                                "if (({0} is DateTime) || ({0} is Decimal))",
                                 loopStart
                             ),
                             indentationDepth + 1

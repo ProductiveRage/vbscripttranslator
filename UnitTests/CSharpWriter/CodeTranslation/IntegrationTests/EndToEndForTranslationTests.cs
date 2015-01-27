@@ -278,7 +278,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "_.HANDLEERROR(errOn1, () => {",
                 "    loopEnd2 = _.NUM(_env.b);",
                 "    loopStart3 = _.NUM(_env.a);",
-                "    if (loopStart3 is DateTime)",
+                "    if ((loopStart3 is DateTime) || (loopStart3 is Decimal))",
                 "        _env.i = loopStart3;",
                 "    loopStart3 = _.NUM(_env.a, loopEnd2, (Int16)1);",
                 "    loopConstraintsInitialised4 = true;",

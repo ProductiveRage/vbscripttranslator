@@ -145,5 +145,8 @@ namespace CSharpSupport
         /// a date that would be later than this date will fail (the first with an "Invalid procedure call or argument" and the latter with an "Overflow")
         /// </summary>
         public static DateTime LatestPossibleDate { get { return new DateTime(9999, 12, 31, 23, 59, 59); } }
+
+        public static Decimal MinCurrencyValue { get { return -922337203685477.5808m; } }
+        public static Decimal MaxCurrencyValue { get { return 922337203685477.5807m; } }
     }
 }

@@ -148,12 +148,61 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
+            [Fact]
+            public void IntegerWithIntegerValueAsString()
+            {
+                // Strings are always parsed into doubles, regardless of the size of the value they represent
+                Assert.Equal(
+                    1d,
+                    GetDefaultRuntimeFunctionalityProvider().NUM((Int16)1, "2")
+                );
+            }
+
+            [Fact]
+            public void StringRepresentationsOfDatesAreNotParsed()
+            {
+                Assert.Throws<TypeMismatchException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().NUM("1/1/2015");
+                });
+            }
+
+            [Fact]
+            public void StringRepresentationsOfISODatesAreNotParsed()
+            {
+                Assert.Throws<TypeMismatchException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().NUM("2015-01-01");
+                });
+            }
+
+            [Fact]
+            public void DecimalIsEvenBiggerThanDouble()
+            {
+                // Although the double type can contain a greater range of values than decimal, VBScript prefers decimal if both are present
+                Assert.Equal(
+                    1m,
+                    GetDefaultRuntimeFunctionalityProvider().NUM(1m, 2d)
+                );
+            }
+
+            [Fact]
+            public void DecimalWithDoublesThatAreNotWithinVBScriptCurrencyAcceptableRange()
+            {
+                // See https://msdn.microsoft.com/en-us/library/9e7a57cf%28v=vs.84%29.aspx for limits of the VBScript data types
+                Assert.Throws<OverflowException>(() =>
+                {
+                    GetDefaultRuntimeFunctionalityProvider().NUM(
+                        922337203685475m, // Toward the top end of the Currency limit
+                        1000000000000000d // Definitely past it
+                    );
+                });
+            }
+
             // TODO: String with underscores, hashes, exclamation marks
 
             // TODO: Negatives
             // TODO: Multiple negatives
-
-            // TODO: Add some tests with numericValuesTheTypeMustBeAbleToContain values, particularly around dates (and decimals)
         }
     }
 }
