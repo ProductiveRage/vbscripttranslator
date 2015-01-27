@@ -1,4 +1,5 @@
 ﻿using CSharpSupport.Implementations;
+using System;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
@@ -6,7 +7,11 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
     {
         private static DefaultRuntimeFunctionalityProvider GetDefaultRuntimeFunctionalityProvider()
         {
-            return new DefaultRuntimeFunctionalityProvider(name => name);
+            Func<string, string> nameRewriter = name => name;
+            return new DefaultRuntimeFunctionalityProvider(
+                nameRewriter,
+                new VBScriptEsqueValueRetriever(nameRewriter)
+            );
         }
     }
 }

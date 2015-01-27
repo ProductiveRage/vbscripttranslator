@@ -118,6 +118,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Fact]
+            public void IntegerWithDate()
+            {
+                Assert.Equal(
+                    new DateTime(1899, 12, 31), // This is the VBScript "ZeroDate" plus one day (which is what 1 is translated into in order to become a date)
+                    GetDefaultRuntimeFunctionalityProvider().NUM(1, new DateTime(2015, 1, 22, 20, 11, 5, 0))
+                );
+            }
+
+            [Fact]
             public void BytesWithAnInteger()
             {
                 // In a loop "FOR i = CBYTE(1) TO CBYTE(5) STEP 1", the "Integer" step of 1 (this would happen with an implicit step too, since that defaults
@@ -197,6 +206,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                         1000000000000000d // Definitely past it
                     );
                 });
+            }
+
+            [Fact]
+            public void IntegerWithDecimal()
+            {
+                Assert.Equal(
+                    1m,
+                    GetDefaultRuntimeFunctionalityProvider().NUM(1, 2m)
+                );
             }
 
             // TODO: String with underscores, hashes, exclamation marks
