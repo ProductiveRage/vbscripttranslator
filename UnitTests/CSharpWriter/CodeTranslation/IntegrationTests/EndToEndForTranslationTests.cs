@@ -356,8 +356,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "var loopEnd1 = _.NUM(_.CBYTE((Int16)5));",
-                "var loopStart2 = _.NUM(_.CBYTE((Int16)1), loopEnd1, (Int16)1);",
+                "var loopEnd1 = _.CBYTE(5);",
+                "var loopStart2 = _.NUM(_.CBYTE(1), loopEnd1, (Int16)1);",
                 "if (_.StrictLTE(loopStart2, loopEnd1))",
                 "{",
                 "    for (_outer.i = loopStart2; _.StrictLTE(_outer.i, loopEnd1); _outer.i = _.ADD(_outer.i, 1))",
@@ -384,9 +384,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "var loopEnd1 = _.NUM(_.CBYTE((Int16)5));",
-                "var loopStep2 = _.NUM(_.CBYTE((Int16)1));",
-                "var loopStart3 = _.NUM(_.CBYTE((Int16)1), loopEnd1, loopStep2);",
+                "var loopEnd1 = _.CBYTE(5);",
+                "var loopStep2 = _.CBYTE(1);",
+                "var loopStart3 = _.NUM(_.CBYTE(1), loopEnd1, loopStep2);",
                 "if ((_.StrictLTE(loopStart3, loopEnd1) && _.StrictGTE(loopStep2, 0))",
                 "|| (_.StrictGT(loopStart3, loopEnd1) && _.StrictLT(loopStep2, 0)))",
                 "{",
