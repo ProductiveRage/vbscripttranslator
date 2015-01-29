@@ -9,18 +9,19 @@ using System.Runtime.InteropServices;
 namespace CSharpSupport.Implementations
 {
     /// <summary>
-    /// This is intended to be built up over time and used with classes that are output by the translator. Clearly, at this point, it is noticeably lacking
-    /// in working functionality, but it provides something, at least, to use to test the very simple programs that can be translated at this time. Note
-    /// that this implementations takes an IAccessValuesUsingVBScriptRules implementation as a dependency - this is because the life time of this class
-    /// should be a single run of a translated program (partly because the SETERROR and CLEARANYERROR methods have no explicit way to be associated with
-    /// a specific request but also so that IDisposable instances that are created by translated code can be tidied up at the end of the request, not
-    /// quite as quickly as with VBScript's deterministic garbage collector but hopefully a reasonable facsimilie). The IAccessValuesUsingVBScriptRules
-    /// implementation, meanwhile, might want to live a lot longer if it is caching CALL method targets.
+    /// Instances of this class should be used only by a single request and so is not written to be thread safe. This is partly because the SETERROR and
+    /// CLEARANYERROR methods have no explicit way to be associated with a specific request (which is not a problem if each instance is associated with
+    /// one specific request) but also so that it can be explicitly disposed after each request completes to ensure that any unmanaged resources are
+    /// cleaned up. VBScript's deterministic garbage collector can tidy up more aggressively, relying upon reference counting, the best that we can do
+    /// with the C# code is for this to implement IDiposable and to ensure that everything is tidy when the request completes and Dispose is called.
     /// </summary>
     public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
         private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
         private readonly List<IDisposable> _disposableReferencesToClearAfterTheRequest;
+        private readonly Queue<int> _availableErrorTokens;
+        private readonly Dictionary<int, ErrorTokenState> _activeErrorTokens;
+        private Exception _trappedErrorIfAny;
         public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter, IAccessValuesUsingVBScriptRules valueRetriever)
         {
             if (valueRetriever == null)
@@ -28,6 +29,15 @@ namespace CSharpSupport.Implementations
 
             _valueRetriever = valueRetriever;
             _disposableReferencesToClearAfterTheRequest = new List<IDisposable>();
+            _availableErrorTokens = new Queue<int>();
+            _activeErrorTokens = new Dictionary<int, ErrorTokenState>();
+            _trappedErrorIfAny = null;
+        }
+
+        private enum ErrorTokenState
+        {
+            OnErrorResumeNext,
+            OnErrorGoto0
         }
 
         ~DefaultRuntimeFunctionalityProvider()
@@ -479,29 +489,128 @@ namespace CSharpSupport.Implementations
         }
 
         // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
-        
-        public void CLEARANYERROR() { } // TODO
-        public void SETERROR(Exception e) { } // TODO
 
-        public int GETERRORTRAPPINGTOKEN() { throw new NotImplementedException(); } // TODO
-        public void RELEASEERRORTRAPPINGTOKEN(int token) { throw new NotImplementedException(); } // TODO
-
-        public void STARTERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
-        public void STOPERRORTRAPPINGANDCLEARANYERROR(int token) { throw new NotImplementedException(); } // TODO
-
-        public void HANDLEERROR(int token, Action action)
+        public void SETERROR(Exception e)
         {
-            // TODO: Implement this properly
-            try { action(); }
-            catch { }
+            // Note that there is (at most) only a single error associated with an executing request. If the error-trapping is enabled and a function F1()
+            // executes code that raises an error but then goes and calls F2() which also raises an error, the error recorded from the code in F1 that
+            // occured before calling F2 is lost, it is overwritten by F2. So there is no need to try to map trapped errors onto error tokens, there is
+            // only one per request (or zero - if there has been no error trapped, or if there HAS been an error trapped that has then been cleared).
+            if (e == null)
+                throw new ArgumentNullException("e");
+            _trappedErrorIfAny = e;
+        }
+        
+        public void CLEARANYERROR()
+        {
+            // This should be called by translated code that originates from an ON ERROR GOTO 0 with no corresponding ON ERROR RESUME NEXT - the translation
+            // process will not emit code to call GETERRORTRAPPINGTOKEN since the source is not trying to trap any errors. However, any error information
+            // must be cleared nonetheless, since there was an ON ERROR GOTO 0 in the source. It will also be required when Err.Clear is called.
+            _trappedErrorIfAny = null;
         }
 
+        public int GETERRORTRAPPINGTOKEN()
+        {
+            // Every time error-trapping is enabled within a function (or the outermost scope, where code doesn't run within a function in VBScript), the
+            // translated code must request an "error trapping token". This is used to keep track of where error-trapping is and isn't enabled. If, for
+            // example, a function F1 includes an ON ERROR RESUME NEXT and then calls F2 which includes its own ON ERROR RESUME NEXT and then later an
+            // ON ERROR GOTO 0, this must only disable error-trapping within F2, the error-trapping that was enabled in F1 must continue to be enabled.
+            // It isn't known at translation time how many error tokens may be required since this depends upon how the code executes - if F2 calls
+            // itself then within its ON ERROR RESUME NEXT .. ON ERROR GOTO 0 region, an ON ERROR GOTO 0 call from that second call to F2 must not
+            // disable error-trapping in the context of the first F2 call. So error tokens need to be handled dynamically. To try to only maintain as
+            // many as strictly necessary, there is a queue of available tokens that is used to service GETERRORTRAPPINGTOKEN calls - after an error
+            // token is returned (through RELEASEERRORTRAPPINGTOKEN), it goes back into the queue to potentially be used again. If the queue is empty
+            // when this method is called then a new token is created. The token values are incremented each time this happens to ensure that they are
+            // unique. This is why it's important that tokens are properly released - either when error-trapping is disabled (through an explicit ON
+            // ERROR GOTO 0 or through an error being trapped or through a function scope ending where ON ERROR RESUME NEXT was set).
+            // Note: When tokens are first requested, they default to the "OnErrorGoto0" state - meaning that error-trapping is not enabled currently
+            // for that token. Error-trapping is enabled through a subsequent call to STARTERRORTRAPPINGANDCLEARANYERROR.
+            int token;
+            if (_availableErrorTokens.Any())
+                token = _availableErrorTokens.Dequeue();
+            else
+                token = _availableErrorTokens.Count + _availableErrorTokens.Count;
+            _activeErrorTokens.Add(token, ErrorTokenState.OnErrorGoto0);
+            return token;
+        }
+
+        public void RELEASEERRORTRAPPINGTOKEN(int errorToken)
+        {
+            if (!_activeErrorTokens.ContainsKey(errorToken))
+                throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
+            _activeErrorTokens.Remove(errorToken);
+            _availableErrorTokens.Enqueue(errorToken);
+        }
+
+        public void STARTERRORTRAPPINGANDCLEARANYERROR(int errorToken)
+        {
+            // Note: Whenever error trapping is explicitly enabled or disabled, any error is cleared. If two methods are called within an OERN..
+            //   ON ERROR RESUME Next
+            //   F1()
+            //   F2()
+            // .. and F1() raises an error, that error's information will be maintained while F2 is called (if it is called without an error being
+            // raised) unless F2 or any code it calls contains On Error Resume Next or On Error Goto - if this is the case then the error from F1
+            // is lost forever. This is why _trappedErrorIfAny is set to null here and in STOPERRORTRAPPINGANDCLEARANYERROR.
+            if (!_activeErrorTokens.ContainsKey(errorToken))
+                throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
+            _activeErrorTokens[errorToken] = ErrorTokenState.OnErrorResumeNext;
+            _trappedErrorIfAny = null;
+        }
+        
+        public void STOPERRORTRAPPINGANDCLEARANYERROR(int errorToken)
+        {
+            if (!_activeErrorTokens.ContainsKey(errorToken))
+                throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
+            _activeErrorTokens[errorToken] = ErrorTokenState.OnErrorGoto0;
+            _trappedErrorIfAny = null;
+        }
+
+        public void HANDLEERROR(int errorToken, Action action)
+        {
+            if (!_activeErrorTokens.ContainsKey(errorToken))
+                throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
+            
+            try
+            {
+                action();
+            }
+            catch(Exception e)
+            {
+                // Translated programs shouldn't provide any actions that register or unregister error tokens, but since we've just gone off and
+                // attempted to do some unknown work, it's best to check
+                if (!_activeErrorTokens.ContainsKey(errorToken))
+                    throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
+
+                if (_activeErrorTokens[errorToken] == ErrorTokenState.OnErrorResumeNext)
+                    SETERROR(e);
+                else
+                {
+                    RELEASEERRORTRAPPINGTOKEN(errorToken);
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// This layers error-handling on top of the IAccessValuesUsingVBScriptRules.IF method, if error-handling is enabled for the specified
+        /// token then evaluation of the value will be attempted - if an error occurs then it will be recorded and the condition will be treated
+        /// as true, since this is VBScript's behaviour. It will throw an exception for a null valueEvaluator or an invalid errorToken.
+        /// </summary>
         public bool IF(Func<object> valueEvaluator, int errorToken)
         {
             if (valueEvaluator == null)
                 throw new ArgumentNullException("valueEvaluator");
-
-            throw new NotImplementedException(); // TODO
+            
+            // VBScript's behaviour is quite mad here; if error-trapping is enabled when an IF condition must be evaluated, and if that evaluation results in
+            // and error being raised, then act as if the condition was met. So we default to true and then try to perform the evalaluation with HANDLEERROR.
+            // If an error is thrown and error-trapping is enabled, then true will be returned. If an error is throw an error-trapping is NOT enabled, then
+            // that error will be allowed to propagate up. If there is no error raised then the result of the IF evaluation is returned.
+            var result = true;
+            HANDLEERROR(
+                errorToken,
+                () => { result = _valueRetriever.IF(valueEvaluator()); }
+            );
+            return result;
         }
 
         /// <summary>
