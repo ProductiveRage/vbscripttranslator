@@ -17,12 +17,12 @@ namespace CSharpSupport
         double MULT(object l, object r);
         int INTDIV(object l, object r);
         double MOD(object l, object r);
-        double ADD(object l, object r);
+        object ADD(object l, object r);
         double SUBT(object o);
         double SUBT(object l, object r);
 
         // String concatenation
-        string CONCAT(object l, object r);
+        object CONCAT(object l, object r);
 
         // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
         object NOT(object o);
