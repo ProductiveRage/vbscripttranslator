@@ -70,6 +70,7 @@
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Extend_Extensions.cs" />
     <Compile Include="CodeTranslation\ScopeAccessInformation.cs" />
     <Compile Include="CodeTranslation\ExplicitVariableDeclaration.cs" />
+    <Compile Include="DefaultTranslator.cs" />
     <Compile Include="Lists\IValueValidator.cs" />
     <Compile Include="Lists\ImmutableList_Extensions.cs" />
     <Compile Include="Lists\IEnumerable_Extensions.cs" />
