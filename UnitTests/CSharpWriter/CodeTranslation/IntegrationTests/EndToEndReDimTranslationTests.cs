@@ -47,7 +47,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim a(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       object a = null;
@@ -68,7 +68,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim Preserve a(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       object a = null;
@@ -89,7 +89,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim F1(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       _.NEWARRAY(new object[] { (Int16)0 }, value2 => { retVal1 = value2; });
@@ -109,7 +109,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim Preserve F1(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       _.RESIZEARRAY(retVal1, new object[] { (Int16)0 }, value2 => { retVal1 = value2; });
@@ -165,7 +165,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim a(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       object a = null;
@@ -187,7 +187,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim Preserve a(0)
                     End Function";
                 var expected = @"
-                    public object f1()
+                    public object F1()
                     {
                       object retVal1 = null;
                       object a = null;

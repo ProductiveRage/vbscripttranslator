@@ -17,7 +17,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "foreach (_env.value in _.ENUMERABLE(_env.values))",
                 "{",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.value, v1 => { _env.value = v1; }));",
+                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v1 => { _env.value = v1; }));",
                 "}"
             };
             Assert.Equal(
@@ -58,7 +58,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "foreach (_env.value in enumerationContent2 ?? new object[] { _env.value })",
                 "{",
                 "    _.HANDLEERROR(errOn1, () => {",
-                "        _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
+                "        _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
                 "    });",
                 "}",
                 "_.RELEASEERRORTRAPPINGTOKEN(errOn1);",
@@ -99,7 +99,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "}",
                 "foreach (_env.value in enumerationContent2 ?? new object[] { _env.value })",
                 "{",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
+                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
                 "}",
                 "_.RELEASEERRORTRAPPINGTOKEN(errOn1);",
 

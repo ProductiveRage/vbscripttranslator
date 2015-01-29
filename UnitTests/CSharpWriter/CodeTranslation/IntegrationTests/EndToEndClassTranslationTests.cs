@@ -22,12 +22,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class c1
+                public sealed class C1
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -40,7 +40,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _outer = outer;
                     }
 
-                    public object name()
+                    public object Name()
                     {
                         return null;
                     }
@@ -62,7 +62,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         {
             var source = @"
                 CLASS C1
-                    PUBLIC SUB CLASS_TERMINATE
+                    PUBLIC SUB Class_Terminate
                         WScript.Echo ""Gone!""
                     END SUB
                 END CLASS
@@ -70,13 +70,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class c1 : IDisposable
+                public sealed class C1 : IDisposable
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
                     private bool _disposed1;
-                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _disposed1 = false;
                     }
 
-                    ~c1()
+                    ~C1()
                     {
                         try { Dispose2(false); }
                         catch(Exception e)
@@ -110,13 +110,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         if (_disposed1)
                             return;
                         if (disposing)
-                            class_terminate();
+                            Class_Terminate();
                         _disposed1 = true;
                     }
 
-                    public void class_terminate()
+                    public void Class_Terminate()
                     {
-                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Gone!""));
+                        _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Gone!""));
                     }
                 }";
             Assert.Equal(
@@ -135,7 +135,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         {
             var source = @"
                 CLASS C1
-                    PUBLIC SUB CLASS_INITIALIZE
+                    PUBLIC SUB Class_Initialize
                         WScript.Echo ""Here!""
                     END SUB
                 END CLASS
@@ -143,12 +143,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class c1
+                public sealed class C1
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -159,16 +159,16 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _ = compatLayer;
                         _env = env;
                         _outer = outer;
-                        try { class_initialize(); }
+                        try { Class_Initialize(); }
                         catch(Exception e)
                         {
                             _env.SETERROR(e);
                         }
                     }
 
-                    public void class_initialize()
+                    public void Class_Initialize()
                     {
-                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Here!""));
+                        _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Here!""));
                     }
                 }";
             Assert.Equal(

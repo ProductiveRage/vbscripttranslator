@@ -22,7 +22,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
                 _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
-                    _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                    _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test1""));
                 });
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);";
             Assert.Equal(
@@ -47,13 +47,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = @"
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
-                _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test1""));
                 _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
-                    _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test2""));
+                    _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test2""));
                 });
                 _.STOPERRORTRAPPINGANDCLEARANYERROR(errOn1);
-                _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test3""));
+                _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test3""));
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);";
             Assert.Equal(
                 SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
@@ -84,7 +84,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 }
                 _.HANDLEERROR(errOn1, () => {
-                    _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                    _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test1""));
                 });
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);";
             Assert.Equal(
@@ -107,13 +107,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
                 _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
-                    _.CALL(_outer, ""func1"");
+                    _.CALL(_outer, ""Func1"");
                 });
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);
-                public object func1()
+                public object Func1()
                 {
                     object retVal2 = null;
-                    _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                    _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test1""));
                     return retVal2;
                 }";
             Assert.Equal(
@@ -134,15 +134,15 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 End Function
             ";
             var expected = @"
-                _.CALL(_outer, ""func1"");
-                _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test2""));
-                public object func1()
+                _.CALL(_outer, ""Func1"");
+                _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test2""));
+                public object Func1()
                 {
                     object retVal1 = null;
                     var errOn2 = _.GETERRORTRAPPINGTOKEN();
                     _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
                     _.HANDLEERROR(errOn2, () => {
-                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Test1""));
+                        _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Test1""));
                     });
                     _.RELEASEERRORTRAPPINGTOKEN(errOn2);
                     return retVal1;

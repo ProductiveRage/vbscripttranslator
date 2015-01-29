@@ -28,7 +28,8 @@ namespace CSharpWriter
         public static NonNullImmutableList<TranslatedStatement> Translate(
             string scriptContent,
             NonNullImmutableList<string> externalDependencies,
-            OuterScopeBlockTranslator.OutputTypeOptions outputType)
+            OuterScopeBlockTranslator.OutputTypeOptions outputType,
+            bool renderCommentsAboutUndeclaredVariables = true)
         {
             if (scriptContent == null)
                 throw new ArgumentNullException("scriptContent");
@@ -53,9 +54,11 @@ namespace CSharpWriter
                 // times that this is called (so there should be no need to worry about the int value overflowing!)
                 return new CSharpName(((optionalPrefix == null) ? "temp" : optionalPrefix.Name) + (++tempNameGeneratorNextNumber).ToString());
             };
-            var logger = new CSharpCommentMakingLogger(
-                new ConsoleLogger()
-            );
+            ILogInformation logger;
+            if (renderCommentsAboutUndeclaredVariables)
+                logger = new CSharpCommentMakingLogger(new ConsoleLogger());
+            else
+                logger = new NullLogger();
             var statementTranslator = new StatementTranslator(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, logger);
             var codeBlockTranslator = new OuterScopeBlockTranslator(
                 startClassName,
@@ -83,7 +86,8 @@ namespace CSharpWriter
         public static NonNullImmutableList<TranslatedStatement> Translate(
             string scriptContent,
             string[] externalDependencies,
-            OuterScopeBlockTranslator.OutputTypeOptions outputType)
+            OuterScopeBlockTranslator.OutputTypeOptions outputType,
+            bool renderCommentsAboutUndeclaredVariables = true)
         {
             if (externalDependencies == null)
                 throw new ArgumentNullException("externalDependencies");

@@ -21,7 +21,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             if (externalDependencies == null)
                 throw new ArgumentNullException("externalDependencies");
 
-            return DefaultTranslator.Translate(content, externalDependencies, OuterScopeBlockTranslator.OutputTypeOptions.WithoutScaffolding)
+            return DefaultTranslator
+                .Translate(
+                    content,
+                    externalDependencies,
+                    OuterScopeBlockTranslator.OutputTypeOptions.WithoutScaffolding,
+                    renderCommentsAboutUndeclaredVariables: false
+                )
                 .Select(s => s.Content)
                 .Where(s => s != "")
                 .ToArray();

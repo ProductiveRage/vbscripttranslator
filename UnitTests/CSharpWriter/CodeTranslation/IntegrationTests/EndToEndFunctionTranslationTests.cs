@@ -21,7 +21,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "public object f1()",
+                "public object F1()",
                 "{",
                 "    // Test simple-return-format functions",
                 "    return _.VAL(_.CDATE(\"2007-04-01\"));",
@@ -48,7 +48,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "public object f1()",
+                "public object F1()",
                 "{",
                 "    object a = null; /* Undeclared in source */",
                 "    return _.OBJ(a);",
@@ -74,7 +74,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "public object f1()",
+                "public object F1()",
                 "{",
                 "    return VBScriptConstants.Nothing;",
                 "}"
