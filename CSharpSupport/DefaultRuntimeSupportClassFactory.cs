@@ -5,11 +5,20 @@ using System.Text.RegularExpressions;
 
 namespace CSharpSupport
 {
-
     public class DefaultRuntimeSupportClassFactory
     {
+        private static Regex _multipleUnderscoreCondenser;
+        static DefaultRuntimeSupportClassFactory()
+        {
+            _multipleUnderscoreCondenser = new Regex("_{2,}", RegexOptions.Compiled);
+            DefaultNameRewriter = RewriteName;
+            DefaultVBScriptValueRetriever = new VBScriptEsqueValueRetriever(DefaultNameRewriter);
+        }
+
         /// <summary>
-        /// TODO: Explain (non-static)
+        /// Each compat functionality provider instance should be disposed of after the request has completed to ensure that any managed resources are tidied
+        /// up (this is an approximation of VBScript's deterministic reference-counting garbage collector - it doesn't dispose of the resources as quickly,
+        /// but at least they're guaranteed to be dealt with after the request ends if this is disposed).
         /// </summary>
         public static IProvideVBScriptCompatFunctionalityToIndividualRequests Get()
         {
@@ -17,12 +26,17 @@ namespace CSharpSupport
         }
 
         /// <summary>
-        /// TODO: Explain static
+        /// This is a static reference as it will build up an member access cache so that subsequent requests for a given method signature on a particular
+        /// type does not need to be determined from scratch. The implementation is thread safe and may be shared between requests.
         /// </summary>
-        public static IAccessValuesUsingVBScriptRules DefaultVBScriptValueRetriever = new VBScriptEsqueValueRetriever(DefaultNameRewriter);
+        public static IAccessValuesUsingVBScriptRules DefaultVBScriptValueRetriever { get; private set; }
 
-        private static Regex _multipleUnderscoreCondenser = new Regex("_{2,}", RegexOptions.Compiled);
-        public static Func<string, string> DefaultNameRewriter = value =>
+        /// <summary>
+        /// This is a static reference since its implementation does not change and may be shared across all requests. It has no state and so is thread safe.
+        /// </summary>
+        public static Func<string, string> DefaultNameRewriter { get; private set; }
+
+        private static string RewriteName(string value)
         {
             if (value == null)
                 throw new ArgumentNullException("value");
@@ -59,13 +73,13 @@ namespace CSharpSupport
             if (!char.IsLetter(rewrittenValue[0]))
                 rewrittenValue = "x" + rewrittenValue;
             return rewrittenValue += GetHash(value);
-        };
+        }
 
         /// <summary>
         /// I could have use string.GetHashCode but that is allowed to vary between version of .net - so translated code emitted in one version may
         /// fail when running under another version when names have to be rewritten. This is probably quite unlikely but I thought taking a bog
-        /// standard alternative implementation (this is Jenkins - see http://en.wikipedia.org/wiki/Jenkins_hash_function) would make for a
-        /// reasonable starting point for a consistent across-.net-versions approach.
+        /// standard alternative implementation (this is Jenkins one-at-a-time, see http://en.wikipedia.org/wiki/Jenkins_hash_function) would make
+        /// for a reasonable starting point for a consistent-across-framework-versions approach.
         /// </summary>
         private static uint GetHash(string value)
         {
