@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpSupport;
+using System;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -12,7 +13,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().NullableNUM(DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().NullableNUM(DBNull.Value)
                 );
             }
         }

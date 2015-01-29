@@ -17,7 +17,7 @@ namespace CSharpSupport.Implementations
     /// quite as quickly as with VBScript's deterministic garbage collector but hopefully a reasonable facsimilie). The IAccessValuesUsingVBScriptRules
     /// implementation, meanwhile, might want to live a lot longer if it is caching CALL method targets.
     /// </summary>
-    public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests, IDisposable
+    public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
         private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
         private readonly List<IDisposable> _disposableReferencesToClearAfterTheRequest;

@@ -18,7 +18,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(null, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(null, null)
                 );
             }
 
@@ -27,7 +27,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(DBNull.Value, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(DBNull.Value, DBNull.Value)
                 );
             }
 
@@ -41,7 +41,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var nothing = VBScriptConstants.Nothing;
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().EQ(DBNull.Value, nothing);
+                    DefaultRuntimeSupportClassFactory.Get().EQ(DBNull.Value, nothing);
                 });
             }
 
@@ -51,7 +51,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var nothing = VBScriptConstants.Nothing;
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().EQ(nothing, nothing);
+                    DefaultRuntimeSupportClassFactory.Get().EQ(nothing, nothing);
                 });
             }
 
@@ -61,7 +61,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(-1, null)
                 );
             }
 
@@ -71,7 +71,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(1, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(1, null)
                 );
             }
 
@@ -80,7 +80,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(0, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(0, null)
                 );
             }
 
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(1, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(1, DBNull.Value)
                 );
             }
 
@@ -100,7 +100,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Non-zero numeric values compared to Empty for equality always return false
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(-1, DBNull.Value)
                 );
             }
 
@@ -109,7 +109,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(0, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(0, DBNull.Value)
                 );
             }
 
@@ -120,7 +120,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // - No other numbers are considered to be equals of booleans (not -1.1, not -2, not 1, not 2)
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1, true)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(-1, true)
                 );
             }
 
@@ -129,7 +129,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(0, false)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(0, false)
                 );
             }
 
@@ -138,7 +138,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1.1, true)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(-1.1, true)
                 );
             }
 
@@ -147,7 +147,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(-1.1, false)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(-1.1, false)
                 );
             }
 
@@ -156,7 +156,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(1, true)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(1, true)
                 );
             }
 
@@ -165,7 +165,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(1, false)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(1, false)
                 );
             }
 
@@ -174,7 +174,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("", null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("", null)
                 );
             }
 
@@ -183,7 +183,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("", DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("", DBNull.Value)
                 );
             }
 
@@ -192,7 +192,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("", true)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("", true)
                 );
             }
 
@@ -201,7 +201,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("", false)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("", false)
                 );
             }
 
@@ -210,7 +210,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(" ", null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(" ", null)
                 );
             }
 
@@ -219,7 +219,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(" ", DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(" ", DBNull.Value)
                 );
             }
 
@@ -231,7 +231,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // are consistent but the EQ method does not have to deal with it - so, here, "12" does not equal 12.
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("12", 12)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("12", 12)
                 );
             }
 
@@ -243,7 +243,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // with, any special handling regarding literals must be dealt with by the translator before getting to EQ.
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ("True", true)
+                    DefaultRuntimeSupportClassFactory.Get().EQ("True", true)
                 );
             }
 
@@ -252,7 +252,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(true, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(true, null)
                 );
             }
 
@@ -261,7 +261,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(false, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(false, null)
                 );
             }
 
@@ -270,7 +270,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(true, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(true, DBNull.Value)
                 );
             }
 
@@ -279,7 +279,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(false, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(false, DBNull.Value)
                 );
             }
 
@@ -289,7 +289,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Dim vTrue, vMinusOne: vTrue = True: vMinusOne = -1: If (vTrue = vMinusOne) Then ' True
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(true, -1)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(true, -1)
                 );
             }
 
@@ -298,7 +298,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(true, -1.0d)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(true, -1.0d)
                 );
             }
 
@@ -308,7 +308,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Dim vFalse, vZero: vFalse = False: vZero = 0: If (vFalse = vZero) Then ' True
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(false, 0)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(false, 0)
                 );
             }
 
@@ -317,7 +317,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(new DateTime(2015, 1, 19, 22, 52, 0), DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(new DateTime(2015, 1, 19, 22, 52, 0), DBNull.Value)
                 );
             }
 
@@ -326,7 +326,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(new DateTime(2015, 1, 19, 22, 52, 0), null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(new DateTime(2015, 1, 19, 22, 52, 0), null)
                 );
             }
 
@@ -339,7 +339,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(VBScriptConstants.ZeroDate, null)
                 );
             }
 
@@ -352,7 +352,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.EarliestPossibleDate, null)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(VBScriptConstants.EarliestPossibleDate, null)
                 );
             }
 
@@ -361,7 +361,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, false)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(VBScriptConstants.ZeroDate, false)
                 );
             }
 
@@ -370,7 +370,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, 0)
+                    DefaultRuntimeSupportClassFactory.Get().EQ(VBScriptConstants.ZeroDate, 0)
                 );
             }
 
@@ -379,7 +379,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().EQ(VBScriptConstants.ZeroDate, "")
+                    DefaultRuntimeSupportClassFactory.Get().EQ(VBScriptConstants.ZeroDate, "")
                 );
             }
         }

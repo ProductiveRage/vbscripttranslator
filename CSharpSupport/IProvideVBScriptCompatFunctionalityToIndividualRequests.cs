@@ -9,7 +9,7 @@ namespace CSharpSupport
     /// from one request can never spread over the error information from another request) or some sort of ThreadLocal or ThreadStatic trickery
     /// may be required to separate this data.
     /// </summary>
-	public interface IProvideVBScriptCompatFunctionalityToIndividualRequests : IAccessValuesUsingVBScriptRules
+	public interface IProvideVBScriptCompatFunctionalityToIndividualRequests : IAccessValuesUsingVBScriptRules, IDisposable
 	{
         // Arithemetic operators
         double POW(object l, object r);

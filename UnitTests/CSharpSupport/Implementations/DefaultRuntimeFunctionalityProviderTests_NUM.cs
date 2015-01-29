@@ -1,4 +1,5 @@
-﻿using CSharpSupport.Exceptions;
+﻿using CSharpSupport;
+using CSharpSupport.Exceptions;
 using System;
 using Xunit;
 
@@ -13,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     (Int16)0,
-                    GetDefaultRuntimeFunctionalityProvider().NUM(null)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(null)
                 );
             }
 
@@ -22,7 +23,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<InvalidUseOfNullException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM(DBNull.Value);
+                    DefaultRuntimeSupportClassFactory.Get().NUM(DBNull.Value);
                 });
             }
 
@@ -31,7 +32,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     (Int16)(-1),
-                    GetDefaultRuntimeFunctionalityProvider().NUM(true)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(true)
                 );
             }
 
@@ -40,7 +41,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     (Int16)0,
-                    GetDefaultRuntimeFunctionalityProvider().NUM(false)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(false)
                 );
             }
 
@@ -49,7 +50,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM("");
+                    DefaultRuntimeSupportClassFactory.Get().NUM("");
                 });
             }
 
@@ -58,7 +59,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     12d, // VBScript parses string into Doubles, even if there is no decimal fraction
-                    GetDefaultRuntimeFunctionalityProvider().NUM("12")
+                    DefaultRuntimeSupportClassFactory.Get().NUM("12")
                 );
             }
 
@@ -67,7 +68,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     12d, // VBScript parses string into Doubles, even if there is no decimal fraction
-                    GetDefaultRuntimeFunctionalityProvider().NUM(" 12")
+                    DefaultRuntimeSupportClassFactory.Get().NUM(" 12")
                 );
             }
 
@@ -76,7 +77,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     12d, // VBScript parses string into Doubles, even if there is no decimal fraction
-                    GetDefaultRuntimeFunctionalityProvider().NUM("12 ")
+                    DefaultRuntimeSupportClassFactory.Get().NUM("12 ")
                 );
             }
 
@@ -85,7 +86,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM("1 1");
+                    DefaultRuntimeSupportClassFactory.Get().NUM("1 1");
                 });
             }
 
@@ -94,7 +95,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     1.2,
-                    GetDefaultRuntimeFunctionalityProvider().NUM("1.2")
+                    DefaultRuntimeSupportClassFactory.Get().NUM("1.2")
                 );
             }
 
@@ -103,7 +104,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM("1.1.0");
+                    DefaultRuntimeSupportClassFactory.Get().NUM("1.1.0");
                 });
             }
 
@@ -113,7 +114,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var date = new DateTime(2015, 1, 22, 20, 11, 5, 0);
                 Assert.Equal(
                     new DateTime(2015, 1, 22, 20, 11, 5, 0),
-                    GetDefaultRuntimeFunctionalityProvider().NUM(date)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(date)
                 );
             }
 
@@ -122,7 +123,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     new DateTime(1899, 12, 31), // This is the VBScript "ZeroDate" plus one day (which is what 1 is translated into in order to become a date)
-                    GetDefaultRuntimeFunctionalityProvider().NUM(1, new DateTime(2015, 1, 22, 20, 11, 5, 0))
+                    DefaultRuntimeSupportClassFactory.Get().NUM(1, new DateTime(2015, 1, 22, 20, 11, 5, 0))
                 );
             }
 
@@ -134,7 +135,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // a loop variable of type "Byte" the loop would need to be of the form "FOR i = CBYTE(1) TO CBYTE(5) STEP CBYTE(1)".
                 Assert.Equal(
                     (Int16)1,
-                    GetDefaultRuntimeFunctionalityProvider().NUM((byte)1, (byte)5, (Int16)1)
+                    DefaultRuntimeSupportClassFactory.Get().NUM((byte)1, (byte)5, (Int16)1)
                 );
             }
 
@@ -144,7 +145,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var date = new DateTime(2015, 1, 22, 20, 11, 5, 0);
                 Assert.Equal(
                     new DateTime(2015, 1, 22, 20, 11, 5, 0),
-                    GetDefaultRuntimeFunctionalityProvider().NUM(date, 1d)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(date, 1d)
                 );
             }
 
@@ -153,7 +154,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<OverflowException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM(new DateTime(2015, 1, 25, 17, 16, 0), double.MaxValue);
+                    DefaultRuntimeSupportClassFactory.Get().NUM(new DateTime(2015, 1, 25, 17, 16, 0), double.MaxValue);
                 });
             }
 
@@ -163,7 +164,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Strings are always parsed into doubles, regardless of the size of the value they represent
                 Assert.Equal(
                     1d,
-                    GetDefaultRuntimeFunctionalityProvider().NUM((Int16)1, "2")
+                    DefaultRuntimeSupportClassFactory.Get().NUM((Int16)1, "2")
                 );
             }
 
@@ -172,7 +173,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM("1/1/2015");
+                    DefaultRuntimeSupportClassFactory.Get().NUM("1/1/2015");
                 });
             }
 
@@ -181,7 +182,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM("2015-01-01");
+                    DefaultRuntimeSupportClassFactory.Get().NUM("2015-01-01");
                 });
             }
 
@@ -191,7 +192,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // Although the double type can contain a greater range of values than decimal, VBScript prefers decimal if both are present
                 Assert.Equal(
                     1m,
-                    GetDefaultRuntimeFunctionalityProvider().NUM(1m, 2d)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(1m, 2d)
                 );
             }
 
@@ -201,7 +202,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 // See https://msdn.microsoft.com/en-us/library/9e7a57cf%28v=vs.84%29.aspx for limits of the VBScript data types
                 Assert.Throws<OverflowException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().NUM(
+                    DefaultRuntimeSupportClassFactory.Get().NUM(
                         922337203685475m, // Toward the top end of the Currency limit
                         1000000000000000d // Definitely past it
                     );
@@ -213,7 +214,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     1m,
-                    GetDefaultRuntimeFunctionalityProvider().NUM(1, 2m)
+                    DefaultRuntimeSupportClassFactory.Get().NUM(1, 2m)
                 );
             }
 

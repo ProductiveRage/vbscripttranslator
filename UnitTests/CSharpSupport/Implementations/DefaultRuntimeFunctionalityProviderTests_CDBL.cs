@@ -16,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     0d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(null)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(null)
                 );
             }
 
@@ -25,7 +25,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<InvalidUseOfNullException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(DBNull.Value);
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(DBNull.Value);
                 });
             }
 
@@ -34,7 +34,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().CDBL("");
+                    DefaultRuntimeSupportClassFactory.Get().CDBL("");
                 });
             }
 
@@ -43,7 +43,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().CDBL("a");
+                    DefaultRuntimeSupportClassFactory.Get().CDBL("a");
                 });
             }
 
@@ -52,7 +52,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     123.4,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL("123.4")
+                    DefaultRuntimeSupportClassFactory.Get().CDBL("123.4")
                 );
             }
 
@@ -61,7 +61,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     123.4,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(" 123.4 ")
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(" 123.4 ")
                 );
             }
 
@@ -70,7 +70,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     -123.4,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL("-123.4")
+                    DefaultRuntimeSupportClassFactory.Get().CDBL("-123.4")
                 );
             }
 
@@ -80,7 +80,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var nothing = VBScriptConstants.Nothing;
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(nothing);
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(nothing);
                 });
             }
 
@@ -89,7 +89,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(new object());
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(new object());
                 });
             }
 
@@ -99,7 +99,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var target = new exampledefaultpropertytype { result = 123.4 };
                 Assert.Equal(
                     123.4,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(target)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(target)
                 );
             }
 
@@ -108,7 +108,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     0d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(0)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(0)
                 );
             }
 
@@ -117,7 +117,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     1d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(1)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(1)
                 );
             }
 
@@ -126,7 +126,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     -1d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(-1)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(-1)
                 );
             }
 
@@ -135,7 +135,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     1.1d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(1.1)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(1.1)
                 );
             }
 
@@ -144,7 +144,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     42026.8410300926d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(new DateTime(2015, 1, 22, 20, 11, 5, 0)),
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(new DateTime(2015, 1, 22, 20, 11, 5, 0)),
                     10 // This test fails without specifying precision
                 );
             }
@@ -154,7 +154,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     -1d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(true)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(true)
                 );
             }
 
@@ -163,7 +163,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     0d,
-                    GetDefaultRuntimeFunctionalityProvider().CDBL(false)
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(false)
                 );
             }
 

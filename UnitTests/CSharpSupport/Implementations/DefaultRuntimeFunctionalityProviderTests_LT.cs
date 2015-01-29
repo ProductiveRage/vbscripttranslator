@@ -16,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().LT(null, null)
+                    DefaultRuntimeSupportClassFactory.Get().LT(null, null)
                 );
             }
 
@@ -25,7 +25,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     DBNull.Value,
-                    GetDefaultRuntimeFunctionalityProvider().LT(DBNull.Value, DBNull.Value)
+                    DefaultRuntimeSupportClassFactory.Get().LT(DBNull.Value, DBNull.Value)
                 );
             }
 
@@ -39,7 +39,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var nothing = VBScriptConstants.Nothing;
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().LT(DBNull.Value, nothing);
+                    DefaultRuntimeSupportClassFactory.Get().LT(DBNull.Value, nothing);
                 });
             }
 
@@ -49,7 +49,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 var nothing = VBScriptConstants.Nothing;
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    GetDefaultRuntimeFunctionalityProvider().LT(nothing, nothing);
+                    DefaultRuntimeSupportClassFactory.Get().LT(nothing, nothing);
                 });
             }
 
@@ -59,7 +59,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().LT(0, null)
+                    DefaultRuntimeSupportClassFactory.Get().LT(0, null)
                 );
             }
             [Fact]
@@ -67,7 +67,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().LT(null, 0)
+                    DefaultRuntimeSupportClassFactory.Get().LT(null, 0)
                 );
             }
             [Fact]
@@ -75,7 +75,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().LT(-1, null)
+                    DefaultRuntimeSupportClassFactory.Get().LT(-1, null)
                 );
             }
             [Fact]
@@ -83,7 +83,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().LT(null, -1)
+                    DefaultRuntimeSupportClassFactory.Get().LT(null, -1)
                 );
             }
             [Fact]
@@ -91,7 +91,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     true,
-                    GetDefaultRuntimeFunctionalityProvider().LT(null, 1)
+                    DefaultRuntimeSupportClassFactory.Get().LT(null, 1)
                 );
             }
             [Fact]
@@ -99,7 +99,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(
                     false,
-                    GetDefaultRuntimeFunctionalityProvider().LT(1, null)
+                    DefaultRuntimeSupportClassFactory.Get().LT(1, null)
                 );
             }
         }

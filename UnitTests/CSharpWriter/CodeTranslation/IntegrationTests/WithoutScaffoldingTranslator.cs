@@ -1,4 +1,5 @@
-﻿using CSharpWriter.CodeTranslation;
+﻿using CSharpSupport;
+using CSharpWriter.CodeTranslation;
 using CSharpWriter.CodeTranslation.BlockTranslators;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
@@ -52,7 +53,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var envRefName = new CSharpName("_env");
             var outerClassName = new CSharpName("GlobalReferences");
             var outerRefName = new CSharpName("_outer");
-            VBScriptNameRewriter nameRewriter = name => new CSharpName(name.Content.ToLower());
+            VBScriptNameRewriter nameRewriter = name => new CSharpName(DefaultRuntimeSupportClassFactory.DefaultNameRewriter(name.Content));
             var tempNameGeneratorNextNumber = 0;
             TempValueNameGenerator tempNameGenerator = (optionalPrefix, scopeAccessInformation) =>
             {
