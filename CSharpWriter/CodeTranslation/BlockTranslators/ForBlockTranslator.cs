@@ -521,7 +521,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
                         " {0} = {2}.SUBT({0}, {1})",
                         rewrittenLoopVariableName,
-                        numericLoopStepValueIfAny.GetNegative().Value,
+                        numericLoopStepValueIfAny.GetNegative().AsCSharpValue(),
                         _supportRefName.Name
                     );
                 }
@@ -529,11 +529,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 {
                     // Another shortcut we can take is if the step value is known to be a non-negative numeric constant, we can just render its value
                     // out, rather than its full translated content (eg. "1" compared to "(Int16)1", since its type will not have any effect on the
-                    // ADD action and rendering its numeric value only is more succinct)
+                    // ADD action and rendering its numeric value only is more succinct). CORRECTION: This is not true, since "CInt(1) + CLng(1)"
+                    // will return a value of type "Long" (whereas "CInt(1) + CInt(1)" will return a value of type "Integer") - so this type
+                    // information IS important. I'm leaving this entire comment (the wrong assumption and the correction) so that there's
+                    // no chance of me coming back in the future and thinking I can change it back again!
                     loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
                         " {0} = {2}.ADD({0}, {1})",
                         rewrittenLoopVariableName,
-                        (numericLoopStepValueIfAny != null) ? numericLoopStepValueIfAny.Value.ToString() : loopStep,
+                        loopStep,
                         _supportRefName.Name
                     );
                 }
