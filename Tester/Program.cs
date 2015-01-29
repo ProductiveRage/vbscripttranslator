@@ -1,6 +1,5 @@
 ﻿using CSharpWriter;
 using CSharpWriter.CodeTranslation.BlockTranslators;
-using CSharpWriter.Lists;
 using System;
 using System.Linq;
 
@@ -14,13 +13,24 @@ namespace Tester
             // long as the project that it is included in has a reference to "CSharpSupport". The new class has the namer "Runner" and has a
             // constructor that takes a single argument, it requires a "compability functionality provider". An implementation may be found
             // in the static class DefaultRuntimeSupportClassFactory. So executing the translated code may be done with:
+            //
             //   using (var compatLayer = DefaultRuntimeSupportClassFactory.Get())
             //   {
-            //       new Runner(compatLayer).Go();
+            //       new TranslatedProgram.Runner(compatLayer).Go();
             //   }
+            //
             // The Go methods takes an optional "EnvironmentReferences" argument. This has properties for all of the undeclared variables in
             // the source code. In the example below, you would need to one with a "WScript" implementation (that has a method "Echo" which
-            // takes an object argument and returns a value).
+            // takes an object argument and returns a value). Conveniently, such as class is provided in this project, so the output code
+            // could be successfully executed with:
+            //
+            //   using (var compatLayer = DefaultRuntimeSupportClassFactory.Get())
+            //   {
+            //       new TranslatedProgram.Runner(compatLayer).Go(
+            //           new TranslatedProgram.Runner.EnvironmentReferences { WScript = new WScriptMock() }
+            //       );
+            //   }
+            //
             var scriptContent = @"
                 ' Test
                 Dim i: For i = 1 To 10
@@ -31,7 +41,7 @@ namespace Tester
             var outputType = OuterScopeBlockTranslator.OutputTypeOptions.Executable;
             var translatedStatements = DefaultTranslator.Translate(
                 scriptContent,
-                new[] { "WScript" }, // Assume this is present when translated, don't log warnings about it not being declared
+                new[] { "WScript" }, // Assume this is present when translating, don't log warnings about it not being declared
                 outputType
             );
             Console.WriteLine(
