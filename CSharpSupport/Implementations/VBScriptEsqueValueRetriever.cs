@@ -12,6 +12,11 @@ using System.Runtime.InteropServices;
 
 namespace CSharpSupport.Implementations
 {
+    /// <summary>
+    /// When this has to use reflection to inspect a target class to determine how to access a member function or property, it caches that lookup and so
+    /// subsequent requests for the same type and member will be faster. The intention is that an instance of this be used across all requests that may
+    /// be executing and so is written to be thread safe.
+    /// </summary>
     public class VBScriptEsqueValueRetriever : IAccessValuesUsingVBScriptRules
     {
         // It's feasible that access to the invoker cacher will need to support multi-threaded access depending upon the application in question, so the
