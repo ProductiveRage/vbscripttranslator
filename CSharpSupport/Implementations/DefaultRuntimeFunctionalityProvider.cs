@@ -621,6 +621,8 @@ namespace CSharpSupport.Implementations
             // and error being raised, then act as if the condition was met. So we default to true and then try to perform the evalaluation with HANDLEERROR.
             // If an error is thrown and error-trapping is enabled, then true will be returned. If an error is throw an error-trapping is NOT enabled, then
             // that error will be allowed to propagate up. If there is no error raised then the result of the IF evaluation is returned.
+            // - Note: In http://blogs.msdn.com/b/ericlippert/archive/2004/08/19/error-handling-in-vbscript-part-one.aspx, Eric Lippert does sort of
+            //   describe this in passing (see the note that reads "If Blah raises an error then it resumes on the Print "Hello" in either case")
             var result = true;
             HANDLEERROR(
                 errorToken,

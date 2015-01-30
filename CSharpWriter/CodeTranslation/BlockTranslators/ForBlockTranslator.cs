@@ -54,10 +54,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             //     WScript.Echo "We're in the loop! i is " & TypeName(i)
             //   Next
             //
-            // If error-trapping is enabled and one of the From, To or Step evaluation fails, no further constaints will be receive evaluation attempts but
+            // If error-trapping is enabled and one of the From, To or Step evaluation fails, no further constaints will receive evaluation attempts but
             // the loop WILL be entered.. once. Only once. And the loop variable will not be initialised when doing so (so, in the above example, it has
             // the "Empty" value inside the loop - but if it had been set to "a" before the loop construct then it would still have value "a" within
             // the loop).
+            // - Note: In http://blogs.msdn.com/b/ericlippert/archive/2004/08/19/error-handling-in-vbscript-part-one.aspx, If Blah raises an error then it resumes on the Print "Hello" in either case. 
+            // - Note: In http://blogs.msdn.com/b/ericlippert/archive/2004/08/19/error-handling-in-vbscript-part-one.aspx, Eric Lippert does describe
+            //   this (see the note that reads "If Blah raises an error, this resumes into the loop, not after the loop")
 
             // Identify tokens for the start, end and step variables. If they are numeric constants then use them, otherwise they must be stored in temporary
             // values. Note that these temporary values are NOT re-evaluated each loop since this is how VBScript (unlike some other languages) work. Also
