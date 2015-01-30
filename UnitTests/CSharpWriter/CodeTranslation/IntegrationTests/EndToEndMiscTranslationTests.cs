@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
@@ -119,6 +120,58 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 expected.Select(s => s.Trim()).ToArray(),
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
+        }
+
+        [Fact]
+        public void NumericLiteralsAccessedAsFunctionsResultInRuntimeErrors()
+        {
+            var source = "Func 1()";
+            var expected = new[]
+            {
+                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'[number: 1]\\\' is called like a function\"))));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
+        public void StringLiteralsAccessedAsFunctionsResultInRuntimeErrors()
+        {
+            var source = "Func \"1\"()";
+            var expected = new[]
+            {
+                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'[string: \\\"1\\\"]\\\' is called like a function\"))));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
+        public void BuiltinValuesAccessedAsFunctionsResultInRuntimeErrors()
+        {
+            var source = "Func vbObjectError()";
+            var expected = new[]
+            {
+                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'vbObjectError\\' is called like a function\"))));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        [Fact]
+        public void ClassNameFollowedByBracketsInNewStatementResultsInCompileTimeError()
+        {
+            var source = "c = new C1()";
+            Assert.Throws<Exception>(() =>
+            {
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
+            });
         }
     }
 }

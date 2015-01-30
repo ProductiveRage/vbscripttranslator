@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpSupport.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
@@ -359,20 +360,55 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             else if (!willBeFirstSegmentInCallExpression)
                 throw new ArgumentException("All segments in a call expression after the first must start with a MemberAccessorOrDecimalPointToken");
 
-            // If there are arguments then there's no change of representing this as a constant-type expression or as a new instance request
+            // If there are no arguments and no brackets then there's a chance of representing this as a constant-type expression or as a new instance request
+            // - If there are brackets following a constant then it's a runtime error
+            // - If there are brackets following a class instanation then it's a compile time error
             if (!arguments.Any())
             {
                 if (tokensList.Count == 1)
                 {
                     var numericValue = tokensList[0] as NumericValueToken;
                     if (numericValue != null)
+                    {
+                        if (argumentsAreBracketed)
+                        {
+                            return new RuntimeErrorExpressionSegment(
+                                numericValue.Content,
+                                new[] { numericValue },
+                                typeof(TypeMismatchException),
+                                "'[number: " + numericValue.Content + "]' is called like a function"
+                            );
+                        }
                         return new NumericValueExpressionSegment(numericValue);
+                    }
                     var stringValue = tokensList[0] as StringToken;
                     if (stringValue != null)
+                    {
+                        if (argumentsAreBracketed)
+                        {
+                            return new RuntimeErrorExpressionSegment(
+                                "\"" + stringValue.Content + "\"()",
+                                new[] { stringValue },
+                                typeof(TypeMismatchException),
+                                "'[string: \"" + stringValue.Content + "\"]' is called like a function"
+                            );
+                        }
                         return new StringValueExpressionSegment(stringValue);
+                    }
 					var builtInValue = tokensList[0] as BuiltInValueToken;
-					if (builtInValue != null)
-						return new BuiltInValueExpressionSegment(builtInValue);
+                    if (builtInValue != null)
+                    {
+                        if (argumentsAreBracketed)
+                        {
+                            return new RuntimeErrorExpressionSegment(
+                                builtInValue.Content + "()",
+                                new[] { builtInValue },
+                                typeof(TypeMismatchException),
+                                "'" + builtInValue.Content + "' is called like a function"
+                            );
+                        }
+                        return new BuiltInValueExpressionSegment(builtInValue);
+                    }
                 }
                 else if ((tokensList.Count == 2)
                 && (tokensList[0] is KeyWordToken)
@@ -380,7 +416,14 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 {
                     var newInstanceName = tokensList[1] as NameToken;
                     if (newInstanceName != null)
+                    {
+                        if (argumentsAreBracketed)
+                        {
+                            // In VBScript, this is a compile time error (unlike the runtime errors from brackets following the token types above)
+                            throw new Exception("Invalid content - \"Expected end of statement\" (there may not be brackets following the class name when using \"new\")");
+                        }
                         return new NewInstanceExpressionSegment(newInstanceName);
+                    }
                 }
             }
 

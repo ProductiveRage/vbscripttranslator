@@ -1,4 +1,5 @@
 ﻿using CSharpSupport;
+using CSharpSupport.Exceptions;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
@@ -337,6 +338,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (newInstanceExpressionSegment != null)
                 return Translate(newInstanceExpressionSegment, scopeAccessInformation.ScopeDefiningParent.Scope);
 
+            var runtimeErrorExpressionSegment = segment as RuntimeErrorExpressionSegment;
+            if (runtimeErrorExpressionSegment != null)
+                return Translate(runtimeErrorExpressionSegment);
+
             throw new NotSupportedException("Unsupported segment type: " + segment.GetType());
         }
 
@@ -428,7 +433,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
 			if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
 			{
-				// If the segment's first (or only) member accessor and no arguments and wasn't expressed in the source code as a function call (ie. it didn't
+				// If the segment's first (or only) member accessor has no arguments and wasn't expressed in the source code as a function call (ie. it didn't
 				// have brackets after the member accessor) and the single member accessor matches the name of the ScopeDefiningParent then we need to make
 				// the replacement..
 				// - If arguments are specified or brackets used with no arguments then it is always a function (or property) call and the return-value
@@ -893,7 +898,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if ((singleSegment is NumericValueExpressionSegment)
                 || (singleSegment is StringValueExpressionSegment)
                 || (singleSegment is BuiltInValueExpressionSegment)
-                || (singleSegment is NewInstanceExpressionSegment))
+                || (singleSegment is NewInstanceExpressionSegment)
+                || (singleSegment is RuntimeErrorExpressionSegment))
                     isConfirmedToBeByVal = true;
                 else if (singleSegment is BracketedExpressionSegment)
                 {
@@ -1144,6 +1150,32 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     _nameRewriter.GetMemberAccessTokenName(newInstanceExpressionSegment.ClassName),
                     _envRefName.Name,
                     _outerRefName.Name
+                ),
+                ExpressionReturnTypeOptions.Reference,
+                new NonNullImmutableList<NameToken>()
+            );
+        }
+
+        private TranslatedStatementContentDetailsWithContentType Translate(RuntimeErrorExpressionSegment runtimeErrorExpressionSegment)
+        {
+            if (runtimeErrorExpressionSegment == null)
+                throw new ArgumentNullException("runtimeErrorExpressionSegment");
+
+            // This expression segment is generated when there is VBScript that is known to cause a runtime error - an exception needs to be thrown when
+            // the translated code is run, but not at compile time (since runtime errors can be trapped with ON ERROR RESUME NEXT, but not if they cause
+            // the translation process to blow up!)
+            // - eg. "WScript.Echo 1()" will result in a type mismatch since the numeric constant can not be called like a function
+            // Note: Translated programs will include a "using" for the namespace containing the VBScript-specific exceptions, which are what are most
+            // commonly expected here. If the required exception is within the same namespace as SpecificVBScriptException then it need only be specified
+            // by name, otherwise its "FullName" will be required (which includes its namespace).
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
+                    "{0}.ERROR(new {1}({2}))",
+                    _supportRefName.Name,
+                    (runtimeErrorExpressionSegment.ExceptionType.Namespace == typeof(SpecificVBScriptException).Namespace)
+                        ? runtimeErrorExpressionSegment.ExceptionType.Name
+                        : runtimeErrorExpressionSegment.ExceptionType.FullName,
+                    runtimeErrorExpressionSegment.Message.ToLiteral()
                 ),
                 ExpressionReturnTypeOptions.Reference,
                 new NonNullImmutableList<NameToken>()

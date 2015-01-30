@@ -490,6 +490,21 @@ namespace CSharpSupport.Implementations
 
         // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
 
+        /// <summary>
+        /// There are some occassions when the translated code needs to throw a runtime exception based on the content of the source code - eg.
+        ///   WScript.Echo 1()
+        /// It is clear that "1" is a numeric constant and not a function, and so may not be called as one. However, this is not invalid VBScript and so is
+        /// not a compile time error, it is something that must result in an exception at runtime. In these cases, where it is known at the time of translation
+        /// that an exception must be thrown, this method may be used to do so at runtime.
+        /// </summary>
+        public void ERROR(Exception e)
+        {
+            if (e == null)
+                throw new ArgumentNullException("e");
+
+            throw e;
+        }
+
         public void SETERROR(Exception e)
         {
             // Note that there is (at most) only a single error associated with an executing request. If the error-trapping is enabled and a function F1()
