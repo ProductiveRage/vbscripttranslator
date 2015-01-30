@@ -1170,7 +1170,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // by name, otherwise its "FullName" will be required (which includes its namespace).
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
-                    "{0}.ERROR(new {1}({2}))",
+                    "{0}.RAISEERROR(new {1}({2}))",
                     _supportRefName.Name,
                     (runtimeErrorExpressionSegment.ExceptionType.Namespace == typeof(SpecificVBScriptException).Namespace)
                         ? runtimeErrorExpressionSegment.ExceptionType.Name

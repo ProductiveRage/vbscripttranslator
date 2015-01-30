@@ -128,7 +128,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var source = "Func 1()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'[number: 1]\\\' is called like a function\"))));"
+                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[number: 1]\\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -142,7 +142,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var source = "Func \"1\"()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'[string: \\\"1\\\"]\\\' is called like a function\"))));"
+                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[string: \\\"1\\\"]\\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -156,7 +156,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var source = "Func vbObjectError()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.ERROR(new TypeMismatchException(\"\\'vbObjectError\\' is called like a function\"))));"
+                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'vbObjectError\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
