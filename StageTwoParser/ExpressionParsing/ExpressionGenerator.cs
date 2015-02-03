@@ -14,23 +14,27 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// present the terms will be bracketed up to apply the max-one-operator restriction and to enforce VBScript operator precedence. This will
         /// never return null nor a set containing any nulls, it will raise an exception for a null token set or a set containing any nulls.
         /// </summary>
-        public static IEnumerable<Expression> Generate(IEnumerable<IToken> tokens, IToken directedWithReferenceIfAny)
+        public static IEnumerable<Expression> Generate(IEnumerable<IToken> tokens, IToken directedWithReferenceIfAny, Action<string> warningLogger)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
-            return Generate(new TokenNavigator(tokens), 0, directedWithReferenceIfAny);
+            return Generate(new TokenNavigator(tokens), 0, directedWithReferenceIfAny, warningLogger);
         }
 
         /// <summary>
         /// This will never return null nor a set containing any nulls
         /// </summary>
-        private static IEnumerable<Expression> Generate(TokenNavigator tokenNavigator, int depth, IToken directedWithReferenceIfAny)
+        private static IEnumerable<Expression> Generate(TokenNavigator tokenNavigator, int depth, IToken directedWithReferenceIfAny, Action<string> warningLogger)
         {
             if (tokenNavigator == null)
                 throw new ArgumentNullException("tokenNavigator");
             if (depth < 0)
                 throw new ArgumentOutOfRangeException("depth", "must be zero or greater");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
             var expressions = new List<Expression>();
             var expressionSegments = new List<IExpressionSegment>();
@@ -83,7 +87,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 								new Expression[0],
                                 directedWithReferenceIfAny,
                                 argumentsAreBracketed: false,
-                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments),
+                                warningLogger: warningLogger
 							)
                         );
                         accessorBuffer.Clear();
@@ -104,7 +109,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     // Get the content from inside the brackets (using a TokenNavigator here that is passed again into the Generate
                     // method means that when the below call returns, the tokenNavigator here will have been moved along to after
                     // the bracketed content that is about to be processed)
-                    var bracketedExpressions = Generate(tokenNavigator, depth + 1, directedWithReferenceIfAny);
+                    var bracketedExpressions = Generate(tokenNavigator, depth + 1, directedWithReferenceIfAny, warningLogger);
 
                     // If the accessorBuffer isn't empty then the bracketed content should be arguments, if not then it's just a bracketed expression
                     if (accessorBuffer.Any())
@@ -115,7 +120,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                                 bracketedExpressions,
                                 directedWithReferenceIfAny,
                                 argumentsAreBracketed: true,
-                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments),
+                                warningLogger: warningLogger
                             )
                         );
                         accessorBuffer.Clear();
@@ -159,7 +165,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 								new Expression[0],
                                 directedWithReferenceIfAny,
                                 argumentsAreBracketed: false, // zero-argument content not bracketed
-                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                                willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments),
+                                warningLogger: warningLogger
                             )
                         );
                         accessorBuffer.Clear();
@@ -182,7 +189,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 						new Expression[0],
                         directedWithReferenceIfAny,
                         argumentsAreBracketed: false, // zero-argument content not bracketed
-                        willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments)
+                        willBeFirstSegmentInCallExpression: WillBeFirstSegmentInCallExpression(expressionSegments),
+                        warningLogger: warningLogger
                     )
                 );
                 accessorBuffer.Clear();
@@ -334,10 +342,13 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             IEnumerable<Expression> arguments,
             IToken directedWithReferenceIfAny,
             bool argumentsAreBracketed,
-            bool willBeFirstSegmentInCallExpression)
+            bool willBeFirstSegmentInCallExpression,
+            Action<string> warningLogger)
         {
             if (tokens == null)
                 throw new ArgumentNullException("tokens");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
             var tokensList = tokens.ToList();
             if (!tokensList.Any())
@@ -372,6 +383,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     {
                         if (argumentsAreBracketed)
                         {
+                            warningLogger("Numeric literal accessed as a method - this will result in a runtime error (line " + (numericValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
                                 numericValue.Content,
                                 new[] { numericValue },
@@ -386,6 +398,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     {
                         if (argumentsAreBracketed)
                         {
+                            warningLogger("String literal accessed as a method - this will result in a runtime error (line " + (stringValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
                                 "\"" + stringValue.Content + "\"()",
                                 new[] { stringValue },
@@ -400,6 +413,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                     {
                         if (argumentsAreBracketed)
                         {
+                            warningLogger("Built-in constant accessed as a method - this will result in a runtime error (line " + (builtInValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
                                 builtInValue.Content + "()",
                                 new[] { builtInValue },

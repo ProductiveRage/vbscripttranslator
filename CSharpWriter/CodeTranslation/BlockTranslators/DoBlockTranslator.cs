@@ -52,7 +52,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 whileConditionExpressionContentIfAny = _statementTranslator.Translate(
                     doBlock.ConditionIfAny,
                     scopeAccessInformation,
-                    ExpressionReturnTypeOptions.Boolean
+                    ExpressionReturnTypeOptions.Boolean,
+                    _logger.Warning
                 );
                 if (!doBlock.IsDoWhileCondition)
                 {

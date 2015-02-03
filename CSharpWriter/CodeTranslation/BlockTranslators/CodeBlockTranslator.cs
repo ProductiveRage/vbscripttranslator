@@ -652,7 +652,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     var translatedArgumentDetails = _statementTranslator.Translate(
                         dimension,
                         scopeAccessInformation,
-                        ExpressionReturnTypeOptions.Value
+                        ExpressionReturnTypeOptions.Value,
+                        _logger.Warning
                     );
                     translatedArguments.Add(translatedArgumentDetails.TranslatedContent);
                     var undeclaredVariables = translatedArgumentDetails.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
@@ -706,7 +707,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				return null;
 
             // TODO: Differentiate between undeclared variables and functions (and classes?)
-            var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation);
+            var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation, _logger.Warning);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)

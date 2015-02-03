@@ -26,7 +26,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                     new[] {
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -48,7 +49,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -72,7 +74,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -98,7 +101,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -124,7 +128,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NumericValueToken("1", 0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -153,7 +158,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -190,7 +196,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -223,7 +230,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -258,7 +266,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -292,7 +301,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -326,7 +336,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NumericValueToken("1", 0),
                         new CloseBrace(0),
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -360,7 +371,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("+", 0),
                         new NameToken("c", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -393,7 +405,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("*", 0),
                         new NameToken("c", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -429,7 +442,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NumericValueToken("0", 0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -474,7 +488,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("+", 0),
                         new NameToken("d", 0),
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -509,7 +524,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NameToken("c", 0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -547,7 +563,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("+", 0),
                         new NameToken("d", 0),
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -580,7 +597,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("+", 0),
                         new NameToken("c", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -644,7 +662,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new ComparisonOperatorToken("=", 0),
                         new NameToken("f", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -675,7 +694,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OperatorToken("-", 0),
                         new NameToken("b", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -706,7 +726,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new LogicalOperatorToken("NOT", 0),
                         new NameToken("b", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -738,7 +759,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new ComparisonOperatorToken("IS", 0),
                         new BuiltInValueToken("Nothing", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -759,7 +781,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new KeyWordToken("new", 0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -794,7 +817,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new CloseBrace(0),
                         new CloseBrace(0)
                     },
-                    directedWithReferenceIfAny: null
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );
@@ -805,13 +829,6 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         public void ObjectFunctionCallWithNoArgumentsAndNoBracketsThatReliesUponDirectedWithReference()
         {
             // ".Test" within "WITH a"
-            var actual = ExpressionGenerator.Generate(
-                    new IToken[] {
-                        new MemberAccessorToken(0),
-                        new NameToken("Test", 0)
-                    },
-                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0)
-                ); // TODO: Remove
             Assert.Equal(new[]
                 {
                     EXP(
@@ -825,7 +842,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new MemberAccessorToken(0),
                         new NameToken("Test", 0)
                     },
-                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0)
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0),
+                    warningLogger: warning => { }
                 ),
                 new ExpressionSetComparer()
             );

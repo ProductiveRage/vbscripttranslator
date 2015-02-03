@@ -170,7 +170,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 scopeAccessInformation,
                 (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
                     ? ExpressionReturnTypeOptions.Reference
-                    : ExpressionReturnTypeOptions.Value
+                    : ExpressionReturnTypeOptions.Value,
+                _logger.Warning
             );
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));

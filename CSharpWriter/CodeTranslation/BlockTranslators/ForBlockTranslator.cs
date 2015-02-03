@@ -164,7 +164,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var loopStartExpressionContent = _statementTranslator.Translate(
                     forBlock.LoopFrom,
                     scopeAccessInformation,
-                    ExpressionReturnTypeOptions.NotSpecified
+                    ExpressionReturnTypeOptions.NotSpecified,
+                    _logger.Warning
                 );
                 var numericValuesTheTypeMustBeAbleToContain = new List<string>();
                 if (loopEnd != loopStartExpressionContent.TranslatedContent)
@@ -674,7 +675,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var translatedExpressionContent = _statementTranslator.Translate(
                 expression,
                 scopeAccessInformation,
-                ExpressionReturnTypeOptions.NotSpecified
+                ExpressionReturnTypeOptions.NotSpecified,
+                _logger.Warning
             );
             if (IsCallingBuiltInNumberReturningFunction(expression, scopeAccessInformation))
                 return translatedExpressionContent;
@@ -698,7 +700,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var expressions =
                   StageTwoExpressionParsing.ExpressionGenerator.Generate(
                       expression.Tokens,
-                      (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken()
+                      (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken(),
+                      _logger.Warning
                   )
                   .ToArray();
             if ((expressions.Length != 1) || (expressions[0].Segments.Count() != 1))

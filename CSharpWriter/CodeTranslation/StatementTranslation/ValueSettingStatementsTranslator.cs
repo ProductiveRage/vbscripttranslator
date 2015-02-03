@@ -64,7 +64,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 scopeAccessInformation,
                 (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set)
                     ? ExpressionReturnTypeOptions.Reference
-                    : ExpressionReturnTypeOptions.Value
+                    : ExpressionReturnTypeOptions.Value,
+                _logger.Warning
             );
 
             return new TranslatedStatementContentDetails(
@@ -85,7 +86,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // brackets in VBScript for the target of an assignment statement so the BracketStandardisedTokens added nothing here but complexity and
             // so has been removed.
             var directedWithReferenceTokenIfAny = (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken();
-            var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens, directedWithReferenceTokenIfAny).ToArray();
+            var targetExpression = ExpressionGenerator.Generate(valueSettingStatement.ValueToSet.Tokens, directedWithReferenceTokenIfAny, _logger.Warning).ToArray();
             if (targetExpression.Length != 1)
                 throw new ArgumentException("The ValueToSet should always be described by a single expression");
             var targetExpressionSegments = targetExpression[0].Segments.ToArray();

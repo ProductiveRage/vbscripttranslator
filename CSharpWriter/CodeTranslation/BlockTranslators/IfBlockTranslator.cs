@@ -50,7 +50,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var conditionalContent = _statementTranslator.Translate(
                     conditionalEntry.Conditional.Condition,
                     scopeAccessInformation,
-                    ExpressionReturnTypeOptions.NotSpecified
+                    ExpressionReturnTypeOptions.NotSpecified,
+                    _logger.Warning
                 );
                 if (!scopeAccessInformation.MayRequireErrorWrapping(ifBlock))
                 {

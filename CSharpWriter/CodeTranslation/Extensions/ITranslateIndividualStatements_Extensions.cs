@@ -13,7 +13,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
 		public static TranslatedStatementContentDetails Translate(
 			this ITranslateIndividualStatements statementTranslator,
 			Statement statement,
-			ScopeAccessInformation scopeAccessInformation)
+			ScopeAccessInformation scopeAccessInformation,
+            Action<string> warningLogger)
 		{
 			if (statementTranslator == null)
 				throw new ArgumentNullException("statementTranslator");
@@ -21,8 +22,10 @@ namespace CSharpWriter.CodeTranslation.Extensions
 				throw new ArgumentNullException("statement");
 			if (scopeAccessInformation == null)
 				throw new ArgumentNullException("scopeAccessInformation");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
-			return Translate(statementTranslator, statement, scopeAccessInformation, ExpressionReturnTypeOptions.None);
+			return Translate(statementTranslator, statement, scopeAccessInformation, ExpressionReturnTypeOptions.None, warningLogger);
 		}
 
 		/// <summary>
@@ -32,7 +35,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
 			this ITranslateIndividualStatements statementTranslator,
 			Expression expression,
 			ScopeAccessInformation scopeAccessInformation,
-			ExpressionReturnTypeOptions returnRequirements)
+			ExpressionReturnTypeOptions returnRequirements,
+            Action<string> warningLogger)
 		{
 			if (statementTranslator == null)
 				throw new ArgumentNullException("statementTranslator");
@@ -42,15 +46,18 @@ namespace CSharpWriter.CodeTranslation.Extensions
 				throw new ArgumentNullException("scopeAccessInformation");
 			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
-			return Translate(statementTranslator, (Statement)expression, scopeAccessInformation, returnRequirements);
+            return Translate(statementTranslator, (Statement)expression, scopeAccessInformation, returnRequirements, warningLogger);
 		}
 
 		private static TranslatedStatementContentDetails Translate(
 			ITranslateIndividualStatements statementTranslator,
 			Statement statement,
 			ScopeAccessInformation scopeAccessInformation,
-			ExpressionReturnTypeOptions returnRequirements)
+			ExpressionReturnTypeOptions returnRequirements,
+            Action<string> warningLogger)
 		{
 			if (statementTranslator == null)
 				throw new ArgumentNullException("statementTranslator");
@@ -60,6 +67,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
 				throw new ArgumentNullException("scopeAccessInformation");
 			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
 				throw new ArgumentOutOfRangeException("returnRequirements");
+            if (warningLogger == null)
+                throw new ArgumentNullException("warningLogger");
 
             // The BracketStandardisedTokens property should only be used if this is a non-value-returning statement (eg. "Test" or "Test 1"
             // or "Test(a)", which would be translated into "Test()", "Test(1)" or "Test((a))", respectively) since that is the only time
@@ -68,7 +77,8 @@ namespace CSharpWriter.CodeTranslation.Extensions
             var expressions =
                 VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(
                     (returnRequirements == ExpressionReturnTypeOptions.None) ? statement.GetBracketStandardisedTokens() : statement.Tokens,
-                    (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken()
+                    (scopeAccessInformation.DirectedWithReferenceIfAny == null) ? null : scopeAccessInformation.DirectedWithReferenceIfAny.AsToken(),
+                    warningLogger
                 ).ToArray();
 			if (expressions.Length != 1)
 				throw new ArgumentException("Statement translation should always result in a single expression being generated");
