@@ -13,7 +13,17 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
     /// </summary>
     public class CallSetItemExpressionSegment : IExpressionSegment
     {
-        private static IEnumerable<Type> AllowableTypes = new[] { typeof(BuiltInFunctionToken), typeof(BuiltInValueToken), typeof(KeyWordToken), typeof(NameToken) };
+        private static IEnumerable<Type> AllowableTypes = new[] {
+            // Note that StringToken and BuiltInValueToken are acceptable here are call target types since - although they will fail in many cases at runtime
+            // (eg. "1"() or "1".a member accesses against a string will fail), they need to be allowed to fail AT RUNTIME. Numeric literals, however, would
+            // result in compile errors in VBScript and so do not need to be allowed here (BuiltInValueToken includes True and False as well as values such
+            // as vbObjectError).
+            typeof(BuiltInFunctionToken),
+            typeof(BuiltInValueToken),
+            typeof(KeyWordToken),
+            typeof(NameToken),
+            typeof(StringToken)
+        };
 
 		public CallSetItemExpressionSegment(IEnumerable<IToken> memberAccessTokens, IEnumerable<Expression> arguments, ArgumentBracketPresenceOptions? zeroArgumentBracketsPresence)
         {

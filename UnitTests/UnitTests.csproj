@@ -65,6 +65,7 @@
     <Compile Include="Shared\Comparers\BracketedExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\CallSetExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\BuiltInValueExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\RuntimeErrorExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\NewInstanceExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\StringValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\NumericValueExpressionSegmentComparer.cs" />

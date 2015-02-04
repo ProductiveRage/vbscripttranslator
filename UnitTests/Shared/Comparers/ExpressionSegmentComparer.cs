@@ -32,6 +32,8 @@ namespace VBScriptTranslator.UnitTests.Shared.Comparers
                 return (new NumericValueExpressionSegmentComparer()).Equals((NumericValueExpressionSegment)x, (NumericValueExpressionSegment)y);
             else if (x.GetType() == typeof(StringValueExpressionSegment))
                 return (new StringValueExpressionSegmentComparer()).Equals((StringValueExpressionSegment)x, (StringValueExpressionSegment)y);
+            else if (x.GetType() == typeof(RuntimeErrorExpressionSegment))
+                return (new RuntimeErrorExpressionSegmentComparer()).Equals((RuntimeErrorExpressionSegment)x, (RuntimeErrorExpressionSegment)y);
             else
                 throw new NotSupportedException("Unsupported IExpressionSegment type: " + x.GetType());
         }

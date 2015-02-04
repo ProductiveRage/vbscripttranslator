@@ -334,8 +334,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
         /// <summary>
         /// If a single token of type NumericValueToken or StringToken is specified then return a NumericValueExpressionSegment or StringValueExpressionSegment to
         /// represent the constant value (there should be zero arguments in this case). If there are two tokens, a KeyWordToken with content "new" and NameToken
-        /// (with no arguments) then this can be represented by a NewInstanceExpressionSegment. Otherwise return a CallExpressionSegment.
-        /// that data in a constant-type expression segment).
+        /// (with no arguments) then this can be represented by a NewInstanceExpressionSegment. Otherwise return a CallExpressionSegment. This will throw an
+        /// exception if unable to process the content (including cases where the content would result in a compile time error in VBScript).
         /// </summary>
         private static IExpressionSegment GetCallOrNewOrValueExpressionSegment(
             IEnumerable<IToken> tokens,
@@ -371,9 +371,19 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             else if (!willBeFirstSegmentInCallExpression)
                 throw new ArgumentException("All segments in a call expression after the first must start with a MemberAccessorOrDecimalPointToken");
 
+            // Any member access involving a numeric literal will result in a compile time error - eg.
+            //   WScript.Echo a.1
+            //   WScript.Echo a.1()
+            //   WScript.Echo 1.a
+            if ((tokensList.Count() > 1) && tokensList.Any(t => t is NumericValueToken))
+                throw new ArgumentException("Invalid member access - involving numeric literal (this is VBScript compile time error \"Expected end of statement\")");
+
             // If there are no arguments and no brackets then there's a chance of representing this as a constant-type expression or as a new instance request
-            // - If there are brackets following a constant then it's a runtime error
-            // - If there are brackets following a class instanation then it's a compile time error
+            // - If there are brackets following a number literal then it's a runtime error ("Type mismatch")
+            // - If there are brackets following a constant then it's a runtime error ("Type mismatch")
+            // - If there are brackets following a class instantiation then it's a compile time error
+            // Note: This only covers the zero-argument cases with brackets - runtime errors will be raised if "vbObjectError(F1())" or "vbObjectError(F1())"
+            // calls were attempted, but these need to be dealt with by the "CALL" method since the arguments must be evaluated before the error raised.
             if (!arguments.Any())
             {
                 if (tokensList.Count == 1)
@@ -385,8 +395,8 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         {
                             warningLogger("Numeric literal accessed as a method - this will result in a runtime error (line " + (numericValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
-                                numericValue.Content,
-                                new[] { numericValue },
+                                numericValue.Content + "()",
+                                new IToken[] { numericValue, new OpenBrace(numericValue.LineIndex), new CloseBrace(numericValue.LineIndex) },
                                 typeof(TypeMismatchException),
                                 "'[number: " + numericValue.Content + "]' is called like a function"
                             );
@@ -401,7 +411,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             warningLogger("String literal accessed as a method - this will result in a runtime error (line " + (stringValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
                                 "\"" + stringValue.Content + "\"()",
-                                new[] { stringValue },
+                                new IToken[] { stringValue, new OpenBrace(stringValue.LineIndex), new CloseBrace(stringValue.LineIndex) },
                                 typeof(TypeMismatchException),
                                 "'[string: \"" + stringValue.Content + "\"]' is called like a function"
                             );
@@ -416,7 +426,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             warningLogger("Built-in constant accessed as a method - this will result in a runtime error (line " + (builtInValue.LineIndex + 1) + ")");
                             return new RuntimeErrorExpressionSegment(
                                 builtInValue.Content + "()",
-                                new[] { builtInValue },
+                                new IToken[] { builtInValue, new OpenBrace(builtInValue.LineIndex), new CloseBrace(builtInValue.LineIndex) },
                                 typeof(TypeMismatchException),
                                 "'" + builtInValue.Content + "' is called like a function"
                             );

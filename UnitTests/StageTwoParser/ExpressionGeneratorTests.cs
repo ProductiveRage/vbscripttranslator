@@ -1,4 +1,6 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
+﻿using CSharpSupport.Exceptions;
+using CSharpWriter.CodeTranslation.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens;
@@ -824,7 +826,6 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
-
         [Fact]
         public void ObjectFunctionCallWithNoArgumentsAndNoBracketsThatReliesUponDirectedWithReference()
         {
@@ -849,6 +850,254 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             );
         }
 
+        [Fact]
+        public void PropertyAccessOnNumberLiteralResultsInException()
+        {
+            // "WScript.Echo 1.a" results in a compile time error from the VBScript parser
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "1.a" argument even though they would not necessarily be present in the source code
+            Assert.Throws<ArgumentException>(() =>
+            {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                );
+            });
+        }
+
+        [Fact]
+        public void NumericLiteralPropertyAccessResultsInException()
+        {
+            // "WScript.Echo a.1" results in a compile time error from the VBScript parser
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "a.1" argument even though they would not necessarily be present in the source code
+            Assert.Throws<ArgumentException>(() =>
+            {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new MemberAccessorToken(0),
+                        new NumericValueToken("1", 0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                );
+            });
+        }
+
+        [Fact]
+        public void ZeroArgumentMethodAccessOnNumberLiteralResultsInException()
+        {
+            // "WScript.Echo 1.a()" results in a compile time error from the VBScript parser
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "1.a()" argument even though they would not necessarily be present in the source code
+            Assert.Throws<ArgumentException>(() =>
+            {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("a", 0),
+                        new OpenBrace(0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                );
+            });
+        }
+
+        [Fact]
+        public void ZeroArgumentDefaultMethodAccessOnNumberLiteralResultsInRuntimeError()
+        {
+            // "WScript.Echo 1()" results in a runtime error ("Type mismatch")
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "1()" argument even though they would not necessarily be present in the source code
+            var runtimeErrorExpressionSegment = new RuntimeErrorExpressionSegment(
+                "1()",
+                new IToken[] { new NumericValueToken("1", 0), new OpenBrace(0), new CloseBrace(0) },
+                typeof(TypeMismatchException),
+                "'[number: 1]' is called like a function"
+            );
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new Expression(new[] { runtimeErrorExpressionSegment })
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new OpenBrace(0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0),
+                    warningLogger: warning => { }
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
+        public void SingleArgumentMethodAccessOnNumberLiteralResultsInException()
+        {
+            // "WScript.Echo 1.a(b)" results in a compile time error from the VBScript parser
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "1.a(b)" argument even though they would not necessarily be present in the source code
+            Assert.Throws<ArgumentException>(() =>
+            {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("a", 0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                );
+            });
+        }
+
+        [Fact]
+        public void PropertyAccessOnStringLiteralResultsInRuntimeError()
+        {
+            // "WScript.Echo \"1\".a" results in a runtime "Object required" runtime error. HOWEVER, this is handled at runtime by the CALL implementation,
+            // the "\"1\".a" attempt should be translated into _.CALL("1", "a"), which should fail at evaluation
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "\"1\".a" argument even though they would not necessarily be present in the source code
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new Expression(new[] {
+                                CALL(new IToken[] { new StringToken("1", 0), new NameToken("a", 0) })
+                            })
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new StringToken("1", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0),
+                    warningLogger: warning => { }
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
+        public void ZeroArgumentMethodAccessOnStringLiteralResultsInRuntimeError()
+        {
+            // "WScript.Echo \"1\".a()" results in a runtime "Object required" runtime error
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "\"1\".a()" argument even though they would not necessarily be present in the source code
+            var runtimeErrorExpressionSegment = new RuntimeErrorExpressionSegment(
+                "1()",
+                new IToken[] { new NumericValueToken("1", 0), new OpenBrace(0), new CloseBrace(0) },
+                typeof(TypeMismatchException),
+                "'[number: 1]' is called like a function"
+            );
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(
+                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new Expression(new[] { runtimeErrorExpressionSegment })
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new OpenBrace(0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: new DoNotRenameNameToken("a", 0),
+                    warningLogger: warning => { }
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
+        [Fact]
+        public void SingleArgumentMethodAccessOnStringLiteralResultsInException()
+        {
+            // "WScript.Echo \"1\".a(b)" results in a runtime "Object required" runtime error
+            // Note: The ExpressionGenerator expects bracketing to be "normalised" on no-value-returning functions (such as the WScript.Echo call)
+            // and so we need to insert brackets around the "\1\.a(b)" argument even though they would not necessarily be present in the source code
+            Assert.Throws<ArgumentException>(() =>
+            {
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("WScript", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("Echo", 0),
+                        new OpenBrace(0),
+                        new NumericValueToken("1", 0),
+                        new MemberAccessorToken(0),
+                        new NameToken("a", 0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                );
+            });
+        }
+
+        // TODO: Built-in constants and boolean member access attempts (these are consistent with string literals in all cases)
 
         /// <summary>
         /// Create a BracketedExpressionSegment from a set of expressions

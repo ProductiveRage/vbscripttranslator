@@ -9,6 +9,8 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
+    // TODO: Add a test that complements ExpressionGeneratorTests.PropertyAccessOnStringLiteralResultsInRuntimeError, that confirms that if a string value is
+    // provided as call target that an error will be raised for property or method access attempts
     public class VBScriptEsqueValueRetrieverTests
     {
         [Fact]
