@@ -247,6 +247,56 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
         }
 
+        [Fact]
+        public void UndeclaredSetTargetsWithinFunctionsAreScopeRestrictedToThatFunction()
+        {
+            // The ValueSettingStatementsTranslator wasn't using the ScopeAccessInformation's GetNameOfTargetContainerIfAnyRequired extension method and
+            // was incorrectly applying the logic that it should have gotten for free by using that method - if an undeclared variable was being accessed
+            // within a method (for the to-set target) then it was being mapped back to the "Environment References" class instead of being treated as
+            // local to the function.
+            var expressionToSet = new Expression(new IToken[]
+			{
+                new NameToken("a", 0)
+			});
+            var expressionToSetTo = new Expression(new IToken[]
+			{
+                new NumericValueToken("1", 0)
+			});
+            var valueSettingStatement = new ValueSettingStatement(
+                expressionToSet,
+                expressionToSetTo,
+                ValueSettingStatement.ValueSetTypeOptions.Let
+            );
+
+            var containingFunction = new FunctionBlock(
+                isPublic: true,
+                isDefault: false,
+                name: new NameToken("F1", 0),
+                parameters: new AbstractFunctionBlock.Parameter[0],
+                statements: new[] { valueSettingStatement }
+            );
+
+            var expected = new TranslatedStatementContentDetails(
+                "a = (Int16)1",
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
+            );
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
+            scopeAccessInformation = new ScopeAccessInformation(
+                containingFunction, // parent
+                containingFunction, // scopeDefiningParent
+                new CSharpName("F1"), // parentReturnValueName
+                scopeAccessInformation.ErrorRegistrationTokenIfAny,
+                scopeAccessInformation.DirectedWithReferenceIfAny,
+                scopeAccessInformation.ExternalDependencies,
+                scopeAccessInformation.Classes,
+                scopeAccessInformation.Functions.Add(new ScopedNameToken("F1", 0, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)),
+                scopeAccessInformation.Properties,
+                scopeAccessInformation.Variables,
+                scopeAccessInformation.StructureExitPoints
+            );
+            Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
         /// <summary>
         /// This will return an empty ScopeAccessInformation that indicates an outermost scope without any statements - this does not describe a real scenario
         /// but allows us to set up data to exercise the code that the tests here are targetting

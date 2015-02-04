@@ -116,11 +116,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
-                var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenFirstMemberAccessor, _nameRewriter);
-                if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
-                    rewrittenFirstMemberAccessor = _envRefName.Name + "." + rewrittenFirstMemberAccessor;
-                else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
-                    rewrittenFirstMemberAccessor = _outerRefName.Name + "." + rewrittenFirstMemberAccessor;
+                var targetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenFirstMemberAccessor, _envRefName, _outerRefName, _nameRewriter);
+                if (targetContainerIfRequired != null)
+                    rewrittenFirstMemberAccessor = targetContainerIfRequired.Name + "." + rewrittenFirstMemberAccessor;
                 return new ValueSettingStatementAssigmentFormatDetails(
                     translatedExpression => string.Format(
                         "{0} = {1}",
