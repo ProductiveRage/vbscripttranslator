@@ -294,6 +294,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
             );
+            var actual = GetDefaultValueSettingStatementTranslator().Translate(valueSettingStatement, scopeAccessInformation);
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
         }
 
