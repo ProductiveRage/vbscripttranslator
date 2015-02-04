@@ -403,6 +403,41 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// When the translation of a for loop is completed, any undeclared variables should not be flushed (declared) within the scope of the loop, it
+        /// must be within the scope-defining parent. If within a function then these must be local variables. This test also covers a fix where the loop
+        /// variable was not getting identified as an undeclared variable when it should have been.
+        /// </summary>
+        [Fact]
+        public void UndeclaredVariablesShouldNotBeFlushedAtForBlockEnd()
+        {
+            var source = @"
+                Function F1
+                    For i = 1 To 5
+                        WScript.Echo j
+                    Next
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object F1()",
+                "{",
+                "    object retVal1 = null;",
+                "    object j = null; /* Undeclared in source */",
+                "    object i = null; /* Undeclared in source */",
+                "    for (i = (Int16)1; _.StrictLTE(i, 5); i = _.ADD(i, (Int16)1))",
+                "    {",
+                "        _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(j, v2 => { j = v2; }));",
+                "    }",
+                "    return retVal1;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         // TODO: Various variable-ascending/descending/step combinations
     }
 }

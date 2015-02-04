@@ -224,5 +224,32 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     ))
             );
         }
+
+        public static ScopeAccessInformation SetParent(this ScopeAccessInformation scopeInformation, IHaveNestedContent parent)
+        {
+            if (scopeInformation == null)
+                throw new ArgumentNullException("scopeInformation");
+            if (parent == null)
+                throw new ArgumentNullException("parent");
+
+            if ((parent != scopeInformation.ScopeDefiningParent) && !scopeInformation.ScopeDefiningParent.AllExecutableBlocks.Contains(parent))
+            {
+                // The parent must either be the current ScopeDefiningParent or be one of the descendant blocks, otherwise the structure will be invalid
+                throw new ArgumentException("The parent must either be the current ScopeDefiningParent or be one of the descendant blocks");
+            }
+            return new ScopeAccessInformation(
+                parent,
+                scopeInformation.ScopeDefiningParent,
+                scopeInformation.ParentReturnValueNameIfAny,
+                scopeInformation.ErrorRegistrationTokenIfAny,
+                scopeInformation.DirectedWithReferenceIfAny,
+                scopeInformation.ExternalDependencies,
+                scopeInformation.Classes,
+                scopeInformation.Functions,
+                scopeInformation.Properties,
+                scopeInformation.Variables,
+                scopeInformation.StructureExitPoints
+            );
+        }
     }
 }

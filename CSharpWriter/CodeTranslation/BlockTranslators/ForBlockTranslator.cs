@@ -205,6 +205,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
             if (targetContainer != null)
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
+            if (!scopeAccessInformation.IsDeclaredReference(rewrittenLoopVariableName, _nameRewriter))
+                undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.Add(forBlock.LoopVar);
 
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
@@ -617,7 +619,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
             translationResult = translationResult.Add(
-                Translate(forBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
+                Translate(
+                    forBlock.Statements.ToNonNullImmutableList(),
+                    scopeAccessInformation.SetParent(forBlock),
+                    earlyExitNameIfAny,
+                    indentationDepth + 1
+                )
             );
             if (constraintsInitialisedFlagNameIfAny != null)
             {
