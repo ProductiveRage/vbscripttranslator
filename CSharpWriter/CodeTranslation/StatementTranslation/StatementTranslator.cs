@@ -59,21 +59,21 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
             if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
-				throw new ArgumentOutOfRangeException("returnRequirements");
+                throw new ArgumentOutOfRangeException("returnRequirements");
 
-			// See notes in TryToGetShortCutStatementResponse method..
-			var shortCutStatementResponse = TryToGetShortCutStatementResponse(expression, scopeAccessInformation, returnRequirements);
-			if (shortCutStatementResponse != null)
-				return shortCutStatementResponse;
+            // See notes in TryToGetShortCutStatementResponse method..
+            var shortCutStatementResponse = TryToGetShortCutStatementResponse(expression, scopeAccessInformation, returnRequirements);
+            if (shortCutStatementResponse != null)
+                return shortCutStatementResponse;
 
             // Assert expectations about numbers of segments and operators (if any)
-			// - There may not be more than three segments, and only three where there are two values or calls separated by an operator. CallSetExpressionSegments and
-			//   BracketedExpressionSegments are key to ensuring that this format is met.
+            // - There may not be more than three segments, and only three where there are two values or calls separated by an operator. CallSetExpressionSegments and
+            //   BracketedExpressionSegments are key to ensuring that this format is met.
             var segments = expression.Segments.ToArray();
             if (segments.Length == 0)
                 throw new ArgumentException("The expression was broken down into zero segments - invalid content");
             if (segments.Length > 3)
-				throw new ArgumentException("Expressions with more than three segments are invalid (they must be processed further, potentially using CallSetExpressionSegments and BracketedExpressionSegments where appropriate), this one has " + segments.Length);
+                throw new ArgumentException("Expressions with more than three segments are invalid (they must be processed further, potentially using CallSetExpressionSegments and BracketedExpressionSegments where appropriate), this one has " + segments.Length);
             var operatorSegmentsWithIndexes = segments
                 .Select((segment, index) => new { Segment = segment as OperationExpressionSegment, Index = index })
                 .Where(s => s.Segment != null);
@@ -103,37 +103,37 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     throw new ArgumentException("If there are three segments, then the middle must be an operator");
             }
 
-			if (segments.Length == 1)
-			{
-				var result = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
+            if (segments.Length == 1)
+            {
+                var result = TranslateNonOperatorSegment(segments[0], scopeAccessInformation);
                 return new TranslatedStatementContentDetails(
-				    ApplyReturnTypeGuarantee(
-    					result.TranslatedContent,
-					    result.ContentType,
-					    returnRequirements,
+                    ApplyReturnTypeGuarantee(
+                        result.TranslatedContent,
+                        result.ContentType,
+                        returnRequirements,
                         segments[0].AllTokens.First().LineIndex
                     ),
                     result.VariablesAccessed
-				);
-			}
+                );
+            }
 
             if (segments.Length == 2)
             {
                 var result = TranslateNonOperatorSegment(segments[1], scopeAccessInformation);
-				return new TranslatedStatementContentDetails(
+                return new TranslatedStatementContentDetails(
                     ApplyReturnTypeGuarantee(
-					    string.Format(
-						    "{0}.{1}({2})",
-						    _supportRefName.Name,
-						    GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
+                        string.Format(
+                            "{0}.{1}({2})",
+                            _supportRefName.Name,
+                            GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                             result.TranslatedContent
-					    ),
-					    ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
-					    returnRequirements,
+                        ),
+                        ExpressionReturnTypeOptions.Value, // This will be a negation operation and so will always return a numeric value
+                        returnRequirements,
                         segments[0].AllTokens.First().LineIndex
                     ),
                     result.VariablesAccessed
-				);
+                );
             }
 
             var segmentLeft = segments[0];
@@ -238,15 +238,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 resultRight = WrapTranslatedResultInStringConversion(resultRight);
             return new TranslatedStatementContentDetails(
                 ApplyReturnTypeGuarantee(
-				    string.Format(
-					    "{0}.{1}({2}, {3})",
-					    _supportRefName.Name,
+                    string.Format(
+                        "{0}.{1}({2}, {3})",
+                        _supportRefName.Name,
                         GetSupportFunctionName(operatorSegmentWithIndex.Segment.Token),
                         resultLeft.TranslatedContent,
                         resultRight.TranslatedContent
-				    ),
-				    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
-				    returnRequirements,
+                    ),
+                    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
+                    returnRequirements,
                     segments[0].AllTokens.First().LineIndex
                 ),
                 resultLeft.VariablesAccessed.AddRange(resultRight.VariablesAccessed)
@@ -308,8 +308,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-			var stringValueSegment = segment as StringValueExpressionSegment;
-			if (stringValueSegment != null)
+            var stringValueSegment = segment as StringValueExpressionSegment;
+            if (stringValueSegment != null)
             {
                 return new TranslatedStatementContentDetailsWithContentType(
                     stringValueSegment.Token.Content.ToLiteral(),
@@ -346,9 +346,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         }
 
         private TranslatedStatementContentDetailsWithContentType Translate(BracketedExpressionSegment bracketedExpressionSegment, ScopeAccessInformation scopeAccessInformation)
-		{
-			if (bracketedExpressionSegment == null)
-				throw new ArgumentNullException("bracketedExpressionSegment");
+        {
+            if (bracketedExpressionSegment == null)
+                throw new ArgumentNullException("bracketedExpressionSegment");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
@@ -365,100 +365,100 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 ExpressionReturnTypeOptions.NotSpecified,
                 translatedInnerContentDetails.VariablesAccessed
             );
-		}
+        }
 
         private TranslatedStatementContentDetailsWithContentType Translate(BuiltInValueExpressionSegment builtInValueExpressionSegment)
-		{
-			if (builtInValueExpressionSegment == null)
-				throw new ArgumentNullException("builtInValueExpressionSegment");
+        {
+            if (builtInValueExpressionSegment == null)
+                throw new ArgumentNullException("builtInValueExpressionSegment");
 
-			// Handle non-constants special cases
-			if (builtInValueExpressionSegment.Token.Content.Equals("err", StringComparison.InvariantCultureIgnoreCase))
-			{
+            // Handle non-constants special cases
+            if (builtInValueExpressionSegment.Token.Content.Equals("err", StringComparison.InvariantCultureIgnoreCase))
+            {
                 return new TranslatedStatementContentDetailsWithContentType(
-					string.Format(
-						"{0}.ERR",
-						_supportRefName.Name
-					),
-					ExpressionReturnTypeOptions.Reference,
+                    string.Format(
+                        "{0}.ERR",
+                        _supportRefName.Name
+                    ),
+                    ExpressionReturnTypeOptions.Reference,
                     new NonNullImmutableList<NameToken>()
-				);
-			}
+                );
+            }
 
-			// Handle constants special cases
-			if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.InvariantCultureIgnoreCase))
-			{
+            // Handle constants special cases
+            if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.InvariantCultureIgnoreCase))
+            {
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
                         "VBScriptConstants.Nothing",
-						_supportRefName.Name
-					),
-					ExpressionReturnTypeOptions.Reference,
+                        _supportRefName.Name
+                    ),
+                    ExpressionReturnTypeOptions.Reference,
                     new NonNullImmutableList<NameToken>()
-				);
-			}
+                );
+            }
 
-			// Handle regular value-type constants
-			var constantProperty = typeof(VBScriptConstants).GetProperty(
-				builtInValueExpressionSegment.Token.Content,
-				BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Static
-			);
-			if ((constantProperty == null) || !constantProperty.CanRead || constantProperty.GetIndexParameters().Any())
-				throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
-			return new TranslatedStatementContentDetailsWithContentType(
-				string.Format(
+            // Handle regular value-type constants
+            var constantProperty = typeof(VBScriptConstants).GetProperty(
+                builtInValueExpressionSegment.Token.Content,
+                BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Static
+            );
+            if ((constantProperty == null) || !constantProperty.CanRead || constantProperty.GetIndexParameters().Any())
+                throw new NotSupportedException("Unsupported BuiltInValueToken content: " + builtInValueExpressionSegment.Token.Content);
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
                     "VBScriptConstants.{1}",
-					_supportRefName.Name,
-					constantProperty.Name
-				),
-				ExpressionReturnTypeOptions.Value,
+                    _supportRefName.Name,
+                    constantProperty.Name
+                ),
+                ExpressionReturnTypeOptions.Value,
                 new NonNullImmutableList<NameToken>()
-			);
-		}
+            );
+        }
 
         /// <summary>
-		/// This may only be called when a CallExpressionSegment is encountered as one of the segments in the Expression passed into the public Translate method
-		/// or if it is the first segment in a CallSetExpressionSegment, subsequent segments in a CallSetExpressionSegment should be passed direct into the 
-		/// TranslateCallExpressionSegment method)
+        /// This may only be called when a CallExpressionSegment is encountered as one of the segments in the Expression passed into the public Translate method
+        /// or if it is the first segment in a CallSetExpressionSegment, subsequent segments in a CallSetExpressionSegment should be passed direct into the 
+        /// TranslateCallExpressionSegment method)
         /// </summary>
-		private TranslatedStatementContentDetailsWithContentType Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
+        private TranslatedStatementContentDetailsWithContentType Translate(CallExpressionSegment callExpressionSegment, ScopeAccessInformation scopeAccessInformation)
         {
             if (callExpressionSegment == null)
                 throw new ArgumentNullException("callExpressionSegment");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
-			// We may have to monkey about with the data here - if there are references to the return value of the current function (if we're in one) then these
-			// need to be replaced with the scopeAccessInformation's parentReturnValueNameIfAny value (if there is one).
+            // We may have to monkey about with the data here - if there are references to the return value of the current function (if we're in one) then these
+            // need to be replaced with the scopeAccessInformation's parentReturnValueNameIfAny value (if there is one).
             var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
-			if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
-			{
-				// If the segment's first (or only) member accessor has no arguments and wasn't expressed in the source code as a function call (ie. it didn't
-				// have brackets after the member accessor) and the single member accessor matches the name of the ScopeDefiningParent then we need to make
-				// the replacement..
-				// - If arguments are specified or brackets used with no arguments then it is always a function (or property) call and the return-value
-				//   replacement does not need to be made (the return value may not be DIM'd or REDIM'd to an array and so element access is not allowed,
-				//   so ANY argument use always points to a function / property call)
-				var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
-				var rewrittenScopeDefiningParentName = _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name);
-				if ((rewrittenFirstMemberAccessor == rewrittenScopeDefiningParentName)
-				&& !callExpressionSegment.Arguments.Any()
-				&& (callExpressionSegment.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Absent))
-				{
-					// The ScopeDefiningParent's Name will have come from a TempValueNameGenerator rather than VBScript source code, and as such it should
-					// not be passed through any VBScriptNameRewriter processing. Using a DoNotRenameNameToken means that, if the extension method
-					// GetMemberAccessTokenName is consistently used for VBScriptNameRewriter access, its name won't be altered.
+            if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
+            {
+                // If the segment's first (or only) member accessor has no arguments and wasn't expressed in the source code as a function call (ie. it didn't
+                // have brackets after the member accessor) and the single member accessor matches the name of the ScopeDefiningParent then we need to make
+                // the replacement..
+                // - If arguments are specified or brackets used with no arguments then it is always a function (or property) call and the return-value
+                //   replacement does not need to be made (the return value may not be DIM'd or REDIM'd to an array and so element access is not allowed,
+                //   so ANY argument use always points to a function / property call)
+                var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
+                var rewrittenScopeDefiningParentName = _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name);
+                if ((rewrittenFirstMemberAccessor == rewrittenScopeDefiningParentName)
+                && !callExpressionSegment.Arguments.Any()
+                && (callExpressionSegment.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Absent))
+                {
+                    // The ScopeDefiningParent's Name will have come from a TempValueNameGenerator rather than VBScript source code, and as such it should
+                    // not be passed through any VBScriptNameRewriter processing. Using a DoNotRenameNameToken means that, if the extension method
+                    // GetMemberAccessTokenName is consistently used for VBScriptNameRewriter access, its name won't be altered.
                     var parentReturnValueNameToken = new DoNotRenameNameToken(
                         scopeAccessInformation.ParentReturnValueNameIfAny.Name,
                         firstMemberAccessToken.LineIndex
                     );
-					callExpressionSegment = new CallExpressionSegment(
-						new[] { parentReturnValueNameToken }.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
-						new Expression[0],
-						CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
-					);
-				}
-			}
+                    callExpressionSegment = new CallExpressionSegment(
+                        new[] { parentReturnValueNameToken }.Concat(callExpressionSegment.MemberAccessTokens.Skip(1)),
+                        new Expression[0],
+                        CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
+                    );
+                }
+            }
 
             // TODO: Add handling for BuiltInValueToken (ie. "Err" for "Err.Raise" calls - or "Err.Description" accesses?)
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
@@ -741,11 +741,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             callExpressionContent.Append(")");
-			return new TranslatedStatementContentDetailsWithContentType(
-				callExpressionContent.ToString(),
-				ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
+            return new TranslatedStatementContentDetailsWithContentType(
+                callExpressionContent.ToString(),
+                ExpressionReturnTypeOptions.NotSpecified, // This could be anything so we have to report NotSpecified as the return type
                 callExpressionVariablesAccessed
-			);
+            );
         }
 
         /// <summary>
@@ -920,7 +920,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     CallSetItemExpressionSegment initialCallSetItemExpressionSegmentToCheckIfAny;
                     var callExpressionSegment = singleSegment as CallExpressionSegment;
                     if (callExpressionSegment != null)
+                    {
                         initialCallSetItemExpressionSegmentToCheckIfAny = callExpressionSegment;
+                        isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
+                    }
                     else
                     {
                         var callSetExpressionSegment = singleSegment as CallSetExpressionSegment;
@@ -936,10 +939,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                                 initialCallSetItemExpressionSegmentToCheckIfAny = null; // No point doing any more checks so set this to null
                             }
                             else
+                            {
                                 initialCallSetItemExpressionSegmentToCheckIfAny = callSetExpressionSegment.CallExpressionSegments.First();
+                                isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
+                            }
                         }
                         else
+                        {
                             initialCallSetItemExpressionSegmentToCheckIfAny = null;
+                            isConfirmedToBeByVal = false;
+                        }
                     }
                     if (initialCallSetItemExpressionSegmentToCheckIfAny != null)
                     {
@@ -969,8 +978,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             }
                         }
                     }
-                    else
-                        isConfirmedToBeByVal = false;
                 }
             }
             if (isConfirmedToBeByVal)
@@ -1018,7 +1025,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // accessors but one or more arguments. It's impossible to know at this point whether those "arguments" are array accesses (which will
             // be passed ByRef) or default function or property calls (which will be passed ByVal).
             TranslatedStatementContentDetails possibleByRefTarget;
-			IEnumerable<IEnumerable<Expression>> possibleByRefArgumentSets;
+            IEnumerable<IEnumerable<Expression>> possibleByRefArgumentSets;
             var possibleByRefCallExpressionSegment = argumentValue.Segments.Single() as CallExpressionSegment;
             if (possibleByRefCallExpressionSegment != null)
             {
@@ -1041,45 +1048,45 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var possibleByRefCallSetExpressionSegment = argumentValue.Segments.Single() as CallSetExpressionSegment;
                 if (possibleByRefCallSetExpressionSegment != null)
                 {
-					if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens.Count() > 2)
-						throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with multiple MemberAccessTokens in its first CallExpressionSegment at this point");
-					if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
-						throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with subsequent CallExpressionSegments that have MemberAccessTokens at this point");
+                    if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens.Count() > 2)
+                        throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with multiple MemberAccessTokens in its first CallExpressionSegment at this point");
+                    if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
+                        throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with subsequent CallExpressionSegments that have MemberAccessTokens at this point");
 
-					possibleByRefTarget = Translate(
-						new CallExpressionSegment(
-							possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
-							new Expression[0],
-							CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
-						),
-						scopeAccessInformation
-					);
-					possibleByRefArgumentSets = possibleByRefCallSetExpressionSegment.CallExpressionSegments.Select(s => s.Arguments);
+                    possibleByRefTarget = Translate(
+                        new CallExpressionSegment(
+                            possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
+                            new Expression[0],
+                            CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
+                        ),
+                        scopeAccessInformation
+                    );
+                    possibleByRefArgumentSets = possibleByRefCallSetExpressionSegment.CallExpressionSegments.Select(s => s.Arguments);
                 }
                 else
                     throw new NotSupportedException("Unexpected argumentValue content, unable to translate");
             }
 
-			// For the "RefIfArray" call to determine the correct behaviour at runtime, we need to pass the initial target to the method and then
-			// each set of arguments so that it can check at each point whether the arguments are for a default function/property call or whether
-			// they are for array access (as soon as a function or property call is made, the value must be passed ByVal). This means that a call
-			// "a(0, 1)(2)" is effectively passed as "RefIfArray(a, (0, 1), (2))". If it only checked whether the (2) argument was for an array
-			// access or a function/property call then it would ignore whether the (0, 1) arguments were for array access or function/property.
-			// - Note: This RefIfArray call relies upon the extension method that takes a param array instead of an IEnumerable
-			var translatedContentForPossibleByRefArgumentSets = possibleByRefArgumentSets
+            // For the "RefIfArray" call to determine the correct behaviour at runtime, we need to pass the initial target to the method and then
+            // each set of arguments so that it can check at each point whether the arguments are for a default function/property call or whether
+            // they are for array access (as soon as a function or property call is made, the value must be passed ByVal). This means that a call
+            // "a(0, 1)(2)" is effectively passed as "RefIfArray(a, (0, 1), (2))". If it only checked whether the (2) argument was for an array
+            // access or a function/property call then it would ignore whether the (0, 1) arguments were for array access or function/property.
+            // - Note: This RefIfArray call relies upon the extension method that takes a param array instead of an IEnumerable
+            var translatedContentForPossibleByRefArgumentSets = possibleByRefArgumentSets
                 .Select(args => TranslateAsArgumentProvider(args, scopeAccessInformation, forceAllArgumentsToBeByVal: false));
             return new TranslatedStatementContentDetails(
                 string.Format(
                     ".RefIfArray({0}, {1})",
                     possibleByRefTarget.TranslatedContent,
-					string.Join(
-						", ",
-						translatedContentForPossibleByRefArgumentSets.Select(content => content.TranslatedContent)
-					)
+                    string.Join(
+                        ", ",
+                        translatedContentForPossibleByRefArgumentSets.Select(content => content.TranslatedContent)
+                    )
                 ),
                 possibleByRefTarget.VariablesAccessed.AddRange(
-					translatedContentForPossibleByRefArgumentSets.SelectMany(content => content.VariablesAccessed)
-				)
+                    translatedContentForPossibleByRefArgumentSets.SelectMany(content => content.VariablesAccessed)
+                )
             );
         }
 
@@ -1089,7 +1096,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("callSetExpressionSegment");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
-            
+
             var content = "";
             var variablesAccessed = new NonNullImmutableList<NameToken>();
             var numberOfCallExpressions = callSetExpressionSegment.CallExpressionSegments.Count(); // This will always be at least two (see notes in CallSetExpressionSegment)
@@ -1123,7 +1130,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         targetIsKnownToBeBuiltInFunction: false
                     );
                 }
-                
+
                 // Overwrite any previous string content since it effectively gets passed through as an accumulator
                 content = translatedContent.TranslatedContent;
                 variablesAccessed = variablesAccessed.AddRange(translatedContent.VariablesAccessed);
@@ -1190,31 +1197,31 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             switch (operatorToken.Content.ToUpper())
             {
                 // Arithmetic operators
-                case "^":   return "POW";
-                case "/":   return "DIV";
-                case "*":   return "MULT";
-                case "\\":  return "INTDIV";
+                case "^": return "POW";
+                case "/": return "DIV";
+                case "*": return "MULT";
+                case "\\": return "INTDIV";
                 case "MOD": return "MOD";
-                case "+":   return "ADD";
-                case "-":   return "SUBT";
+                case "+": return "ADD";
+                case "-": return "SUBT";
 
                 // String concatenation
-                case "&":   return "CONCAT";
+                case "&": return "CONCAT";
 
                 // Logical operators
                 case "NOT": return "NOT";
                 case "AND": return "AND";
-                case "OR":  return "OR";
+                case "OR": return "OR";
                 case "XOR": return "XOR";
 
                 // Comparison operators
-                case "=":   return "EQ";
-                case "<>":  return "NOTEQ";
-                case "<":   return "LT";
-                case ">":   return "GT";
-                case "<=":  return "LTE";
-                case ">=":  return "GTE";
-                case "IS":  return "IS";
+                case "=": return "EQ";
+                case "<>": return "NOTEQ";
+                case "<": return "LT";
+                case ">": return "GT";
+                case "<=": return "LTE";
+                case ">=": return "GTE";
+                case "IS": return "IS";
                 case "EQV": return "EQV";
                 case "IMP": return "IMP";
 
@@ -1224,110 +1231,110 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
         }
 
-		private string ApplyReturnTypeGuarantee(string translatedContent, ExpressionReturnTypeOptions contentType, ExpressionReturnTypeOptions requiredReturnType, int lineIndex)
-		{
-			if (string.IsNullOrWhiteSpace(translatedContent))
-				throw new ArgumentException("Null/blank translatedContent specified");
+        private string ApplyReturnTypeGuarantee(string translatedContent, ExpressionReturnTypeOptions contentType, ExpressionReturnTypeOptions requiredReturnType, int lineIndex)
+        {
+            if (string.IsNullOrWhiteSpace(translatedContent))
+                throw new ArgumentException("Null/blank translatedContent specified");
             if (lineIndex < 0)
                 throw new ArgumentOutOfRangeException("lineIndex", "must be zero or greater");
 
-			switch(requiredReturnType)
-			{
-				case ExpressionReturnTypeOptions.Boolean:
-					return string.Format(
-						"{0}.IF({1})",
-						_supportRefName.Name,
-						translatedContent
-					);
+            switch (requiredReturnType)
+            {
+                case ExpressionReturnTypeOptions.Boolean:
+                    return string.Format(
+                        "{0}.IF({1})",
+                        _supportRefName.Name,
+                        translatedContent
+                    );
 
-				case ExpressionReturnTypeOptions.NotSpecified:
-				case ExpressionReturnTypeOptions.None:
-					return translatedContent;
+                case ExpressionReturnTypeOptions.NotSpecified:
+                case ExpressionReturnTypeOptions.None:
+                    return translatedContent;
 
-				case ExpressionReturnTypeOptions.Reference:
-					// If we know that this returns a value type then we can tell at this point that it's not going to work. If it returns a Reference
-					// type then we're golden. If contentType is NotSpecified then we need to pass it through the OBJ method so that a runtime exception
-					// is raised if the expression is NOT a reference type, in order to be consistent with VBScript's behaviour. (Previously, this would
-					// throw an exception at "translation time" - the runtime of the translator, as opposed to the runtime of the generated C# - that
-					// would indicate that the content was invalid for a Reference result if contentType was Boolean or Value, but this is inconsistent
-					// with VBScript, which would throw an exception at runtime - equivalent to the generated C#'s runtime. Now a log warning is
+                case ExpressionReturnTypeOptions.Reference:
+                    // If we know that this returns a value type then we can tell at this point that it's not going to work. If it returns a Reference
+                    // type then we're golden. If contentType is NotSpecified then we need to pass it through the OBJ method so that a runtime exception
+                    // is raised if the expression is NOT a reference type, in order to be consistent with VBScript's behaviour. (Previously, this would
+                    // throw an exception at "translation time" - the runtime of the translator, as opposed to the runtime of the generated C# - that
+                    // would indicate that the content was invalid for a Reference result if contentType was Boolean or Value, but this is inconsistent
+                    // with VBScript, which would throw an exception at runtime - equivalent to the generated C#'s runtime. Now a log warning is
                     // recorded, which is hopefully a reasonable compromise).
-					if (contentType == ExpressionReturnTypeOptions.Reference)
-						return translatedContent;
+                    if (contentType == ExpressionReturnTypeOptions.Reference)
+                        return translatedContent;
                     if ((contentType == ExpressionReturnTypeOptions.Boolean)
                     || (contentType == ExpressionReturnTypeOptions.None)
                     || (contentType == ExpressionReturnTypeOptions.Value))
                         _logger.Warning("Request for an object reference at line " + (lineIndex + 1) + " but data type is " + contentType);
-					return string.Format(
-						"{0}.OBJ({1})",
-						_supportRefName.Name,
-						translatedContent
-					);
+                    return string.Format(
+                        "{0}.OBJ({1})",
+                        _supportRefName.Name,
+                        translatedContent
+                    );
 
-				case ExpressionReturnTypeOptions.Value:
-					if (contentType == ExpressionReturnTypeOptions.Value)
-						return translatedContent;
-					return string.Format(
-						"{0}.VAL({1})",
-						_supportRefName.Name,
-						translatedContent
-					);
+                case ExpressionReturnTypeOptions.Value:
+                    if (contentType == ExpressionReturnTypeOptions.Value)
+                        return translatedContent;
+                    return string.Format(
+                        "{0}.VAL({1})",
+                        _supportRefName.Name,
+                        translatedContent
+                    );
 
-				default:
-					throw new NotSupportedException("Unsupported requiredReturnType value: " + requiredReturnType);
-			}
-		}
+                default:
+                    throw new NotSupportedException("Unsupported requiredReturnType value: " + requiredReturnType);
+            }
+        }
 
-		private TranslatedStatementContentDetails TryToGetShortCutStatementResponse(
+        private TranslatedStatementContentDetails TryToGetShortCutStatementResponse(
             Expression expression,
             ScopeAccessInformation scopeAccessInformation,
             ExpressionReturnTypeOptions returnRequirements)
-		{
-			if (expression == null)
-				throw new ArgumentNullException("expression");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
-			if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
-				throw new ArgumentOutOfRangeException("returnRequirements");
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+                throw new ArgumentOutOfRangeException("returnRequirements");
 
-			// There are some special rules for Statements (expressions where the return type is None); if "o" is an object reference, then a statement "o" will have value-
-			// type logic applied to it, so it will require a parameter-less default function or property otherwise an "Object doesn't support this property or method"
-			// error will be raised. However, if "o" is a function which returns an object reference, the value-type logic will not be applied to it. If "o" has a property
-			// "Child" which is an object reference, then "o.Child" will also not have value-type access logic applied to it. If "o" is an array, then a statement "o(0)"
-			// will result in a "Type mismatch" error; "o(0).Name" would not, however (assuming that the first element of the "o" array was an object with a property
-			// called "Name").
+            // There are some special rules for Statements (expressions where the return type is None); if "o" is an object reference, then a statement "o" will have value-
+            // type logic applied to it, so it will require a parameter-less default function or property otherwise an "Object doesn't support this property or method"
+            // error will be raised. However, if "o" is a function which returns an object reference, the value-type logic will not be applied to it. If "o" has a property
+            // "Child" which is an object reference, then "o.Child" will also not have value-type access logic applied to it. If "o" is an array, then a statement "o(0)"
+            // will result in a "Type mismatch" error; "o(0).Name" would not, however (assuming that the first element of the "o" array was an object with a property
+            // called "Name").
             // TODO: The logic applied here does not cover all error cases; if the single NameToken is a value (eg. 1 or "one") then an "Expected Statement" error is
             // raised. If the NameToken is a non-object value (eg. i where i is null or 1 or "one") then a "Type mistmatch" error is raised. If the NameToken is an
             // object reference without a default member then an "Object doesn't support this property or method" error is raised unless the object reference is to
             // Nothing, in which case a "Type mismatch error" is raised. If the NamToken is an object reference WITH a default member then no error occurs (the
             // default member is accessed / executed).
 
-			// The specific case that we want to address with this "shortcut" avenue is where we have a statement (so return type is None) with a single call expression
-			// segment with a single NameToken, which does not indicate a function or property. If these conditions are met then we can avoid all of the rest of the
-			// translation process. Note: We can't do this if return type is anything other than None since in C# it's not valid to have a statement that is only an
-			// instance of a class (if it's wrapped in a call to OBJ or VAL then it's ok since it's a method call, but that would be handled by the standard
-			// translation process).
-			if (returnRequirements != ExpressionReturnTypeOptions.None)
-				return null;
+            // The specific case that we want to address with this "shortcut" avenue is where we have a statement (so return type is None) with a single call expression
+            // segment with a single NameToken, which does not indicate a function or property. If these conditions are met then we can avoid all of the rest of the
+            // translation process. Note: We can't do this if return type is anything other than None since in C# it's not valid to have a statement that is only an
+            // instance of a class (if it's wrapped in a call to OBJ or VAL then it's ok since it's a method call, but that would be handled by the standard
+            // translation process).
+            if (returnRequirements != ExpressionReturnTypeOptions.None)
+                return null;
 
-			if (expression.Segments.Take(2).Count() > 1)
-				return null;
+            if (expression.Segments.Take(2).Count() > 1)
+                return null;
 
-			var onlyExpressionSegmentAsCallExpression = expression.Segments.Single() as CallExpressionSegment;
-			if (onlyExpressionSegmentAsCallExpression == null)
-				return null;
+            var onlyExpressionSegmentAsCallExpression = expression.Segments.Single() as CallExpressionSegment;
+            if (onlyExpressionSegmentAsCallExpression == null)
+                return null;
 
-			// If there are multiple member accessor tokens, arguments or if there were brackets following the single member accessor then this logic doesn't apply
-			if ((onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Take(2).Count() > 1)
-			|| onlyExpressionSegmentAsCallExpression.Arguments.Any()
-			|| onlyExpressionSegmentAsCallExpression.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Present)
-				return null;
+            // If there are multiple member accessor tokens, arguments or if there were brackets following the single member accessor then this logic doesn't apply
+            if ((onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Take(2).Count() > 1)
+            || onlyExpressionSegmentAsCallExpression.Arguments.Any()
+            || onlyExpressionSegmentAsCallExpression.ZeroArgumentBracketsPresence == CallExpressionSegment.ArgumentBracketPresenceOptions.Present)
+                return null;
 
-			var onlyMemberAccessTokenAsName = onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Single() as NameToken;
-			if (onlyMemberAccessTokenAsName == null)
-				return null;
+            var onlyMemberAccessTokenAsName = onlyExpressionSegmentAsCallExpression.MemberAccessTokens.Single() as NameToken;
+            if (onlyMemberAccessTokenAsName == null)
+                return null;
 
-			// If this is a function of property then we can't consider it for this shortcut
+            // If this is a function of property then we can't consider it for this shortcut
             var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
             if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
@@ -1342,19 +1349,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     rewrittenName = _outerRefName.Name + "." + rewrittenName;
             }
 
-			// In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
-			// return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
-			// of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
-			// Expressions that return values could exist as just "o" since that WOULD be valid C#.
-			return new TranslatedStatementContentDetails(
-				string.Format(
-					"{0}.VAL({1})",
-					_supportRefName.Name,
-					rewrittenName
-				),
-				new NonNullImmutableList<NameToken>(new[] { onlyMemberAccessTokenAsName })
-			);
-		}
+            // In fact, if we know there's only a single non-locally-scoped-function-or-property NameToken that needs to return a value type, we can just
+            // return now. We can't do this if the return type is NotSpecified since in C# it's not valid to have a statement that is only an instance
+            // of a class (but if it's wrapped in a call to OBJ or VAL then it's ok). This logic can only be applied to non-value-returning Statements,
+            // Expressions that return values could exist as just "o" since that WOULD be valid C#.
+            return new TranslatedStatementContentDetails(
+                string.Format(
+                    "{0}.VAL({1})",
+                    _supportRefName.Name,
+                    rewrittenName
+                ),
+                new NonNullImmutableList<NameToken>(new[] { onlyMemberAccessTokenAsName })
+            );
+        }
 
         private class TranslatedStatementContentDetailsWithContentType : TranslatedStatementContentDetails
         {

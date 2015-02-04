@@ -206,6 +206,41 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new TranslatedStatementContentDetailsComparer()
             );
         }
+        [Fact]
+        public void NestedBracketAndFurtherMemberAccessExpressionShouldBePassedByValIntoFunctions()
+        {
+            // When "a.b(0).c" is considered as an argument, it should be identified as ByVal (since only a direct reference - eg. "a" or even "a(0)" if "a"
+            // is an array - can be changed ByRef as a function argument). Before adding this test, there was an issue where "a.b(0).c" would throw an exception
+            // during translation.
+            var expression = new Expression(new[]
+			{
+                new CallSetExpressionSegment(new[]
+                {
+                    new CallSetItemExpressionSegment(
+                        new[] { new NameToken("a", 0), new NameToken("b", 0) },
+                        new[] { new Expression(new[] { new NumericValueExpressionSegment(new NumericValueToken("0", 0)) }) },
+                        zeroArgumentBracketsPresence: null
+                    ),
+                    new CallSetItemExpressionSegment(
+                        new[] { new NameToken("c", 0) },
+                        new Expression[0],
+                        CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
+                    )
+                })
+			});
+
+            var expected = new TranslatedStatementContentDetails(
+                "_.ARGS.Val(_.CALL(_.CALL(_env.a, \"b\", _.ARGS.Val((Int16)0)), \"c\"))",
+                new NonNullImmutableList<NameToken>(new[] {
+                    new NameToken("a", 0)
+                })
+            );
+            Assert.Equal(
+                expected,
+                GetDefaultStatementTranslator().TranslateAsArgumentProvider(new[] { expression }, GetEmptyScopeAccessInformation(), forceAllArgumentsToBeByVal: false),
+                new TranslatedStatementContentDetailsComparer()
+            );
+        }
 
         /// <summary>
         /// This will return an empty ScopeAccessInformation that indicates an outermost scope without any statements - this does not describe a real scenario
