@@ -102,13 +102,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ))
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "{0} = {1}",
+                            "{0} = {1};",
                             enumerationContentVariableName.Name,
                             enumerationContent
                         ),
                         indentationDepth + 1
                     ))
-                    .Add(new TranslatedStatement("}", indentationDepth));
+                    .Add(new TranslatedStatement("});", indentationDepth));
                 enumerationContent = enumerationContentVariableName.Name + " ?? new object[] { " + rewrittenLoopVarName + " }";
             }
             translationResult = translationResult
