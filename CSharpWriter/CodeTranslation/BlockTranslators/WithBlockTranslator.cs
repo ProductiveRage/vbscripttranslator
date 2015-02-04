@@ -54,7 +54,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var withBlockContentTranslationResult = Translate(
                 withBlock.Content.ToNonNullImmutableList(),
                 new ScopeAccessInformation(
-                    scopeAccessInformation.Parent,
+                    withBlock,
                     scopeAccessInformation.ScopeDefiningParent,
                     scopeAccessInformation.ParentReturnValueNameIfAny,
                     scopeAccessInformation.ErrorRegistrationTokenIfAny,

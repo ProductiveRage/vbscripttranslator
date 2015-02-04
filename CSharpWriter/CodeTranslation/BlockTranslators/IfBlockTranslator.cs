@@ -106,7 +106,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth));
                 translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                 translationResult = translationResult.Add(
-                    Translate(ifBlock.OptionalElseClause.Statements.ToNonNullImmutableList(), scopeAccessInformation, indentationDepth + 1)
+                    Translate(
+                        ifBlock.OptionalElseClause.Statements.ToNonNullImmutableList(),
+                        scopeAccessInformation.SetParent(ifBlock),
+                        indentationDepth + 1
+                    )
                 );
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             }

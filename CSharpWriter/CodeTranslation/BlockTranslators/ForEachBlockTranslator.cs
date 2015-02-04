@@ -131,7 +131,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
             translationResult = translationResult.Add(
-                Translate(forEachBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, earlyExitNameIfAny, indentationDepth + 1)
+                Translate(
+                    forEachBlock.Statements.ToNonNullImmutableList(),
+                    scopeAccessInformation.SetParent(forEachBlock),
+                    earlyExitNameIfAny,
+                    indentationDepth + 1
+                )
             );
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
 

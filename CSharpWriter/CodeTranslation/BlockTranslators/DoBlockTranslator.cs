@@ -141,7 +141,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
             translationResult = translationResult.Add(
-                Translate(doBlock.Statements.ToNonNullImmutableList(), scopeAccessInformation, doBlock.SupportsExit, earlyExitNameIfAny, indentationDepth + 1)
+                Translate(
+                    doBlock.Statements.ToNonNullImmutableList(),
+                    scopeAccessInformation.SetParent(doBlock),
+                    doBlock.SupportsExit,
+                    earlyExitNameIfAny,
+                    indentationDepth + 1
+                )
             );
             if ((whileConditionExpressionContentIfAny == null) || doBlock.IsPreCondition)
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
