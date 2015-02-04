@@ -387,6 +387,8 @@ namespace CSharpSupport.Implementations
             if (argumentProvider == null)
                 throw new ArgumentNullException("argumentProvider");
 
+            // Note: The arguments are evaluated here before the CALL is attempted - so if the target or members are invalid then this is only
+            // determined AFTER processing the arguments. This is correct behaviour (consistent with VBScript).
             var arguments = argumentProvider.GetInitialValues().ToArray();
             var returnValue = CALL(target, members, arguments);
             for (var index = 0; index < arguments.Length; index++)
