@@ -7,6 +7,8 @@ namespace CSharpSupport
 	{
         public const int MaxNumberOfMemberAccessorBeforeArraysRequired = 5;
 
+        private static IProvideCallArguments _zeroArgumentArgumentProvider = new ZeroArgumentArgumentProvider();
+
         // Convenience methods so that the calling code can omit the "GetArgs" call if an IBuildCallArgumentProviders is already available (results in shorter
         // translated code)
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, IEnumerable<string> members, IBuildCallArgumentProviders argumentProviderBuilder)
@@ -28,20 +30,49 @@ namespace CSharpSupport
             source.SET(valueToSetTo, target, optionalMemberAccessor, argumentProviderBuilder.GetArgs());
         }
 
-        // Convenience methods for when there are no arguments
+        // Convenience methods for when there are no arguments (supporting up to MaxNumberOfMemberAccessorBeforeArraysRequired members accessors, just as the
+        // extension methods further down do which look after the with-arguments signatures)
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new string[0], new ZeroArgumentArgumentProvider());
+            return source.CALL(target, new string[0], _zeroArgumentArgumentProvider);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1 }, new ZeroArgumentArgumentProvider());
+            return source.CALL(target, new[] { member1 }, _zeroArgumentArgumentProvider);
+        }
+        public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.CALL(target, new[] { member1, member2 }, _zeroArgumentArgumentProvider);
+        }
+        public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.CALL(target, new[] { member1, member2, member3 }, _zeroArgumentArgumentProvider);
+        }
+        public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3, string member4)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.CALL(target, new[] { member1, member2, member3, member4 }, _zeroArgumentArgumentProvider);
+        }
+        public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3, string member4, string member5)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.CALL(target, new[] { member1, member2, member3, member4, member5 }, _zeroArgumentArgumentProvider);
         }
 
         // Convenience methods for when there are a known number of accessor members (including zero) and arguments - providing the argument builder means that
