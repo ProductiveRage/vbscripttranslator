@@ -85,17 +85,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     if (tokens.Count > 0)
                     {
                         var prevToken = tokens[tokens.Count - 1];
-                        if (prevToken is StringToken)
+                        if (prevToken is UnprocessedContentToken)
                         {
-                            // StringToken CAN'T contain end-of-statement content so
-                            // we'll definitely need an EndOfStatementNewLineToken
-							tokens.Add(new EndOfStatementSameLineToken(lineIndexForStartOfContent));
-							lineIndexForStartOfContent++;
-                        }
-                        else if (prevToken is UnprocessedContentToken)
-                        {
-                            // UnprocessedContentToken MAY conclude with end-of-statement
-                            // content, we'll need to check
+                            // UnprocessedContentToken MAY conclude with end-of-statement content, we'll need to check
                             if (!prevToken.Content.TrimEnd(WhiteSpaceCharsExceptLineReturn).EndsWith("\n"))
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
@@ -107,6 +99,15 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                                 }
                             }
                         }
+                    }
+                    if (tokens.Any() && (tokens.Last() is StringToken))
+                    {
+                        // StringToken CAN'T contain end-of-statement content so we'll definitely need an EndOfStatementNewLineToken
+                        // Note: This has to be done after the above work in case there was a StringToken then some whitespace (which is removed above)
+                        // then a Comment. If the work above wasn't done before this check then "prevToken" would not be a StringToken, it would be the
+                        // whitespace - but that would be removed and then the StringToken would be arranged right next to the Comment, without an end-
+                        // of-statement token between them!
+                        tokens.Add(new EndOfStatementSameLineToken(lineIndexForStartOfContent));
                     }
                     var commentContent = scriptContent.Substring(index, breakPoint - index);
                     if (isInlineComment)

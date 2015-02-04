@@ -161,5 +161,28 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new TokenSetComparer()
             );
         }
+
+        /// <summary>
+        /// An end-of-statement token must be inserted between non-comment content and a comment - but there was a logic issue where this would be misidentified
+        /// if the content before the comment was whitespace that was removed and a StringToken before that. This confirms the fix. (When a same-line end-of-
+        /// statement token is inserted, the line index should not be incremented - this was included in the fix and is also demonstrated here).
+        /// </summary>
+        [Fact]
+        public void WhitespaceBetweenStringTokenAndCommentDoesNotPreventEndOfStatementBeingInserted()
+        {
+            Assert.Equal(
+                new IToken[]
+                {
+                    new UnprocessedContentToken("a = ", 0),
+                    new StringToken("", 0),
+                    new EndOfStatementSameLineToken(0),
+                    new CommentToken(" Comment", 0)
+                },
+                StringBreaker.SegmentString(
+                    "a = \"\" ' Comment"
+                ),
+                new TokenSetComparer()
+            );
+        }
     }
 }
