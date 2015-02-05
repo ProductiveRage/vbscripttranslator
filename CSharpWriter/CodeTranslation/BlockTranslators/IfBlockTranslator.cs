@@ -97,7 +97,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
                 translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                 translationResult = translationResult.Add(
-                    Translate(innerStatements, scopeAccessInformation, indentationDepth + 1)
+                    Translate(
+                        innerStatements,
+                        scopeAccessInformation.SetParent(ifBlock),
+                        indentationDepth + 1
+                    )
                 );
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             }
