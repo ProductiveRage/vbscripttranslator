@@ -15,9 +15,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "foreach (_env.value in _.ENUMERABLE(_env.values))",
+                "var enumerationContent1 = _.ENUMERABLE(_env.values).GetEnumerator();",
+                "while (true)",
                 "{",
-                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v1 => { _env.value = v1; }));",
+                "    if (!enumerationContent1.MoveNext())",
+                "        break;",
+                "    _env.value = enumerationContent1.Current;",
+                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v2 => { _env.value = v2; }));",
                 "}"
             };
             Assert.Equal(
@@ -51,18 +55,25 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
-                "IEnumerable enumerationContent2 = null;",
+                "IEnumerator enumerationContent2 = null;",
                 "_.HANDLEERROR(errOn1, () => {",
-                "    enumerationContent2 = _.ENUMERABLE(_env.values);",
+                "    enumerationContent2 = _.ENUMERABLE(_env.values).GetEnumerator();",
                 "});",
-                "foreach (_env.value in enumerationContent2 ?? new object[] { _env.value })",
+                "while (true)",
                 "{",
+                "    if (enumerationContent2 != null)",
+                "    {",
+                "        if (!enumerationContent2.MoveNext())",
+                "            break;",
+                "        _env.value = enumerationContent2.Current;",
+                "    }",
                 "    _.HANDLEERROR(errOn1, () => {",
                 "        _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
                 "    });",
+                "    if (enumerationContent2 == null)",
+                "        break;",
                 "}",
-                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);",
-
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -93,16 +104,23 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "var errOn1 = _.GETERRORTRAPPINGTOKEN();",
                 "_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);",
                 "_.STOPERRORTRAPPINGANDCLEARANYERROR(errOn1);",
-                "IEnumerable enumerationContent2 = null;",
+                "IEnumerator enumerationContent2 = null;",
                 "_.HANDLEERROR(errOn1, () => {",
-                "    enumerationContent2 = _.ENUMERABLE(_env.values);",
+                "    enumerationContent2 = _.ENUMERABLE(_env.values).GetEnumerator();",
                 "});",
-                "foreach (_env.value in enumerationContent2 ?? new object[] { _env.value })",
+                "while (true)",
                 "{",
+                "    if (enumerationContent2 != null)",
+                "    {",
+                "        if (!enumerationContent2.MoveNext())",
+                "            break;",
+                "        _env.value = enumerationContent2.Current;",
+                "    }",
                 "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
+                "    if (enumerationContent2 == null)",
+                "        break;",
                 "}",
-                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);",
-
+                "_.RELEASEERRORTRAPPINGTOKEN(errOn1);"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),

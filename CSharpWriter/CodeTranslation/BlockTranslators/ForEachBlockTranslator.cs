@@ -44,17 +44,27 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+            // The approach here is to get an IEnumerator reference and then loop over it in a "while (true)" loop, exiting when there are no more items. It would
+            // feel more natural to use a C# foreach loop but the loop variable may not be restricted in scope to the loop (in fact, in VBScript this is very unlikely)
+            // and so a "Type and identifier are both required in a foreach statement" compile error would result - "foreach (i in a)" is not valid, it must be of the
+            // form "foreach (var i in a)" which only works if "i" is limited in scope to that loop. The "while (true)" structure also works better when error-trapping
+            // may be enabled since the call-MoveNext-and-set-loop-variable-to-enumerator-Current-value-if-not-reached-end-of-data can be bypassed entirely if an error
+            // was caught while evaluating the enumerator (in which case the loop should be processed once but the loop variable not set).
+
             // Note: The looped-over content must be of type "Reference" since VBScript won't enumerate over strings, for example, whereas C# would be happy to.
             // However, to make the output marginally easier to read, the ENUMERABLE method will deal with this logic and so the ExpressionReturnTypeOptions
             // value passed to the statement translator is "NotSpecified".
+
             var loopSourceContent = _statementTranslator.Translate(forEachBlock.LoopSrc, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
             var undeclaredVariablesInLoopSourceContent = loopSourceContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
             foreach (var undeclaredVariable in undeclaredVariablesInLoopSourceContent)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
-            var translationResult = TranslationResult.Empty;
-            var enumerationContent = string.Format(
-                "{0}.ENUMERABLE({1})",
+            var translationResult = TranslationResult.Empty.AddUndeclaredVariables(undeclaredVariablesInLoopSourceContent);
+            var enumerationContentVariableName = _tempNameGenerator(new CSharpName("enumerationContent"), scopeAccessInformation);
+            var enumeratorInitialisationContent = string.Format(
+                "{0} = {1}.ENUMERABLE({2}).GetEnumerator();",
+                enumerationContentVariableName.Name,
                 _supportRefName.Name,
                 loopSourceContent.TranslatedContent
             );
@@ -62,7 +72,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var loopVarTargetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVarName, _envRefName, _outerRefName, _nameRewriter);
             if (loopVarTargetContainer != null)
                 rewrittenLoopVarName = loopVarTargetContainer.Name + "." + rewrittenLoopVarName;
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    "var " + enumeratorInitialisationContent,
+                    indentationDepth
+                ));
+            }
+            else
             {
                 // If ON ERROR RESUME NEXT wraps a FOR EACH loop and there is an error in evaluating the enumerator, then the loop will be entered once. The
                 // loop variable will not be altered - eg.
@@ -83,11 +100,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 //   not be entered, and so the single-element "fallback array" would never come to exist. If errors WERE still being captured, then the
                 //   translated FOR EACH loop WOULD be entered and enumerated through once (without the value of the loop variable being altered, as
                 //   is consistent with VBScript)
-                var enumerationContentVariableName = _tempNameGenerator(new CSharpName("enumerationContent"), scopeAccessInformation);
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
-                            "IEnumerable {0} = null;",
+                            "IEnumerator {0} = null;",
                             enumerationContentVariableName.Name
                         ),
                         indentationDepth
@@ -101,27 +117,54 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         indentationDepth
                     ))
                     .Add(new TranslatedStatement(
-                        string.Format(
-                            "{0} = {1};",
-                            enumerationContentVariableName.Name,
-                            enumerationContent
-                        ),
+                        enumeratorInitialisationContent,
                         indentationDepth + 1
                     ))
                     .Add(new TranslatedStatement("});", indentationDepth));
-                enumerationContent = enumerationContentVariableName.Name + " ?? new object[] { " + rewrittenLoopVarName + " }";
             }
             translationResult = translationResult
+                .Add(new TranslatedStatement("while (true)", indentationDepth))
+                .Add(new TranslatedStatement("{", indentationDepth));
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                // If error-trapping is enabled and an error was indeed trapped while trying evaluate the enumerator, then the enumerator will be null.
+                // In this case, the loop should be executed once but the loop variable not set to anything. When this happens, there is no point trying
+                // to call MoveNext (since the enumerator is null) and the loop-variable-setting should be skipped. So an is-null check is wrapper around
+                // that work. If error-trapping is not enabled then this check is not required and a level of nesting in the translated output can be
+                // avoided.
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "if ({0} != null)",
+                            enumerationContentVariableName.Name
+                        ),
+                        indentationDepth + 1
+                    ))
+                    .Add(new TranslatedStatement("{", indentationDepth + 1));
+                indentationDepth++;
+            }
+            translationResult = translationResult
+                .Add(new TranslatedStatement(string.Format(
+                        "if (!{0}.MoveNext())",
+                        enumerationContentVariableName.Name
+                    ),
+                    indentationDepth + 1
+                ))
+                .Add(new TranslatedStatement("break;", indentationDepth + 2))
                 .Add(new TranslatedStatement(
                     string.Format(
-                        "foreach ({0} in {1})",
+                        "{0} = {1}.Current;",
                         rewrittenLoopVarName,
-                        enumerationContent
+                        enumerationContentVariableName.Name
                     ),
-                    indentationDepth
-                ))
-                .AddUndeclaredVariables(undeclaredVariablesInLoopSourceContent);
-            translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+                    indentationDepth + 1
+                ));
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                // If error-trapping may be enabled then the above MoveNext and set-to-Current work was wrapped in a condition which must be closed
+                translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
+                indentationDepth--;
+            }
             var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forEachBlock, scopeAccessInformation);
             if (earlyExitNameIfAny != null)
             {
@@ -138,6 +181,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth + 1
                 )
             );
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                // If error-trapping was enabled and an error caught, then the loop should be processed once and only once. The enumerator reference
+                // will be null - so check for that and exit if so. If there is no chance that error-trapping is enabled then this condition is not
+                // required and there is no point emitting it.
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "if ({0} == null)",
+                            enumerationContentVariableName.Name
+                        ),
+                        indentationDepth + 1
+                    ))
+                    .Add(new TranslatedStatement("break;", indentationDepth + 2));
+            }
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
 
             var earlyExitFlagNamesToCheck = scopeAccessInformation.StructureExitPoints
