@@ -481,7 +481,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // and doesn't need to interact with the enable-disable-error-trapping-for-this-token logic, it only needs to clear any error
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
-                _logger.Warning("Ignoring ON ERROR GOTO 0 within a scope that contains no ON ERROR RESUME NEXT (line " + onErrorGotoZeroBlock.LineIndex + ")");
+                _logger.Warning("Ignoring ON ERROR GOTO 0 within a scope that contains no ON ERROR RESUME NEXT (line " + (onErrorGotoZeroBlock.LineIndex + 1) + ")");
                 return translationResult.Add(new TranslatedStatement(
                     _supportRefName.Name + ".CLEARANYERROR();",
                     indentationDepth
@@ -876,7 +876,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             throw new ArgumentException(string.Format(
                 "Multiple explicit variable declarations encountered within the same scope, this would be a VBScript compilation error - \"{0}\" on lines {1}",
                 firstDuplicateNameEntryIfAny.Key,
-                string.Join(", ", firstDuplicateNameEntryIfAny.Select(v => v.Name.LineIndex))
+                string.Join(", ", firstDuplicateNameEntryIfAny.Select(v => v.Name.LineIndex + 1))
             ));
         }
 
