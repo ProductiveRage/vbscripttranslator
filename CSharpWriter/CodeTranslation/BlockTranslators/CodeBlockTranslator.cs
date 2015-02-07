@@ -706,7 +706,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (statementBlock == null)
 				return null;
 
-            // TODO: Differentiate between undeclared variables and functions (and classes?)
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation, _logger.Warning);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
@@ -732,7 +731,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (valueSettingStatement == null)
 				return null;
 
-            // TODO: Differentiate between undeclared variables and functions (and classes?)
             var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccessed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
