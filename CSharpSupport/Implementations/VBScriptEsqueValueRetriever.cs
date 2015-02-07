@@ -390,10 +390,16 @@ namespace CSharpSupport.Implementations
             // Note: The arguments are evaluated here before the CALL is attempted - so if the target or members are invalid then this is only
             // determined AFTER processing the arguments. This is correct behaviour (consistent with VBScript).
             var arguments = argumentProvider.GetInitialValues().ToArray();
-            var returnValue = CALL(target, members, arguments);
-            for (var index = 0; index < arguments.Length; index++)
-                argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
-            return returnValue;
+            try
+            {
+                return CALL(target, members, arguments);
+            }
+            finally
+            {
+                // Even if an exception if thrown somewhere in the target call, any ByRef argument values that were changed must be persisted
+                for (var index = 0; index < arguments.Length; index++)
+                    argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
+            }
         }
 
         /// <summary>
@@ -668,32 +674,45 @@ namespace CSharpSupport.Implementations
                 };
             }
 
-            // The Throw expression requires a return type to be specified since the Try block has a return type - without
-            // this a runtime "Body of catch must have the same type as body of try" exception will be raised
-            return Expression.Lambda<GetInvoker>(
-                Expression.TryCatch(
+            // Note: The Throw expression will require a return type to be specified since the Try block has a return type
+            // - without this a runtime "Body of catch must have the same type as body of try" exception will be raised
+            Expression executionException = Expression.Throw(
+                GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter),
+                typeof(object)
+            );
+            Expression exceptionHandlingMethodCallExpression;
+            if (byRefArgAssignmentsForReturn.Any())
+            {
+                // If there are ByRef arguments that need setting then this must be done in a finally block, since they must
+                // be set even if the target method throws an exception at some point. If there are no ByRef arguments then
+                // don't generate a try..catch..finall block at all since there will be an exception thrown about a block
+                // for the finally that is an empty expression collection.
+                exceptionHandlingMethodCallExpression = Expression.TryCatchFinally(
                     Expression.Block(
-                        argExpressions
-                            .Where(a => a is ParameterExpression)
-                            .Cast<ParameterExpression>()
-                            .Concat(new[] { resultVariable })
-                            .ToArray(),
-                        byRefArgAssignmentsForMethodCall
-                            .Concat(
-                                methodCallAndAndResultAssignments
-                            )
-                            .Concat(byRefArgAssignmentsForReturn)
-                            .Concat(
-                                new[] { resultVariable }
-                            )
-                            .ToArray()
+                        methodCallAndAndResultAssignments.Concat(new[] { resultVariable })
                     ),
-                    Expression.Catch(
-                        exceptionParameter,
-                        Expression.Throw(
-                            GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter),
-                            typeof(object)
-                        )
+                    Expression.Block(byRefArgAssignmentsForReturn), // Finally block (always set any ByRef arguments, even if an exception is thrown)
+                    Expression.Catch(exceptionParameter, executionException)
+                );
+            }
+            else
+            {
+                exceptionHandlingMethodCallExpression = Expression.TryCatch(
+                    Expression.Block(
+                        methodCallAndAndResultAssignments.Concat(new[] { resultVariable })
+                    ),
+                    Expression.Catch(exceptionParameter, executionException)
+                );
+            }
+            var variablesToDeclare = argExpressions
+                .Where(a => a is ParameterExpression)
+                .Cast<ParameterExpression>()
+                .Concat(new[] { resultVariable });
+            return Expression.Lambda<GetInvoker>(
+                Expression.Block(
+                    variablesToDeclare,
+                    Expression.Block(
+                        byRefArgAssignmentsForMethodCall.Cast<Expression>().Concat(new[] { exceptionHandlingMethodCallExpression })
                     )
                 ),
                 targetParameter,

@@ -288,6 +288,35 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             );
         }
 
+        [Fact]
+        public void ByRefArgumentIsUpdatedAfterCall()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            object arg0 = 1;
+            _.CALL(this, "ByRefArgUpdatingFunction", _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(false));
+            Assert.Equal(123, arg0);
+        }
+
+        [Fact]
+        public void ByRefArgumentIsUpdatedAfterCallEvenIfExceptionIsThrown()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            object arg0 = 1;
+            try
+            {
+                _.CALL(this, "ByRefArgUpdatingFunction", _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(true));
+            }
+            catch { }
+            Assert.Equal(123, arg0);
+        }
+
+        public void ByRefArgUpdatingFunction(ref object arg0, bool throwExceptionAfterUpdatingArgument)
+        {
+            arg0 = 123;
+            if (throwExceptionAfterUpdatingArgument)
+                throw new Exception("Example exception");
+        }
+
         private class ADOFieldObjectComparer : IEqualityComparer<object>
         {
             public new bool Equals(object x, object y)
