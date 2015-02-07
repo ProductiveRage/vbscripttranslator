@@ -18,7 +18,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 null,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(null)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(null)
             );
         }
 
@@ -27,7 +27,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 1,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(1)
             );
         }
 
@@ -36,7 +36,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 1.1f,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(1.1f)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(1.1f)
             );
         }
 
@@ -45,7 +45,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 1.1d,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(1.1d)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(1.1d)
             );
         }
 
@@ -54,7 +54,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 1.1m,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(1.1m)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(1.1m)
             );
         }
 
@@ -63,7 +63,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 -1,
-                (new VBScriptEsqueValueRetriever(name => name)).VAL(-1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(-1)
             );
         }
 
@@ -72,7 +72,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 "",
-                (new VBScriptEsqueValueRetriever(name => name)).VAL("")
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL("")
             );
         }
 
@@ -81,7 +81,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Equal(
                 "Test",
-                (new VBScriptEsqueValueRetriever(name => name)).VAL("Test")
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL("Test")
             );
         }
 
@@ -89,7 +89,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfNullIsFalse()
         {
             Assert.False(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(null)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(null)
             );
         }
 
@@ -97,7 +97,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfZeroIsFalse()
         {
             Assert.False(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(0)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(0)
             );
         }
 
@@ -105,7 +105,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfOneIsTrue()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(1)
             );
         }
 
@@ -113,7 +113,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfMinusOneIsTrue()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(-1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(-1)
             );
         }
 
@@ -121,7 +121,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfOnePointOneIsTrue()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(1.1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(1.1)
             );
         }
 
@@ -132,7 +132,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfPointOneIsTrue()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF(0.1)
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF(0.1)
             );
         }
 
@@ -140,7 +140,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFOfPointStringRepresentationOfOneIsTrue()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF("1")
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF("1")
             );
         }
 
@@ -149,7 +149,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Throws<TypeMismatchException>(() =>
             {
-                (new VBScriptEsqueValueRetriever(name => name)).IF("");
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF("");
             });
         }
 
@@ -158,7 +158,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             Assert.Throws<TypeMismatchException>(() =>
             {
-                (new VBScriptEsqueValueRetriever(name => name)).IF("one");
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF("one");
             });
         }
 
@@ -166,19 +166,20 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void IFIgnoresWhiteSpaceWhenParsingStrings()
         {
             Assert.True(
-                (new VBScriptEsqueValueRetriever(name => name)).IF("   1    ")
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.IF("   1    ")
             );
         }
 
         [Fact]
         public void NativeClassSupportsMethodCallWithArguments()
         {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             Assert.Equal(
                 new PseudoField { value = "value:F1" },
-                (new VBScriptEsqueValueRetriever(name => name)).CALL(
+                _.CALL(
                     new PseudoRecordset(),
                     new[] { "fields" },
-                    new MultipleByValArgumentProvider("F1")
+                    _.ARGS.Val("F1")
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -187,12 +188,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         [Fact]
         public void NativeClassSupportsDefaultMethodCallWithArguments()
         {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             Assert.Equal(
                 new PseudoField { value = "value:F1" },
-                (new VBScriptEsqueValueRetriever(name => name)).CALL(
+                _.CALL(
                     new PseudoRecordset(),
                     new string[0],
-                    new MultipleByValArgumentProvider("F1")
+                    _.ARGS.Val("F1")
                 ),
                 new PseudoFieldObjectComparer()
             );
@@ -208,12 +210,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             recordset.Fields["name"].Value = "TestName";
             recordset.Update();
 
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             Assert.Equal(
                 recordset.Fields["name"],
-                (new VBScriptEsqueValueRetriever(name => name)).CALL(
+                _.CALL(
                     recordset,
                     new[] { "fields" },
-                    new MultipleByValArgumentProvider("name")
+                    _.ARGS.Val("name")
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -229,12 +232,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             recordset.Fields["name"].Value = "TestName";
             recordset.Update();
 
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             Assert.Equal(
                 recordset.Fields["name"],
-                (new VBScriptEsqueValueRetriever(name => name)).CALL(
+                _.CALL(
                     recordset,
                     new string[0],
-                    new MultipleByValArgumentProvider("name")
+                    _.ARGS.Val("name")
                 ),
                 new ADOFieldObjectComparer()
             );
@@ -256,14 +260,14 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             recordset.Fields["name"].Value = "TestName";
             recordset.Update();
 
-            var valueRetriever = new VBScriptEsqueValueRetriever(name => name);
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             Assert.Equal(
                 "TestName",
-                valueRetriever.VAL(
-                    valueRetriever.CALL(
+                _.VAL(
+                    _.CALL(
                         recordset,
                         new string[0],
-                        new MultipleByValArgumentProvider("name")
+                        _.ARGS.Val("name")
                     )
                 )
             );
@@ -272,13 +276,14 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         [Fact]
         public void OneDimensionalArrayAccessIsSupported()
         {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
             var data = new object[] { "One" };
             Assert.Equal(
                 "One",
-                (new VBScriptEsqueValueRetriever(name => name)).CALL(
+                _.CALL(
                     data,
                     new string[0],
-                    new MultipleByValArgumentProvider(0)
+                    _.ARGS.Val("0")
                 )
             );
         }
@@ -342,32 +347,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             [IsDefault]
             public object value { get; set; }
-        }
-
-        private class MultipleByValArgumentProvider : IProvideCallArguments
-        {
-            private readonly object[] _values;
-            public MultipleByValArgumentProvider(params object[] values)
-            {
-                if (values == null)
-                    throw new ArgumentNullException("values");
-
-                _values = values.ToArray();
-            }
-            
-            public int NumberOfArguments { get { return _values.Length; } }
-
-            public IEnumerable<object> GetInitialValues()
-            {
-                return _values.ToArray();
-            }
-
-            public void OverwriteValueIfByRef(int index, object value)
-            {
-                // Since these  values are all ByVal we only need to perform validation, not do any actual value updating
-                if ((index < 0) || (index >= _values.Length))
-                    throw new ArgumentOutOfRangeException("index");
-            }
         }
     }
 }
