@@ -22,12 +22,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class C1
+                public sealed class c1
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -40,7 +40,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _outer = outer;
                     }
 
-                    public object Name()
+                    public object name()
                     {
                         return null;
                     }
@@ -70,13 +70,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class C1 : IDisposable
+                public sealed class c1 : IDisposable
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
                     private bool _disposed1;
-                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -90,7 +90,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _disposed1 = false;
                     }
 
-                    ~C1()
+                    ~c1()
                     {
                         try { Dispose2(false); }
                         catch(Exception e)
@@ -110,13 +110,13 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         if (_disposed1)
                             return;
                         if (disposing)
-                            Class_Terminate();
+                            class_terminate();
                         _disposed1 = true;
                     }
 
-                    public void Class_Terminate()
+                    public void class_terminate()
                     {
-                        _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Gone!""));
+                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Gone!""));
                     }
                 }";
             Assert.Equal(
@@ -143,12 +143,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             var expected = @"
                 [ComVisible(true)]
                 [SourceClassName(""C1"")]
-                public sealed class C1
+                public sealed class c1
                 {
                     private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
                     private readonly EnvironmentReferences _env;
                     private readonly GlobalReferences _outer;
-                    public C1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
                     {
                         if (compatLayer == null)
                             throw new ArgumentNullException(""compatLayer"");
@@ -159,16 +159,16 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _ = compatLayer;
                         _env = env;
                         _outer = outer;
-                        try { Class_Initialize(); }
+                        try { class_initialize(); }
                         catch(Exception e)
                         {
                             _env.SETERROR(e);
                         }
                     }
 
-                    public void Class_Initialize()
+                    public void class_initialize()
                     {
-                        _.CALL(_env.WScript, ""Echo"", _.ARGS.Val(""Here!""));
+                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Here!""));
                     }
                 }";
             Assert.Equal(

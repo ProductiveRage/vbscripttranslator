@@ -291,7 +291,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "             _env.i = _.ADD(_env.i, (Int16)1))",
                 "        {",
                 "            _.HANDLEERROR(errOn1, () => {",
-                "                _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
+                "                _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
                 "            });",
                 "            if (!loopConstraintsInitialised4)",
                 "                break;",
@@ -329,7 +329,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "    for (_env.i = (Int16)1; _.StrictLTE(_env.i, 10); _env.i = _.ADD(_env.i, (Int16)1))",
                 "    {",
                 "        _.HANDLEERROR(errOn1, () => {",
-                "            _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",
+                "            _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",
                 "        });",
                 "    }",
                 "});",
@@ -420,14 +420,14 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "public object F1()",
+                "public object f1()",
                 "{",
                 "    object retVal1 = null;",
                 "    object j = null; /* Undeclared in source */",
                 "    object i = null; /* Undeclared in source */",
                 "    for (i = (Int16)1; _.StrictLTE(i, 5); i = _.ADD(i, (Int16)1))",
                 "    {",
-                "        _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(j, v2 => { j = v2; }));",
+                "        _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(j, v2 => { j = v2; }));",
                 "    }",
                 "    return retVal1;",
                 "}"

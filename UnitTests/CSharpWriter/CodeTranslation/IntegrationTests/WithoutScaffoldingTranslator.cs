@@ -8,7 +8,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 {
     public static class WithoutScaffoldingTranslator
     {
-        public static NonNullImmutableList<string> DefaultConsoleExternalDependencies = new NonNullImmutableList<string>().Add("WScript");
+        public static NonNullImmutableList<string> DefaultConsoleExternalDependencies = new NonNullImmutableList<string>().Add("wscript");
 
         /// <summary>
         /// This will never return null or an array containing any nulls, blank values or values with leading or trailing whitespace or values containing line

@@ -860,9 +860,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new MemberAccessorToken(0),
@@ -885,9 +885,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NameToken("a", 0),
                         new MemberAccessorToken(0),
@@ -910,9 +910,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new MemberAccessorToken(0),
@@ -943,16 +943,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new[] { new NameToken("wscript", 0), new NameToken("echo", 0) },
                             new Expression(new[] { runtimeErrorExpressionSegment })
                         )
                     )
                 },
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new OpenBrace(0),
@@ -976,9 +976,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new MemberAccessorToken(0),
@@ -1005,7 +1005,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new[] { new NameToken("wscript", 0), new NameToken("echo", 0) },
                             new Expression(new[] {
                                 CALL(new IToken[] { new StringToken("1", 0), new NameToken("a", 0) })
                             })
@@ -1014,9 +1014,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 },
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new StringToken("1", 0),
                         new MemberAccessorToken(0),
@@ -1046,16 +1046,16 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                 {
                     EXP(
                         CALL(
-                            new[] { new NameToken("WScript", 0), new NameToken("Echo", 0) },
+                            new[] { new NameToken("wscript", 0), new NameToken("echo", 0) },
                             new Expression(new[] { runtimeErrorExpressionSegment })
                         )
                     )
                 },
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new OpenBrace(0),
@@ -1079,9 +1079,9 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 ExpressionGenerator.Generate(
                     new IToken[] {
-                        new NameToken("WScript", 0),
+                        new NameToken("wscript", 0),
                         new MemberAccessorToken(0),
-                        new NameToken("Echo", 0),
+                        new NameToken("echo", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new MemberAccessorToken(0),

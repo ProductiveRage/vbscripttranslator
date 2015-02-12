@@ -14,7 +14,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             var tokens = new List<IToken>
             {
                 new KeyWordToken("Exit", 0),
-                new KeyWordToken("Function", 0)
+                new KeyWordToken("function", 0)
             };
             Assert.DoesNotThrow(() =>
             {

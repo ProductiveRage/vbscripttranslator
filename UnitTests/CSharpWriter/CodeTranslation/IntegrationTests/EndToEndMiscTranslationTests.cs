@@ -12,7 +12,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
         /// <summary>
         /// The code here accesses an undeclared variable in a statement in the outermost scope, that scope should be registered in the EnvironmentReferences
-        /// class. There is also a "WScript" reference which is declared as an External Dependency in the translator, this will appear in the Environment
+        /// class. There is also a "wscript" reference which is declared as an External Dependency in the translator, this will appear in the Environment
         /// References class as well (as any/all External Dependencies should).
         /// </summary>
         [Fact]
@@ -23,7 +23,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_env.i, v1 => { _env.i = v1; }));"
+                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v1 => { _env.i = v1; }));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -46,12 +46,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"Test1\");",
-                "public object Test1()",
+                "_.CALL(_outer, \"test1\");",
+                "public object test1()",
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null; /* Undeclared in source */",
-                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -77,12 +77,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"Test1\");",
-                "public object Test1()",
+                "_.CALL(_outer, \"test1\");",
+                "public object test1()",
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null;",
-                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -108,11 +108,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"Test1\");",
-                "public object Test1()",
+                "_.CALL(_outer, \"test1\");",
+                "public object test1()",
                 "{",
                 "    object retVal1 = null;",
-                "    _.CALL(_env.WScript, \"Echo\", _.ARGS.Ref(_outer.i, v2 => { _outer.i = v2; }));",
+                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_outer.i, v2 => { _outer.i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -125,10 +125,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         [Fact]
         public void NumericLiteralsAccessedAsFunctionsResultInRuntimeErrors()
         {
-            var source = "Func 1()";
+            var source = "func 1()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[number: 1]\\\' is called like a function\"))));"
+                "_.CALL(_env.func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[number: 1]\\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -139,10 +139,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         [Fact]
         public void StringLiteralsAccessedAsFunctionsResultInRuntimeErrors()
         {
-            var source = "Func \"1\"()";
+            var source = "func \"1\"()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[string: \\\"1\\\"]\\\' is called like a function\"))));"
+                "_.CALL(_env.func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'[string: \\\"1\\\"]\\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -153,10 +153,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         [Fact]
         public void BuiltinValuesAccessedAsFunctionsResultInRuntimeErrors()
         {
-            var source = "Func vbObjectError()";
+            var source = "func vbObjectError()";
             var expected = new[]
             {
-                "_.CALL(_env.Func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'vbObjectError\\' is called like a function\"))));"
+                "_.CALL(_env.func, _.ARGS.Val(_.RAISEERROR(new TypeMismatchException(\"\\'vbObjectError\\' is called like a function\"))));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
