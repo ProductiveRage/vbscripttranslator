@@ -42,6 +42,10 @@
     <Compile Include="CodeTranslation\BlockTranslators\WithBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\ForBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\IfBlockTranslator.cs" />
+    <Compile Include="CodeTranslation\Extensions\Statement_Extensions.cs" />
+    <Compile Include="CodeTranslation\StatementTranslation\FuncByRefMappingList_Extensions.cs" />
+    <Compile Include="CodeTranslation\StatementTranslation\FuncByRefMapping.cs" />
+    <Compile Include="CodeTranslation\StatementTranslation\FuncByRefArgumentMapper.cs" />
     <Compile Include="CodeTranslation\TranslatedStatementContentDetails_Extensions.cs" />
     <Compile Include="CodeTranslation\Extensions\DeclaredReferenceDetails.cs" />
     <Compile Include="CodeTranslation\Extensions\ScopeAccessInformation_Error_Extensions.cs" />

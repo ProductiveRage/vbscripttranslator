@@ -1,10 +1,10 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -15,9 +15,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     {
         protected readonly CSharpName _supportRefName, _envClassName, _envRefName, _outerClassName, _outerRefName;
         protected readonly VBScriptNameRewriter _nameRewriter;
-		protected readonly TempValueNameGenerator _tempNameGenerator;
+        protected readonly TempValueNameGenerator _tempNameGenerator;
         private readonly ITranslateIndividualStatements _statementTranslator;
-		private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
+        private readonly ITranslateValueSettingsStatements _valueSettingStatementTranslator;
         private readonly ILogInformation _logger;
         protected CodeBlockTranslator(
             CSharpName supportRefName,
@@ -28,7 +28,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
             ITranslateIndividualStatements statementTranslator,
-			ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            ITranslateValueSettingsStatements valueSettingStatementTranslator,
             ILogInformation logger)
         {
             if (supportRefName == null)
@@ -47,8 +47,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("tempNameGenerator");
             if (statementTranslator == null)
                 throw new ArgumentNullException("statementTranslator");
-			if (valueSettingStatementTranslator == null)
-				throw new ArgumentNullException("valueSettingStatementTranslator");
+            if (valueSettingStatementTranslator == null)
+                throw new ArgumentNullException("valueSettingStatementTranslator");
             if (logger == null)
                 throw new ArgumentNullException("logger");
 
@@ -60,29 +60,29 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             _nameRewriter = nameRewriter;
             _tempNameGenerator = tempNameGenerator;
             _statementTranslator = statementTranslator;
-			_valueSettingStatementTranslator = valueSettingStatementTranslator;
+            _valueSettingStatementTranslator = valueSettingStatementTranslator;
             _logger = logger;
         }
 
-		/// <summary>
-		/// This should return null if it is unable to process the specified block. It should raise an exception for any null arguments. The returned value
+        /// <summary>
+        /// This should return null if it is unable to process the specified block. It should raise an exception for any null arguments. The returned value
         /// (where non-null) should overwrite the input translationResult in the caller's scope (it should not be added to it).
-		/// </summary>
-		protected delegate TranslationResult BlockTranslationAttempter(
-			TranslationResult translationResult,
-			ICodeBlock block,
-			ScopeAccessInformation scopeAccessInformation,
-			int indentationDepth
-		);
+        /// </summary>
+        protected delegate TranslationResult BlockTranslationAttempter(
+            TranslationResult translationResult,
+            ICodeBlock block,
+            ScopeAccessInformation scopeAccessInformation,
+            int indentationDepth
+        );
 
-		protected TranslationResult TranslateCommon(
-			NonNullImmutableList<BlockTranslationAttempter> translators,
-			NonNullImmutableList<ICodeBlock> blocks,
-			ScopeAccessInformation scopeAccessInformation,
-			int indentationDepth)
+        protected TranslationResult TranslateCommon(
+            NonNullImmutableList<BlockTranslationAttempter> translators,
+            NonNullImmutableList<ICodeBlock> blocks,
+            ScopeAccessInformation scopeAccessInformation,
+            int indentationDepth)
         {
-			if (translators == null)
-				throw new ArgumentNullException("translators");
+            if (translators == null)
+                throw new ArgumentNullException("translators");
             if (blocks == null)
                 throw new ArgumentNullException("block");
             if (scopeAccessInformation == null)
@@ -90,35 +90,35 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			// TODO: Going to need to incorporate On Error Resume Next / Goto 0 handling outside of the rest of the process, requiring additional data
-			// in the scopeAccessInformation type?
+            // TODO: Going to need to incorporate On Error Resume Next / Goto 0 handling outside of the rest of the process, requiring additional data
+            // in the scopeAccessInformation type?
 
             var translationResult = TranslationResult.Empty;
-			foreach (var block in blocks)
+            foreach (var block in blocks)
             {
-				var hasBlockBeenTranslated = false;
-				foreach (var translator in translators)
-				{
-					var blockTranslationResult = translator(translationResult, block, scopeAccessInformation, indentationDepth);
-					if (blockTranslationResult == null)
-						continue;
+                var hasBlockBeenTranslated = false;
+                foreach (var translator in translators)
+                {
+                    var blockTranslationResult = translator(translationResult, block, scopeAccessInformation, indentationDepth);
+                    if (blockTranslationResult == null)
+                        continue;
 
                     // Note: translationResult is set to blockTranslationResult rather than translationResult.Add(blockTranslationResult) since the
                     // translationResult is passed into the translator delegate above and that is reponsible for handling any combination work
                     // required
                     translationResult = blockTranslationResult;
-					hasBlockBeenTranslated = true;
+                    hasBlockBeenTranslated = true;
                     break;
-				}
-				if (!hasBlockBeenTranslated)
-					throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
+                }
+                if (!hasBlockBeenTranslated)
+                    throw new NotImplementedException("Not enabled support for " + block.GetType() + " yet");
             }
 
             // If the current parent construct doesn't affect scope (like IF and WHILE and unlike CLASS and FUNCTION) then the translationResult
             // can be returned directly and the nearest construct that does affect scope will be responsible for translating any explicit
             // variable declarations into translated statements.
             var scopeDefiningParent = scopeAccessInformation.Parent as IDefineScope;
-			if (scopeDefiningParent == null)
+            if (scopeDefiningParent == null)
                 return translationResult;
 
             // Explicitly-declared variable declarations need to be translated into C# definitions here (hoisted to the top of the function), as
@@ -139,20 +139,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
         }
 
-		protected TranslationResult TryToTranslateBlankLine(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
+        protected TranslationResult TryToTranslateBlankLine(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
             return (block is BlankLine) ? translationResult.Add(new TranslatedStatement("", indentationDepth)) : null;
-		}
+        }
 
-		protected TranslationResult TryToTranslateClass(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var classBlock = block as ClassBlock;
-			if (classBlock == null)
-				return null;
+        protected TranslationResult TryToTranslateClass(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var classBlock = block as ClassBlock;
+            if (classBlock == null)
+                return null;
 
-			var codeBlockTranslator = new ClassBlockTranslator(
+            var codeBlockTranslator = new ClassBlockTranslator(
                 _supportRefName,
-                _envClassName, 
+                _envClassName,
                 _envRefName,
                 _outerClassName,
                 _outerRefName,
@@ -162,53 +162,53 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 _valueSettingStatementTranslator,
                 _logger
             );
-			return translationResult.Add(
-				codeBlockTranslator.Translate(
-					classBlock,
-					scopeAccessInformation,
-					indentationDepth
-				)
-			);
-		}
+            return translationResult.Add(
+                codeBlockTranslator.Translate(
+                    classBlock,
+                    scopeAccessInformation,
+                    indentationDepth
+                )
+            );
+        }
 
-		protected TranslationResult TryToTranslateComment(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var commentBlock = block as CommentStatement;
-			if (commentBlock == null)
-				return null;
+        protected TranslationResult TryToTranslateComment(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var commentBlock = block as CommentStatement;
+            if (commentBlock == null)
+                return null;
 
-			var translatedCommentContent = "//" + commentBlock.Content;
-			if (block is InlineCommentStatement)
-			{
-				var lastTranslatedStatement = translationResult.TranslatedStatements.LastOrDefault();
-				if ((lastTranslatedStatement != null) && (lastTranslatedStatement.Content != ""))
-				{
-					translationResult = new TranslationResult(
-						translationResult.TranslatedStatements
-							.RemoveLast()
-							.Add(new TranslatedStatement(
-								lastTranslatedStatement.Content + " " + translatedCommentContent,
-								lastTranslatedStatement.IndentationDepth
-							)),
-						translationResult.ExplicitVariableDeclarations,
-						translationResult.UndeclaredVariablesAccessed
-					);
-					return translationResult;
-				}
-			}
+            var translatedCommentContent = "//" + commentBlock.Content;
+            if (block is InlineCommentStatement)
+            {
+                var lastTranslatedStatement = translationResult.TranslatedStatements.LastOrDefault();
+                if ((lastTranslatedStatement != null) && (lastTranslatedStatement.Content != ""))
+                {
+                    translationResult = new TranslationResult(
+                        translationResult.TranslatedStatements
+                            .RemoveLast()
+                            .Add(new TranslatedStatement(
+                                lastTranslatedStatement.Content + " " + translatedCommentContent,
+                                lastTranslatedStatement.IndentationDepth
+                            )),
+                        translationResult.ExplicitVariableDeclarations,
+                        translationResult.UndeclaredVariablesAccessed
+                    );
+                    return translationResult;
+                }
+            }
 
-			return translationResult.Add(
-				new TranslatedStatement(translatedCommentContent, indentationDepth)
-			);
-		}
+            return translationResult.Add(
+                new TranslatedStatement(translatedCommentContent, indentationDepth)
+            );
+        }
 
         protected TranslationResult TryToTranslateDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
-			// This covers the DimStatement, PrivateVariableStatement and PublicVariableStatement (but not the ReDimStatement, which counts
+            // This covers the DimStatement, PrivateVariableStatement and PublicVariableStatement (but not the ReDimStatement, which counts
             // as operating against an undeclared variable unless there is a corresponding Dim / Private / Public declaration)
-			var explicitVariableDeclarationBlock = block as DimStatement;
-			if (explicitVariableDeclarationBlock == null)
-				return null;
+            var explicitVariableDeclarationBlock = block as DimStatement;
+            if (explicitVariableDeclarationBlock == null)
+                return null;
 
             // These only need to result in additions to the ExplicitVariableDeclarations set of the translationResult, these will be
             // translated into the required form (varies depending upon whether the variable is defined within a class, function or
@@ -220,13 +220,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     (v.Dimensions == null) ? null : v.Dimensions.Select(d => (uint)d.Value)
                 ))
             );
-		}
+        }
 
-		private TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var doBlock = block as DoBlock;
-			if (doBlock == null)
-				return null;
+        private TranslationResult TryToTranslateDo(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var doBlock = block as DoBlock;
+            if (doBlock == null)
+                return null;
 
             var codeBlockTranslator = new DoBlockTranslator(
                 _supportRefName,
@@ -247,13 +247,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth
                 )
             );
-		}
+        }
 
         private TranslationResult TryToTranslateExit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var exitStatement = block as ExitStatement;
-			if (exitStatement == null)
-				return null;
+        {
+            var exitStatement = block as ExitStatement;
+            if (exitStatement == null)
+                return null;
 
             // EXIT FUNCTION, PROPERTY or SUB statements are simple enough - if the current scope has a return value being maintained (FUNCTION
             // and PROPERTY will, SUB won't) then return that - otherwise just return (with a value). Some validation is done that the EXIT is
@@ -341,13 +341,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 "break;",
                 indentationDepth
             ));
-		}
+        }
 
         private TranslationResult TryToTranslateFor(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var forBlock = block as ForBlock;
-			if (forBlock == null)
-				return null;
+        {
+            var forBlock = block as ForBlock;
+            if (forBlock == null)
+                return null;
 
             var codeBlockTranslator = new ForBlockTranslator(
                 _supportRefName,
@@ -371,10 +371,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         }
 
         private TranslationResult TryToTranslateForEach(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var forEachBlock = block as ForEachBlock;
-			if (forEachBlock == null)
-				return null;
+        {
+            var forEachBlock = block as ForEachBlock;
+            if (forEachBlock == null)
+                return null;
 
             var codeBlockTranslator = new ForEachBlockTranslator(
                 _supportRefName,
@@ -395,17 +395,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth
                 )
             );
-		}
+        }
 
         protected TranslationResult TryToTranslateFunction(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var functionBlock = block as AbstractFunctionBlock;
-			if (functionBlock == null)
-				return null;
+        {
+            var functionBlock = block as AbstractFunctionBlock;
+            if (functionBlock == null)
+                return null;
 
-			var codeBlockTranslator = new FunctionBlockTranslator(
+            var codeBlockTranslator = new FunctionBlockTranslator(
                 _supportRefName,
-                _envClassName, 
+                _envClassName,
                 _envRefName,
                 _outerClassName,
                 _outerRefName,
@@ -415,24 +415,24 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 _valueSettingStatementTranslator,
                 _logger
             );
-			return translationResult.Add(
-				codeBlockTranslator.Translate(
-					functionBlock,
-					scopeAccessInformation,
-					indentationDepth
-				)
-			);
-		}
+            return translationResult.Add(
+                codeBlockTranslator.Translate(
+                    functionBlock,
+                    scopeAccessInformation,
+                    indentationDepth
+                )
+            );
+        }
 
         private TranslationResult TryToTranslateIf(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var ifBlock = block as IfBlock;
-			if (ifBlock == null)
-				return null;
+        {
+            var ifBlock = block as IfBlock;
+            if (ifBlock == null)
+                return null;
 
-			var codeBlockTranslator = new IfBlockTranslator(
+            var codeBlockTranslator = new IfBlockTranslator(
                 _supportRefName,
-                _envClassName, 
+                _envClassName,
                 _envRefName,
                 _outerClassName,
                 _outerRefName,
@@ -442,14 +442,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 _valueSettingStatementTranslator,
                 _logger
             );
-			return translationResult.Add(
-				codeBlockTranslator.Translate(
-					ifBlock,
-					scopeAccessInformation,
-					indentationDepth
-				)
-			);
-		}
+            return translationResult.Add(
+                codeBlockTranslator.Translate(
+                    ifBlock,
+                    scopeAccessInformation,
+                    indentationDepth
+                )
+            );
+        }
 
         private TranslationResult TryToTranslateOnErrorResumeNext(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
@@ -499,7 +499,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         }
 
         protected TranslationResult TryToTranslateOptionExplicit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
+        {
             if (!(block is OptionExplicit))
                 return null;
 
@@ -523,27 +523,27 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // poor practice even though Option Explicit has been used, I'm willing to live with the trade-off).
             _logger.Warning("Option Explicit is ignored by this translation process");
             return TranslationResult.Empty;
-		}
+        }
 
         protected TranslationResult TryToTranslateProperty(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var propertyBlock = block as PropertyBlock;
-			if (propertyBlock == null)
-				return null;
+        {
+            var propertyBlock = block as PropertyBlock;
+            if (propertyBlock == null)
+                return null;
 
-			// Note: Check for Default on the Get (the only place it's valid) before rendering Let or Set
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
-		}
+            // Note: Check for Default on the Get (the only place it's valid) before rendering Let or Set
+            throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+        }
 
         private TranslationResult TryToTranslateRandomize(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var randomizeStatement = block as RandomizeStatement;
-			if (randomizeStatement == null)
-				return null;
+        {
+            var randomizeStatement = block as RandomizeStatement;
+            if (randomizeStatement == null)
+                return null;
 
-			// Note: See http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
-		}
+            // Note: See http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND
+            throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+        }
 
         private TranslationResult TryToTranslateReDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
@@ -580,7 +580,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     (scopeAccessInformation.ScopeDefiningParent == null) ||
                     !scopeAccessInformation.ScopeDefiningParent.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)
                 );
-            
+
             // These variables are now used to extend the current scopeAccessInformation, this is important for the translation below - any
             // variables that had not be declared should be treated as if they had been explicitly declared (this will affect the results of
             // calls to scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired; it will be able to correctly associated any previously-
@@ -691,20 +691,38 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         }
 
         private TranslationResult TryToTranslateSelect(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var selectBlock = block as SelectBlock;
-			if (selectBlock == null)
-				return null;
+        {
+            var selectBlock = block as SelectBlock;
+            if (selectBlock == null)
+                return null;
 
 			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
         }
 
         private TranslationResult TryToTranslateStatementOrExpression(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			// This covers Statement and Expression instances as Expression inherits from Statement
-			var statementBlock = block as Statement;
-			if (statementBlock == null)
-				return null;
+        {
+            // This covers Statement and Expression instances as Expression inherits from Statement
+            var statementBlock = block as Statement;
+            if (statementBlock == null)
+                return null;
+
+            var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                statementBlock.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.None, _logger.Warning),
+                scopeAccessInformation,
+                new NonNullImmutableList<FuncByRefMapping>()
+            );
+            if (byRefArgumentsToRewrite.Any())
+            {
+                translationResult = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                indentationDepth++;
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
+                statementBlock = byRefArgumentsToRewrite.RewriteStatementUsingByRefArgumentMappings(statementBlock, _nameRewriter);
+            }
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation, _logger.Warning);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
@@ -722,20 +740,58 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
-			return translationResult.AddUndeclaredVariables(undeclaredVariables);
-		}
+
+            if (byRefArgumentsToRewrite.Any())
+            {
+                indentationDepth--;
+                translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+            }
+
+            return translationResult.AddUndeclaredVariables(undeclaredVariables);
+        }
 
         private TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var valueSettingStatement = block as ValueSettingStatement;
-			if (valueSettingStatement == null)
-				return null;
+        {
+            var valueSettingStatement = block as ValueSettingStatement;
+            if (valueSettingStatement == null)
+                return null;
+
+            var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                valueSettingStatement.ValueToSet.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning), // TODO: Explain "NotSpecified" (so that ToStageTwoParserExpression doesn't apply the "None" bracket-standardising)
+                scopeAccessInformation,
+                new NonNullImmutableList<FuncByRefMapping>()
+            );
+            byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                valueSettingStatement.Expression.ToStageTwoParserExpression(
+                    scopeAccessInformation,
+                    (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Set) ? ExpressionReturnTypeOptions.Reference : ExpressionReturnTypeOptions.Value,
+                    _logger.Warning
+                ),
+                scopeAccessInformation,
+                byRefArgumentsToRewrite
+            );
+            if (byRefArgumentsToRewrite.Any())
+            {
+                translationResult = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                indentationDepth++;
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
+                valueSettingStatement = new ValueSettingStatement(
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(valueSettingStatement.ValueToSet, _nameRewriter),
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(valueSettingStatement.Expression, _nameRewriter),
+                    valueSettingStatement.ValueSetType
+                );
+            }
 
             var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccessed
                 .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
-				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
             var coreContent = translatedValueSettingStatementContentDetails.TranslatedContent + ";";
             if (!scopeAccessInformation.MayRequireErrorWrapping(block))
@@ -747,8 +803,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .Add(new TranslatedStatement(coreContent, indentationDepth + 1))
                     .Add(new TranslatedStatement("});", indentationDepth));
             }
+
+            if (byRefArgumentsToRewrite.Any())
+            {
+                indentationDepth--;
+                translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+            }
+
             return translationResult.AddUndeclaredVariables(undeclaredVariables);
-		}
+        }
 
         private TranslationResult TryToTranslateWith(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
@@ -832,10 +895,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         /// a class definition or in the outermost scope
         /// </summary>
         private TranslationResult FlushExplicitVariableDeclarations(TranslationResult translationResult, int indentationDepthForExplicitVariableDeclarations)
-		{
-			// TODO: Consider trying to insert the content after any comments or blank lines?
-			if (translationResult == null)
-				throw new ArgumentNullException("translationResult");
+        {
+            // TODO: Consider trying to insert the content after any comments or blank lines?
+            if (translationResult == null)
+                throw new ArgumentNullException("translationResult");
             if (indentationDepthForExplicitVariableDeclarations < 0)
                 throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
 
@@ -850,11 +913,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         v => new TranslatedStatement(TranslateVariableInitialisation(v, ScopeLocationOptions.WithinFunctionOrPropertyOrWith), indentationDepthForExplicitVariableDeclarations)
                     )
                     .ToNonNullImmutableList()
-				    .AddRange(translationResult.TranslatedStatements),
-				new NonNullImmutableList<VariableDeclaration>(),
-				translationResult.UndeclaredVariablesAccessed
-			);
-		}
+                    .AddRange(translationResult.TranslatedStatements),
+                new NonNullImmutableList<VariableDeclaration>(),
+                translationResult.UndeclaredVariablesAccessed
+            );
+        }
 
         /// <summary>
         /// This will throw an exception for any duplicated variable name, which would have resulted in a VBScript "Name refined" compile error if
