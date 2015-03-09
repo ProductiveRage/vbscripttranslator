@@ -1,10 +1,35 @@
 ﻿using System;
+using System.Collections.Generic;
+using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
     public static class IHaveNestedContent_Extensions
     {
+        /// <summary>
+        /// The IHaveNestedContent property AllExecutableBlocks will return executable blocks that are directly contained within a code block and, in the case
+        /// of an if or a while block, any executable blocks in conditions. If a full recursive scan of executable blocks is required then this method may be
+        /// used.
+        /// </summary>
+        public static IEnumerable<ICodeBlock> GetAllNestedBlocks(this IHaveNestedContent nestedContentBlock)
+        {
+            if (nestedContentBlock == null)
+                throw new ArgumentNullException("nestedContentBlock");
+
+            foreach (var codeBlock in nestedContentBlock.AllExecutableBlocks)
+            {
+                yield return codeBlock;
+
+                var doubleNestedContentBlock = codeBlock as IHaveNestedContent;
+                if (doubleNestedContentBlock != null)
+                {
+                    foreach (var doubleNestedExecutableBlock in doubleNestedContentBlock.GetAllNestedBlocks())
+                        yield return doubleNestedExecutableBlock;
+                }
+            }
+        }
+
         /// <summary>
         /// Does the content within the specified block (that contains nested content) contain a loop with a mismatched EXIT statement (eg. does it contain
         /// a FOR loop with an EXIT DO that does not have a DO loop between the FOR and the EXIT DO) - if so, then the EXIT statment will require multiple

@@ -1,4 +1,5 @@
-﻿using CSharpWriter.Lists;
+﻿using CSharpWriter.CodeTranslation.BlockTranslators;
+using CSharpWriter.Lists;
 using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
@@ -232,7 +233,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (parent == null)
                 throw new ArgumentNullException("parent");
 
-            if ((parent != scopeInformation.ScopeDefiningParent) && !scopeInformation.ScopeDefiningParent.AllExecutableBlocks.Contains(parent))
+            if ((parent != scopeInformation.ScopeDefiningParent) && !scopeInformation.ScopeDefiningParent.GetAllNestedBlocks().Contains(parent))
             {
                 // The parent must either be the current ScopeDefiningParent or be one of the descendant blocks, otherwise the structure will be invalid
                 throw new ArgumentException("The parent must either be the current ScopeDefiningParent or be one of the descendant blocks");

@@ -426,5 +426,33 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 );
             }
         }
+
+        /// <summary>
+        /// When the ScopeAccessInformation extension method SetParent is called, it is verified that the specified parent is one of the code blocks within the current
+        /// scope's "scope defining parent", but the code was checking the AllExecutableBlocks property, which doesn't recursively search every block
+        /// </summary>
+        [Fact]
+        public void NestedIfBlocksDoNotConfuseTheTranslatorScopeAccessInformationParentBlockTracking()
+        {
+            var source = @"
+			    If True Then
+			        If True Then
+    			    End If
+			    End If
+            ";
+            var expected = new[]
+            {
+                "if (_.IF(VBScriptConstants.True))",
+                "{",
+                "  if (_.IF(VBScriptConstants.True))",
+                "  {",
+                "  }",
+                "}",
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
