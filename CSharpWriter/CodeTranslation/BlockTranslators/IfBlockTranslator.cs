@@ -46,6 +46,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
 			var translationResult = TranslationResult.Empty;
             var numberOfAdditionalBlocksInjectedForErrorTrapping = 0;
+            var previousBlockRequiredByRefArgumentRewriting = false;
             foreach (var conditionalEntry in ifBlock.ConditionalClauses.Select((conditional, index) => new { Conditional = conditional, Index = index }))
             {
                 // This is the content that will ultimately be forced into a boolean and used to construct an "if" conditional, it it C# code. If there is no error-trapping
@@ -62,74 +63,78 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     _logger.Warning
                 );
 
-                // Check whether error-trapping may come into play at runtime - if so then we either need to deal with errors or (worst case) rewrite the condition expression
-                // to avoid trying to pass any ref arguments of the containing function / property (where applicable) as a by-ref argument into another function or property.
-                // If any such rewriting is done then the values must be written back as soon as the condition evaluation ends (even if it errors).
-                if (scopeAccessInformation.MayRequireErrorWrapping(ifBlock))
+                // Check whether there are any "ref" arguments that need rewriting - this is only applicable if we're within a function or property that has ByRef arguments.
+                // If this is the case then we need to ensure that we do not emit code that tries to include those references within a lambda since that is not valid C#. One
+                // way in which this may occur is the passing of a "ref" argument into another function as ByRef as part of the condition evaluation (since the argument provider
+                // will update the value after the call completes using a lambda). The other way is if error-trapping might be enabled at runtime - in this case, the evaluation
+                // of the condition is performed within a lambda so that any errors can be swallowed if necessary. If any such reference rewriting is required then the code that
+                // must be emitted is more complex.
+                var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+                var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                    conditionalEntry.Conditional.Condition.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                    scopeAccessInformation,
+                    new NonNullImmutableList<FuncByRefMapping>()
+                );
+                if (byRefArgumentsToRewrite.Any())
                 {
-                    var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
-                    var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
-                        conditionalEntry.Conditional.Condition.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
-                        scopeAccessInformation,
-                        new NonNullImmutableList<FuncByRefMapping>()
+                    // If we're in a function or property and that function / property has by-ref arguments that we then need to pass into further function / property calls
+                    // in order to evaluate the current conditional, then we need to record those values in temporary references, try to evaulate the condition and then push
+                    // the temporary values back into the original references. This is required in order to be consistent with VBScript and yet also produce code that compiles
+                    // as C# (which will not let "ref" arguments of the containing function be used in lambdas, which is how we deal with updating by-ref arguments after function
+                    // or property calls complete).
+                    var evaluatedResultName = _tempNameGenerator(new CSharpName("ifResult"), scopeAccessInformation);
+                    scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                        byRefArgumentsToRewrite
+                            .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                            .ToNonNullImmutableList()
                     );
-                    if (!byRefArgumentsToRewrite.Any())
-                    {
-                        // If we're not in a function or property or if that function or property does not have any by-ref arguments that we need to pass in as by-ref arguments
-                        // to further functions or properties, then we're in the less complicate error-trapping scenario; we only have to use the IF extension method that deals
-                        // with error-trapping.
-                        conditionalContent = new TranslatedStatementContentDetails(
-                            string.Format(
-                                "{0}.IF(() => {1}, {2})",
-                                _supportRefName.Name,
-                                conditionalContent.TranslatedContent,
-                                scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                            ),
-                            conditionalContent.VariablesAccessed
-                        );
-                    }
-                    else
-                    {
-                        // If we're in a function or property and that function / property has by-ref arguments that we then need to pass into further function / property calls
-                        // in order to evaluate the current conditional, then we need to record those values in temporary references, try to evaulate the condition and then push
-                        // the temporary values back into the original references. This is required in order to be consistent with VBScript and yet also produce code that compiles
-                        // as C# (which will not let "ref" arguments of the containing function be used in lambdas, which is how we deal with updating by-ref arguments after function
-                        // or property calls complete).
-                        var evaluatedResultName = _tempNameGenerator(new CSharpName("ifResult"), scopeAccessInformation);
-                        scopeAccessInformation = scopeAccessInformation.ExtendVariables(
-                            byRefArgumentsToRewrite
-                                .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
-                                .ToNonNullImmutableList()
-                        );
-                        translationResult = translationResult.Add(new TranslatedStatement(
-                            "bool " + evaluatedResultName.Name + ";",
-                            indentationDepth
-                        ));
-                        translationResult = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                        indentationDepth++;
-                        var rewrittenConditionalContent = _statementTranslator.Translate(
-                            byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(conditionalEntry.Conditional.Condition, _nameRewriter),
-                            scopeAccessInformation,
-                            ExpressionReturnTypeOptions.NotSpecified,
-                            _logger.Warning
-                        );
-                        translationResult = translationResult.Add(new TranslatedStatement(
-                            string.Format(
-                                "{0} = {1}.IF(() => {2}, {3});",
-                                evaluatedResultName.Name,
-                                _supportRefName.Name,
-                                rewrittenConditionalContent.TranslatedContent,
-                                scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                            ),
-                            indentationDepth
-                        ));
-                        indentationDepth--;
-                        translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                        conditionalContent = new TranslatedStatementContentDetails(
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        "bool " + evaluatedResultName.Name + ";",
+                        indentationDepth
+                    ));
+                    var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                    translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                    indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                    var rewrittenConditionalContent = _statementTranslator.Translate(
+                        byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(conditionalEntry.Conditional.Condition, _nameRewriter),
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified,
+                        _logger.Warning
+                    );
+                    var ifStatementFormat = (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                        ? "{0} = {1}.IF({2});"
+                        : "{0} = {1}.IF(() => {2}, {3});";
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            ifStatementFormat,
                             evaluatedResultName.Name,
-                            rewrittenConditionalContent.VariablesAccessed
-                        );
-                    }
+                            _supportRefName.Name,
+                            rewrittenConditionalContent.TranslatedContent,
+                            (scopeAccessInformation.ErrorRegistrationTokenIfAny == null) ? "" : scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth
+                    ));
+                    indentationDepth -= byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                    translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                    conditionalContent = new TranslatedStatementContentDetails(
+                        evaluatedResultName.Name,
+                        rewrittenConditionalContent.VariablesAccessed
+                    );
+                }
+                else if (scopeAccessInformation.MayRequireErrorWrapping(ifBlock))
+                {
+                    // If we're not in a function or property or if that function or property does not have any by-ref arguments that we need to pass in as by-ref arguments
+                    // to further functions or properties, then we're in the less complicate error-trapping scenario; we only have to use the IF extension method that deals
+                    // with error-trapping.
+                    conditionalContent = new TranslatedStatementContentDetails(
+                        string.Format(
+                            "{0}.IF(() => {1}, {2})",
+                            _supportRefName.Name,
+                            conditionalContent.TranslatedContent,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        conditionalContent.VariablesAccessed
+                    );
                 }
                 else
                 {
@@ -151,11 +156,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var conditionalInlineCommentIfAny = !innerStatements.Any() ? null : (innerStatements.First() as InlineCommentStatement);
                 if (conditionalInlineCommentIfAny != null)
                     innerStatements = innerStatements.RemoveAt(0);
+                // Note: For details on why previousBlockRequiredByRefArgumentRewriting is consulted in order to determine whether to render "if" or "else" if, see the notes further
+                // down, where the value of the previousBlockRequiredByRefArgumentRewriting flag is set
                 translationResult = translationResult.Add(
                     new TranslatedStatement(
                         string.Format(
                             "{0} ({1}){2}",
-                            (conditionalEntry.Index == 0) || scopeAccessInformation.MayRequireErrorWrapping(ifBlock) ? "if" : "else if",
+                            (conditionalEntry.Index == 0) || previousBlockRequiredByRefArgumentRewriting ? "if" : "else if",
                             conditionalContent.TranslatedContent,
                             (conditionalInlineCommentIfAny == null) ? "" : (" //" + conditionalInlineCommentIfAny.Content)
                         ),
@@ -178,13 +185,23 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // details). In this case, each subsequent "if" condition must be within its own "else" block in order for the the rewritten condition to be evaulated when
                 // required (and not before). When this happens, there will be greater levels of nesting required. This nesting is injected here and tracked with the variable
                 // "numberOfAdditionalBlocksInjectedForErrorTrapping" (this will be used further down to ensure that any extra levels of nesting are closed off).
-                if (scopeAccessInformation.MayRequireErrorWrapping(ifBlock) && (conditionalEntry.Index < (ifBlock.ConditionalClauses.Count() - 1)))
+                var isLastConditionalBlock = (conditionalEntry.Index == (ifBlock.ConditionalClauses.Count() - 1));
+                if (byRefArgumentsToRewrite.Any() && !isLastConditionalBlock)
                 {
                     translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth));
                     translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                     indentationDepth++;
                     numberOfAdditionalBlocksInjectedForErrorTrapping++;
                 }
+                
+                // It's important to know whether the previous block (if any) required any "ref" arguments to be rewritten since this will change the format of the translated
+                // code. If there is no rewriting required then an "if (a).. elseif (b).. else.." structure can be translated into a very similar "if (a) { .. } else if (b)
+                // { .. } else { .. }" format, but if there are argument aliases that need creating and potentially updating after the condition is evaluated then each condition
+                // is no longer on a single line and will be translated into something more like "if (a) { .. } else { if (b) { .. } else { .. } }". This makes it harder to
+                // read the output but it required in order to perform the multiple steps required at each condition evaluation where rewriting is required (it is no longer
+                // "just evaluate the condition", instead it becomes "initialise any aliases, evaluate the condition using the aliases, update the original references if
+                // required").
+                previousBlockRequiredByRefArgumentRewriting = byRefArgumentsToRewrite.Any();
             }
 
             if (ifBlock.OptionalElseClause != null)

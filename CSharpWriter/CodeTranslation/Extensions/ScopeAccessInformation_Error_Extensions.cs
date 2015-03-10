@@ -28,7 +28,6 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// TODO:
         /// Note that this does not analyse the type of code block, other than looking through the nested code blocks if the IHaveNestedContent or ILoopOverNestedContent
         /// interfaces or implemented. Whether error handling applies to the particular code block is left to the caller to determine, this only checks whether it MAY.
         /// For example, a static DIM statement does not need error handling, nor does an OPTION EXPLICIT, ON ERROR RESUME NEXT or ON ERROR GOTO 0. How the error

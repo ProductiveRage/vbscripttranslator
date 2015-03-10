@@ -712,10 +712,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 scopeAccessInformation,
                 new NonNullImmutableList<FuncByRefMapping>()
             );
+            int distanceToIdentEvaluationCodeDueToByRefMappings;
             if (byRefArgumentsToRewrite.Any())
             {
-                translationResult = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                indentationDepth++;
+                var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                distanceToIdentEvaluationCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                indentationDepth += distanceToIdentEvaluationCodeDueToByRefMappings;
                 scopeAccessInformation = scopeAccessInformation.ExtendVariables(
                     byRefArgumentsToRewrite
                         .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
@@ -723,6 +726,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
                 statementBlock = byRefArgumentsToRewrite.RewriteStatementUsingByRefArgumentMappings(statementBlock, _nameRewriter);
             }
+            else
+                distanceToIdentEvaluationCodeDueToByRefMappings = 0;
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation, _logger.Warning);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
@@ -743,7 +748,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             if (byRefArgumentsToRewrite.Any())
             {
-                indentationDepth--;
+                indentationDepth -= distanceToIdentEvaluationCodeDueToByRefMappings;
                 translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
             }
 
@@ -771,10 +776,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 scopeAccessInformation,
                 byRefArgumentsToRewrite
             );
+            int distanceToIdentEvaluationCodeDueToByRefMappings;
             if (byRefArgumentsToRewrite.Any())
             {
-                translationResult = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                indentationDepth++;
+                var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                distanceToIdentEvaluationCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                indentationDepth += distanceToIdentEvaluationCodeDueToByRefMappings;
                 scopeAccessInformation = scopeAccessInformation.ExtendVariables(
                     byRefArgumentsToRewrite
                         .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
@@ -786,6 +794,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     valueSettingStatement.ValueSetType
                 );
             }
+            else
+                distanceToIdentEvaluationCodeDueToByRefMappings = 0;
 
             var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccessed
@@ -806,7 +816,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             if (byRefArgumentsToRewrite.Any())
             {
-                indentationDepth--;
+                indentationDepth -= distanceToIdentEvaluationCodeDueToByRefMappings;
                 translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
             }
 

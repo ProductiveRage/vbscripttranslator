@@ -16,7 +16,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// <param name="indentationDepth"></param>
         /// <param name="byRefArgumentsToRewrite"></param>
         /// <returns></returns>
-        public static TranslationResult OpenByRefReplacementDefinitionWork(
+        public static ByRefReplacementTranslationResultDetails OpenByRefReplacementDefinitionWork(
             this NonNullImmutableList<FuncByRefMapping> byRefArgumentsToRewrite,
             TranslationResult translationResult,
             int indentationDepth,
@@ -43,9 +43,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 ),
                 indentationDepth
             ));
-            return translationResult
-                .Add(new TranslatedStatement("try", indentationDepth))
-                .Add(new TranslatedStatement("{", indentationDepth));
+
+            if (byRefArgumentsToRewrite.All(mapping => mapping.MappedValueIsReadOnly))
+                return new ByRefReplacementTranslationResultDetails(translationResult, distanceToIndentCodeWithMappedValues: 0);
+
+            return new ByRefReplacementTranslationResultDetails(
+                translationResult
+                    .Add(new TranslatedStatement("try", indentationDepth))
+                    .Add(new TranslatedStatement("{", indentationDepth)),
+                distanceToIndentCodeWithMappedValues: 1
+            );
         }
 
         public static Statement RewriteStatementUsingByRefArgumentMappings(this NonNullImmutableList<FuncByRefMapping> byRefArgumentsToRewrite, Statement statementBlock, VBScriptNameRewriter nameRewriter)
@@ -116,6 +123,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
+            if (byRefArgumentsToRewrite.All(mapping => mapping.MappedValueIsReadOnly))
+                return translationResult;
+
             return translationResult
                 .Add(new TranslatedStatement("}", indentationDepth))
                 .Add(new TranslatedStatement(
@@ -128,6 +138,30 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     ),
                     indentationDepth
                 ));
+        }
+
+        public class ByRefReplacementTranslationResultDetails
+        {
+            public ByRefReplacementTranslationResultDetails(TranslationResult translationResult, int distanceToIndentCodeWithMappedValues)
+            {
+                if (translationResult == null)
+                    throw new ArgumentNullException("translationResult");
+                if (distanceToIndentCodeWithMappedValues < 0)
+                    throw new ArgumentOutOfRangeException("distanceToIndentCodeWithMappedValues", "must be zero or greater");
+
+                TranslationResult = translationResult;
+                DistanceToIndentCodeWithMappedValues = distanceToIndentCodeWithMappedValues;
+            }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public TranslationResult TranslationResult { get; private set; }
+
+            /// <summary>
+            /// This will always be zero or greater
+            /// </summary>
+            public int DistanceToIndentCodeWithMappedValues { get; private set; }
         }
     }
 }

@@ -454,5 +454,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        // TODO: Test with by-ref arguments that need writing, nothing to do with error-trapping
+        // TODO: Test with by-ref arguments that need writing only due to error trapping (even though they would be forced into ByVal - eg. "a.Name")
+        // TODO: Test combining both
+
+        // TODO: Test illustrating that the target function's signature is not considered when determining whether an argument should be passed ByRef
+        // (there are times when an argument might be passed ByRef to a known function that declares that that argument is ByVal)
     }
 }
