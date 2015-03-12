@@ -874,112 +874,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
-            bool isConfirmedToBeByVal;
-            if (forceAllArgumentsToBeByVal)
-            {
-                // If the arguments are for a function that is known to only take ByVal arguments (all of the built-in functions, such as CDate,
-                // for example, then we can skip the hard work and set isConfirmedToBeByVal to true straight away)
-                isConfirmedToBeByVal = true;
-            }
-            else if (argumentValue.Segments.Count() > 1)
-            {
-                // If there are multiple segments here then it must be ByVal (it's fairly difficult to actually not be ByVal - it basically boils
-                // down to being a simple variable reference - eg. "a" - or one or more array accesses - eg. "a(0)" or "a(0, 1)" or "a(0)(1)"
-                // though differentiating between the case where "a(0)" is an array accessor and where it's a default function/property
-                // access is where some of the difficulty comes in). All of the below will try to decide what to do.
-                isConfirmedToBeByVal = true;
-            }
-            else
-            {
-                // If there is a single segment that is a constant then it must be ByVal, same if it's a bracketed segment (VBScript treats values
-                // passed wrapped in extra brackets as being ByVal), same if it's a NewInstanceExpressionSegment (there is no point allowing the
-                // reference to be changed since nothing has a reference to the new instance being passed in)
-                var singleSegment = argumentValue.Segments.First();
-                if ((singleSegment is NumericValueExpressionSegment)
-                || (singleSegment is StringValueExpressionSegment)
-                || (singleSegment is BuiltInValueExpressionSegment)
-                || (singleSegment is NewInstanceExpressionSegment)
-                || (singleSegment is RuntimeErrorExpressionSegment))
-                    isConfirmedToBeByVal = true;
-                else if (singleSegment is BracketedExpressionSegment)
-                {
-                    // If this argument content is bracketed then it must be passed ByVal (a VBScript peculiarity) but if the brackets are present
-                    // for that purpose only then they needn't be included in the final output, so if there is a single term that has been wrapped
-                    // in brackets then unwrap the term (overwrite the argumentValue reference so that this change is reflected in the rendering
-                    // call further down).
-                    while ((singleSegment is BracketedExpressionSegment) && (((BracketedExpressionSegment)singleSegment).Segments.Count() == 1))
-                        singleSegment = ((BracketedExpressionSegment)singleSegment).Segments.First();
-                    argumentValue = new Expression(new[] { singleSegment });
-                    isConfirmedToBeByVal = true;
-                }
-                else
-                {
-                    // If this is either a single CallExpressionSegment or a CallSetExpressionSegment then there are some conditions that will mean that
-                    // it should definitely be passed ByVal. If there are any nested member accessors (eg. "a.Name" or "a(0).Name") then pass ByVal. If
-                    // the first call segment is to a built-in function then pass ByVal
-                    CallSetItemExpressionSegment initialCallSetItemExpressionSegmentToCheckIfAny;
-                    var callExpressionSegment = singleSegment as CallExpressionSegment;
-                    if (callExpressionSegment != null)
-                    {
-                        initialCallSetItemExpressionSegmentToCheckIfAny = callExpressionSegment;
-                        isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
-                    }
-                    else
-                    {
-                        var callSetExpressionSegment = singleSegment as CallSetExpressionSegment;
-                        if (callSetExpressionSegment != null)
-                        {
-                            // The first call expression segment must have at least one member access tokens (otherwise there would be no target) but
-                            // if there are multiple (checked for further down) or if any of the subsequent segments have ANY accessors) then it's ByVal
-                            // (a CallSetExpression would have segments without any member accessors if it was describing jagged array access - eg.
-                            // "a(0)(1)" - or if the same source code was accessing default properties or members).
-                            if (callSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
-                            {
-                                isConfirmedToBeByVal = true;
-                                initialCallSetItemExpressionSegmentToCheckIfAny = null; // No point doing any more checks so set this to null
-                            }
-                            else
-                            {
-                                initialCallSetItemExpressionSegmentToCheckIfAny = callSetExpressionSegment.CallExpressionSegments.First();
-                                isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
-                            }
-                        }
-                        else
-                        {
-                            initialCallSetItemExpressionSegmentToCheckIfAny = null;
-                            isConfirmedToBeByVal = false;
-                        }
-                    }
-                    if (initialCallSetItemExpressionSegmentToCheckIfAny != null)
-                    {
-                        // If this is a call with multiple member accessors (indicating property access - eg. "a.Name") then it's passed ByVal. If it's
-                        // a built-in function then it's passed ByVal. If it's a known function within the current scope then it's passed ByVal.
-                        // - Check for multiple member accessor or built-in function access first, cos it's easy..
-                        if ((initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.Count() > 1)
-                        || (initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First() is BuiltInFunctionToken))
-                            isConfirmedToBeByVal = true;
-                        else
-                        {
-                            // .. then check for a known function
-                            var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
-                            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
-                            if (targetReferenceDetailsIfAvailable == null)
-                            {
-                                // If this is an undeclared reference then it will be implicitly declared later as a variable and so will be elligible
-                                // to be passed ByRef
-                                isConfirmedToBeByVal = false;
-                            }
-                            else
-                            {
-                                isConfirmedToBeByVal = (
-                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
-                                    (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
-                                );
-                            }
-                        }
-                    }
-                }
-            }
+            var isConfirmedToBeByVal = forceAllArgumentsToBeByVal || ArgumentWouldBePassedByValBasedUponItsContent(argumentValue, scopeAccessInformation);
             if (isConfirmedToBeByVal)
             {
                 var translatedCallExpressionByValArgumentContent = Translate(
@@ -1088,6 +983,123 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     translatedContentForPossibleByRefArgumentSets.SelectMany(content => content.VariablesAccessed)
                 )
             );
+        }
+
+        /// <summary>
+        /// It is possible to determine by analysing the content of a function/property argument whether it will be passed ByVal even if the
+        /// argument on the target function/property states ByRef. This will obviously be the case for constants but may also be the case for
+        /// variables, depending upon how they are accessed - if an argument is "a" and "a" is a variable then it is not possible to determine
+        /// from its content that it should be passed ByRef, but if the argument is "a.Name" then it can be seen that it must be passed ByVal
+        /// since VBScript will not pass the "Name" property as ByRef to the function. The same goes for function/property calls such as
+        /// "a.GetValue(0)" but not for default function/property calls such as "a(0)" since this may be a default member access or it
+        /// may be an array access - in the case of an array element, that must be passed ByRef and so it is not safe to say that "a(0)"
+        /// may definitely be passed ByVal.
+        /// </summary>
+        public bool ArgumentWouldBePassedByValBasedUponItsContent(Expression argumentValue, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (argumentValue == null)
+                throw new ArgumentNullException("argumentValue");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            if (argumentValue.Segments.Count() > 1)
+            {
+                // If there are multiple segments here then it must be ByVal (it's fairly difficult to actually not be ByVal - it basically boils
+                // down to being a simple variable reference - eg. "a" - or one or more array accesses - eg. "a(0)" or "a(0, 1)" or "a(0)(1)"
+                // though differentiating between the case where "a(0)" is an array accessor and where it's a default function/property
+                // access is where some of the difficulty comes in). All of the below will try to decide what to do.
+                return true;
+            }
+
+            // If there is a single segment that is a constant then it must be ByVal, same if it's a bracketed segment (VBScript treats values
+            // passed wrapped in extra brackets as being ByVal), same if it's a NewInstanceExpressionSegment (there is no point allowing the
+            // reference to be changed since nothing has a reference to the new instance being passed in)
+            var singleSegment = argumentValue.Segments.First();
+            if ((singleSegment is NumericValueExpressionSegment)
+            || (singleSegment is StringValueExpressionSegment)
+            || (singleSegment is BuiltInValueExpressionSegment)
+            || (singleSegment is NewInstanceExpressionSegment)
+            || (singleSegment is RuntimeErrorExpressionSegment))
+                return true;
+
+            if (singleSegment is BracketedExpressionSegment)
+            {
+                // If this argument content is bracketed then it must be passed ByVal (a VBScript peculiarity) but if the brackets are present
+                // for that purpose only then they needn't be included in the final output, so if there is a single term that has been wrapped
+                // in brackets then unwrap the term (overwrite the argumentValue reference so that this change is reflected in the rendering
+                // call further down).
+                while ((singleSegment is BracketedExpressionSegment) && (((BracketedExpressionSegment)singleSegment).Segments.Count() == 1))
+                    singleSegment = ((BracketedExpressionSegment)singleSegment).Segments.First();
+                argumentValue = new Expression(new[] { singleSegment });
+                return true;
+            }
+
+            // If this is either a single CallExpressionSegment or a CallSetExpressionSegment then there are some conditions that will mean that
+            // it should definitely be passed ByVal. If there are any nested member accessors (eg. "a.Name" or "a(0).Name") then pass ByVal. If
+            // the first call segment is to a built-in function then pass ByVal
+            bool isConfirmedToBeByVal;
+            CallSetItemExpressionSegment initialCallSetItemExpressionSegmentToCheckIfAny;
+            var callExpressionSegment = singleSegment as CallExpressionSegment;
+            if (callExpressionSegment != null)
+            {
+                initialCallSetItemExpressionSegmentToCheckIfAny = callExpressionSegment;
+                isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
+            }
+            else
+            {
+                var callSetExpressionSegment = singleSegment as CallSetExpressionSegment;
+                if (callSetExpressionSegment != null)
+                {
+                    // The first call expression segment must have at least one member access tokens (otherwise there would be no target) but
+                    // if there are multiple (checked for further down) or if any of the subsequent segments have ANY accessors) then it's ByVal
+                    // (a CallSetExpression would have segments without any member accessors if it was describing jagged array access - eg.
+                    // "a(0)(1)" - or if the same source code was accessing default properties or members).
+                    if (callSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
+                    {
+                        isConfirmedToBeByVal = true;
+                        initialCallSetItemExpressionSegmentToCheckIfAny = null; // No point doing any more checks so set this to null
+                    }
+                    else
+                    {
+                        initialCallSetItemExpressionSegmentToCheckIfAny = callSetExpressionSegment.CallExpressionSegments.First();
+                        isConfirmedToBeByVal = false; // Note: This may be overridden below since we have a non-null initialCallSetItemExpressionSegmentToCheckIfAny
+                    }
+                }
+                else
+                {
+                    initialCallSetItemExpressionSegmentToCheckIfAny = null;
+                    isConfirmedToBeByVal = false;
+                }
+            }
+            if (initialCallSetItemExpressionSegmentToCheckIfAny != null)
+            {
+                // If this is a call with multiple member accessors (indicating property access - eg. "a.Name") then it's passed ByVal. If it's
+                // a built-in function then it's passed ByVal. If it's a known function within the current scope then it's passed ByVal.
+                // - Check for multiple member accessor or built-in function access first, cos it's easy..
+                if ((initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.Count() > 1)
+                || (initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First() is BuiltInFunctionToken))
+                    isConfirmedToBeByVal = true;
+                else
+                {
+                    // .. then check for a known function
+                    var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
+                    var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+                    if (targetReferenceDetailsIfAvailable == null)
+                    {
+                        // If this is an undeclared reference then it will be implicitly declared later as a variable and so will be elligible
+                        // to be passed ByRef
+                        isConfirmedToBeByVal = false;
+                    }
+                    else
+                    {
+                        isConfirmedToBeByVal = (
+                            (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
+                            (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
+                        );
+                    }
+                }
+            }
+            return isConfirmedToBeByVal;
         }
 
         private TranslatedStatementContentDetailsWithContentType Translate(CallSetExpressionSegment callSetExpressionSegment, ScopeAccessInformation scopeAccessInformation)
