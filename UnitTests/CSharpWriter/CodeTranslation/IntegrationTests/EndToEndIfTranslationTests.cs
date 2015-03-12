@@ -455,11 +455,236 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
-        // TODO: Test with by-ref arguments that need writing, nothing to do with error-trapping
-        // TODO: Test with by-ref arguments that need writing only due to error trapping (even though they would be forced into ByVal - eg. "a.Name")
-        // TODO: Test combining both
+        public class ByRefArgumentsOfContainingFunctionSpecialCases
+        {
+            /// <summary>
+            /// If a ByRef argument of a function is passed into another function as a ByRef argument then it must be stored in a temporary variable and then
+            /// updated from this variable after the function call completes (whether it succeeds or fails - if the ByRef argument was altered before the error
+            /// then that updated value must be persisted). This is to avoid trying to access "ref" reference in a lambda, which is a compile error in C#.
+            /// </summary>
+            [Fact]
+            public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedInConditionsAsByRefArgument()
+            {
+                var source = @"
+                    Function F1(a)
+                        If F2(a) Then
+                        End If
+                    End Function
 
-        // TODO: Test illustrating that the target function's signature is not considered when determining whether an argument should be passed ByRef
-        // (there are times when an argument might be passed ByRef to a known function that declares that that argument is ByVal)
+                    Function F2(a)
+                    End Function
+                ";
+                var expected = new[]
+                {
+                    "public object f1(ref object a)",
+                    "{",
+                    "    object retVal1 = null;",
+                    "    bool ifResult4;",
+                    "    object byrefalias3 = a;",
+                    "    try",
+                    "    {",
+                    "        ifResult4 = _.IF(_.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias3, v5 => { byrefalias3 = v5; })));",
+                    "    }",
+                    "    finally { a = byrefalias3; }",
+                    "    if (ifResult4)",
+                    "    {",
+                    "    }",
+                    "    return retVal1;",
+                    "}",
+                    "public object f2(ref object a)",
+                    "{",
+                    "    return null;",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// This is a complement to ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedInConditionsAsByRefArgument - if a ByRef argument of the containing
+            /// function is used within an expression where it will not be considered ByRef (eg. if argument "a" is indirectly referenced as "a.Name" to specify
+            /// another function argument then it be passed ByVal, since neither "a" nor "a.Name" may be affected by the function it is being passed into it)
+            /// </summary>
+            [Fact]
+            public void ByRefFunctionArgumentDoesNotRequireSpecialTreatmentIfUsedInConditionsAsByValArgument()
+            {
+                var source = @"
+                    Function F1(a)
+                        If F2(a.Name) Then
+                        End If
+                    End Function
+
+                    Function F2(a)
+                    End Function
+                ";
+                var expected = new[]
+                {
+                    "public object f1(ref object a)",
+                    "{",
+                    "    object retVal1 = null;",
+                    "    if (_.IF(_.CALL(_outer, \"f2\", _.ARGS.Val(_.CALL(a, \"name\")))))",
+                    "    {",
+                    "    }",
+                    "    return retVal1;",
+                    "}",
+                    "public object f2(ref object a)",
+                    "{",
+                    "    return null;",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// This may be considered a relative of ByRefFunctionArgumentDoesNotRequireSpecialTreatmentIfUsedInConditionsAsByValArgument, it demonstrates a
+            /// limitation of the current processing; when determining whether an argument for a function should be passed ByVal, it only looks at the call site,
+            /// not the target. So a reference "a" is being passed as the only argument to a function that declares that argument as ByVal, the caller does not
+            /// consider that information and so still defines the argument data to support a ByRef passing. If the argument being passed was "a.Name" then it
+            /// would know to consider that a ByVal argument since "a.Name" can never be changed when passed as a ByRef function argument, but it makes the
+            /// decision based solely on information at the caller.
+            /// </summary>
+            [Fact]
+            public void ByRefFunctionArgumentDoNotRequireSpecialTreatmentIfUsedInConditionsAsByValArgument()
+            {
+                var source = @"
+                    Function F1(a)
+                        If F2(a) Then
+                        End If
+                    End Function
+
+                    Function F2(ByVal a)
+                    End Function
+                ";
+                var expected = new[]
+                {
+                    "public object f1(ref object a)",
+                    "{",
+                    "    object retVal1 = null;",
+                    "    bool ifResult4;",
+                    "    object byrefalias3 = a;",
+                    "    try",
+                    "    {",
+                    "        ifResult4 = _.IF(_.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias3, v5 => { byrefalias3 = v5; })));",
+                    "    }",
+                    "    finally { a = byrefalias3; }",
+                    "    if (ifResult4)",
+                    "    {",
+                    "    }",
+                    "    return retVal1;",
+                    "}",
+                    "public object f2(object a)",
+                    "{",
+                    "    return null;",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// When a ByRef argument of the containing function is passed into another function ByRef, the read-write aliasing process is required. This
+            /// process is also required if the ByRef argument is part of an IF condition evaluation that is wrapped in error-trapping. However, in such
+            /// a case, the standard alias-ByRef-argument-when-passing-elsewhere-as-ByRef-argument application is sufficient, the two processes should
+            /// not incur any kind of "double aliasing" madness.
+            /// </summary>
+            [Fact]
+            public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedInConditionsAsByRefArgument_AlsoTheCaseWhenWithinErrorTrapping()
+            {
+                var source = @"
+                    Function F1(a)
+                        On Error Resume Next
+                        If F2(a) Then
+                        End If
+                    End Function
+
+                    Function F2(ByVal a)
+                    End Function
+                ";
+                var expected = new[]
+                {
+                    "public object f1(ref object a)",
+                    "{",
+                    "    object retVal1 = null;",
+                    "    var errOn2 = _.GETERRORTRAPPINGTOKEN();",
+                    "    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);",
+                    "    bool ifResult5;",
+                    "    object byrefalias4 = a;",
+                    "    try",
+                    "    {",
+                    "        ifResult5 = _.IF(() => _.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias4, v6 => { byrefalias4 = v6; })), errOn2);",
+                    "    }",
+                    "    finally { a = byrefalias4; }",
+                    "    if (ifResult5)",
+                    "    {",
+                    "    }",
+                    "    _.RELEASEERRORTRAPPINGTOKEN(errOn2);",
+                    "    return retVal1;",
+                    "}",
+                    "public object f2(object a)",
+                    "{",
+                    "    return null;",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// When a ByRef argument of the containing function is passed into another function ByVal as part of an (ELSE) IF condition evaluation, if that
+            /// evaluation is wrapped in potential error-trapping code, the ByRef argument must be stored in an alias even though it will be passed ByVal to
+            /// the target function and can never be affected by this function call. This is because code that may have its errors swallowed is executed
+            /// within a lambda and "ref" arguments may not be accessed within lambdas. So the "ref" argument must be stored in an alias variable. After
+            /// the condition is evaluated, however, there is no need to overwrite the original argument with the alias reference's value since there was
+            /// no way for that alias to have been altered by the evaluation.
+            /// </summary>
+            [Fact]
+            public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedInConditionsAsByValArgumentWhenWithinErrorTrapping()
+            {
+                var source = @"
+                    Function F1(a)
+                        On Error Resume Next
+                        If F2(a.Name) Then
+                        End If
+                    End Function
+
+                    Function F2(ByVal a)
+                    End Function
+                ";
+                var expected = new[]
+                {
+                    "public object f1(ref object a)",
+                    "{",
+                    "    object retVal1 = null;",
+                    "    var errOn2 = _.GETERRORTRAPPINGTOKEN();",
+                    "    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);",
+                    "    bool ifResult4;",
+                    "    object byrefalias3 = a;",
+                    "    ifResult4 = _.IF(() => _.CALL(_outer, \"f2\", _.ARGS.Val(_.CALL(byrefalias3, \"name\"))), errOn2);",
+                    "    if (ifResult4)",
+                    "    {",
+                    "    }",
+                    "    _.RELEASEERRORTRAPPINGTOKEN(errOn2);",
+                    "    return retVal1;",
+                    "}",
+                    "public object f2(object a)",
+                    "{",
+                    "    return null;",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+        }
     }
 }
