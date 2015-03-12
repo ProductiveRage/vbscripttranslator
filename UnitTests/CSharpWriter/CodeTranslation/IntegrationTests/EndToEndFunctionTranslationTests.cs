@@ -84,5 +84,122 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+        /// <summary>
+        /// If a ByRef argument of a function is passed into another function as a ByRef argument then it must be stored in a temporary variable and then
+        /// updated from this variable after the function call completes (whether it succeeds or fails - if the ByRef argument was altered before the error
+        /// then that updated value must be persisted). This is to avoid trying to access "ref" reference in a lambda, which is a compile error in C#.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedElsewhereAsByRefArgument()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 a
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    object byrefalias2 = a;",
+                "    try",
+                "    {",
+                "        _.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias2, v3 => { byrefalias2 = v3; }));",
+                "    }",
+                "    finally { a = byrefalias2; }",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// If a ByRef argument of a function is required within an expression that must potentially trap errors, then an alias of that argument will be
+        /// required since the potentially-error-trapped content will be executed within a lambda and C# does not allow "ref" arguments to be accessed
+        /// within lambdas. If this alias may be altered - if it is passed into another function as a ByRef argument, for example - then the alias value
+        /// must be used to overwrite the original function argument reference, even if the expression evaluation failed (since it might have changed
+        /// the value before the error occurred).
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentMustBeMappedToReadAndWriteAliasIfReferencedInReadAndWriteMannerWithinPotentiallyErrorTrappingStatement()
+        {
+            var source = @"
+                Function F1(a)
+                    On Error Resume Next
+                    WScript.Echo a
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    var errOn2 = _.GETERRORTRAPPINGTOKEN();",
+                "    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);",
+                "    object byrefalias3 = a;",
+                "    try",
+                "    {",
+                "        _.HANDLEERROR(errOn2, () => {",
+                "            _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(byrefalias3, v4 => { byrefalias3 = v4; }));",
+                "        });",
+                "    }",
+                "    finally { a = byrefalias3; }",
+                "    _.RELEASEERRORTRAPPINGTOKEN(errOn2);",
+                "    return retVal1;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// If a ByRef argument of a function is required within an expression that must potentially trap errors, then an alias of that argument will be
+        /// required since the potentially-error-trapped content will be executed within a lambda and C# does not allow "ref" arguments to be accessed
+        /// within lambdas. If this alias may not be altered then the alias need not be written back over the original reference, it is a read-only
+        /// alias. This would be the case if there is a ByRef argument "a" of the current function and "a.Name" is passed to another function (as a
+        /// ByRef OR ByVal argument) since the "a" in "a.Name" can never be affected.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentMustBeMappedToReadOnlyAliasIfReferencedInReadOnlyMannerWithinPotentiallyErrorTrappingStatement()
+        {
+            var source = @"
+                Function F1(a)
+                    On Error Resume Next
+                    WScript.Echo a.Name
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    var errOn2 = _.GETERRORTRAPPINGTOKEN();",
+                "    _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);",
+                "    object byrefalias3 = a;",
+                "    _.HANDLEERROR(errOn2, () => {",
+                "        _.CALL(_env.wscript, \"echo\", _.ARGS.Val(_.CALL(byrefalias3, \"name\")));",
+                "    });",
+                "    _.RELEASEERRORTRAPPINGTOKEN(errOn2);",
+                "    return retVal1;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }

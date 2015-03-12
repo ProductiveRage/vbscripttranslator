@@ -173,45 +173,5 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
             });
         }
-
-        /// <summary>
-        /// If a ByRef argument of a function is passed into another function as a ByRef argument then it must be stored in a temporary variable and then
-        /// updated from this variable after the function call completes (whether it succeeds or fails - if the ByRef argument was altered before the error
-        /// then that updated value must be persisted). This is to avoid trying to access "ref" reference in a lambda, which is a compile error in C#.
-        /// </summary>
-        [Fact]
-        public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedElsewhereAsByRefArgument()
-        {
-            var source = @"
-                Function F1(a)
-                    F2 a
-                End Function
-
-                Function F2(a)
-                End Function
-            ";
-            var expected = new[]
-            {
-                "public object f1(ref object a)",
-                "{",
-                "    object retVal1 = null;",
-                "    object byrefalias2 = a;",
-                "    try",
-                "    {",
-                "        _.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias2, v3 => { byrefalias2 = v3; }));",
-                "    }",
-                "    finally { a = byrefalias2; }",
-                "    return retVal1;",
-                "}",
-                "public object f2(ref object a)",
-                "{",
-                "    return null;",
-                "}"
-            };
-            Assert.Equal(
-                expected.Select(s => s.Trim()).ToArray(),
-                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
-            );
-        }
     }
 }
