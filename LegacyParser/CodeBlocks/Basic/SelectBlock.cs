@@ -36,10 +36,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             var firstUnsupportedContentSegment = _content.FirstOrDefault(c => !(c is CaseBlockExpressionSegment) && !(c is CaseBlockElseSegment));
             if (firstUnsupportedContentSegment != null)
                 throw new ArgumentException("Unrecognised content element: " + firstUnsupportedContentSegment.GetType());
-            if (_content.First() is CaseBlockElseSegment)
-                throw new ArgumentException("First content element may not be a CaseBlockElseSegment");
             if (((IEnumerable<CaseBlockSegment>)_content).Reverse().Skip(1).Any(c => c is CaseBlockElseSegment))
-                throw new ArgumentException("Only the last content segment may be a CaseBlockElseSegment (and only when there are multiple content segments)");
+                throw new ArgumentException("Only the last content segment may be a CaseBlockElseSegment");
 
             Expression = expression;
         }
@@ -59,7 +57,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 
         /// <summary>
         /// This will never be null nor contain any null references, but it may be an empty set. All items will be CaseBlockExpressionSegment or
-        /// CaseBlockElseSegment instances and only the last segment may be a CaseBlockElseSegment (and only if there are multiple segments).
+        /// CaseBlockElseSegment instances and only the last segment may be a CaseBlockElseSegment (note that it is valid in VBScript for the
+        /// ONLY segment to be a CaseBlockElseSegment - in which case the select "Expression" will still be evaulated but the "Case Else"
+        /// will always be entered)
         /// </summary>
         public IEnumerable<CaseBlockSegment> Content { get { return _content.AsReadOnly(); } }
 
