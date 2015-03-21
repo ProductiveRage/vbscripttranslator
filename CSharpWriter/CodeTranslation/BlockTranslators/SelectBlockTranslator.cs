@@ -49,80 +49,94 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // 1. Case values are lazily evaluated; as soon as one is matched, no more are considered.
             // 2. There is no fall-through from one section to another; the first matched section (if any) is processed and no more are considered.
             
-            // TODO: Special handling for zero cases - the target should still be evaluated (document this)
-
             // TODO: ByRef function argument rewriting (in conjunction with error-handling on on its own)
 
             var translationResult = TranslationResult.Empty;
             foreach (var openingComment in selectBlock.OpeningComments)
                 translationResult = base.TryToTranslateComment(translationResult, openingComment, scopeAccessInformation, indentationDepth);
 
-            // Note: Don't try to do anything clever with evaluated-target, like avoid declaring a variable if it's just a number or string or variable reference since that means having
-            // to consider too many possibilities here - eg. Is the type of the number important? Does the variable reference need passing through a VAL call? Much better to just evaluate
-            // it using the standard mechanisms and stash it in a temporary variable that case options can be compared against.
-            // TODO: Explain why adding evaluatedTargetName and/or successfullyEvaluatedTargetName to the scopeAccessInformation (if this is the best thing to do)
-            // > Should only be necessary with evaluatedTargetName since it will be referenced by comparisons?
-            // > If there are problems with renaming then just ignore any references in the returned GetUndeclaredVariablesAccessed data?
-            var evaluatedTargetName = _tempNameGenerator(new CSharpName("selectCase"), scopeAccessInformation);
-            scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
-                new ScopedNameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
-            }));
-            var evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
-            foreach (var undeclaredVariable in evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter))
-                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-            
-            // If error-trapping may be enabled at runtime then we need to wrap the select target evaluation in a HANDLEERROR call. If the evaulation fails then nothing else in the select
-            // construct should be considered - so a flag is set to false before evaluation is attempted and set to true if the evaluation was successful, the comparisons work will only
-            // be executed if the flag was true. (In some cases, VBScript tries to do *something* if an error occurs but is trapped, but this is not one of them - unlike when the
-            // comparisons ARE considered; if any of them raise an error while error-trapping is enabled then they will be considered to match and their child statements will
-            // be executed).
-            // - This complexity is avoided if error-trapping is definitely not in play
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
-            {
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format(
-                        "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
-                        evaluatedTargetName.Name,
-                        evaluatedTargetContent.TranslatedContent
-                    ),
-                    indentationDepth
-                ));
-            }
+            // If the target expression is a simple constant then we can skip any work required in evaluating its value (note that it if appears simple - eg. a single NameToken - we shouldn't
+            // try to perform any shortcut here because then we'd have to worry about ensuring it is a non-object reference and that is already dealt with by the StatementTranslator)
+            IToken evaluatedTarget;
+            if (Is<NumericValueToken>(selectBlock.Expression) || Is<StringToken>(selectBlock.Expression) || Is<BuiltInValueToken>(selectBlock.Expression))
+                evaluatedTarget = selectBlock.Expression.Tokens.Single();
             else
             {
-                // TODO: Deal with ByRef aliases, where required
-                var successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("selectCaseEvaluated"), scopeAccessInformation);
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format("var {0} = false;", successfullyEvaluatedTargetNameIfRequired.Name),
-                    indentationDepth
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format(
-                        "{0}.HANDLEERROR({1}, () => {{",
-                        _supportRefName.Name,
-                        scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                    ),
-                    indentationDepth
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format(
-                        "{0} = {1};",
-                        evaluatedTargetName.Name,
-                        evaluatedTargetContent.TranslatedContent
-                    ),
-                    indentationDepth + 1
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format("{0} = true;", successfullyEvaluatedTargetNameIfRequired.Name),
-                    indentationDepth + 1
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format("if ({0})", successfullyEvaluatedTargetNameIfRequired.Name),
-                    indentationDepth
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
-                indentationDepth++;
+                // If we have to evaluate the target expression then we'll store it in a local variable which will be referenced by the comparisons. This variable needs to be added to the
+                // scope access information so that when the comparisons are translated into C#, the code that does so knows that it is a declared local variable and not an undeclared variable
+                // that must be accessed through the "Environment References" class. Note that there is currently no way to add a name token to the scope that will not pass through the name
+                // rewriter, so the name "target" needs to be one that we do not expect the name rewriter to affect (this is not great since it means that there is an undeclared implicit
+                // dependency on the VBScriptNameRewriter implementation but it's all I've got at the moment - since ScopedNameToken is derived from NameToken, I would have to change this
+                // around to support a ScopedDoNotRenameNameToken).
+                var evaluatedTargetName = _tempNameGenerator(new CSharpName("target"), scopeAccessInformation);
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
+                    new ScopedNameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
+                }));
+                var evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
+                foreach (var undeclaredVariable in evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter))
+                    _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+
+                // If error-trapping may be enabled at runtime then we need to wrap the select target evaluation in a HANDLEERROR call. If the evaulation fails then nothing else in the select
+                // construct should be considered - so a flag is set to false before evaluation is attempted and set to true if the evaluation was successful, the comparisons work will only
+                // be executed if the flag was true. (In some cases, VBScript tries to do *something* if an error occurs but is trapped, but this is not one of them - unlike when the
+                // comparisons ARE considered; if any of them raise an error while error-trapping is enabled then they will be considered to match and their child statements will
+                // be executed).
+                // - This complexity is avoided if error-trapping is definitely not in play
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
+                            evaluatedTargetName.Name,
+                            evaluatedTargetContent.TranslatedContent
+                        ),
+                        indentationDepth
+                    ));
+                }
+                else
+                {
+                    // TODO: Deal with ByRef aliases, where required
+                    var successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("targetWasEvaluated"), scopeAccessInformation);
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format("var {0} = false;", successfullyEvaluatedTargetNameIfRequired.Name),
+                        indentationDepth
+                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.HANDLEERROR({1}, () => {{",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth
+                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "{0} = {1};",
+                            evaluatedTargetName.Name,
+                            evaluatedTargetContent.TranslatedContent
+                        ),
+                        indentationDepth + 1
+                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format("{0} = true;", successfullyEvaluatedTargetNameIfRequired.Name),
+                        indentationDepth + 1
+                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+                    
+                    // If the expression was not evaluated then no comparisons work is required - note that this check is not required if there are zero comparisons to deal with. In
+                    // this case, VBScript would still evaluate the target even though there's nothing to compare it to (and we remain consistent with that; the target evaluation
+                    // occurs above but we do nothing more if there are no comparison values).
+                    if (selectBlock.Content.Any())
+                    {
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            string.Format("if ({0})", successfullyEvaluatedTargetNameIfRequired.Name),
+                            indentationDepth
+                        ));
+                        translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+                        indentationDepth++;
+                    }
+                }
+                evaluatedTarget = new NameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex);
             }
 
             var numberOfIndentsRequiredForErrorTrappingStructure = 0;
@@ -142,13 +156,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var explicitOptionsCaseBlock = annotatedCaseBlock.CaseBlock as SelectBlock.CaseBlockExpressionSegment;
                 if (explicitOptionsCaseBlock != null)
                 {
-                    var targetAsNumericValueTokenIfApplicable = Is<NumericValueToken>(selectBlock.Expression)
-                        ? (NumericValueToken)selectBlock.Expression.Tokens.Single()
-                        : null;
                     var conditions = explicitOptionsCaseBlock.Values
                         .Select((value, index) => GetComparison(
-                            evaluatedTargetName,
-                            targetAsNumericValueTokenIfApplicable,
+                            evaluatedTarget,
                             value,
                             isFirstValueInCaseSet: (index == 0),
                             scopeAccessInformation: scopeAccessInformation
@@ -262,8 +272,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             // If error-trapping may be active at runtime then the meat of translated content will have been wrapped in an "if", based upon whether the select target was successfully evaluated (in which case
-            // we'll need to close that content here)
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            // we'll need to close that content here). Note that this will not have been the case if there were no expression to compare the target to (VBScript allows this - it evaluates the target expression
+            // but then does nothing more).
+            if ((scopeAccessInformation.ErrorRegistrationTokenIfAny != null) && selectBlock.Content.Any())
             {
                 indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
@@ -273,24 +284,30 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 		}
 
         private TranslatedStatementContentDetails GetComparison(
-            CSharpName evaluatedTargetName,
-            NumericValueToken targetAsNumericValueTokenIfApplicable,
+            IToken evaluatedTarget,
             Expression value,
             bool isFirstValueInCaseSet,
             ScopeAccessInformation scopeAccessInformation)
         {
-            if (evaluatedTargetName == null)
+            if (evaluatedTarget == null)
                 throw new ArgumentNullException("evaluatedTargetName");
             if (value == null)
                 throw new ArgumentNullException("value");
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
 
+            var translatedTargetToCompareTo = _statementTranslator.Translate(
+                new Expression(new[] { evaluatedTarget }),
+                scopeAccessInformation,
+                ExpressionReturnTypeOptions.NotSpecified,
+                _logger.Warning
+            );
+
             // If the target case is a numeric literal then the first option in each case set must be parseable as a number
             // If the target case is a numeric literal the non-first options in each case set need not be parseable as numbers but flexible matching will be applied (1 and "1" are considered equal)
             // - Before dealing with these, if the current value is a numeric constant and the target case is a numeric literal then we can do a straight EQ call on them
             var evaluatedExpression = _statementTranslator.Translate(value, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
-            if ((targetAsNumericValueTokenIfApplicable != null) && IsNumericLiteral(targetAsNumericValueTokenIfApplicable))
+            if ((evaluatedTarget is NumericValueToken) && IsNumericLiteral((NumericValueToken)evaluatedTarget))
             {
                 if (Is<NumericValueToken>(value))
                 {
@@ -298,7 +315,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         string.Format(
                             "{0}.EQ({1}, {2})",
                             _supportRefName.Name,
-                            evaluatedTargetName.Name,
+                            translatedTargetToCompareTo.TranslatedContent,
                             evaluatedExpression.TranslatedContent
                         ),
                         evaluatedExpression.VariablesAccessed
@@ -311,7 +328,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         string.Format(
                             "{0}.EQ({1}, {0}.NUM({2}))",
                             _supportRefName.Name,
-                            evaluatedTargetName.Name,
+                            translatedTargetToCompareTo.TranslatedContent,
                             evaluatedExpression.TranslatedContent
                         ),
                         evaluatedExpression.VariablesAccessed
@@ -322,7 +339,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     string.Format(
                         "{0}.EQish({1}, {2})",
                         _supportRefName.Name,
-                        evaluatedTargetName.Name,
+                        translatedTargetToCompareTo.TranslatedContent,
                         evaluatedExpression.TranslatedContent
                     ),
                     evaluatedExpression.VariablesAccessed
@@ -332,13 +349,13 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // If the case value is a numeric literal then the target must be parseable as a number
             if (IsNumericLiteral(value))
             {
-                if (targetAsNumericValueTokenIfApplicable != null)
+                if (evaluatedTarget is NumericValueToken)
                 {
                     return new TranslatedStatementContentDetails(
                         string.Format(
                             "{0}.EQ({1}, {2})",
                             _supportRefName.Name,
-                            evaluatedTargetName.Name,
+                            translatedTargetToCompareTo.TranslatedContent,
                             evaluatedExpression.TranslatedContent
                         ),
                         evaluatedExpression.VariablesAccessed
@@ -349,7 +366,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     string.Format(
                         "{0}.EQ({1}, {0}.NUM({2}))",
                         _supportRefName.Name,
-                        evaluatedTargetName.Name,
+                        translatedTargetToCompareTo.TranslatedContent,
                         evaluatedExpression.TranslatedContent
                     ),
                     evaluatedExpression.VariablesAccessed
@@ -362,7 +379,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 string.Format(
                     "{0}.EQ({1}, {2})",
                     _supportRefName.Name,
-                    evaluatedTargetName.Name,
+                    translatedTargetToCompareTo.TranslatedContent,
                     evaluatedExpression.TranslatedContent
                 ),
                 evaluatedExpression.VariablesAccessed
