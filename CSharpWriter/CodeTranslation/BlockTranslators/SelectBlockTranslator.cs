@@ -54,11 +54,48 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // TODO: ByRef function argument rewriting (in conjunction with error-handling on on its own)
 
             var translationResult = TranslationResult.Empty;
+            foreach (var openingComment in selectBlock.OpeningComments)
+                translationResult = base.TryToTranslateComment(translationResult, openingComment, scopeAccessInformation, indentationDepth);
 
-            // If error-trapping may be enabled at runtime then wrap all of the work in a HANDLEERROR call.  This means that if there is an error raised in evaluating the target expression
-            // that no more work will be attempted - none of the possible case values will be considered for matching. This is correct behaviour and consistent with VBScript,
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            // Note: Don't try to do anything clever with evaluated-target, like avoid declaring a variable if it's just a number or string or variable reference since that means having
+            // to consider too many possibilities here - eg. Is the type of the number important? Does the variable reference need passing through a VAL call? Much better to just evaluate
+            // it using the standard mechanisms and stash it in a temporary variable that case options can be compared against.
+            // TODO: Explain why adding evaluatedTargetName and/or successfullyEvaluatedTargetName to the scopeAccessInformation (if this is the best thing to do)
+            // > Should only be necessary with evaluatedTargetName since it will be referenced by comparisons?
+            // > If there are problems with renaming then just ignore any references in the returned GetUndeclaredVariablesAccessed data?
+            var evaluatedTargetName = _tempNameGenerator(new CSharpName("selectCase"), scopeAccessInformation);
+            scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
+                new ScopedNameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
+            }));
+            var evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
+            foreach (var undeclaredVariable in evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter))
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            
+            // If error-trapping may be enabled at runtime then we need to wrap the select target evaluation in a HANDLEERROR call. If the evaulation fails then nothing else in the select
+            // construct should be considered - so a flag is set to false before evaluation is attempted and set to true if the evaluation was successful, the comparisons work will only
+            // be executed if the flag was true. (In some cases, VBScript tries to do *something* if an error occurs but is trapped, but this is not one of them - unlike when the
+            // comparisons ARE considered; if any of them raise an error while error-trapping is enabled then they will be considered to match and their child statements will
+            // be executed).
+            // - This complexity is avoided if error-trapping is definitely not in play
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
+                        evaluatedTargetName.Name,
+                        evaluatedTargetContent.TranslatedContent
+                    ),
+                    indentationDepth
+                ));
+            }
+            else
+            {
+                // TODO: Deal with ByRef aliases, where required
+                var successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("selectCaseEvaluated"), scopeAccessInformation);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("var {0} = false;", successfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth
+                ));
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format(
                         "{0}.HANDLEERROR({1}, () => {{",
@@ -67,30 +104,26 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ),
                     indentationDepth
                 ));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0} = {1};",
+                        evaluatedTargetName.Name,
+                        evaluatedTargetContent.TranslatedContent
+                    ),
+                    indentationDepth + 1
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("{0} = true;", successfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth + 1
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("if ({0})", successfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
                 indentationDepth++;
             }
-
-            foreach (var openingComment in selectBlock.OpeningComments)
-                translationResult = base.TryToTranslateComment(translationResult, openingComment, scopeAccessInformation, indentationDepth);
-
-            // Note: Don't try to do anything clever with evaulated-target, like avoid declaring a variable if it's just a number or string or variable reference since that means having
-            // to consider too many possibilities here - eg. Is the type of the number important? Does the variable reference need passing through a VAL call? Much better to just evaluate
-            // it using the standard mechanisms and stash it in a temporary variable that case options can be compared against.
-            var evaluatedTargetName = _tempNameGenerator(new CSharpName("selectCase"), scopeAccessInformation);
-            scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
-                new ScopedNameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
-            }));
-            var evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
-            foreach (var undeclaredVariable in evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter))
-                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-            translationResult = translationResult.Add(new TranslatedStatement(
-                string.Format(
-                    "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
-                    evaluatedTargetName.Name,
-                    evaluatedTargetContent.TranslatedContent
-                ),
-                indentationDepth
-            ));
 
             var numberOfIndentsRequiredForErrorTrappingStructure = 0;
             var annotatedCaseBlocks = selectBlock.Content.Select((c, i) => {
@@ -146,7 +179,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         // (and so the IF support function knows to return true in this case).
                         // - Since this involves more code for each value comparison, if the CASE has multiple values then they will be split onto multiple lines in the emitted C# code
                         // - Also note that if error-trapping is enabled then we need to change the structure slightly, from "if.. elseif .. else if.. else" to using nested "if.. else { if.. else { } } }"
-                        //   since each condition will be evaulated within a lambda and so may need rewriting if the expression references any ByRef arguments of the containing function (where applicable)
+                        //   since each condition will be evaluated within a lambda and so may need rewriting if the expression references any ByRef arguments of the containing function (where applicable)
                         //   because "ref" references may not be accessed within lambdas in C#. TODO: I haven't dealt with this rewriting yet, but I've laid out this structure here so that I'm able to do
                         //   that work soon.
                         conditions = conditions
@@ -228,11 +261,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             }
 
-            // Close the outer HANDLEERROR wrapper if error-trapping may be enabled
+            // If error-trapping may be active at runtime then the meat of translated content will have been wrapped in an "if", based upon whether the select target was successfully evaluated (in which case
+            // we'll need to close that content here)
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
             {
                 indentationDepth--;
-                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+                translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
             }
 
             return translationResult;
