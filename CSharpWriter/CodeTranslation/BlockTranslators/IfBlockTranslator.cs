@@ -182,7 +182,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // If we're dealing with multiple if (a).. elseif (b).. elseif (c).. [else] blocks then these would be most simply represented by if (a).. else if (b)..
                 // else if (c).. [else] blocks in C#. However, if error-trapping is involved then some of the conditions may have to be rewritten to deal with by-ref arguments
                 // and then (after the condition is evaluated) those rewritten arguments need to be reflected on the original references (see the note further up for more
-                // details). In this case, each subsequent "if" condition must be within its own "else" block in order for the the rewritten condition to be evaulated when
+                // details). In this case, each subsequent "if" condition must be within its own "else" block in order for the the rewritten condition to be evaluated when
                 // required (and not before). When this happens, there will be greater levels of nesting required. This nesting is injected here and tracked with the variable
                 // "numberOfAdditionalBlocksInjectedForErrorTrapping" (this will be used further down to ensure that any extra levels of nesting are closed off).
                 var isLastConditionalBlock = (conditionalEntry.Index == (ifBlock.ConditionalClauses.Count() - 1));

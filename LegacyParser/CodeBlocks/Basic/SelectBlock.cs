@@ -58,7 +58,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// <summary>
         /// This will never be null nor contain any null references, but it may be an empty set. All items will be CaseBlockExpressionSegment or
         /// CaseBlockElseSegment instances and only the last segment may be a CaseBlockElseSegment (note that it is valid in VBScript for the
-        /// ONLY segment to be a CaseBlockElseSegment - in which case the select "Expression" will still be evaulated but the "Case Else"
+        /// ONLY segment to be a CaseBlockElseSegment - in which case the select "Expression" will still be evaluated but the "Case Else"
         /// will always be entered)
         /// </summary>
         public IEnumerable<CaseBlockSegment> Content { get { return _content.AsReadOnly(); } }

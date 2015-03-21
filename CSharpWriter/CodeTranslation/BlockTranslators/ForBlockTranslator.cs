@@ -267,7 +267,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     // However, if the individual constraints all evaulate ok and error-trapping is enabled but the loop start value is a Date while another value
                     // is a numeric value that would overflow Date, then the loop is entered once and the loop variable is set to that start date. To achieve this,
                     // we try to initialise loopStart without considering loopEnd or loopStep - if this fails then it's the standard loop-constraint-evaluation-fail
-                    // and so the loop variable will not be set and the loop will be executed once only. If, however, loopStart is evaulated successfully in isolation,
+                    // and so the loop variable will not be set and the loop will be executed once only. If, however, loopStart is evaluated successfully in isolation,
                     // then the loop variable is set to then and then loopStart will be re-evaluated with consideration to loopEnd and loopStart - if this fails, then
                     // the loop-constraints-initialised flag is still false and so the loop will be executed only once BUT this time the loop variable is set to the
                     // first evaluation of loopStart. This works because a Date is the only value type that may be evaluated as a number in isolation but fail when

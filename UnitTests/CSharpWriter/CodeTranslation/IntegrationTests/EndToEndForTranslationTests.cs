@@ -217,7 +217,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
         /// <summary>
         /// If the loop start, end and step values are not known until runtime then their values must be determined once and then applied to a loop (in
-        /// VBScript, the constraints are not re-evaulated each loop iteration). The loop may only be entered if there is a zero or positive step and a
+        /// VBScript, the constraints are not re-evaluated each loop iteration). The loop may only be entered if there is a zero or positive step and a
         /// non-descending loop or if there is a negative step and a descending loop. Similarly, the termination condition operator may be a less-than-
         /// or-equal-to comparison or a greater-than-or-equal-to, depending upon loop direction.
         /// </summary>

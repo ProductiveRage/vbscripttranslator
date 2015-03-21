@@ -66,7 +66,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
                 {
                     // Ensure that the frankly ludicrous VBScript error-handling is applied where required. As the IProvideVBScriptCompatFunctionality's IF method
-                    // signature describes, if an error occurs in retrieving the value, it will be evaulated as true. So, given a function
+                    // signature describes, if an error occurs in retrieving the value, it will be evaluated as true. So, given a function
                     //
                     //   FUNCTION GetValue()
                     //     Err.Raise vbObjectError, "Test", "Test"
