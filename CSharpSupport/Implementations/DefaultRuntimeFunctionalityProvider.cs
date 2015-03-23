@@ -358,6 +358,7 @@ namespace CSharpSupport.Implementations
         public object CHR(object value) { throw new NotImplementedException(); }
         public object CHRB(object value) { throw new NotImplementedException(); }
         public object CHRW(object value) { throw new NotImplementedException(); }
+        public object HEX(object value) { throw new NotImplementedException(); }
         public object INSTR(object value) { throw new NotImplementedException(); }
         public object INSTRREV(object value) { throw new NotImplementedException(); }
         public object LEN(object value) { throw new NotImplementedException(); }

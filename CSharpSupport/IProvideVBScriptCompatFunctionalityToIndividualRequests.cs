@@ -110,6 +110,7 @@ namespace CSharpSupport
         object CHR(object value);
         object CHRB(object value);
         object CHRW(object value);
+        object HEX(object value);
         object INSTR(object value);
         object INSTRREV(object value);
         object LEN(object value);
