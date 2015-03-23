@@ -78,7 +78,7 @@ namespace CSharpWriter
             );
 
             return codeBlockTranslator.Translate(
-                ProcessContent(scriptContent).ToNonNullImmutableList()
+                Parse(scriptContent).ToNonNullImmutableList()
             );
         }
 
@@ -93,6 +93,21 @@ namespace CSharpWriter
                 throw new ArgumentNullException("externalDependencies");
 
             return Translate(scriptContent, externalDependencies.ToNonNullImmutableList(), outputType);
+        }
+        
+        /// <summary>
+        /// This will return just the parsed VBScript content, it will not attempt any translation. It will never return null nor a set containing
+        /// any null references. This may be used to analyse the structure of a script, if so desired.
+        /// </summary>
+        public static IEnumerable<ICodeBlock> Parse(string scriptContent)
+        {
+            // Translate these tokens into ICodeBlock implementations (representing code VBScript structures)
+            string[] endSequenceMet;
+            var handler = new CodeBlockHandler(null);
+            return handler.Process(
+                GetTokens(scriptContent).ToList(),
+                out endSequenceMet
+            );
         }
     
         /// <summary>
@@ -115,18 +130,6 @@ namespace CSharpWriter
                     content = "/* " + content.Replace("*/", "*") + " */";
                 _logger.Warning(content);
             }
-        }
-
-        private static IEnumerable<ICodeBlock> ProcessContent(string scriptContent)
-        {
-            // Translate these tokens into ICodeBlock implementations (representing
-            // code VBScript structures)
-            string[] endSequenceMet;
-            var handler = new CodeBlockHandler(null);
-            return handler.Process(
-                GetTokens(scriptContent).ToList(),
-                out endSequenceMet
-            );
         }
 
         private static IEnumerable<IToken> GetTokens(string scriptContent)
