@@ -117,6 +117,7 @@ namespace CSharpSupport
             if (equalityComparer == null)
                 throw new ArgumentNullException("equalityComparer");
 
+            // TODO: "value" is also a keyword but it is not reserved such that it can not be used as an argument or variable name
             return new HashSet<string>(equalityComparer)
             {
                 "abstract", "add", "as", "ascending", "async", "await", "base", "bool", "break", "by", "byte",
@@ -128,7 +129,7 @@ namespace CSharpSupport
                 "partial", "private", "protected", "public", "readonly", "ref", "remove", "return", "sbyte",
                 "sealed", "select", "set", "short", "sizeof", "stackalloc", "static", "string", "struct",
                 "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
-                "ushort", "using", "value", "var", "virtual", "void", "volatile", "where", "while", "yield"
+                "ushort", "using", "var", "virtual", "void", "volatile", "where", "while", "yield"
             };
         }
     }
