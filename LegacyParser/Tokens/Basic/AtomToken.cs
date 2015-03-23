@@ -401,7 +401,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 atomContent,
                 new string[]
                 {
-                    "CBYTE", "CINT", "CLNG", "CSNG", "CDBL", "CDATE",
+                    "CBYTE", "CCUR", "CINT", "CLNG", "CSNG", "CDBL", "CDATE",
                     "DATEADD", "DATESERIAL", "TIMESERIAL",
                     "NOW", "DATE",
                     "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
