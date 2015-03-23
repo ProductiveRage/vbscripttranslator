@@ -275,7 +275,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else if (exitStatement.StatementType == ExitStatement.ExitableStatementType.Sub)
             {
-                if ((scopeAccessInformation.ScopeDefiningParent as PropertyBlock) == null)
+                if ((scopeAccessInformation.ScopeDefiningParent as SubBlock) == null)
                     throw new ArgumentException("Encountered EXIT SUB that was not within a sub");
                 isValidatedFunctionTypeExit = true;
             }
