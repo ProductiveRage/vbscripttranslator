@@ -2,15 +2,18 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace CSharpSupport
 {
     public class DefaultRuntimeSupportClassFactory
     {
         private static Regex _multipleUnderscoreCondenser;
+        private static HashSet<string> _caseInsensitiveCSharpKeywordMatcher;
         static DefaultRuntimeSupportClassFactory()
         {
             _multipleUnderscoreCondenser = new Regex("_{2,}", RegexOptions.Compiled);
+            _caseInsensitiveCSharpKeywordMatcher = GetCSharpKeywords(StringComparer.OrdinalIgnoreCase);
             DefaultNameRewriter = RewriteName;
             DefaultVBScriptValueRetriever = new VBScriptEsqueValueRetriever(DefaultNameRewriter);
         }
@@ -59,7 +62,12 @@ namespace CSharpSupport
             if ((value.Length > 0)
             && ((value[0] == '_') || char.IsLetter(value[0]))
             && value.All(c => (c == '_') || char.IsLetterOrDigit(c)))
+            {
+                // If this is a reserved keyword then change it to prevent emitting invalid code
+                if (_caseInsensitiveCSharpKeywordMatcher.Contains(value))
+                    value = "rewritten_" + value;
                 return value;
+            }
 
             // If we have to manipulate the value then we'll perform some replacements and then append the hash code from the original string to the
             // end of it to try to avoid collisions. This will not be perfect but it should be good enough. (Probably the only fool-proof approach
@@ -102,6 +110,26 @@ namespace CSharpSupport
             hash ^= (hash >> 11);
             hash += (hash << 15);
             return hash;
+        }
+
+        private static HashSet<string> GetCSharpKeywords(IEqualityComparer<string> equalityComparer)
+        {
+            if (equalityComparer == null)
+                throw new ArgumentNullException("equalityComparer");
+
+            return new HashSet<string>(equalityComparer)
+            {
+                "abstract", "add", "as", "ascending", "async", "await", "base", "bool", "break", "by", "byte",
+                "case", "catch", "char", "checked", "class", "const", "continue", "decimal", "default", "delegate",
+                "descending", "do", "double", "dynamic", "else", "enum", "equals", "explicit", "extern", "false",
+                "finally", "fixed", "float", "for", "foreach", "from", "get", "global", "goto", "group", "if", 
+                "implicit", "in", "int", "interface", "internal", "into", "is", "join", "let", "lock", "long",
+                "namespace", "new", "null", "object", "on", "operator", "orderby", "out", "override", "params",
+                "partial", "private", "protected", "public", "readonly", "ref", "remove", "return", "sbyte",
+                "sealed", "select", "set", "short", "sizeof", "stackalloc", "static", "string", "struct",
+                "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
+                "ushort", "using", "value", "var", "virtual", "void", "volatile", "where", "while", "yield"
+            };
         }
     }
 }
