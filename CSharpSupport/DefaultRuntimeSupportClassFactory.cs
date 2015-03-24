@@ -117,7 +117,7 @@ namespace CSharpSupport
             if (equalityComparer == null)
                 throw new ArgumentNullException("equalityComparer");
 
-            // TODO: "value" is also a keyword but it is not reserved such that it can not be used as an argument or variable name
+            // Note: "value" is also a keyword but it is not reserved such that it can not be used as an argument or variable name
             return new HashSet<string>(equalityComparer)
             {
                 "abstract", "add", "as", "ascending", "async", "await", "base", "bool", "break", "by", "byte",
