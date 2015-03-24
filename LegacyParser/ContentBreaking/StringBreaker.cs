@@ -136,7 +136,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     {
                         chr = scriptContent.Substring(indexString, 1);
                         if (chr == "\n")
-                            throw new Exception("Encountered line return in string content");
+                            throw new Exception("Encountered line return in string content around line " + (lineIndexForStartOfContent + 1));
                         if (chr != "\"")
                             tokenContent += chr;
                         else
