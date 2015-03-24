@@ -186,7 +186,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_.CONCAT(_env.a, _env.b, _env.c, _env.d)));"
+                "_.CALL(_env.wscript, \"echo\", _.ARGS.Val(_.CONCAT(_env.a, _env.b, _env.c, _env.d)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
