@@ -23,6 +23,10 @@ namespace CSharpSupport
 
         // String concatenation
         object CONCAT(object l, object r);
+        /// <summary>
+        /// This may never be called with less than two values (otherwise an exception will be thrown)
+        /// </summary>
+        object CONCAT(params object[] values);
 
         // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
         object NOT(object o);

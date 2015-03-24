@@ -140,6 +140,26 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value;
             return ((l == null) ? "" : l.ToString()) + ((r == null) ? "" : r.ToString());
         }
+        
+        /// <summary>
+        /// This may never be called with less than two values (otherwise an exception will be thrown)
+        /// </summary>
+        public object CONCAT(params object[] values)
+        {
+            if (values == null)
+                throw new ArgumentNullException("values");
+
+            if (values.Length < 2)
+                throw new ArgumentException("There must be at least two values specified for the CONCAT operation");
+
+            // Concatenate the first two values (using the standard two-value version of the method) and then concatenate each further values on to
+            // this accumulator. This could very likely be done in a more efficient manner by recursively splitting the array of values but this will
+            // do for now.
+            var combinedValue = CONCAT(values[0], values[1]);
+            foreach (var additionalValue in values.Skip(2))
+                combinedValue = CONCAT(combinedValue, additionalValue);
+            return combinedValue;
+        }
 
         // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
         public object NOT(object o) { throw new NotImplementedException(); }

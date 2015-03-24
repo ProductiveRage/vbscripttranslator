@@ -66,6 +66,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (shortCutStatementResponse != null)
                 return shortCutStatementResponse;
 
+            // See notes in TryToGetConcatFlattenedSpecialCaseResponse method..
+            var concatFlattenedSpecialCaseResponse = TryToGetConcatFlattenedSpecialCaseResponse(expression, scopeAccessInformation, returnRequirements);
+            if (concatFlattenedSpecialCaseResponse != null)
+                return concatFlattenedSpecialCaseResponse;
+
             // Assert expectations about numbers of segments and operators (if any)
             // - There may not be more than three segments, and only three where there are two values or calls separated by an operator. CallSetExpressionSegments and
             //   BracketedExpressionSegments are key to ensuring that this format is met.
@@ -1374,6 +1379,56 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 new NonNullImmutableList<NameToken>(new[] { onlyMemberAccessTokenAsName })
             );
         }
+
+        /// <summary>
+        /// It's very common in VBScript code to get runs of string concatenations, so rather then making the translated code longer than it needs to be, by limiting
+        /// the number of arguments takens by the CONCAT method to two (like the other operators - except for NOT, which takes only one argument), the CONCAT method
+        /// may also take more than two arguments if it would make no difference to the enforcing of operator precedence. This methods tries to identify cases where
+        /// that might be applicable and performs a "special mode translation".
+        /// </summary>
+        private TranslatedStatementContentDetails TryToGetConcatFlattenedSpecialCaseResponse(
+            Expression expression,
+            ScopeAccessInformation scopeAccessInformation,
+            ExpressionReturnTypeOptions returnRequirements)
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (!Enum.IsDefined(typeof(ExpressionReturnTypeOptions), returnRequirements))
+                throw new ArgumentOutOfRangeException("returnRequirements");
+
+            // If there are three or less expression segments after any possible concat-flattening then this is not a special case, it can be handled
+            // by the common flow for one, two or three segments
+            var expressionSegmentsArray = ConcatFlattener.Flatten(expression).Segments.ToArray();
+            if (expressionSegmentsArray.Length <= 3)
+                return null;
+
+            // The even segments must be values and the odd segments must all be concat operators
+            var evenSegments = expressionSegmentsArray.Where((segment, index) => (index % 2) == 0);
+            if (evenSegments.Any(s => s is OperationExpressionSegment))
+                return null;
+            var oddSegments = expressionSegmentsArray.Where((segment, index) => (index % 2) == 1);
+            if (!oddSegments.All(s => s is OperationExpressionSegment) || oddSegments.OfType<OperationExpressionSegment>().Any(s => s.Token.Content != "&"))
+                return null;
+
+            var translatedNonOperatorSegments = evenSegments.Select(segment => TranslateNonOperatorSegment(segment, scopeAccessInformation));
+            return new TranslatedStatementContentDetails(
+                ApplyReturnTypeGuarantee(
+                    string.Format(
+                        "{0}.{1}({2})",
+                        _supportRefName.Name,
+                        GetSupportFunctionName(((OperationExpressionSegment)oddSegments.First()).Token),
+                        string.Join(", ", translatedNonOperatorSegments.Select(c => c.TranslatedContent))
+                    ),
+                    ExpressionReturnTypeOptions.Value, // All VBScript operators return numeric (or boolean, which are also numeric in VBScript) values
+                    returnRequirements,
+                    expressionSegmentsArray[0].AllTokens.First().LineIndex
+                ),
+                translatedNonOperatorSegments.SelectMany(c => c.VariablesAccessed).ToNonNullImmutableList()
+            );
+        }
+
 
         private class TranslatedStatementContentDetailsWithContentType : TranslatedStatementContentDetails
         {

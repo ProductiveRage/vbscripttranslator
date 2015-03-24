@@ -173,5 +173,46 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
             });
         }
+
+        /// <summary>
+        /// Since runs of string concatenations are so common, an exception to the two-arguments-per-operation (apart from NOT, that only takes one) is made
+        /// to allow the values to be combined in a single CONCAT call, reducing the size of the emitted code
+        /// </summary>
+        [Fact]
+        public void ConcatFunctionAllowsMoreThanTwoArguments()
+        {
+            var source = @"
+                WScript.Echo a & b & c & d
+            ";
+            var expected = new[]
+            {
+                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_.CONCAT(_env.a, _env.b, _env.c, _env.d)));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This is related to the ConcatFunctionAllowsMoreThanTwoArguments and provides reassurance that string concatenations will only be joined if it
+        /// would have no effect on the rest of processing (since the addition operation should take precedence, there is no CONCAT-flattening that can
+        /// be performed in this case)
+        /// </summary>
+        [Fact]
+        public void ConcatFunctionAllowsMoreThanTwoArgumentsButDoesNotAffectNestedOperationsOfOtherTypes()
+        {
+            var source = @"
+                WScript.Echo a & 1 + 2 & c & d
+            ";
+            var expected = new[]
+            {
+                "_.CALL(_env.wscript, \"echo\", _.ARGS.Val(_.CONCAT(_env.a, _.ADD((Int16)1, (Int16)2), _env.c, _env.d)));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
