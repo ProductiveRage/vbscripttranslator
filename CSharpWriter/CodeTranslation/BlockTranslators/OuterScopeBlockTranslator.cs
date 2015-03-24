@@ -1,13 +1,13 @@
-﻿using CSharpSupport;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using CSharpSupport;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -174,7 +174,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 3 // indentationDepth
             );
             var explicitVariableDeclarationsFromWithOuterScope = outerExecutableBlocksTranslationResult.ExplicitVariableDeclarations;
-            base.ThrowExceptionForDuplicateVariableDeclarationNames(explicitVariableDeclarationsFromWithOuterScope);
             outerExecutableBlocksTranslationResult = new TranslationResult(
                 outerExecutableBlocksTranslationResult.TranslatedStatements,
                 new NonNullImmutableList<VariableDeclaration>(),
@@ -304,26 +303,37 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
                         new TranslatedStatement(_envRefName.Name + " = env;", 4),
                         new TranslatedStatement(_outerRefName.Name + " = this;", 4)
-                    })
-                    .AddRange(
-                        explicitVariableDeclarationsFromWithOuterScope.Select(
-                            v => new TranslatedStatement(
-                                base.TranslateVariableInitialisation(v, ScopeLocationOptions.OutermostScope),
-                                4
-                            )
-                        )
-                    )
+                    });
+
+                // Note: Any repeated "explicitVariableDeclarationsFromWithOuterScope" entries are ignored - this makes the ReDim translation process easier (where ReDim statements
+                // may target already-declared variables or they may be considered to implicitly declare them) but it means that the Dim translation has to do some extra work to
+                // pick up on "Name redefined" scenarios.
+                var variableInitialisationStatements = new NonNullImmutableList<TranslatedStatement>();
+                foreach (var explicitVariableDeclaration in explicitVariableDeclarationsFromWithOuterScope)
+                {
+                    var variableInitialisationStatement = new TranslatedStatement(
+                        base.TranslateVariableInitialisation(explicitVariableDeclaration, ScopeLocationOptions.OutermostScope),
+                        4
+                    );
+                    if (!variableInitialisationStatements.Any(s => s.Content == variableInitialisationStatement.Content))
+                        variableInitialisationStatements = variableInitialisationStatements.Add(variableInitialisationStatement);
+                }
+                translatedStatements = translatedStatements.AddRange(variableInitialisationStatements);
+                translatedStatements = translatedStatements
                     .Add(
                         new TranslatedStatement("}", 3)
                     );
                 if (explicitVariableDeclarationsFromWithOuterScope.Any())
                 {
                     translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
-                    translatedStatements = translatedStatements.AddRange(
-                        explicitVariableDeclarationsFromWithOuterScope.Select(
-                            v => new TranslatedStatement("public object " + _nameRewriter.GetMemberAccessTokenName(v.Name) + " { get; set; }", 3)
-                        )
-                    );
+                    var variableDeclarationStatements = new NonNullImmutableList<TranslatedStatement>();
+                    foreach (var explicitVariableDeclaration in explicitVariableDeclarationsFromWithOuterScope)
+                    {
+                        var variableDeclarationStatement = new TranslatedStatement("public object " + _nameRewriter.GetMemberAccessTokenName(explicitVariableDeclaration.Name) + " { get; set; }", 3);
+                        if (!variableDeclarationStatements.Any(s => s.Content == variableDeclarationStatement.Content))
+                            variableDeclarationStatements = variableDeclarationStatements.Add(variableDeclarationStatement);
+                    }
+                    translatedStatements = translatedStatements.AddRange(variableDeclarationStatements);
                 }
             }
             foreach (var annotatedFunctionBlock in annotatedFunctions)

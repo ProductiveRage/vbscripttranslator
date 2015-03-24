@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CSharpWriter;
+using CSharpWriter.CodeTranslation.BlockTranslators;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
@@ -120,6 +122,55 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
                 );
             }
+
+            /// <summary>
+            /// This test is just to ensure that multiple ReDim statements for the same otherwise-undeclared variable do not result in that variable
+            /// being defined multiple times in the C# code (when the ReDim statements exist within in the outermost scope)
+            /// </summary>
+            [Fact]
+            public void RepeatedReDimInOutermostScope()
+            {
+                var source = @"
+                    ReDim a(0)
+                    ReDim a(1)
+                    ReDim a(2)";
+                
+                var trimmedTranslatedStatements = DefaultTranslator.Translate(source, new string[0], OuterScopeBlockTranslator.OutputTypeOptions.Executable)
+                    .Select(s => s.Content.Trim())
+                    .ToArray();
+
+                Assert.Equal(1, trimmedTranslatedStatements.Count(s => s == "a = null;"));
+                Assert.Equal(1, trimmedTranslatedStatements.Count(s => s == "public object a { get; set; }"));
+            }
+
+            /// <summary>
+            /// This test is just to ensure that multiple ReDim statements for the same otherwise-undeclared variable do not result in that variable
+            /// being defined multiple times in the C# code (when the ReDim statements exist within a function or property)
+            /// </summary>
+            [Fact]
+            public void RepeatedReDimInFunction()
+            {
+                var source = @"
+                    Function F1()
+                        ReDim a(0)
+                        ReDim a(1)
+                        ReDim a(2)
+                    End Function";
+                var expected = @"
+                    public object f1()
+                    {
+                      object retVal1 = null;
+                      object a = null;
+                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      _.NEWARRAY(new object[] { (Int16)1 }, value3 => { a = value3; });
+                      _.NEWARRAY(new object[] { (Int16)2 }, value4 => { a = value4; });
+                      return retVal1;
+                   }";
+                Assert.Equal(
+                    SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
         }
 
         public class DeclaredVariables
@@ -199,6 +250,58 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
                 );
             }
+
+            /// <summary>
+            /// This is almost identical to the corresponding test in the UndeclaredVariables class but it ensure that a Dim statement before the repeated
+            /// ReDims does not cause any problems (or, in fact, change in behaviour)
+            /// </summary>
+            [Fact]
+            public void RepeatedReDimInOutermostScope()
+            {
+                var source = @"
+                    Dim a
+                    ReDim a(0)
+                    ReDim a(1)
+                    ReDim a(2)";
+
+                var trimmedTranslatedStatements = DefaultTranslator.Translate(source, new string[0], OuterScopeBlockTranslator.OutputTypeOptions.Executable)
+                    .Select(s => s.Content.Trim())
+                    .ToArray();
+
+                Assert.Equal(1, trimmedTranslatedStatements.Count(s => s == "a = null;"));
+                Assert.Equal(1, trimmedTranslatedStatements.Count(s => s == "public object a { get; set; }"));
+            }
+
+            /// <summary>
+            /// This is almost identical to the corresponding test in the UndeclaredVariables class but it ensure that a Dim statement before the repeated
+            /// ReDims does not cause any problems (or, in fact, change in behaviour)
+            /// </summary>
+            [Fact]
+            public void RepeatedReDimInFunction()
+            {
+                var source = @"
+                    Function F1()
+                        Dim a
+                        ReDim a(0)
+                        ReDim a(1)
+                        ReDim a(2)
+                    End Function";
+                var expected = @"
+                    public object f1()
+                    {
+                      object retVal1 = null;
+                      object a = null;
+                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      _.NEWARRAY(new object[] { (Int16)1 }, value3 => { a = value3; });
+                      _.NEWARRAY(new object[] { (Int16)2 }, value4 => { a = value4; });
+                      return retVal1;
+                   }";
+                Assert.Equal(
+                    SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
         }
 
         /// <summary>
@@ -254,6 +357,27 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     Function F1()
                         ReDim Preserve a(0)
                         Dim a
+                    End Function";
+                Assert.Throws<ArgumentException>(() =>
+                {
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
+                });
+            }
+
+            /// <summary>
+            /// If a ReDim exists for a particular variable before a Dim for the same variable, even if they are not present on a single code branch that may
+            /// be executed by a single request, the Dim will still result in a "Name redefined" error being raise
+            /// </summary>
+            [Fact]
+            public void ReDimBeforeDimButOnDifferentCodePath()
+            {
+                var source = @"
+                    Function F1()
+                        If (True) Then
+                            ReDim a(0)
+                        Else
+                            Dim a
+                        End If
                     End Function";
                 Assert.Throws<ArgumentException>(() =>
                 {

@@ -26,6 +26,18 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return source(nameToken).Name;
         }
 
+        public static bool AreNamesEquivalents(this VBScriptNameRewriter source, NameToken x, NameToken y)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+            if (x == null)
+                throw new ArgumentNullException("x");
+            if (y == null)
+                throw new ArgumentNullException("y");
+
+            return source.GetMemberAccessTokenName(x) == source.GetMemberAccessTokenName(y);
+        }
+
         /// <summary>
         /// This is used by the GetMemberAccessTokenName for tokens that are not already NameToken instances. This derived type is used
         /// since it will bypass some of the the validation in the NameToken base constructor.

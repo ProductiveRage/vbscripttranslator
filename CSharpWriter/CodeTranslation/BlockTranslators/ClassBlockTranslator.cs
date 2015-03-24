@@ -96,7 +96,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentException("Invalid content - it should not be possible for there to be any undeclared variables within a class that aren't within one of its functions or properties");
             }
             var explicitVariableDeclarationsFromWithClass = classContentTranslationResult.ExplicitVariableDeclarations;
-            base.ThrowExceptionForDuplicateVariableDeclarationNames(explicitVariableDeclarationsFromWithClass);
             classContentTranslationResult = new TranslationResult(
                 classContentTranslationResult.TranslatedStatements,
                 new NonNullImmutableList<VariableDeclaration>(), // The ExplicitVariableDeclarations will be translated separately below
@@ -185,7 +184,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // Wrapping the call in a try..catch simulates this behaviour (there is similar required for Class_Terminate).
                 classInitializeCallStatements = new[] {
                     new TranslatedStatement(
-                        "try { " + _nameRewriter(classInitializeMethodNameIfAny).Name + "(); }",
+                        "try { " + _nameRewriter.GetMemberAccessTokenName(classInitializeMethodNameIfAny) + "(); }",
                         indentationDepth + 2
                     ),
                     new TranslatedStatement("catch(Exception e)", indentationDepth + 2),
@@ -243,7 +242,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("if (" + disposedFlagNameIfAny.Name + ")", indentationDepth + 2),
                     new TranslatedStatement("return;", indentationDepth + 3),
                     new TranslatedStatement("if (disposing)", indentationDepth + 2),
-                    new TranslatedStatement(_nameRewriter(classTerminateMethodNameIfAny).Name + "();", indentationDepth + 3),
+                    new TranslatedStatement(_nameRewriter.GetMemberAccessTokenName(classTerminateMethodNameIfAny) + "();", indentationDepth + 3),
                     new TranslatedStatement(disposedFlagNameIfAny.Name + " = true;", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1)
                 };

@@ -210,9 +210,42 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (explicitVariableDeclarationBlock == null)
                 return null;
 
-            // These only need to result in additions to the ExplicitVariableDeclarations set of the translationResult, these will be
-            // translated into the required form (varies depending upon whether the variable is defined within a class, function or
-            // in outermost scope)
+            // If a DIM statement exists after another DIM or REDIM for the same variable within the same scope, then a "Name redefined" compile
+            // error would be raised by the VBScript compiler. Note that these do not have to occur on the same executation path - eg.
+            //
+            //    If (True) Then
+	        //        ReDim a(0)
+            //    Else
+	        //        Dim a
+            //    End If
+            //
+            // will result in an error since there is a REDIM for "a" before the DIM for the same variable, even though no one code path will
+            // pass through both statements. This is because a REDIM will be considered by the interpreter to register an implicit variable
+            // declaration within the current scope for the target and so the DIM is then considered to be a redefinition. The follow variation
+            // will not result in a "Name redefined" error -
+            //
+            //    If (True) Then
+            //        Dim a
+            //    Else
+            //        ReDim a(0)
+            //    End If
+            //
+            // This is because it is a normal use case for a REDIM to target an already-declared variable reference.
+            var previouslyDeclaredVariableInCurrentScope = scopeAccessInformation.ScopeDefiningParent.GetAllNestedBlocks()
+                .OfType<BaseDimStatement>()
+                .TakeWhile(dim => dim != explicitVariableDeclarationBlock)
+                .SelectMany(dim => dim.Variables);
+            var firstVariableAlreadyDeclaredInTheCurrentScopeIfAny = previouslyDeclaredVariableInCurrentScope
+                .FirstOrDefault(previouslyDeclaredVariable => explicitVariableDeclarationBlock.Variables.Any(v => _nameRewriter.AreNamesEquivalents(v.Name, previouslyDeclaredVariable.Name)));
+            if (firstVariableAlreadyDeclaredInTheCurrentScopeIfAny != null)
+            {
+                throw new ArgumentException(string.Format(
+                    "Name redefined at line {0}: \"{1}\"",
+                    firstVariableAlreadyDeclaredInTheCurrentScopeIfAny.Name.LineIndex + 1,
+                    firstVariableAlreadyDeclaredInTheCurrentScopeIfAny.Name.Content
+                ));
+            }
+
             return translationResult.AddExplicitVariableDeclarations(
                 explicitVariableDeclarationBlock.Variables.Select(v => new VariableDeclaration(
                     v.Name,
@@ -551,17 +584,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (reDimStatement == null)
                 return null;
 
-            // Any variables that are referenced by the REDIM statement should be treated as if they HAVE been explicitly declared, so they will
-            // be included in the returned TranslationResult's ExplicitVariableDeclarations set (any variables that have already been declared
-            // need not be). Note that this means that code such as
-            //
-            //   REDIM a(0)
-            //   DIM a
-            //
-            // will fail, but that is consistent with VBScript's behaviour (a compile time error). This is a situation where the DIM statement
-            // does not effectively get hoisted to the top of the function. This behaviour happens regardless of the absence or presence of
-            // OPTION EXPLICIT (since that can only cause run time errors and this is a "Name redefined" VBScript compilation error).
-            var uninitialisedVariableDeclarationsToRecord = reDimStatement.Variables
+            // Any variables that are referenced by the REDIM statement should be treated as if they have been explicitly declared if they haven't
+            // otherwise within the current scope. Rather than worry about trying to determine whether or not they have already been declared in
+            // the current scope, we'll add them to the returned TranslationResult's ExplicitVariableDeclarations set and them rely upon this
+            // being de-duped when it's required. (Note: If this is a ReDim of the function or property return value, where applicable, then
+            // do NOT add it to the explicit variable declaration data).
+            var explicitVariableDeclarationsToRecord = reDimStatement.Variables
                 .Select(v => new
                 {
                     SourceName = v.Name,
@@ -571,24 +599,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         null
                     )
                 })
-                .Where(
-                    newVariable => !translationResult.ExplicitVariableDeclarations.Any(
-                        existingVariable => existingVariable.Name.Content.Equals(newVariable.VariableDeclaration.Name.Content, StringComparison.OrdinalIgnoreCase)
-                    )
-                )
                 .Where(newVariable =>
                     (scopeAccessInformation.ScopeDefiningParent == null) ||
                     !scopeAccessInformation.ScopeDefiningParent.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)
-                );
+                )
+                .ToArray(); // Call ToArray to ensure this is evaluated now and NOT afer the scopeAccessInformation change below
 
             // These variables are now used to extend the current scopeAccessInformation, this is important for the translation below - any
             // variables that had not be declared should be treated as if they had been explicitly declared (this will affect the results of
-            // calls to scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired; it will be able to correctly associated any previously-
+            // calls to scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired; it will be able to correctly associate any previously-
             // undeclared variables with the local scope or outer most scope - depending upon whether we're within a function / property or
             // not - without updating the scopeAccessInformation, if we were in the outer most scope then the undeclared variables would be
             // identified as an "Environment References" entry, which we don't want).
             scopeAccessInformation = scopeAccessInformation.ExtendVariables(
-                uninitialisedVariableDeclarationsToRecord
+                explicitVariableDeclarationsToRecord
                     .Select(v => new ScopedNameToken(
                         v.SourceName.Content,
                         v.SourceName.LineIndex,
@@ -686,7 +710,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             return translationResult
-                .AddExplicitVariableDeclarations(uninitialisedVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
+                .AddExplicitVariableDeclarations(explicitVariableDeclarationsToRecord.Select(v => v.VariableDeclaration))
                 .Add(translatedReDimStatements);
         }
 
@@ -930,43 +954,24 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepthForExplicitVariableDeclarations < 0)
                 throw new ArgumentOutOfRangeException("indentationDepthForExplicitVariableDeclarations", "must be zero or greater");
 
-            // While there may be duplicate references to undeclared variables, there may be only one explicit variable declaration for any variable
-            // (VBScript will raise a "Name redefined" compile error if there are multiple DIM statements for the same variable - being a compile
-            // error, it can not be avoided with On Error Resume Next so we should throw a translation exception)
-            ThrowExceptionForDuplicateVariableDeclarationNames(translationResult.ExplicitVariableDeclarations);
-
+            // Note: Any repeated variable declarations are ignored - this makes the ReDim translation process easier (where ReDim statements may target
+            // already-declared variables or they may be considered to implicitly declare them) but it means that the Dim translation has to do some extra
+            // work to pick up on "Name redefined" scenarios.
+            var variableDeclarationStatements = new NonNullImmutableList<TranslatedStatement>();
+            foreach (var explicitVariableDeclaration in translationResult.ExplicitVariableDeclarations)
+            {
+                var variableDeclarationStatement = new TranslatedStatement(
+                    TranslateVariableInitialisation(explicitVariableDeclaration, ScopeLocationOptions.WithinFunctionOrPropertyOrWith),
+                    indentationDepthForExplicitVariableDeclarations
+                );
+                if (!variableDeclarationStatements.Any(s => s.Content == variableDeclarationStatement.Content))
+                    variableDeclarationStatements = variableDeclarationStatements.Add(variableDeclarationStatement);
+            }
             return new TranslationResult(
-                translationResult.ExplicitVariableDeclarations
-                    .Select(
-                        v => new TranslatedStatement(TranslateVariableInitialisation(v, ScopeLocationOptions.WithinFunctionOrPropertyOrWith), indentationDepthForExplicitVariableDeclarations)
-                    )
-                    .ToNonNullImmutableList()
-                    .AddRange(translationResult.TranslatedStatements),
+                variableDeclarationStatements.AddRange(translationResult.TranslatedStatements),
                 new NonNullImmutableList<VariableDeclaration>(),
                 translationResult.UndeclaredVariablesAccessed
             );
-        }
-
-        /// <summary>
-        /// This will throw an exception for any duplicated variable name, which would have resulted in a VBScript "Name refined" compile error if
-        /// present within the same scope. This uses a case-insensitive string comparison, to mimic VBScript (it does not consider variables that
-        /// clash after being processed by the name rewriter since that would be a configuration issue, not an invalid-VBScript issue)
-        /// </summary>
-        protected void ThrowExceptionForDuplicateVariableDeclarationNames(NonNullImmutableList<VariableDeclaration> variableDeclarations)
-        {
-            if (variableDeclarations == null)
-                throw new ArgumentNullException("variableDeclarations");
-
-            var groupedVariableNames = variableDeclarations.GroupBy(v => v.Name.Content, StringComparer.OrdinalIgnoreCase);
-            var firstDuplicateNameEntryIfAny = groupedVariableNames.FirstOrDefault(g => g.Count() > 1);
-            if (firstDuplicateNameEntryIfAny == null)
-                return;
-
-            throw new ArgumentException(string.Format(
-                "Multiple explicit variable declarations encountered within the same scope, this would be a VBScript compilation error - \"{0}\" on lines {1}",
-                firstDuplicateNameEntryIfAny.Key,
-                string.Join(", ", firstDuplicateNameEntryIfAny.Select(v => v.Name.LineIndex + 1))
-            ));
         }
 
         /// <summary>
