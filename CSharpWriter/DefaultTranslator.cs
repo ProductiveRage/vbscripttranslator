@@ -86,7 +86,7 @@ namespace CSharpWriter
         public static NonNullImmutableList<TranslatedStatement> Translate(
             string scriptContent,
             string[] externalDependencies,
-            OuterScopeBlockTranslator.OutputTypeOptions outputType,
+            OuterScopeBlockTranslator.OutputTypeOptions outputType = OuterScopeBlockTranslator.OutputTypeOptions.Executable,
             bool renderCommentsAboutUndeclaredVariables = true)
         {
             if (externalDependencies == null)
