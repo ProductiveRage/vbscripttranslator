@@ -23,7 +23,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_env.i, v1 => { _env.i = v1; }));"
+                "_.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.i, v1 => { _env.i = v1; }));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -51,7 +51,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null; /* Undeclared in source */",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
+                "    _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -82,7 +82,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "{",
                 "    object retVal1 = null;",
                 "    object i = null;",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
+                "    _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(i, v2 => { i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -112,7 +112,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
-                "    _.CALL(_env.wscript, \"echo\", _.ARGS.Ref(_outer.i, v2 => { _outer.i = v2; }));",
+                "    _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_outer.i, v2 => { _outer.i = v2; }));",
                 "    return retVal1;",
                 "}"
             };
@@ -186,7 +186,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", _.ARGS.Val(_.CONCAT(_env.a, _env.b, _env.c, _env.d)));"
+                "_.CALL(_env.wscript, \"Echo\", _.ARGS.Val(_.CONCAT(_env.a, _env.b, _env.c, _env.d)));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),
@@ -207,7 +207,35 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_env.wscript, \"echo\", _.ARGS.Val(_.CONCAT(_env.a, _.ADD((Int16)1, (Int16)2), _env.c, _env.d)));"
+                "_.CALL(_env.wscript, \"Echo\", _.ARGS.Val(_.CONCAT(_env.a, _.ADD((Int16)1, (Int16)2), _env.c, _env.d)));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// The string values that specify target member names in a CALL expression must not be manipulated by the name rewriter at runtime. This means that
+        /// their casing will not be affected and - more importantly, any manipulations relating to C# keywords will NOT be applied. When the target is a
+        /// translated class, the name rewriter manipulations would not cause any issue but if the target is not something that is translated (a COM component,
+        /// for example), then trying to access its members with the name-rewritten versions will fail. This means that the CALL implementation must be able to
+        /// consider the same name rewriter rules at runtime that the translator does.
+        /// </summary>
+        [Fact]
+        public void MemberAccessorsInCallStatementsShouldNotBeRenamedAtTranslationTime()
+        {
+            // "Params" is a C# keyword, so we couldn't emit translated code with a method called "Params", but if "a" is an external reference (such as a COM
+            // component) then It may have a methor or property named "Params". As such we mustn't enforce the rewriting of "Params" to something C#-friendly
+            // at compile time (the CALL implementation will have to do some magic)
+            // - The GetTranslatedStatements uses the DefaultTranslator which uses the DefaultRuntimeSupportClassFactory.DefaultNameRewriter which will
+            //   ensure that C# keywords are rewritten to something safe
+            var source = @"
+                WScript.Echo a.Params
+            ";
+            var expected = new[]
+            {
+                "_.CALL(_env.wscript, \"Echo\", _.ARGS.Val(_.CALL(_env.a, \"Params\")));"
             };
             Assert.Equal(
                 expected.Select(s => s.Trim()).ToArray(),

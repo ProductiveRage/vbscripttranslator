@@ -116,7 +116,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
                     public void class_terminate()
                     {
-                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Gone!""));
+                        _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""Gone!""));
                     }
                 }";
             Assert.Equal(
@@ -168,7 +168,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
                     public void class_initialize()
                     {
-                        _.CALL(_env.wscript, ""echo"", _.ARGS.Val(""Here!""));
+                        _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""Here!""));
                     }
                 }";
             Assert.Equal(

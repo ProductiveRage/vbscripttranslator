@@ -15,7 +15,6 @@ using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace CSharpWriter.CodeTranslation.StatementTranslation
 {
-    // TODO: Ensure the nameRewriter isn't being used anywhere it shouldn't - it shouldn't rename methods of COM components, for example
     public class StatementTranslator : ITranslateIndividualStatements
     {
         private readonly CSharpName _supportRefName, _envRefName, _outerRefName;
@@ -725,7 +724,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 for (var index = 0; index < targetMemberAccessTokensArray.Length; index++)
                 {
                     callExpressionContent.Append(
-                        _nameRewriter.GetMemberAccessTokenName(targetMemberAccessTokensArray[index]).ToLiteral()
+                        targetMemberAccessTokensArray[index].Content.ToLiteral()
                     );
                     if (index < (targetMemberAccessTokensArray.Length - 1))
                         callExpressionContent.Append(", ");
