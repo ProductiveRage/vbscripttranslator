@@ -464,7 +464,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 }
             }
 
-            // TODO: Add handling for BuiltInValueToken (ie. "Err" for "Err.Raise" calls - or "Err.Description" accesses?)
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
             if (targetBuiltInFunction != null)
             {
@@ -508,14 +507,32 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
 
-            var targetReference = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
+            // The only BuiltInValueToken that is acceptable here is "Err", since it is the only one that has members that may be accessed. If any other builtin
+            // value is accessed in this manner then an "Object required" error needs to be raised at runtime.
+            var targetBuiltInValue = firstMemberAccessToken as BuiltInValueToken;
+            bool targetIsErrReference;
+            if (targetBuiltInValue != null)
+            {
+                if (!targetBuiltInValue.Content.Equals("Err", StringComparison.OrdinalIgnoreCase))
+                {
+                    // TODO: Emit some sort of error? "Object required: {0}"
+                    // - How will this work with nested content (eg. "F1(vbObjectError.Raise)", the exception can't just be raised right there)
+                    // - Maybe just piggy-back onto ERR.RAISE???
+                    throw new NotImplementedException();
+                }
+                targetIsErrReference = true;
+            }
+            else
+                targetIsErrReference = false;
+
+            var targetReference = targetIsErrReference ? (_supportRefName.Name + ".ERR") : _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
             var result = TranslateCallExpressionSegment(
                 targetReference,
                 callExpressionSegment.MemberAccessTokens.Skip(1),
                 callExpressionSegment.Arguments,
                 scopeAccessInformation,
                 indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
-                targetIsKnownToBeBuiltInFunction: false
+                targetIsKnownToBeBuiltInFunction: targetIsErrReference // Don't try to rewrite the target reference if it's the Err reference, we've already got it correct
             );
             var targetNameToken = firstMemberAccessToken as NameToken;
             if (targetNameToken != null)
