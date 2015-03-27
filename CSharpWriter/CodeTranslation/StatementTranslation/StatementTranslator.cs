@@ -89,7 +89,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (operatorSegmentWithIndex == null)
             {
                 if (segments.Length != 1)
-                    throw new ArgumentException("Expressions with multiple segments are not invalid if there is no operator");
+                    throw new ArgumentException("Expressions with multiple segments are not invalid if there is no operator (line " + (segments.First().AllTokens.First().LineIndex + 1) + ")");
             }
             else
             {
