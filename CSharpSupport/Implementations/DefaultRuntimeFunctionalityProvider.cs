@@ -371,6 +371,20 @@ namespace CSharpSupport.Implementations
         public string CSTR(object value) { throw new NotImplementedException(); }
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object value) { throw new NotImplementedException(); }
+        // - Number functions
+        public object ABS(object value) { throw new NotImplementedException(); }
+        public object ATN(object value) { throw new NotImplementedException(); }
+        public object COS(object value) { throw new NotImplementedException(); }
+        public object EXP(object value) { throw new NotImplementedException(); }
+        public object FIX(object value) { throw new NotImplementedException(); }
+        public object LOG(object value) { throw new NotImplementedException(); }
+        public object OCT(object value) { throw new NotImplementedException(); }
+        public object RND(object value) { throw new NotImplementedException(); }
+        public object ROUND(object value) { throw new NotImplementedException(); }
+        public object SGN(object value) { throw new NotImplementedException(); }
+        public object SIN(object value) { throw new NotImplementedException(); }
+        public object SQR(object value) { throw new NotImplementedException(); }
+        public object TAN(object value) { throw new NotImplementedException(); }
         // - String functions
         public object ASC(object value) { throw new NotImplementedException(); }
         public object ASCB(object value) { throw new NotImplementedException(); }
@@ -378,13 +392,20 @@ namespace CSharpSupport.Implementations
         public object CHR(object value) { throw new NotImplementedException(); }
         public object CHRB(object value) { throw new NotImplementedException(); }
         public object CHRW(object value) { throw new NotImplementedException(); }
+        public object FILTER(object value) { throw new NotImplementedException(); }
+        public object FORMATCURRENCY(object value) { throw new NotImplementedException(); }
+        public object FORMATDATETIME(object value) { throw new NotImplementedException(); }
+        public object FORMATNUMBER(object value) { throw new NotImplementedException(); }
+        public object FORMATPERCENT(object value) { throw new NotImplementedException(); }
         public object HEX(object value) { throw new NotImplementedException(); }
         public object INSTR(object value) { throw new NotImplementedException(); }
         public object INSTRREV(object value) { throw new NotImplementedException(); }
+        public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value) { throw new NotImplementedException(); }
         public object LENB(object value) { throw new NotImplementedException(); }
         public object LEFT(object value) { throw new NotImplementedException(); }
         public object LEFTB(object value) { throw new NotImplementedException(); }
+        public object RGB(object value) { throw new NotImplementedException(); }
         public object RIGHT(object value) { throw new NotImplementedException(); }
         public object RIGHTB(object value) { throw new NotImplementedException(); }
         public object REPLACE(object value) { throw new NotImplementedException(); }
@@ -396,6 +417,7 @@ namespace CSharpSupport.Implementations
         {
             throw new NotImplementedException();
         }
+        public object STRREVERSE(object value) { throw new NotImplementedException(); }
         public string TRIM(object value) { throw new NotImplementedException(); }
         public string LTRIM(object value) { throw new NotImplementedException(); }
         public string RTRIM(object value) { throw new NotImplementedException(); }
@@ -453,6 +475,8 @@ namespace CSharpSupport.Implementations
         public DateTime DATE() { return DateTime.Now.Date; }
         public DateTime TIME() { return new DateTime(DateTime.Now.TimeOfDay.Ticks); }
         public object DATEADD(object value) { throw new NotImplementedException(); }
+        public object DATEDIFF(object value) { throw new NotImplementedException(); }
+        public object DATEPART(object value) { throw new NotImplementedException(); }
         public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
         public object DATEVALUE(object value) { throw new NotImplementedException(); }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
@@ -460,8 +484,10 @@ namespace CSharpSupport.Implementations
         public object NOW(object value) { throw new NotImplementedException(); }
         public object DAY(object value) { throw new NotImplementedException(); }
         public object MONTH(object value) { throw new NotImplementedException(); }
+        public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value) { throw new NotImplementedException(); }
         public object WEEKDAY(object value) { throw new NotImplementedException(); }
+        public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
         public object HOUR(object value) { throw new NotImplementedException(); }
         public object MINUTE(object value) { throw new NotImplementedException(); }
         public object SECOND(object value) { throw new NotImplementedException(); }
@@ -471,6 +497,17 @@ namespace CSharpSupport.Implementations
         public object EVAL(object value) { throw new NotImplementedException(); }
         public object EXECUTE(object value) { throw new NotImplementedException(); }
         public object EXECUTEGLOBAL(object value) { throw new NotImplementedException(); }
+        // - Misc
+        public object GETLOCALE(object value) { throw new NotImplementedException(); }
+        public object GETREF(object value) { throw new NotImplementedException(); }
+        public object INPUTBOX(object value) { throw new NotImplementedException(); }
+        public object LOADPICTURE(object value) { throw new NotImplementedException(); }
+        public object MSGBOX(object value) { throw new NotImplementedException(); }
+        public string SCRIPTENGINE(object value) { throw new NotImplementedException(); }
+        public int SCRIPTENGINEBUILDVERSION(object value) { throw new NotImplementedException(); }
+        public int SCRIPTENGINEMAJORVERSION(object value) { throw new NotImplementedException(); }
+        public int SCRIPTENGINEMINORVERSION(object value) { throw new NotImplementedException(); }
+        public object SETLOCALE(object value) { throw new NotImplementedException(); }
 
         /// <summary>
         /// This returns the value without any immediate processing, but may keep a reference to it and dispose of it (where applicable) after

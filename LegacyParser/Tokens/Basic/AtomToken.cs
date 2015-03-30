@@ -371,20 +371,23 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "CREATEOBJECT", "GETOBJECT",
                     "CBOOL", "CSTR",
                     "DATEVALUE", "TIMEVALUE",
-                    "DAY", "MONTH", "YEAR", "WEEKDAY", "HOUR", "MINUTE", "SECOND",
+                    "DAY", "MONTH", "MONTHNAME", "YEAR", "WEEKDAY", "WEEKDAYNAME", "HOUR", "MINUTE", "SECOND", "DATEDIFF", "DATEPART",
                     "ABS",
                     "HEX", "OCT", "FIX",
                     "INT",
                     "CHR", "CHRB", "CHRW",
                     "INSTR", "INSTRREV",
-                    "LEN", "LENB", // return null
+                    "LEN", "LENB",
                     "LCASE", "UCASE",
                     "LEFT", "LEFTB", "RIGHT", "RIGHTB", "SPACE",
                     "REPLACE",
                     "STRCOMP", "STRING",
                     "LTRIM", "RTRIM", "TRIM",
                     "SPLIT", "ARRAY", "ERASE", "JOIN",
-                    "EVAL", "EXECUTE", "EXECUTEGLOBAL"
+                    "EVAL", "EXECUTE", "EXECUTEGLOBAL",
+                    "FORMATCURRENCY", "FORMATDATETIME", "FORMATNUMBER", "FORMATPERCENT",
+                    "FILTER", "GETLOCALE", "GETREF", "INPUTBOX", "LOADPICTURE", "MID", "MSGBOX", "RGB", "SETLOCALE", "SGN", "STRREVERSE", 
+                    "SCRIPTENGINE"
                 }
             );
         }
@@ -396,17 +399,18 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
         /// </summary>
         protected static bool isVBScriptFunctionThatAlwaysReturnsNumericContent(string atomContent)
         {
-            // These must ONLY include those that will never return null - TODO: Ensure didn't lose any functions in creating this
+            // These must ONLY include those that will never return null
             return isType(
                 atomContent,
                 new string[]
                 {
                     "CBYTE", "CCUR", "CINT", "CLNG", "CSNG", "CDBL", "CDATE",
                     "DATEADD", "DATESERIAL", "TIMESERIAL",
-                    "NOW", "DATE",
-                    "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND",
+                    "NOW", "DATE", "TIME",
+                    "ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND", "ROUND",
                     "HEX", "OCT", "FIX", "INT", "SNG",
-                    "ASC", "ASCB", "ASCW"
+                    "ASC", "ASCB", "ASCW",
+                    "SCRIPTENGINEBUILDVERSION", "SCRIPTENGINEMAJORVERSION", "SCRIPTENGINEMINORVERSION"
                 }
             );
         }

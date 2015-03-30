@@ -107,6 +107,21 @@ namespace CSharpSupport
         string CSTR(object value);
         string INT(object value);
         string STRING(object value);
+
+        // - Number functions
+        object ABS(object value);
+        object ATN(object value);
+        object COS(object value);
+        object EXP(object value);
+        object FIX(object value);
+        object LOG(object value);
+        object OCT(object value);
+        object RND(object value);
+        object ROUND(object value); // TODO: See http://blogs.msdn.com/b/ericlippert/archive/2003/09/26/bankers-rounding.aspx
+        object SGN(object value);
+        object SIN(object value);
+        object SQR(object value);
+        object TAN(object value);
         // - String functions
         object ASC(object value);
         object ASCB(object value);
@@ -114,6 +129,11 @@ namespace CSharpSupport
         object CHR(object value);
         object CHRB(object value);
         object CHRW(object value);
+        object FORMATCURRENCY(object value);
+        object FORMATDATETIME(object value);
+        object FORMATNUMBER(object value); // TODO: See http://blogs.msdn.com/b/ericlippert/archive/2003/09/26/53112.aspx
+        object FORMATPERCENT(object value);
+        object FILTER(object value);
         object HEX(object value);
         object INSTR(object value);
         object INSTRREV(object value);
@@ -121,6 +141,8 @@ namespace CSharpSupport
         object LENB(object value);
         object LEFT(object value);
         object LEFTB(object value);
+        object MID(object value);
+        object RGB(object value);
         object RIGHT(object value);
         object RIGHTB(object value);
         object REPLACE(object value);
@@ -128,6 +150,7 @@ namespace CSharpSupport
         object SPLIT(object value);
         object STRCOMP(object string1, object string2);
         object STRCOMP(object string1, object string2, object compare);
+        object STRREVERSE(object value);
         string TRIM(object value);
         string LTRIM(object value);
         string RTRIM(object value);
@@ -153,24 +176,39 @@ namespace CSharpSupport
         DateTime DATE();
         DateTime TIME();
         object DATEADD(object value);
+        object DATEDIFF(object value);
+        object DATEPART(object value);
         object DATESERIAL(object year, object month, object date);
         object DATEVALUE(object value);
-        object TIMESERIAL(object value);
-        object TIMEVALUE(object value);
         object NOW(object value);
         object DAY(object value);
         object MONTH(object value);
+        object MONTHNAME(object value);
         object YEAR(object value);
         object WEEKDAY(object value);
+        object WEEKDAYNAME(object value);
         object HOUR(object value);
         object MINUTE(object value);
         object SECOND(object value);
+        object TIMESERIAL(object value);
+        object TIMEVALUE(object value);
         // - Object creation
         object CREATEOBJECT(object value);
         object GETOBJECT(object value);
         object EVAL(object value);
         object EXECUTE(object value);
         object EXECUTEGLOBAL(object value);
+        // - Misc
+        object GETLOCALE(object value);
+        object GETREF(object value);
+        object INPUTBOX(object value);
+        object LOADPICTURE(object value);
+        object MSGBOX(object value);
+        string SCRIPTENGINE(object value);
+        int SCRIPTENGINEBUILDVERSION(object value);
+        int SCRIPTENGINEMAJORVERSION(object value);
+        int SCRIPTENGINEMINORVERSION(object value);
+        object SETLOCALE(object value);
 
         /* TODO
             "ERR", // This is NOT a function (it's a value)
