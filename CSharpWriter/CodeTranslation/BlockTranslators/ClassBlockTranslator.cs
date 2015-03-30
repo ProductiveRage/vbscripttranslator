@@ -39,6 +39,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // Outside of classes, functions may be declared multiple times - in which case the last one will take precedence and it will be as if the
             // others never existed. Within classes, however, duplicated names are not allowed and would result in a "Name redefined" compile-time error.
+            /* TODO: Fix this to allow properties and functions - no name may be present for both and none may have multiple get, let, set accessors
             var classFunctionsWithDuplicatedNames = classBlock.Statements
                 .Where(statement => statement is AbstractFunctionBlock)
                 .Cast<AbstractFunctionBlock>()
@@ -47,6 +48,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 .Select(group => group.Key);
             if (classFunctionsWithDuplicatedNames.Any())
                 throw new ArgumentException("The following function name are repeated with class " + classBlock.Name.Content + " (which is invalid): " + string.Join(", ", classFunctionsWithDuplicatedNames));
+             */
 
             // Apply Class_Initialize / Class_Terminate validation - if they appear then they must be SUBs (not FUNCTIONs) and they may not have arguments
             var classInitializeMethodIfAny = classBlock.Statements
