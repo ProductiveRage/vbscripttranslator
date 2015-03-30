@@ -84,13 +84,17 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
         /// <summary>
-        /// If a ByRef argument of a function is passed into another function as a ByRef argument then it must be stored in a temporary variable and then
+        /// If a ByRef argument of a function is passed direct into another function as a ByRef argument then it must be stored in a temporary variable and then
         /// updated from this variable after the function call completes (whether it succeeds or fails - if the ByRef argument was altered before the error
         /// then that updated value must be persisted). This is to avoid trying to access "ref" reference in a lambda, which is a compile error in C#.
+        /// Note that this applies only to ByRef arguments being passed onto another function as a ByRef argument - if a ByRef argument "a" is passed into
+        /// another function indirectly (eg. with "a.Name") then it would not be passed to that second function ByRef and so the temporary "alias"
+        /// variable would not be required.
         /// </summary>
         [Fact]
-        public void ByRefFunctionArgumentRequiresSpecialTreatmentIfUsedElsewhereAsByRefArgument()
+        public void ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument()
         {
             var source = @"
                 Function F1(a)
@@ -111,6 +115,152 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "        _.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias2, v3 => { byrefalias2 = v3; }));",
                 "    }",
                 "    finally { a = byrefalias2; }",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This works as a counter-example to ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument, illustrating that if
+        /// a ByRef argument of the containing function is only indirectly passed into a function call as an argument that would be ByRef then the alias
+        /// variable is not required.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentNeedNotBeMappedToAnAliasIfIndirectlyAccessedOutsideOfErrorTrapping()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 a.Name
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    _.CALL(_outer, \"f2\", _.ARGS.Val(_.CALL(a, \"Name\")));",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This acts as a complement to the tests ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument and
+        /// ByRefFunctionArgumentNeedNotBeMappedToAnAliasIfIndirectlyAccessedOutsideOfErrorTrapping by reminding us that a variable is not considered to
+        /// be "indirectly" accessed if it looks like an array access - we can't know until runtime whether it is an array access or whether it was a
+        /// default member access, meaning that it needs to be passed inside a REF-like lambda and so is another cases where an alias is required.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsAnArrayAsByRefArgument()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 a(0)
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    object byrefalias2 = a;",
+                "    try",
+                "    {",
+                "        _.CALL(_outer, \"f2\", _.ARGS.RefIfArray(byrefalias2, _.ARGS.Val((Int16)0)));",
+                "    }",
+                "    finally { a = byrefalias2; }",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This works as a another counter-example to ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument, if the ByRef
+        /// argument of the containing function constitues only part of a value passed into a function call as an argument that would be ByRef then the alias
+        /// variable is not required.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentNeedNotBeMappedToAnAliasIfOnlyPartialArgumentValue()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 """" & a
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    _.CALL(_outer, \"f2\", _.ARGS.Val(_.CONCAT(\"\", a)));",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This works as a another counter-example to ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument, if the ByRef
+        /// argument of the containing function is wrapped in extra brackets then it will be treated as ByVal even if otherwise it would need to be
+        /// considered as ByRef when passed into another function.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentNeedNotBeMappedToAnAliasIfForcedInToByValWhenPassedToNextFunction()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 (a)
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    _.CALL(_outer, \"f2\", _.ARGS.Val(a));",
                 "    return retVal1;",
                 "}",
                 "public object f2(ref object a)",

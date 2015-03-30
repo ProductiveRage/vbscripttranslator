@@ -34,19 +34,34 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         }
 
         /// <summary>
-        /// If we're within a function that has a ByRef argument a0 and that argument is passed into another function, where that argument is ByRef, then we need will
-        /// encounter problems since the mechanism for dealing with ByRef arguments is to generate an arguments handler with lambdas for updating the variable after the
-        /// call completes, but "ref" arguments may not be included in lambdas in C#. So the a0 reference must be copied into a temporary variable that is updated after
-        /// the second function call ends (even if it errors, since the argument may have been altered before the error). This function will identify which variables
-        /// in an expression must be rewritten in this manner. Similar logic must be applied if a0 is referenced within error-trapped code since the translated code
-        /// in that case will also be executed in a lambda - in that case, however, a0 will not need to be overwritten by the alias after the work completes, it is
-        /// a "read only" mapping. If the specified scopeAccessInformation reference does not indicate that the expression is within a function (or property) then
-        /// there will be work to perform.
+        /// If we're within a function that has a ByRef argument a0 and that argument is passed into another function, where that argument is ByRef, then we will encounter
+        /// problems since the mechanism for dealing with ByRef arguments is to generate an arguments handler with lambdas for updating the variable after the call completes,
+        /// but "ref" arguments may not be included in lambdas in C#. So the a0 reference must be copied into a temporary variable that is updated after the second function
+        /// call ends (even if it errors, since the argument may have been altered before the error). This function will identify which variables in an expression must be
+        /// rewritten in this manner. Similar logic must be applied if a0 is referenced within error-trapped code since the translated code in that case will also be executed
+        /// in a lambda - in that case, however, a0 will not need to be overwritten by the alias after the work completes, it is a "read only" mapping. If the specified
+        /// scopeAccessInformation reference does not indicate that the expression is within a function (or property) then there will be work to perform.
         /// </summary>
         public NonNullImmutableList<FuncByRefMapping> GetByRefArgumentsThatNeedRewriting(
             Expression expression,
             ScopeAccessInformation scopeAccessInformation,
             NonNullImmutableList<FuncByRefMapping> rewrittenReferences)
+        {
+            if (expression == null)
+                throw new ArgumentNullException("expression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (rewrittenReferences == null)
+                throw new ArgumentNullException("rewrittenReferences");
+
+            return GetByRefArgumentsThatNeedRewriting(expression, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue: false);
+        }
+
+        private NonNullImmutableList<FuncByRefMapping> GetByRefArgumentsThatNeedRewriting(
+            Expression expression,
+            ScopeAccessInformation scopeAccessInformation,
+            NonNullImmutableList<FuncByRefMapping> rewrittenReferences,
+            bool expressionIsDirectArgumentValue)
         {
             if (expression == null)
                 throw new ArgumentNullException("expression");
@@ -65,14 +80,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (!byRefArguments.Any())
                 return rewrittenReferences;
 
-            return GetByRefArgumentsThatNeedRewriting(expression.Segments, byRefArguments, scopeAccessInformation, rewrittenReferences);
+            return GetByRefArgumentsThatNeedRewriting(expression.Segments, byRefArguments, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue);
         }
 
         private NonNullImmutableList<FuncByRefMapping> GetByRefArgumentsThatNeedRewriting(
             IEnumerable<IExpressionSegment> expressionSegments,
             NonNullImmutableList<NameToken> byRefArguments,
             ScopeAccessInformation scopeAccessInformation,
-            NonNullImmutableList<FuncByRefMapping> rewrittenReferences)
+            NonNullImmutableList<FuncByRefMapping> rewrittenReferences,
+            bool expressionIsDirectArgumentValue)
         {
             if (expressionSegments == null)
                 throw new ArgumentNullException("expressionSegments");
@@ -82,6 +98,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 throw new ArgumentNullException("scopeAccessInformation");
             if (rewrittenReferences == null)
                 throw new ArgumentNullException("rewrittenReferences");
+
+            if (expressionIsDirectArgumentValue && (expressionSegments.Count() > 1))
+            {
+                // If an expression has multiple segments then no one part of it is elligible to be passed ByRef as a function argument - eg. "a + b" will not be
+                // passed ByRef since that expression "a + b" can not be altered by the receiving function even if the argument IS marked as ByRef.
+                expressionIsDirectArgumentValue = false;
+            }
 
             var rewrittenExpressionSegments = new List<IExpressionSegment>();
             foreach (var expressionSegment in expressionSegments)
@@ -103,11 +126,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var bracketedExpressionSegment = expressionSegment as BracketedExpressionSegment;
                 if (bracketedExpressionSegment != null)
                 {
+                    // If an expression is wrapped in brackets then, even if it would otherwise be elligible to be passed as a direct / ByRef argument to a function,
+                    // the brackets mean that it won't be - eg. for the complete statement "F2 (a)", the brackets are interpreted to mean force-a-to-be-passed-ByVal
+                    // and so we don't want it to be considered ByRef.
                     rewrittenReferences = GetByRefArgumentsThatNeedRewriting(
                         bracketedExpressionSegment.Segments,
                         byRefArguments,
                         scopeAccessInformation,
-                        rewrittenReferences
+                        rewrittenReferences,
+                        expressionIsDirectArgumentValue: false
                     );
                     continue;
                 }
@@ -122,6 +149,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         byRefArguments,
                         scopeAccessInformation,
                         rewrittenReferences,
+                        expressionIsDirectArgumentValue,
                         callSetItemIndex: 0,
                         callSetItemCount: 1
                     );
@@ -139,6 +167,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             byRefArguments,
                             scopeAccessInformation,
                             rewrittenReferences,
+                            expressionIsDirectArgumentValue,
                             callSetItemIndex: indexedCallExpressionSegment.Index,
                             callSetItemCount: callSetExpressionSegment.CallExpressionSegments.Count()
                         );
@@ -156,6 +185,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             NonNullImmutableList<NameToken> byRefArguments,
             ScopeAccessInformation scopeAccessInformation,
             NonNullImmutableList<FuncByRefMapping> rewrittenReferences,
+            bool expressionIsDirectArgumentValue,
             int callSetItemIndex,
             int callSetItemCount)
         {
@@ -179,9 +209,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // - Check memberAccessTokens, but only if this is the first segment and if there is only a single token. If there are multiple segments then it would never be ByRef and so
             //   we don't need to worry about it - eg. if "a" is a ByRef argument of the containing function that is then passed into another function as a ByRef argument as "a" then
             //   it must be flagged as requiring a temporary mapping, but if it is passed as "a.Name" then it does not need to be, since the second function can not alter the value
-            //   of "a". There is some spreading of logic here, that this level of knowledge is required here as well as in the statement translation process - TODO: Expose the
-            //   "isConfirmedToBeByVal" logic from the TranslateAsArgumentContent method in StatementTranslator somehow.
-            if ((callSetItemCount == 1) && (callSetItemExpressionSegment.MemberAccessTokens.Count() == 1))
+            //   of "a". There is some spreading of logic here, that this level of knowledge is required here as well as in the statement translation process.
+            // Note: The ByRef argument must be being passed DIRECTLY into another function as a ByRef argument, otherwise the ByRef rules do not apply - eg. if "a.Name" is passed
+            // into a function as ByRef argument, that function can not affect the value of the expression "a.Name", nor can it affect the value of "a". There sometimes-exception
+            // is expressions such as "a(0)" which may be altered when passed as a ByRef argument value, but only if "a" is an array and not if "a(0)" is a default member access.
+            if (expressionIsDirectArgumentValue && (callSetItemCount == 1) && (callSetItemExpressionSegment.MemberAccessTokens.Count() == 1))
             {
                 var targetAsNameToken = callSetItemExpressionSegment.MemberAccessTokens.Single() as NameToken;
                 if (targetAsNameToken != null)
@@ -219,7 +251,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             foreach (var argument in callSetItemExpressionSegment.Arguments)
-                rewrittenReferences = GetByRefArgumentsThatNeedRewriting(argument, scopeAccessInformation, rewrittenReferences);
+                rewrittenReferences = GetByRefArgumentsThatNeedRewriting(argument, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue: true);
 
             return rewrittenReferences;
         }
