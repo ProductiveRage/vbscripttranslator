@@ -225,9 +225,16 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     // if it was an subtraction operation between two terms or if it was this case, where the minus sign is a negation of the second
                     // term, which is passed as an argument to the first term).
                     var isMinusSign = (token is OperatorToken) && (token.Content == "-");
-                    var isOpenBrace = token is OpenBrace;
-                    if (isMinusSign || isOpenBrace)
+                    if (isMinusSign)
                     {
+                        // Note: Having hit a minus sign here before an open brace means that the brackets must be absent around the arguments - eg.
+                        //   F1 -1
+                        // We don't need to look ahead to see if the return value of this is considered, so we don't have to do any more. (If there
+                        // are any more accessors to consider then they must be part of one of the arguments - eg.
+                        //   F1 -1.1
+                        // or
+                        //   F1 -1, a.Name
+                        // This is a less complicated case than it the current token is an OpenBrace (see below).
                         var remainingTokens = tokenArray.Skip(tokenIndex).ToArray();
                         if (isMinusSign && (remainingTokens.Length > 1))
                         {
@@ -254,6 +261,56 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                             .Concat(new[] { new OpenBrace(lineIndexForInsertedOpenBrace) })
                             .Concat(remainingTokens)
                             .Concat(new[] { new CloseBrace(lineIndexForInsertedCloseBrace) })
+                            .ToArray();
+                        break;
+                    }
+                    if (token is OpenBrace)
+                    {
+                        // Note: Hitting an OpenBrace here may mean that we've hit the only argument content for a function and that it is enclosed in
+                        // braces - eg.
+                        //   F1(a)
+                        // in which case F1 would be called with argument "a" passed ByVal, since the brackets in this non-value-returning function call
+                        // would be given the special ByVal meaning. However, it is not conclusive, since we may actually be in the middle of content
+                        // such as
+                        //   F1(a).Name
+                        // in which case the "F1(a)" IS a value-returning function call and the brackets do NOT have special significance in terms of the
+                        // argument "a" being passed ByVal. In order to determine this, we need to look ahead in the content and count brackets in and
+                        // out until we get to the end of the content (not necessarily the last token since the statement could be followed by a comment,
+                        // for example). Until we get to that point we won't know what these brackets signify.
+                        var remainingTokens = tokenArray.Skip(tokenIndex).ToArray();
+                        var bracketedContent = new List<IToken> { remainingTokens.First() };
+                        var bracketDepth = 1;
+                        for (var index = 1; index < remainingTokens.Length; index++)
+                        {
+                            var bracketedContentToken = remainingTokens[index];
+                            bracketedContent.Add(bracketedContentToken);
+                            if (bracketedContentToken is CloseBrace)
+                            {
+                                bracketDepth--;
+                                if (bracketDepth == 0)
+                                    break;
+                            }
+                            else if (bracketedContentToken is OpenBrace)
+                                bracketDepth++;
+                        }
+                        var lineIndexForInsertedOpenBrace = firstItemTokens.Last().LineIndex;
+                        var lineIndexForInsertedCloseBrace = remainingTokens.Any() ? remainingTokens.Last().LineIndex : lineIndexForInsertedOpenBrace;
+                        if (bracketDepth != 0)
+                            throw new Exception("Invalid content - mismatched brackets ending on line " + (lineIndexForInsertedCloseBrace + 1));
+                        var remainingTokensAfterBracketedContent = remainingTokens.Skip(bracketedContent.Count);
+                        if (remainingTokensAfterBracketedContent.Any() && (remainingTokensAfterBracketedContent.First() is MemberAccessorOrDecimalPointToken))
+                        {
+                            // If there is a member accessor (a ".") after the bracketed content, then the brackets were a necessary part of a value-returning
+                            // function call and not the "optional" brackets which mean that an argument was being forced to be passed ByVal.
+                            firstItemTokens.AddRange(bracketedContent);
+                            tokenIndex = firstItemTokens.Count - 1;
+                            continue;
+                        }
+                        tokenArray = firstItemTokens
+                            .Concat(new[] { new OpenBrace(lineIndexForInsertedOpenBrace) })
+                            .Concat(bracketedContent)
+                            .Concat(new[] { new CloseBrace(lineIndexForInsertedCloseBrace) })
+                            .Concat(remainingTokensAfterBracketedContent)
                             .ToArray();
                         break;
                     }

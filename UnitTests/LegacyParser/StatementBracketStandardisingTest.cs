@@ -142,6 +142,52 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new TokenSetComparer()
                 );
             }
+
+            [Fact]
+            public void Test1() // TODO: Rename
+            {
+                // "F1(a).Go" does not need to be rewritten since there are already brackets around the argument "a" but they do not signify that it
+                // should be forcibly passed as ByVal (and so no *additional* brackets are required)
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Go", 0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    tokens,
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void Test2() // TODO: Rename
+            {
+                // "F1((a)).Go" does not need to be rewritten - there are brackets around "a" since it is a value-returning function call and there are
+                // further brackets which force it to be passed ByVal. But since there are already two pairs, no more need to be injected.
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new CloseBrace(0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Go", 0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    tokens,
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
         }
 
         public class ChangingTests
@@ -445,9 +491,179 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new TokenSetComparer()
                 );
             }
+
+            [Fact]
+            public void Test1() // TODO: Rename
+            {
+                // "F1(a)" should be rewritten as "F1((a))" since the brackets in the non-returning function call indicate that "a" should be passed
+                // ByVal to F1, regardless of what F1 might otherwise expect
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("F1", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void Test2() // TODO: Rename
+            {
+                // "F1(a).Go b" should be rewritten as "F1(a).Go(b)" so that the argument "b" is wrapped up nicely
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Go", 0),
+                    new NameToken("b", 0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("F1", 0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Go", 0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void Test3() // TODO: Rename
+            {
+                // "F1(a).Go(b)" should be rewritten as "F1(a).Go((b))" because the "Go" call is a non-value-returning call and so the brackets around the
+                // argument "b" indicate that it should be passed ByVal
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Go", 0),
+                    new OpenBrace(0),
+                    new NameToken("b", 0),
+                    new CloseBrace(0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("F1", 0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Go", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void Test4() // TODO: Rename
+            {
+                // "F1((a)).Go(b)" should be rewritten as "F1((a)).Go((b))" because the "Go" call is a non-value-returning call and so the brackets around the
+                // argument "b" indicate that it should be passed ByVal. There are additional brackets around the argument "a" to indicate that it should be
+                // passed ByVal (on top of the fact that the brackets are required for arguments in a value-returning call, which "F1((a))" is since the "Go"
+                // member of it must then be accessed), no further brackets need to be added around "a"  than are already present.
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new OpenBrace(0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0),
+                    new CloseBrace(0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("Go", 0),
+                    new OpenBrace(0),
+                    new NameToken("b", 0),
+                    new CloseBrace(0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("F1", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("Go", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("b", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
+
+            [Fact]
+            public void Test5() // TODO: Rename
+            {
+                // "F1 F2(1)" should be rewritten as "F1(F2(1))" for "standardised brackets". There are no additional brackets required relating to ByVal
+                // argument passing.
+                var tokens = new IToken[]
+                {
+                    new NameToken("F1", 0),
+                    new NameToken("F2", 0),
+                    new OpenBrace(0),
+                    new NameToken("a", 0),
+                    new CloseBrace(0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("F1", 0),
+                        new OpenBrace(0),
+                        new NameToken("F2", 0),
+                        new OpenBrace(0),
+                        new NameToken("a", 0),
+                        new CloseBrace(0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
         }
-        
-        // TODO
-        //"Test Test2(1)" // Works - CHANGING
     }
 }
