@@ -1,6 +1,4 @@
-﻿using CSharpWriter;
-using CSharpWriter.CodeTranslation.BlockTranslators;
-using System;
+﻿using System;
 using System.Linq;
 
 namespace Tester
@@ -33,16 +31,14 @@ namespace Tester
             //
             var scriptContent = @"
                 ' Test
+                Const a = 12
                 Dim i: For i = 1 To 10
                     WScript.Echo ""Item"" & i
                 Next";
 
-            // Set to Executable to get an entire, runnable program. Set to WithoutScaffolding to see only the meat of the translated content.
-            var outputType = OuterScopeBlockTranslator.OutputTypeOptions.Executable;
-            var translatedStatements = DefaultTranslator.Translate(
+            var translatedStatements = CSharpWriter.DefaultTranslator.Translate(
                 scriptContent,
-                new[] { "WScript" }, // Assume this is present when translating, don't log warnings about it not being declared
-                outputType
+                new[] { "WScript" } // Assume this is present when translating, don't log warnings about it not being declared
             );
             Console.WriteLine(
                 string.Join(
