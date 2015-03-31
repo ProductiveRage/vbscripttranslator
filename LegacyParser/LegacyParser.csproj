@@ -76,6 +76,7 @@
     <Compile Include="CodeBlocks\Basic\FunctionBlock.cs" />
     <Compile Include="CodeBlocks\Basic\SubBlock.cs" />
     <Compile Include="CodeBlocks\Handlers\ClassHandler.cs" />
+    <Compile Include="CodeBlocks\Handlers\ConstHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\WithHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\NewInstanceHandler.cs" />
     <Compile Include="CodeBlocks\Handlers\OptionExplicitHandler.cs" />
