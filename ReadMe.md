@@ -14,11 +14,11 @@ It's just classes, functions and if-blocks with some dynamic madness thrown in!
 
 ## Reality check
 
-Let me cut to the chase: This doesn't work. Yet. It parses nearly all VBScript structures into a format that it can then use to emit C# (as of March 2015 I still haven't finished the parsing of VBScript's "SELECT CASE" statements but it's not far off, plus I ran it against thousands of line of legacy code and there was one particular line that confused it - but it's fixed). And it does indeed emit compilable C# for many of the structures that it can parse.
+Let me cut to the chase: This doesn't work. Yet. It parses nearly all VBScript structures into a format that it can then use to emit C#. And it does indeed emit compilable C# for many of the structures that it can parse.
 
-The other thing is that it only tries to translate raw VBScript files - if it was going to translate ASP files (with mixed markup and script) then some sort of transformation would need to be applied first. If it was going to translate WSCs files (does anyone else even remember these) then it would need to parse the extra meta data in those files and adjust the interface on the compiled class accordingly.
+The other thing is that it only tries to translate raw VBScript files - if it was going to translate ASP files (with mixed markup and script) then some sort of transformation would need to be applied first (something I intend to add in the future). If it was going to translate WSCs files (does anyone else even remember these??) then it would need to parse the extra meta data in those files and adjust the interface on the compiled class accordingly.
 
-But what it *does* do (rather heroically, thank you very much) is deal with VBScript's ideas around scoping (including scoping of undeclared variables), insanely "helpful" (confusing) calling conventions and error-handling. And it makes a sort of wild stab at approximating its deterministic garbage collection (with a real emphasis on *approximating*).
+But what it *does* do (rather heroically, thank you very much) is deal with VBScript's ideas around scoping (including scoping of undeclared variables), insanely "helpful" (ie. confusing) calling conventions and its error-handling. And it makes a sort of wild stab at approximating its deterministic garbage collection (with a real emphasis on *approximating*).
 
 I've tried to think of one example that can encapsulate as much as possible of the *essence* of this work. And this seems like as good of a place to start as any:
 
@@ -27,22 +27,22 @@ I've tried to think of one example that can encapsulate as much as possible of t
     a = 1
     o.F1(a)
     If o.F2(a) Then
-      Response.Write "Hurrah! (a = " & a & ")<br/>""
+      Response.Write "Hurrah! (a = " & a & ")<br/>"
     Else
-      Response.Write "Ohhhh.. sad face (a = " & a & ")<br/>""
+      Response.Write "Ohhhh.. sad face (a = " & a & ")<br/>"
     End If
 
     Class C1
       Function F1(b)
-        Response.Write "b is " & b & " (a = " & a & ")<br/>""
+        Response.Write "b is " & b & " (a = " & a & ")<br/>"
         b = 2
-        Response.Write "b is " & b & " (a = " & a & ")<br/>""
+        Response.Write "b is " & b & " (a = " & a & ")<br/>"
       End Function
 
       Function F2(c)
-        Response.Write "c is " & c & " (a = " & a & ")<br/>""
+        Response.Write "c is " & c & " (a = " & a & ")<br/>"
         c = 3
-        Response.Write "c is " & c & " (a = " & a & ")<br/>""
+        Response.Write "c is " & c & " (a = " & a & ")<br/>"
         Response.Write "Time to die: " & (1/0)
       End Function
     End Class
@@ -129,6 +129,42 @@ In summary, this translation is a stupid idea. But all of these crazy cases have
 
 Let's not forget that at the bottom of the pile is code that I wrote many years ago. It is.. something of an experience to really work with code you wrote that long ago. Not just look at with a sort of nostalgic glint in your eye, but to actually extend and refactor. It's not that pretty I must admit. But building on top of it and slowly improving it (or resisting the urge in cases where it works well enough and I'd be better off spending time elsewhere) has been part of the challenge! And the test 
 coverage slowly increases.. For quite some time now I've been trying to include tests that fail without the accompanying changes and that pass *with* them. It's not quite red, green, refactor but it's been a really positive step towards preventing regressions (and they have in fact done precisely this several times - highlighted code that my "fix" would break where I hadn't accounted for something). And a lot of the tests exercise too much code to be strictly *unit* tests, but they do the job nonetheless! (And it's not like real world integration tests where anything messy like a database needs to be involved).
+
+### Translating and executing VBScript
+
+To actually translate some code, you need to provide a string of VBScript and a list of references that are expected to be declared at runtime. Any undeclared references that are encountered will be highlighted by comments, naming and shaming said references along with a line number - you don't these comments to be generated for any "environment references" such as "WScript" (if translating an admin script) or "Request", "Response", etc.. (if translating a web script). Any references that are in the specified "list of expected references" will *not* result in such finger-pointing comments being produced.
+
+eg.
+
+    var scriptContent = "' Test\nResponse.Write \"I want to be C#!\"";
+
+    var translatedStatements = CSharpWriter.DefaultTranslator.Translate(
+      scriptContent,
+      new[] { "Response" }
+    );
+    Console.WriteLine(
+      string.Join(
+        Environment.NewLine,
+        translatedStatements.Select(c => (new string(' ', c.IndentationDepth * 4)) + c.Content)
+      )
+    );
+
+The "Translate" function returns a set of **TranslatedStatement** instances, which have properties "Content" (a string) and "IndentationDepth" (a number). This data allows you to display and format the generated C# code.
+
+This code will declare a namespace "TranslatedProgram" that contains a class **Runner**, with a function "Go". The class must be instantiated with an **IProvideVBScriptCompatFunctionalityToIndividualRequests** reference; a "compatibility layer" support class that has functions to mimic VBScript's builtin functions. The "Go" method must be given an **EnvironmentReferences** instance (a child class of **Runner**) that provides the references that are implicitly expected to be available ("Response" in the example above).
+
+    var env = new TranslatedProgram.EnvironmentReferences
+    {
+      response = new ResponseMock()
+    };
+    using (var compatLayer = CSharpSupport.DefaultRuntimeSupportClassFactory.Get())
+    {
+      new TranslatedProgram.Runner(compatLayer).Go(env);
+    }
+
+(The **ResponseMock** class only needs a "Write" method in the example above and so could be written very easily - there is an implementation of this in the "Tester" project of this repo).
+
+If any of the defaults (such as the names "TranslatedProgram", "Runner", etc..) are not desirable then it should be easy to see how they may be overridden by looking at the code in "DefaultTranslator.Translate".
 
 ## Is there an end in sight?
 
