@@ -31,7 +31,6 @@ namespace Tester
             //
             var scriptContent = @"
                 ' Test
-                Const a = 12
                 Dim i: For i = 1 To 10
                     WScript.Echo ""Item"" & i
                 Next";
