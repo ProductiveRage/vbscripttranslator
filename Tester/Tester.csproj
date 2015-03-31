@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="TranslatedProgram.cs" />
+    <Compile Include="ResponseMock.cs" />
     <Compile Include="WScriptMock.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
