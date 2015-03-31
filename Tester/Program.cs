@@ -14,7 +14,7 @@ namespace Tester
             // constructor that takes a single argument, it requires a "compatibility functionality provider". An implementation may be found
             // in the static class DefaultRuntimeSupportClassFactory. So executing the translated code may be done with:
             //
-            //   using (var compatLayer = DefaultRuntimeSupportClassFactory.Get())
+            //   using (var compatLayer = CSharpSupport.DefaultRuntimeSupportClassFactory.Get())
             //   {
             //       new TranslatedProgram.Runner(compatLayer).Go();
             //   }
@@ -24,10 +24,10 @@ namespace Tester
             // takes an object argument and returns a value). Conveniently, such as class is provided in this project, so the output code
             // could be successfully executed with:
             //
-            //   using (var compatLayer = DefaultRuntimeSupportClassFactory.Get())
+            //   using (var compatLayer = CSharpSupport.DefaultRuntimeSupportClassFactory.Get())
             //   {
             //       new TranslatedProgram.Runner(compatLayer).Go(
-            //           new TranslatedProgram.Runner.EnvironmentReferences { WScript = new WScriptMock() }
+            //           new TranslatedProgram.Runner.EnvironmentReferences { wscript = new WScriptMock() }
             //       );
             //   }
             //
