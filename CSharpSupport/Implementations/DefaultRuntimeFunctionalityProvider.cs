@@ -546,7 +546,10 @@ namespace CSharpSupport.Implementations
             throw new NotImplementedException(); // TODO
         }
 
+        public object NEWREGEXP() { throw new NotImplementedException("NEWREGEXP not yet implemented"); } // TODO
+
         // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
+        public object ERR { get { throw new NotImplementedException("ERR not implemented yet"); } } // TODO
 
         /// <summary>
         /// There are some occassions when the translated code needs to throw a runtime exception based on the content of the source code - eg.

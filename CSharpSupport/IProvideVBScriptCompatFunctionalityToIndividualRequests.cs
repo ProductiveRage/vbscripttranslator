@@ -210,6 +210,9 @@ namespace CSharpSupport
         int SCRIPTENGINEMINORVERSION(object value);
         object SETLOCALE(object value);
 
+        object NEWREGEXP(); // TODO
+
+        object ERR { get; }
         /* TODO
             "ERR", // This is NOT a function (it's a value)
             "TIMER", // This IS a function (as are all of the below)

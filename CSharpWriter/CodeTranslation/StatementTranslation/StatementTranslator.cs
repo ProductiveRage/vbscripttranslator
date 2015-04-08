@@ -1182,6 +1182,20 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (!Enum.IsDefined(typeof(LegacyParser.ScopeLocationOptions), scopeLocation))
                 throw new ArgumentOutOfRangeException("scopeLocation");
 
+            // Deal with the special case of "new RegExp" - this is a built-in class and not a class that will be translated (it is the
+            // responsibility of the runtime support class to provide it)
+            if (newInstanceExpressionSegment.ClassName.Content.Equals("RegExp", StringComparison.OrdinalIgnoreCase))
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
+                        "{0}.NEWREGEXP()",
+                        _supportRefName.Name
+                    ),
+                    ExpressionReturnTypeOptions.Reference,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
+
             // Send the new instance to the NEW method so that it can be tracked and forcibly disposed of after ther request
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
