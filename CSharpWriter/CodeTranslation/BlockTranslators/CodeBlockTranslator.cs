@@ -132,9 +132,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // a translated class that represents that VBScript class)
                 return translationResult;
             }
-            return FlushUndeclaredVariableDeclarations(
-                FlushExplicitVariableDeclarations(translationResult, indentationDepth),
-                scopeAccessInformation.ScopeDefiningParent.Scope,
+            return FlushExplicitVariableDeclarations(
+                FlushUndeclaredVariableDeclarations(translationResult, scopeAccessInformation.ScopeDefiningParent.Scope, indentationDepth),
                 indentationDepth
             );
         }
@@ -589,6 +588,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // the current scope, we'll add them to the returned TranslationResult's ExplicitVariableDeclarations set and them rely upon this
             // being de-duped when it's required. (Note: If this is a ReDim of the function or property return value, where applicable, then
             // do NOT add it to the explicit variable declaration data).
+            // - Note: It seems strange that a REDIM should be treated as explicitly declaring a variable, since its purpose is to change the
+            //   dimensions of an existing array variable, but VBScript treats it as so (when Option Explicit) is enabled, so we will here too
             var explicitVariableDeclarationsToRecord = reDimStatement.Variables
                 .Select(v => new
                 {
@@ -998,6 +999,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             var uniqueVariables = new List<VariableDeclaration>();
             foreach (var undeclaredVariable in translationResult.UndeclaredVariablesAccessed)
             {
+                // If this variable was not explicitly declared with a DIM, but WAS referenced by a REDIM, then VBScript will not consider
+                // it undeclared - in this case, there will be an ExplicitVariableDeclarations entry from the REDIM which must be checked
+                // for here before declaring the variable officially undeclared.
+                if (translationResult.ExplicitVariableDeclarations.Any(v => _nameRewriter.AreNamesEquivalents(v.Name, undeclaredVariable)))
+                    continue;
+
                 var rewrittenName = _nameRewriter.GetMemberAccessTokenName(undeclaredVariable);
                 if (rewrittenNamesAccountedFor.Contains(rewrittenName))
                     continue;
@@ -1040,7 +1047,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         /// TryToTranslateClass and TryToTranslateFunction). These won't apply to all scopes - for example, the ClassBlockTranslator can't accept statements
         /// that should appear within functions - such as IF blocks.
         /// </summary>
-        protected NonNullImmutableList<BlockTranslationAttempter> GetWithinFunctionBlockTranslators()
+        protected NonNullImmutableList<BlockTranslationAttempter>  GetWithinFunctionBlockTranslators()
         {
             return new NonNullImmutableList<BlockTranslationAttempter>(
                 new BlockTranslationAttempter[]
