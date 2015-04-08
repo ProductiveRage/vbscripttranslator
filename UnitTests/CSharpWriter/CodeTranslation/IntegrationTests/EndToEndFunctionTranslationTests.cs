@@ -34,6 +34,46 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         /// <summary>
+        /// This is similar to IfTheOnlyExecutableStatementIsReturnValueThenTranslateIntoSingleReturnStatement but the single value passed a ByRef
+        /// argument of the containing function into another function as a ByRef argument - as such, it will be referenced within a lambda. This is
+        /// not acceptable in C# and so the argument must be stored in an alias while the second call takes place and then mapped back over the
+        /// original value. As such, it can not be represented as a simple one-line return statement.
+        /// </summary>
+        [Fact]
+        public void IfTheOnlyExecutableStatementIsReturnValueThenTranslateIntoSingleReturnStatementUnlessRefAliasMappingsRequired()
+        {
+            var source = @"
+                PUBLIC FUNCTION F1(a)
+                    F1 = F2(a)
+                END FUNCTION
+                PUBLIC FUNCTION F2(a)
+                END FUNCTION
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal2 = null;",
+                "    object byrefalias4 = a;",
+                "    try",
+                "    {",
+                "        retVal2 = _.VAL(_.CALL(_outer, \"f2\", _.ARGS.Ref(byrefalias4, v5 => { byrefalias4 = v5; })));",
+                "    }",
+                "    finally { a = byrefalias4; }",
+                "    return retVal2;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
         /// This is very similar to IfTheOnlyExecutableStatementIsReturnValueThenTranslateIntoSingleReturnStatement except that it demonstrates the difference
         /// required when the function return value is SET - meaning that it must be an object reference (however, because it references an undeclared variable,
         /// that variable must be defined within the function scope; so the C# is no longer a one-executable-line job, but the principle remains).

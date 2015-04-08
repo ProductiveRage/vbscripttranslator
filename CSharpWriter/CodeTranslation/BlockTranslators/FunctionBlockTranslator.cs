@@ -48,11 +48,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            var isSingleReturnValueStatementFunction = IsSingleReturnValueStatementFunction(functionBlock);
+            var isSingleReturnValueStatementFunction = IsSingleReturnValueStatementFunctionWithoutAnyByRefMappings(functionBlock, scopeAccessInformation);
             var returnValueName = functionBlock.HasReturnValue ? _tempNameGenerator(new CSharpName("retVal"), scopeAccessInformation) : null;
 			var translationResult = TranslationResult.Empty.Add(
 				TranslateFunctionHeader(
 					functionBlock,
+                    scopeAccessInformation,
 					returnValueName,
 					indentationDepth
 				)
@@ -99,16 +100,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (functionBlock.HasReturnValue && !isSingleReturnValueStatementFunction)
 			{
 				// If this is an empty function then just render "return null" (TranslateFunctionHeader won't declare the return value reference) 
-				translationResult = translationResult.Add(
-					new TranslatedStatement(
+				translationResult = translationResult
+                    .Add(new TranslatedStatement(
 						string.Format(
 							"return {0};",
 							functionBlock.Statements.Any() ? returnValueName.Name : "null"
 						),
 						indentationDepth + 1
-					)
-				);
-			}
+					));
+            }
 			return translationResult.Add(
 				new TranslatedStatement("}", indentationDepth)
             );
@@ -186,12 +186,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     			.AddUndeclaredVariables(undeclaredVariables);
         }
 
-		private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, CSharpName returnValueNameIfAny, int indentationDepth)
+        private IEnumerable<TranslatedStatement> TranslateFunctionHeader(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation, CSharpName returnValueNameIfAny, int indentationDepth)
 		{
 			if (functionBlock == null)
 				throw new ArgumentNullException("functionBlock");
 			if (functionBlock.HasReturnValue && (returnValueNameIfAny == null))
 				throw new ArgumentException("returnValueNameIfAny must not be null if functionBlock.HasReturnValue is true");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
@@ -233,7 +235,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             translatedStatements.Add(new TranslatedStatement(content.ToString(), indentationDepth));
             translatedStatements.Add(new TranslatedStatement("{", indentationDepth));
-            if (functionBlock.HasReturnValue && functionBlock.Statements.Any() && !IsSingleReturnValueStatementFunction(functionBlock))
+            if (functionBlock.HasReturnValue && functionBlock.Statements.Any() && !IsSingleReturnValueStatementFunctionWithoutAnyByRefMappings(functionBlock, scopeAccessInformation))
 			{
 				translatedStatements.Add(new TranslatedStatement(
 					base.TranslateVariableInitialisation(
@@ -258,10 +260,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         /// statement in the C# output (as opposed to having to maintain a temporary variable for the return value in case there are various manipulations
         /// of it or error-handling or any other VBScript oddnes required)
         /// </summary>
-        private bool IsSingleReturnValueStatementFunction(AbstractFunctionBlock functionBlock)
+        private bool IsSingleReturnValueStatementFunctionWithoutAnyByRefMappings(AbstractFunctionBlock functionBlock, ScopeAccessInformation scopeAccessInformation)
         {
             if (functionBlock == null)
                 throw new ArgumentNullException("functionBlock");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
 
             var executableStatements = functionBlock.Statements.Where(s => !(s is INonExecutableCodeBlock));
             if (executableStatements.Count() != 1)
@@ -279,6 +283,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 return false;
 
             if (_nameRewriter.GetMemberAccessTokenName(valueToSetTokenAsNameToken) != _nameRewriter.GetMemberAccessTokenName(functionBlock.Name))
+                return false;
+
+            // If any values need aliasing in order to perform this "one liner" then it won't be possible to represent it a simple one-line return, it will
+            // need a try..finally setting up to create the alias(es), use where required and then map the values back over the original(s).
+            scopeAccessInformation = scopeAccessInformation.Extend(functionBlock, functionBlock.Statements.ToNonNullImmutableList());
+            var byRefArgumentMapper = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var byRefArgumentsToMap = byRefArgumentMapper.GetByRefArgumentsThatNeedRewriting(
+                valueSettingStatement.Expression.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                scopeAccessInformation,
+                new NonNullImmutableList<FuncByRefMapping>()
+            );
+            if (byRefArgumentsToMap.Any())
                 return false;
 
             return !valueSettingStatement.Expression.Tokens.Any(
