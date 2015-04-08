@@ -4,7 +4,7 @@ namespace Tester
 {
     public class ResponseMock
     {
-        public void Wite(object content)
+        public void Write(object content)
         {
             Console.Write(content);
         }
