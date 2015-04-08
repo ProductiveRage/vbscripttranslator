@@ -74,6 +74,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             //     For i = CByte(0) TO CByte(1) ' Even though CByte returns type "Byte", the loop variable "i" here is always "Integer"
             var undeclaredVariableReferencesAccessedByLoopConstraints = new NonNullImmutableList<NameToken>();
             var loopConstraintInitialisersWhereRequired = new List<LoopConstraintInitialiser>();
+            var byRefMapper = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var byRefArgumentsToRewrite = new NonNullImmutableList<FuncByRefMapping>();
             string loopEnd;
             var numericLoopEndValueIfAny = TryToGetExpressionAsNumericConstant(forBlock.LoopTo);
             if (numericLoopEndValueIfAny != null)
@@ -85,7 +87,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                var numericLoopEndContent = WrapInNUMCallIfRequired(forBlock.LoopTo, scopeAccessInformation);
+                byRefArgumentsToRewrite = byRefMapper.GetByRefArgumentsThatNeedRewriting(
+                    forBlock.LoopTo.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                    scopeAccessInformation,
+                    byRefArgumentsToRewrite
+                );
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
+                var numericLoopEndContent = WrapInNUMCallIfRequired(
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(forBlock.LoopTo, _nameRewriter),
+                    scopeAccessInformation
+                );
                 var loopEndName = _tempNameGenerator(new CSharpName("loopEnd"), scopeAccessInformation);
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopEndName,
@@ -120,7 +135,20 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
-                var numericLoopStepContent = WrapInNUMCallIfRequired(forBlock.LoopStep, scopeAccessInformation);
+                byRefArgumentsToRewrite = byRefMapper.GetByRefArgumentsThatNeedRewriting(
+                    forBlock.LoopStep.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                    scopeAccessInformation,
+                    byRefArgumentsToRewrite
+                );
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
+                var numericLoopStepContent = WrapInNUMCallIfRequired(
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(forBlock.LoopStep, _nameRewriter),
+                    scopeAccessInformation
+                );
                 var loopStepName = _tempNameGenerator(new CSharpName("loopStep"), scopeAccessInformation);
                 loopConstraintInitialisersWhereRequired.Add(new LoopConstraintInitialiser(
                     loopStepName,
@@ -161,8 +189,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // implicit step is of type "Integer", in order for "i" to be of type "Byte" the loop must be "FOR i = CBYTE(1) TO CBYTE(5) STEP CBYTE(1)".
                 // However, there is one a minor shortcut we can take, don't include duplicate values in the NUM call - so if we have "FOR i = 1 To a", the
                 // loop start and step are the same, so instead of emitting "NUM((Int16)1, a, (Int16)1)" trim it down to "NUM((Int16)1, a)".
+                byRefArgumentsToRewrite = byRefMapper.GetByRefArgumentsThatNeedRewriting(
+                    forBlock.LoopFrom.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                    scopeAccessInformation,
+                    byRefArgumentsToRewrite
+                );
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
                 var loopStartExpressionContent = _statementTranslator.Translate(
-                    forBlock.LoopFrom,
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(forBlock.LoopFrom, _nameRewriter),
                     scopeAccessInformation,
                     ExpressionReturnTypeOptions.NotSpecified,
                     _logger.Warning
@@ -207,7 +245,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
             if (!scopeAccessInformation.IsDeclaredReference(rewrittenLoopVariableName, _nameRewriter))
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.Add(forBlock.LoopVar);
-
+            
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables
             // declared and initialised. There may be a mix of dynamic and constant constraints so there may be zero, one, two or three variables
             // to deal with here (this will have been determined in the work above).
@@ -241,6 +279,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ));
                 }
                 constraintsInitialisedFlagNameIfAny = _tempNameGenerator(new CSharpName("loopConstraintsInitialised"), scopeAccessInformation);
+                var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
                 translationResult = translationResult
                     .Add(new TranslatedStatement(
                         string.Format(
@@ -344,6 +385,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         indentationDepth + 1
                     ))
                     .Add(new TranslatedStatement("});", indentationDepth));
+                indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
             }
 
             // If all three constraints are numeric constraints then we can determine now whether the loop should be executed or not
@@ -387,7 +430,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 if (numericLoopStartValueIfAny.Value <= numericLoopEndValueIfAny.Value)
                     guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictGTE({1}, 0)", _supportRefName.Name, loopStep));
                 else
-                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictLT({1}. 0)", _supportRefName.Name, loopStep));
+                    guardClauseLines = guardClauseLines.Add(string.Format("{0}.StrictLT({1}, 0)", _supportRefName.Name, loopStep));
             }
             else
             {
@@ -409,55 +452,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 ));
             }
 
-            // If there are non-constant constraint(s) and error-trapping is enabled and thee constraint evaluation fails, then VBScript will
-            // enter the loop once (only once, and it will not initialise the loop variable when doing so). In this case, we need to bypass
-            // the guard clause - it won't make sense anyway to compare loop constaints if we know that the constraint evaluation failed!
-            if (constraintsInitialisedFlagNameIfAny != null)
-            {
-                // If the guard clases have already been split up over multiple lines then insert a fresh line, otherwise just bang it in
-                // front of the single line (unless there is no content, in which case this will become the only guard clause line)
-                if (!guardClauseLines.Any())
-                    guardClauseLines = guardClauseLines.Add("(" + constraintsInitialisedFlagNameIfAny.Name + ")");
-                else if (guardClauseLines.Count == 1)
-                {
-                    guardClauseLines = new NonNullImmutableList<string>(new[]
-                    {
-                        string.Format(
-                            "(!{0} || {1})",
-                            constraintsInitialisedFlagNameIfAny.Name,
-                            guardClauseLines.Single()
-                        )
-                    });
-                }
-                else
-                {
-                    guardClauseLines = new NonNullImmutableList<string>(
-                        new[] { "(!" + constraintsInitialisedFlagNameIfAny.Name + " ||" }
-                        .Concat(guardClauseLines.Take(guardClauseLines.Count - 1))
-                        .Concat(new[] { guardClauseLines.Last() + ")" })
-                    );
-                }
-            }
-
+            // If the loop variable is a ByRef argument of the containing function (where applicable) then it will need to be temporarily stored in an alias at
+            // some points, since it will need to be accessed within a lambda (eg. during some of the loop-constraint-evaluation / loop-variable-initialising
+            // logic, performed within a HANDLEERROR call). If this is the case, the this value will be non-null.
+            var loopVarAliasIfRequired = GetByRefAliasIfRequired(forBlock.LoopVar, scopeAccessInformation);
             if (guardClauseLines.Any())
             {
                 translationResult = translationResult.Add(new TranslatedStatement("if " + guardClauseLines.First(), indentationDepth));
                 foreach (var guardClauseLine in guardClauseLines.Skip(1))
                     translationResult = translationResult.Add(new TranslatedStatement(guardClauseLine, indentationDepth));
                 translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
-                indentationDepth++;
-            }
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
-            {
-                translationResult = translationResult
-                    .Add(new TranslatedStatement(
-                        string.Format(
-                            "{0}.HANDLEERROR({1}, () => {{",
-                            _supportRefName.Name,
-                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                        ),
-                        indentationDepth
-                    ));
                 indentationDepth++;
             }
             string continuationCondition;
@@ -473,7 +477,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     continuationCondition = string.Format(
                         "{0}.StrictLTE({1}, {2})",
                         _supportRefName.Name,
-                        rewrittenLoopVariableName,
+                        (loopVarAliasIfRequired != null) ? loopVarAliasIfRequired.To.Name : rewrittenLoopVariableName,
                         (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString()
                     );
                 }
@@ -483,7 +487,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     continuationCondition = string.Format(
                         "{0}.StrictGTE({1}, {2})",
                         _supportRefName.Name,
-                        rewrittenLoopVariableName,
+                        (loopVarAliasIfRequired != null) ? loopVarAliasIfRequired.To.Name : rewrittenLoopVariableName,
                         (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString()
                     );
                 }
@@ -494,23 +498,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 continuationCondition = string.Format(
                     "({0}.StrictGTE({3}, 0) && {0}.StrictLTE({1}, {2})) || ({0}.StrictLT({3}, 0) && {0}.StrictGTE({1}, {2}))",
                     _supportRefName.Name,
-                    rewrittenLoopVariableName,
+                    (loopVarAliasIfRequired != null) ? loopVarAliasIfRequired.To.Name : rewrittenLoopVariableName,
                     (numericLoopEndValueIfAny == null) ? loopEnd : numericLoopEndValueIfAny.Value.ToString(),
                     loopStep
-                );
-            }
-            if (constraintsInitialisedFlagNameIfAny != null)
-            {
-                // If there is a chance that the constraint evaluation will fail but that processing may continue (ie. there's an ON ERROR RESUME NEXT
-                // in the current scope that may affect things) then the continuation condition gets a special condition that it will not be checked
-                // if the constraint evaluation did indeed fail. In such a case, VBScript will enter the loop once (without altering the loop variable
-                // value). To replicate this behaviour, if constraint evaluation fails then the loop WILL be entered once without the loop variable
-                // being altered and without the continuation condition being considered - instead, there is a "break" at the end of the loop which
-                // will be executed if the constraint evaluation failed, ensuring that the loop was indeed processed once, consistent with VBScript.
-                continuationCondition = string.Format(
-                    "!{0} || ({1})",
-                    constraintsInitialisedFlagNameIfAny.Name,
-                    continuationCondition
                 );
             }
             string loopIncrementWithLeadingSpaceIfNonBlank;
@@ -526,7 +516,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     //   _env.i = _.SUBT(_env.i, (Int16)1)
                     loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
                         " {0} = {2}.SUBT({0}, {1})",
-                        rewrittenLoopVariableName,
+                        (loopVarAliasIfRequired != null) ? loopVarAliasIfRequired.To.Name : rewrittenLoopVariableName,
                         numericLoopStepValueIfAny.GetNegative().AsCSharpValue(),
                         _supportRefName.Name
                     );
@@ -541,73 +531,77 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     // no chance of me coming back in the future and thinking I can change it back again!
                     loopIncrementWithLeadingSpaceIfNonBlank = string.Format(
                         " {0} = {2}.ADD({0}, {1})",
-                        rewrittenLoopVariableName,
+                        (loopVarAliasIfRequired != null) ? loopVarAliasIfRequired.To.Name : rewrittenLoopVariableName,
                         loopStep,
                         _supportRefName.Name
                     );
                 }
             }
-            string loopVarInitialiser;
-            if (constraintsInitialisedFlagNameIfAny == null)
-            {
-                loopVarInitialiser = string.Format(
-                    "{0} = {1}",
-                    rewrittenLoopVariableName,
-                    loopStart
-                );
-            }
-            else
-            {
-                // If error-trapping is enabled and loop constaint evaluation fails, then the loop must be entered once but the loop variable's value may
-                // not be altered. This condition deals with that case; the loop variable is only set to the start value if all of the constraints were
-                // successfully initialised. Note that constraintsInitialisedFlagNameIfAny will only be non-null if error-trapping may take affect and
-                // if the loop constraints are not numeric constants known at translation time.
-                loopVarInitialiser = string.Format(
-                    "{0} = {1} ? {2} : {0}",
-                    rewrittenLoopVariableName,
-                    constraintsInitialisedFlagNameIfAny.Name,
-                    loopStart
-                );
-            }
-            if ((constraintsInitialisedFlagNameIfAny == null) && (numericLoopStepValueIfAny != null))
+            var loopVarInitialiser = string.Format(
+                "{0} = {1}",
+                rewrittenLoopVariableName,
+                loopStart
+            );
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
             {
                 // If there is no complicated were-loop-constraints-successfully-initialised logic to worry about (meaning that either error-trapping was
-                // not enabled or that all of the constraints were numeric constants), then render a nice and simple single-line loop construct.
-                // Note: There is no space before {2} so that if there is no loop increment required then the output doesn't look like it's missing
-                // something (this may be the case if the loop step is zero)
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format(
-                        "for ({0}; {1};{2})",
-                        loopVarInitialiser,
-                        continuationCondition,
-                        loopIncrementWithLeadingSpaceIfNonBlank
-                    ),
-                    indentationDepth
-                ));
+                // not enabled, then render a nice and simple for-loop construct. If the step value is known to be a constant then render it all on one line,
+                // otherwise wrap it over several since the code is likely to stretch to be too long for a single line.
+                if (numericLoopStepValueIfAny != null)
+                {
+                    // Note: There is no space before {2} so that if there is no loop increment required then the output doesn't look like it's missing
+                    // something (this may be the case if the loop step is zero)
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "for ({0}; {1};{2})",
+                            loopVarInitialiser,
+                            continuationCondition,
+                            loopIncrementWithLeadingSpaceIfNonBlank
+                        ),
+                        indentationDepth
+                    ));
+                }
+                else
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "for ({0};",
+                            loopVarInitialiser
+                        ),
+                        indentationDepth
+                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        continuationCondition + ";" + ((loopIncrementWithLeadingSpaceIfNonBlank == "") ? ")" : ""),
+                        indentationDepth + 1
+                    ));
+                    if (loopIncrementWithLeadingSpaceIfNonBlank != "")
+                    {
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            loopIncrementWithLeadingSpaceIfNonBlank.Trim() + ")",
+                            indentationDepth + 1
+                        ));
+                    }
+                }
             }
             else
             {
-                // If there IS some possibility that loop constraint evaluation may fail at runtime, then the loop construct becomes much more complicated
-                // and so benefits from being broken over multiple lines. There is still a chance that the loop increment could be blank, so consider that
-                // and either break over two or three lines.
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    string.Format(
-                        "for ({0};",
-                        loopVarInitialiser
-                    ),
-                    indentationDepth
-                ));
-                translationResult = translationResult.Add(new TranslatedStatement(
-                    continuationCondition + ";" + ((loopIncrementWithLeadingSpaceIfNonBlank == "") ? ")" : ""),
-                    indentationDepth + 1
-                ));
-                if (loopIncrementWithLeadingSpaceIfNonBlank != "")
+                // If error-trapping may be enabled then the loop is structured into a while (true) { } so that the special handling about entering a loop
+                // only once does not require a HANDLEERROR call to wrap the entire loop, which would introduce many complications around ensuring that any
+                // required "by-ref aliases" are dealt with at the correct points (if the loop is within a function with a ByRef argument and that argument
+                // is referenced within the loop constraints or within any statement within the loop then it must be aliased since it will be used within a
+                // lambda - eg. HANDLEERROR calls - which is not valid in C#). It makes the code much easier to generate if it is a while (true) { } where
+                // the loop variable is set before entering (where appropriate) and the termination conditions considered at the end of the loop (including
+                // special handling for if-loop-constraint-evaluation failed and error-trapping is enabled, then process the loop once and once only).
+                if (constraintsInitialisedFlagNameIfAny != null)
                 {
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        loopIncrementWithLeadingSpaceIfNonBlank.Trim() + ")",
-                        indentationDepth + 1
-                    ));
+                    translationResult = translationResult.Add(new TranslatedStatement("if (" + constraintsInitialisedFlagNameIfAny.Name + ")", indentationDepth));
+                    indentationDepth++;
                 }
+                translationResult = translationResult.Add(new TranslatedStatement(loopVarInitialiser + ";", indentationDepth));
+                if (constraintsInitialisedFlagNameIfAny != null)
+                    indentationDepth--;
+
+                translationResult = translationResult.Add(new TranslatedStatement("while (true)", indentationDepth));
             }
             translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
             var earlyExitNameIfAny = GetEarlyExitNameIfRequired(forBlock, scopeAccessInformation);
@@ -626,20 +620,72 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     indentationDepth + 1
                 )
             );
-            if (constraintsInitialisedFlagNameIfAny != null)
+            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
             {
                 // If error-trapping is enabled and loop constaint evaluation failed, then the loop is entered once but the loop variable value is not
                 // altered and continuation criteria are never checked - instead, the loop exits after one pass in these circumstances
+                if (constraintsInitialisedFlagNameIfAny != null)
+                {
+                    // Note: If error-trapping is enabled, the constraintsInitialisedFlagNameIfAny value may still be null - this is the case where the
+                    // constraints are all known to be numeric values at compile time. In this case, we don't need to check the were-constraints-initialised
+                    // flag (but we do still need to wrap the loop variable increment in a HANDLEERROR call in case something strang was done to it during
+                    // the loop - eg. a FOR i = 1 TO 5 loop where i is set to "z" within the loop).
+                    translationResult = translationResult
+                        .Add(new TranslatedStatement("if (!" + constraintsInitialisedFlagNameIfAny.Name + ")", indentationDepth + 1))
+                        .Add(new TranslatedStatement("break;", indentationDepth + 2));
+                }
+
+                var continueLoopName = _tempNameGenerator(new CSharpName("continueLoop"), scopeAccessInformation);
+                translationResult = translationResult.Add(new TranslatedStatement("var " + continueLoopName.Name + " = false;", indentationDepth + 1));
+                
+                // If the loop variable required aliasing then set up the alias before the HANDLEERROR call (and then map it back after the HANDLEERROR call
+                // is terminated - a little bit further down in this function)
+                int distanceToIdentEvaluationCodeDueToByRefMappings;
+                if (loopVarAliasIfRequired != null)
+                {
+                    var byRefMappingOpeningTranslationDetails = (new[] { loopVarAliasIfRequired }).ToNonNullImmutableList().OpenByRefReplacementDefinitionWork(
+                        translationResult,
+                        indentationDepth + 1,
+                        _nameRewriter
+                    );
+                    translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                    distanceToIdentEvaluationCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                    indentationDepth += distanceToIdentEvaluationCodeDueToByRefMappings;
+                }
+                else
+                    distanceToIdentEvaluationCodeDueToByRefMappings = 0;
                 translationResult = translationResult
-                    .Add(new TranslatedStatement("if (!" + constraintsInitialisedFlagNameIfAny.Name + ")", indentationDepth + 1))
+                    .Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.HANDLEERROR({1}, () => {{",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth + 1
+                    ));
+
+                if (loopIncrementWithLeadingSpaceIfNonBlank != "")
+                    translationResult = translationResult.Add(new TranslatedStatement(loopIncrementWithLeadingSpaceIfNonBlank.Trim() + ";", indentationDepth + 2));
+
+                translationResult = translationResult
+                    .Add(new TranslatedStatement(continueLoopName.Name + " = " + continuationCondition + ";", indentationDepth + 2));
+
+                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth + 1));
+                if (loopVarAliasIfRequired != null)
+                {
+                    indentationDepth -= distanceToIdentEvaluationCodeDueToByRefMappings;
+                    translationResult = (new[] { loopVarAliasIfRequired }).ToNonNullImmutableList().CloseByRefReplacementDefinitionWork(
+                        translationResult,
+                        indentationDepth + 1,
+                        _nameRewriter
+                    );
+                }
+
+                translationResult = translationResult
+                    .Add(new TranslatedStatement("if (!" + continueLoopName.Name + ")", indentationDepth + 1))
                     .Add(new TranslatedStatement("break;", indentationDepth + 2));
             }
             translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
-            if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
-            {
-                indentationDepth--;
-                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
-            }
             if (guardClauseLines.Any())
             {
                 indentationDepth--;
@@ -667,6 +713,31 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             return translationResult.AddUndeclaredVariables(undeclaredVariableReferencesAccessedByLoopConstraints);
 		}
+
+        private FuncByRefMapping GetByRefAliasIfRequired(NameToken loopVar, ScopeAccessInformation scopeAccessInformation)
+        {
+            if (loopVar == null)
+                throw new ArgumentNullException("loopVar");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+
+            var byRefArgumentMapper = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var mappings = byRefArgumentMapper.GetByRefArgumentsThatNeedRewriting(
+                VBScriptTranslator.StageTwoParser.ExpressionParsing.ExpressionGenerator.Generate(new[] { loopVar }, directedWithReferenceIfAny: null, warningLogger: _logger.Warning).Single(),
+                scopeAccessInformation,
+                new NonNullImmutableList<FuncByRefMapping>()
+            );
+            if (!mappings.Any())
+                return null;
+            if (mappings.Count() > 1)
+                throw new ArgumentException("Unexpected GetByRefArgumentsThatNeedRewriting - expected zero or one results");
+
+            // GetByRefArgumentsThatNeedRewriting will return this as a read-only mapping, since the statement that we provided it in the call above is a simple
+            // read operation. However, we need to override this setting since it WILL need to be a write-supporting alias for cases where we try to increment
+            // the loop variable within a HANDLEERROR call.
+            var mapping = mappings.Single();
+            return new FuncByRefMapping(mapping.From, mapping.To, mappedValueIsReadOnly: false);
+        }
 
         /// <summary>
         /// If the expression is guaranteed to return a true numeric value (not null, not empty, not a boolean) then we don't need to wrap it in a NUM call

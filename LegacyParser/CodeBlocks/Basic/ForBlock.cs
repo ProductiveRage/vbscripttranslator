@@ -18,11 +18,6 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         private Expression loopTo;
         private Expression loopStep;
         private List<ICodeBlock> statements;
-
-        /// <summary>
-        /// It is valid to have a null conditionStatement in VBScript - in case the
-        /// doUntil value is not of any consequence
-        /// </summary>
         public ForBlock(NameToken loopVar, Expression loopFrom, Expression loopTo, Expression loopStep, List<ICodeBlock> statements)
         {
             if (loopVar == null)
@@ -43,6 +38,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
+        /// <summary>
+        /// It is not valid in VBScript for the loop variable to be anything other than a simple variable reference (it may be "i" but may not
+        /// be "i(0)" or "i.Name", for example)
+        /// </summary>
         public NameToken LoopVar
         {
             get { return this.loopVar; }
