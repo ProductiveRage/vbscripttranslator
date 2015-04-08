@@ -10,12 +10,11 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
     public static class FuncByRefMappingList_Extensions
     {
         /// <summary>
-        /// Where variables must be stored in tempoarar - TODO
+        /// Where variables must be stored in temporary references in order to be accessed within lambas (which is the case for variables that are "ref" arguments of the containing function, the common cases
+        /// where lambdas may be required are for passing as REF into an IProvideCallArguments implementation or when accessed within a HANDLEERROR call), the temporary references must be defined and a try
+        /// opened before the work attempted. After the work is completed, in a finally, the aliases values must be mapped back onto the source values - this is what the CloseByRefReplacementDefinitionWork
+        /// method is for.
         /// </summary>
-        /// <param name="translationResult"></param>
-        /// <param name="indentationDepth"></param>
-        /// <param name="byRefArgumentsToRewrite"></param>
-        /// <returns></returns>
         public static ByRefReplacementTranslationResultDetails OpenByRefReplacementDefinitionWork(
             this NonNullImmutableList<FuncByRefMapping> byRefArgumentsToRewrite,
             TranslationResult translationResult,
@@ -24,14 +23,18 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         {
             if (byRefArgumentsToRewrite == null)
                 throw new ArgumentNullException("byRefArgumentsToRewrite");
-            if (!byRefArgumentsToRewrite.Any())
-                throw new ArgumentException("This should not be called without any byRefArgumentsToRewrite values since there is no pointing wrapping the work up in an additional try..finally in that case");
             if (translationResult == null)
                 throw new ArgumentNullException("translationResult");
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+
+            // Originally, this would throw an exception if there were no by-ref arguments (why bother calling this if there are no by-ref arguments to deal with; does this indicate an error in the calling
+            // code?) but in some cases it's easier to be able to call it without having check whether there were any value that need rewriting and the cases where being so strict may catch unintentional
+            // calls are few
+            if (!byRefArgumentsToRewrite.Any())
+                return new ByRefReplacementTranslationResultDetails(translationResult, 0);
 
             translationResult = translationResult.Add(new TranslatedStatement(
                 string.Format(
@@ -59,12 +62,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         {
             if (byRefArgumentsToRewrite == null)
                 throw new ArgumentNullException("byRefArgumentsToRewrite");
-            if (!byRefArgumentsToRewrite.Any())
-                throw new ArgumentException("This should not be called without any byRefArgumentsToRewrite values since there is no pointing wrapping the work up in an additional try..finally in that case");
             if (statementBlock == null)
                 throw new ArgumentNullException("statementBlock");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+
+            // Originally, this would throw an exception if there were no by-ref arguments (why bother calling this if there are no by-ref arguments to deal with; does this indicate an error in the calling
+            // code?) but in some cases it's easier to be able to call it without having check whether there were any value that need rewriting and the cases where being so strict may catch unintentional
+            // calls are few
+            if (!byRefArgumentsToRewrite.Any())
+                return statementBlock;
 
             return new Statement(
                 statementBlock.Tokens.Select(t =>
@@ -85,12 +92,16 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         {
             if (byRefArgumentsToRewrite == null)
                 throw new ArgumentNullException("byRefArgumentsToRewrite");
-            if (!byRefArgumentsToRewrite.Any())
-                throw new ArgumentException("This should not be called without any byRefArgumentsToRewrite values since there is no pointing wrapping the work up in an additional try..finally in that case");
             if (expression == null)
                 throw new ArgumentNullException("expression");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+
+            // Originally, this would throw an exception if there were no by-ref arguments (why bother calling this if there are no by-ref arguments to deal with; does this indicate an error in the calling
+            // code?) but in some cases it's easier to be able to call it without having check whether there were any value that need rewriting and the cases where being so strict may catch unintentional
+            // calls are few
+            if (!byRefArgumentsToRewrite.Any())
+                return expression;
 
             return new Expression(
                 expression.Tokens.Select(t =>
@@ -114,14 +125,18 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         {
             if (byRefArgumentsToRewrite == null)
                 throw new ArgumentNullException("byRefArgumentsToRewrite");
-            if (!byRefArgumentsToRewrite.Any())
-                throw new ArgumentException("This should not be called without any byRefArgumentsToRewrite values since there is no pointing wrapping the work up in an additional try..finally in that case");
             if (translationResult == null)
                 throw new ArgumentNullException("translationResult");
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+
+            // Originally, this would throw an exception if there were no by-ref arguments (why bother calling this if there are no by-ref arguments to deal with; does this indicate an error in the calling
+            // code?) but in some cases it's easier to be able to call it without having check whether there were any value that need rewriting and the cases where being so strict may catch unintentional
+            // calls are few
+            if (!byRefArgumentsToRewrite.Any())
+                return translationResult;
 
             if (byRefArgumentsToRewrite.All(mapping => mapping.MappedValueIsReadOnly))
                 return translationResult;
