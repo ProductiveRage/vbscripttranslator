@@ -11,31 +11,31 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void EmptyResultsInBlankString()
             {
-                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().LTRIM(null));
+                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().TRIM(null));
             }
 
             [Fact]
             public void NullResultsInNull()
             {
-                Assert.Equal(DBNull.Value, DefaultRuntimeSupportClassFactory.Get().LTRIM(DBNull.Value));
+                Assert.Equal(DBNull.Value, DefaultRuntimeSupportClassFactory.Get().TRIM(DBNull.Value));
             }
 
             [Fact]
             public void DoesNotRemoveTabs()
             {
-                Assert.Equal("\tValue\t", DefaultRuntimeSupportClassFactory.Get().LTRIM("\tValue\t"));
+                Assert.Equal("\tValue\t", DefaultRuntimeSupportClassFactory.Get().TRIM("\tValue\t"));
             }
 
             [Fact]
             public void DoesNotRemoveLineReturns()
             {
-                Assert.Equal("\nValue\n", DefaultRuntimeSupportClassFactory.Get().LTRIM("\nValue\n"));
+                Assert.Equal("\nValue\n", DefaultRuntimeSupportClassFactory.Get().TRIM("\nValue\n"));
             }
 
             [Fact]
             public void RemovesMultipleLeadingAndTrailingSpaces()
             {
-                Assert.Equal("  Value   ", DefaultRuntimeSupportClassFactory.Get().LTRIM("Value"));
+                Assert.Equal("Value", DefaultRuntimeSupportClassFactory.Get().TRIM("  Value   "));
             }
         }
     }
