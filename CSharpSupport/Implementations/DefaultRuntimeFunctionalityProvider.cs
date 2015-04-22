@@ -365,7 +365,7 @@ namespace CSharpSupport.Implementations
         public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
         public object CDATE(object value) { throw new NotImplementedException(); }
-        public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); } // TODO: Confirm appropriate response type (Int16?)
+        public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
         public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
         public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
         public string CSTR(object value) { throw new NotImplementedException(); }
@@ -452,11 +452,35 @@ namespace CSharpSupport.Implementations
             throw new NotImplementedException();
         }
         public object STRREVERSE(object value) { throw new NotImplementedException(); }
-        public string TRIM(object value) { throw new NotImplementedException(); }
-        public string LTRIM(object value) { throw new NotImplementedException(); }
-        public string RTRIM(object value) { throw new NotImplementedException(); }
-        public string LCASE(object value) { throw new NotImplementedException(); }
-        public string UCASE(object value) { throw new NotImplementedException(); }
+        public object TRIM(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().Trim(' ');
+        }
+        public object LTRIM(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().TrimStart(' ');
+        }
+        public object RTRIM(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().TrimEnd(' ');
+        }
+        public object LCASE(object value) { throw new NotImplementedException(); }
+        public object UCASE(object value) { throw new NotImplementedException(); }
         // - Type comparisons
         public object ISARRAY(object value) { throw new NotImplementedException(); }
         public object ISDATE(object value) { throw new NotImplementedException(); }

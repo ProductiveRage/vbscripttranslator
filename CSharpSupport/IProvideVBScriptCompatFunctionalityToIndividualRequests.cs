@@ -151,11 +151,11 @@ namespace CSharpSupport
         object STRCOMP(object string1, object string2);
         object STRCOMP(object string1, object string2, object compare);
         object STRREVERSE(object value);
-        string TRIM(object value);
-        string LTRIM(object value);
-        string RTRIM(object value);
-        string LCASE(object value);
-        string UCASE(object value);
+        object TRIM(object value);
+        object LTRIM(object value);
+        object RTRIM(object value);
+        object LCASE(object value);
+        object UCASE(object value);
         // - Type comparisons
         object ISARRAY(object value);
         object ISDATE(object value);
