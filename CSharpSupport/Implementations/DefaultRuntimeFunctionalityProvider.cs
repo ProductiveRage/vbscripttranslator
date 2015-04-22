@@ -479,8 +479,24 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value;
             return value.ToString().TrimEnd(' ');
         }
-        public object LCASE(object value) { throw new NotImplementedException(); }
-        public object UCASE(object value) { throw new NotImplementedException(); }
+        public object LCASE(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().ToLower();
+        }
+        public object UCASE(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().ToUpper();
+        }
         // - Type comparisons
         public object ISARRAY(object value) { throw new NotImplementedException(); }
         public object ISDATE(object value) { throw new NotImplementedException(); }

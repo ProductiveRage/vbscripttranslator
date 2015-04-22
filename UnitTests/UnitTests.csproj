@@ -42,6 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_CDBL.cs" />
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_LCASE.cs" />
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_UCASE.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_RTRIM.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_LTRIM.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_TRIM.cs" />
