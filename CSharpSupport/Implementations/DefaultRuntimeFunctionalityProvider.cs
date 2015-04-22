@@ -401,7 +401,15 @@ namespace CSharpSupport.Implementations
         public object INSTR(object value) { throw new NotImplementedException(); }
         public object INSTRREV(object value) { throw new NotImplementedException(); }
         public object MID(object value) { throw new NotImplementedException(); }
-        public object LEN(object value) { throw new NotImplementedException(); }
+        public object LEN(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return 0;
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+            return value.ToString().Length;
+        }
         public object LENB(object value) { throw new NotImplementedException(); }
         public object LEFT(object value, object maxLength)
         {
