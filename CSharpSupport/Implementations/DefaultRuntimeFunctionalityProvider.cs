@@ -418,11 +418,29 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value;
 
             var valueString = value.ToString();
-            return valueString.Substring(0, Math.Min(valueString.Length, maxLengthInt));
+            maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
+            return valueString.Substring(0, maxLengthInt);
         }
         public object LEFTB(object value, object maxLength) { throw new NotImplementedException(); }
         public object RGB(object value) { throw new NotImplementedException(); }
-        public object RIGHT(object value, object maxLength) { throw new NotImplementedException(); }
+        public object RIGHT(object value, object maxLength)
+        {
+            // Validate inputs first
+            value = VAL(value);
+            var maxLengthInt = CLNG(maxLength);
+            if (maxLengthInt < 0)
+                throw new ArgumentOutOfRangeException("Invalid procedure call or argument: 'LEFT' (maxLength may not be a negative value)");
+
+            // Deal with special cases
+            if (value == null)
+                return "";
+            if (value == DBNull.Value)
+                return DBNull.Value;
+
+            var valueString = value.ToString();
+            maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
+            return valueString.Substring(valueString.Length - maxLengthInt);
+        }
         public object RIGHTB(object value, object maxLength) { throw new NotImplementedException(); }
         public object REPLACE(object value) { throw new NotImplementedException(); }
         public object SPACE(object value) { throw new NotImplementedException(); }

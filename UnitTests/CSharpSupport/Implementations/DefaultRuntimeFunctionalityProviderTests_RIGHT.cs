@@ -7,7 +7,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
-        public class LEFT
+        public class RIGHT
         {
             /// <summary>
             /// Passing in VBScript Empty as the string will return in a blank string being returned (so long as the length argument can be interpreted as a non-negative number)
@@ -15,7 +15,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void EmptyLengthOneReturnsBlankString()
             {
-                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().LEFT(null, 1));
+                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().RIGHT(null, 1));
             }
 
             /// <summary>
@@ -24,13 +24,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void NullLengthOneReturnsNull()
             {
-                Assert.Equal(DBNull.Value, DefaultRuntimeSupportClassFactory.Get().LEFT(DBNull.Value, 1));
+                Assert.Equal(DBNull.Value, DefaultRuntimeSupportClassFactory.Get().RIGHT(DBNull.Value, 1));
             }
 
             [Fact]
             public void ZeroLengthIsAcceptable()
             {
-                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().LEFT("", 0));
+                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().RIGHT("", 0));
             }
 
             [Fact]
@@ -38,14 +38,20 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().LEFT("", -1);
+                    DefaultRuntimeSupportClassFactory.Get().RIGHT("", -1);
                 });
             }
 
             [Fact]
             public void EmptyLengthIsTreatedAsZeroLength()
             {
-                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().LEFT("abc", null));
+                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().RIGHT("abc", null));
+            }
+
+            [Fact]
+            public void MaxLengthLongerThanInputStringLengthIsTreatedAsEqualingInputStringLength()
+            {
+                Assert.Equal("abc", DefaultRuntimeSupportClassFactory.Get().RIGHT("abc", 10));
             }
 
             [Fact]
@@ -53,14 +59,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<InvalidUseOfNullException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().LEFT("", DBNull.Value);
+                    DefaultRuntimeSupportClassFactory.Get().RIGHT("", DBNull.Value);
                 });
-            }
-
-            [Fact]
-            public void MaxLengthLongerThanInputStringLengthIsTreatedAsEqualingInputStringLength()
-            {
-                Assert.Equal("abc", DefaultRuntimeSupportClassFactory.Get().LEFT("abc", 10));
             }
 
             [Fact]
@@ -68,7 +68,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<VBScriptOverflowException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().LEFT("", 1000000000000000);
+                    DefaultRuntimeSupportClassFactory.Get().RIGHT("", 1000000000000000);
                 });
             }
 
@@ -76,42 +76,42 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void LengthZeroPointFiveTreatedAsLengthZero()
             {
-                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 0.5));
+                Assert.Equal("", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 0.5));
             }
             [Fact]
             public void LengthZeroPointNineTreatedAsLengthOne()
             {
-                Assert.Equal("a", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 0.9));
+                Assert.Equal("d", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 0.9));
             }
             [Fact]
             public void LengthOnePointFiveTreatedAsLengthTwo()
             {
-                Assert.Equal("ab", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 1.5));
+                Assert.Equal("cd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 1.5));
             }
             [Fact]
             public void LengthOnePointNineTreatedAsLengthTwo()
             {
-                Assert.Equal("ab", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 1.9));
+                Assert.Equal("cd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 1.9));
             }
             [Fact]
             public void LengthTwoPointFiveTreatedAsLengthTwo()
             {
-                Assert.Equal("ab", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 2.5));
+                Assert.Equal("cd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 2.5));
             }
             [Fact]
             public void LengthTwoPointNineTreatedAsLengthThree()
             {
-                Assert.Equal("abc", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 2.9));
+                Assert.Equal("bcd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 2.9));
             }
             [Fact]
             public void LengthThreePointFiveTreatedAsLengthFour()
             {
-                Assert.Equal("abcd", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 3.5));
+                Assert.Equal("abcd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 3.5));
             }
             [Fact]
             public void LengthThreePointNineTreatedAsLengthFour()
             {
-                Assert.Equal("abcd", DefaultRuntimeSupportClassFactory.Get().LEFT("abcd", 3.9));
+                Assert.Equal("abcd", DefaultRuntimeSupportClassFactory.Get().RIGHT("abcd", 3.9));
             }
         }
     }
