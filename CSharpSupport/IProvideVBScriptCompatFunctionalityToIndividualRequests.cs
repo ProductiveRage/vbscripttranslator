@@ -139,12 +139,12 @@ namespace CSharpSupport
         object INSTRREV(object value);
         object LEN(object value);
         object LENB(object value);
-        object LEFT(object value);
-        object LEFTB(object value);
+        object LEFT(object value, object maxLength);
+        object LEFTB(object value, object maxLength);
         object MID(object value);
         object RGB(object value);
-        object RIGHT(object value);
-        object RIGHTB(object value);
+        object RIGHT(object value, object maxLength);
+        object RIGHTB(object value, object maxLength);
         object REPLACE(object value);
         object SPACE(object value);
         object SPLIT(object value);

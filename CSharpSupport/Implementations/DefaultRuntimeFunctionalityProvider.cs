@@ -110,7 +110,7 @@ namespace CSharpSupport.Implementations
             {
                 var dateResult = ((DateTime)l).AddDays(DateToDouble((DateTime)r));
                 if ((dateResult < VBScriptConstants.EarliestPossibleDate) || (dateResult > VBScriptConstants.LatestPossibleDate))
-                    throw new OverflowException();
+                    throw new VBScriptOverflowException();
                 return dateResult;
             }
             else if (l is decimal)
@@ -118,9 +118,9 @@ namespace CSharpSupport.Implementations
                 var decimalL = (decimal)l;
                 var decimalR = (decimal)r;
                 if ((decimalR > 0) && (VBScriptConstants.MaxCurrencyValue - decimalR > decimalL)) // TODO: Ensure include test coverage for this!
-                    throw new OverflowException();
+                    throw new VBScriptOverflowException();
                 else if ((decimalR < 0) && (decimalL < VBScriptConstants.MinCurrencyValue - decimalR)) // TODO: Ensure include test coverage for this!
-                    throw new OverflowException();
+                    throw new VBScriptOverflowException();
                 return decimalL + decimalR;
             }
             //return NUM(l) + NUM(r);
@@ -403,11 +403,27 @@ namespace CSharpSupport.Implementations
         public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value) { throw new NotImplementedException(); }
         public object LENB(object value) { throw new NotImplementedException(); }
-        public object LEFT(object value) { throw new NotImplementedException(); }
-        public object LEFTB(object value) { throw new NotImplementedException(); }
+        public object LEFT(object value, object maxLength)
+        {
+            // Validate inputs first
+            value = VAL(value);
+            var maxLengthInt = CLNG(maxLength);
+            if (maxLengthInt < 0)
+                throw new ArgumentOutOfRangeException("Invalid procedure call or argument: 'LEFT' (maxLength may not be a negative value)");
+
+            // Deal with special cases
+            if (value == null)
+                return "";
+            if (value == DBNull.Value)
+                return DBNull.Value;
+
+            var valueString = value.ToString();
+            return valueString.Substring(0, Math.Min(valueString.Length, maxLengthInt));
+        }
+        public object LEFTB(object value, object maxLength) { throw new NotImplementedException(); }
         public object RGB(object value) { throw new NotImplementedException(); }
-        public object RIGHT(object value) { throw new NotImplementedException(); }
-        public object RIGHTB(object value) { throw new NotImplementedException(); }
+        public object RIGHT(object value, object maxLength) { throw new NotImplementedException(); }
+        public object RIGHTB(object value, object maxLength) { throw new NotImplementedException(); }
         public object REPLACE(object value) { throw new NotImplementedException(); }
         public object SPACE(object value) { throw new NotImplementedException(); }
         public object SPLIT(object value) { throw new NotImplementedException(); }
@@ -711,6 +727,10 @@ namespace CSharpSupport.Implementations
             try
             {
                 return converter(value);
+            }
+            catch (OverflowException e)
+            {
+                throw new VBScriptOverflowException((double)value, e);
             }
             catch (Exception e)
             {

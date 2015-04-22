@@ -152,7 +152,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void DateWithDoublesThatAreNotWithinDateAcceptableRange()
             {
-                Assert.Throws<OverflowException>(() =>
+                Assert.Throws<VBScriptOverflowException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().NUM(new DateTime(2015, 1, 25, 17, 16, 0), double.MaxValue);
                 });
@@ -200,7 +200,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             public void DecimalWithDoublesThatAreNotWithinVBScriptCurrencyAcceptableRange()
             {
                 // See https://msdn.microsoft.com/en-us/library/9e7a57cf%28v=vs.84%29.aspx for limits of the VBScript data types
-                Assert.Throws<OverflowException>(() =>
+                Assert.Throws<VBScriptOverflowException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().NUM(
                         922337203685475m, // Toward the top end of the Currency limit

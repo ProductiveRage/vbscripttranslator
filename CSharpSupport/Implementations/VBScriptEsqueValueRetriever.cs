@@ -138,9 +138,10 @@ namespace CSharpSupport.Implementations
                     .Select(v => Convert.ToDouble(v));
                 if (relatedNonDateNumericValuesAsDouble.Any())
                 {
-                    if ((relatedNonDateNumericValuesAsDouble.Min() < DateToDouble(VBScriptConstants.EarliestPossibleDate))
-                    || (relatedNonDateNumericValuesAsDouble.Max() > DateToDouble(VBScriptConstants.LatestPossibleDate)))
-                        throw new OverflowException();
+                    if (relatedNonDateNumericValuesAsDouble.Min() < DateToDouble(VBScriptConstants.EarliestPossibleDate))
+                        throw new VBScriptOverflowException(relatedNonDateNumericValuesAsDouble.Min());
+                    if (relatedNonDateNumericValuesAsDouble.Max() > DateToDouble(VBScriptConstants.LatestPossibleDate))
+                        throw new VBScriptOverflowException(relatedNonDateNumericValuesAsDouble.Max());
                 }
                 return (valueToConvert is DateTime) ? valueToConvert : DoubleToDate(Convert.ToDouble(valueToConvert));
             }
@@ -156,9 +157,10 @@ namespace CSharpSupport.Implementations
             {
                 if (relatedNumericValues.Any())
                 {
-                    if ((relatedNumericValuesAsDouble.Min() < (double)VBScriptConstants.MinCurrencyValue)
-                    || (relatedNumericValuesAsDouble.Max() > (double)VBScriptConstants.MaxCurrencyValue))
-                        throw new OverflowException();
+                    if (relatedNumericValuesAsDouble.Min() < (double)VBScriptConstants.MinCurrencyValue)
+                        throw new VBScriptOverflowException(relatedNumericValuesAsDouble.Min());
+                    if (relatedNumericValuesAsDouble.Max() > (double)VBScriptConstants.MaxCurrencyValue)
+                        throw new VBScriptOverflowException(relatedNumericValuesAsDouble.Max());
                 }
                 return (valueToConvert is Decimal) ? valueToConvert : Convert.ToDecimal(valueToConvert);
             }

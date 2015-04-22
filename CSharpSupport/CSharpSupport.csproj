@@ -40,6 +40,7 @@
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
     <Compile Include="DefaultRuntimeSupportClassFactory.cs" />
+    <Compile Include="Exceptions\VBScriptOverflowException.cs" />
     <Compile Include="Exceptions\SpecificVBScriptException.cs" />
     <Compile Include="Exceptions\InvalidUseOfNullException.cs" />
     <Compile Include="Exceptions\TypeMismatchException.cs" />
