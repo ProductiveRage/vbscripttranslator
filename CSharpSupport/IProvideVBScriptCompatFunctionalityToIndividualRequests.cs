@@ -166,7 +166,7 @@ namespace CSharpSupport
         object TYPENAME(object value);
         object VARTYPE(object value);
         // - Array functions
-        object ARRAY(object value);
+        object ARRAY(params object[] value);
         object ERASE(object value);
         object JOIN(object value);
         object LBOUND(object value);

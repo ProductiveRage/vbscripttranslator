@@ -547,7 +547,12 @@ namespace CSharpSupport.Implementations
         }
         public object VARTYPE(object value) { throw new NotImplementedException(); }
         // - Array functions
-        public object ARRAY(object value) { throw new NotImplementedException(); }
+        public object ARRAY(params object[] values)
+        {
+            if (values == null)
+                throw new ArgumentNullException("values");
+            return values;
+        }
         public object ERASE(object value) { throw new NotImplementedException(); }
         public object JOIN(object value) { throw new NotImplementedException(); }
         public object LBOUND(object value) { throw new NotImplementedException(); }
