@@ -310,11 +310,37 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             Assert.Equal(123, arg0);
         }
 
+        [Fact]
+        public void SingleArgumentParamsArrayMethodMayBeCalledWithZeroValues()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Equal(0, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS));
+        }
+
+        [Fact]
+        public void SingleArgumentParamsArrayMethodMayBeCalledWithSingleValue()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Equal(1, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS.Val(1)));
+        }
+
+        [Fact]
+        public void SingleArgumentParamsArrayMethodMayBeCalledWithTwoValues()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Equal(2, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS.Val(1).Val(2)));
+        }
+
         public void ByRefArgUpdatingFunction(ref object arg0, bool throwExceptionAfterUpdatingArgument)
         {
             arg0 = 123;
             if (throwExceptionAfterUpdatingArgument)
                 throw new Exception("Example exception");
+        }
+
+        public Nullable<int> GetNumberOfArgumentsPassedInParamsObjectArray(params object[] args)
+        {
+            return (args == null) ? (int?)null : args.Length;
         }
 
         /// <summary>

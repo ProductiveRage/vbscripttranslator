@@ -607,40 +607,58 @@ namespace CSharpSupport.Implementations
             // arguments array before the method call, then used AS arguments in the method call, then their values copied back into the slots in
             // the arguments array that they came from.
             var methodParameters = method.GetParameters();
-            var argParameters = methodParameters.Select((p, index) => new { Parameter = p, Index = index });
-            var argExpressions = argParameters.Select(a =>
-                a.Parameter.ParameterType.IsByRef
-                    ? (Expression)Expression.Variable(
-                        GetNonByRefType(a.Parameter.ParameterType),
-                        a.Parameter.Name
-                    )
-                    : Expression.Convert(
-                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
-                        a.Parameter.ParameterType
-                    )
-                )
-                .ToArray();
-            var byRefArgAssignmentsForMethodCall = argExpressions
-                .Select((a, index) => new { Parameter = a, Index = index })
-                .Where(a => a.Parameter is ParameterExpression)
-                .Select(a =>
-                    Expression.Assign(
-                        a.Parameter,
-                        Expression.Convert(
+            Expression[] argExpressions;
+            IEnumerable<Expression> byRefArgAssignmentsForMethodCall, byRefArgAssignmentsForReturn;
+            IEnumerable<ParameterExpression> variablesToDeclareForHandlingOfArguments;
+            if ((methodParameters.Length == 1) && ParameterIsObjectParamsArray(methodParameters[0]))
+            {
+                // Add support for the rudimentary params support considered by the "GetGetMethods" function - if the target function has a single
+                // argument of type params object[] then pass the arguments array straight in for that argument (no need to try to break it down
+                // into individual entries for multiple arguments, since there is only a single argument!). C# does not support "ref params" and
+                // so we won't worry about passing "by ref" here.
+                argExpressions = new[] { argumentsParameter };
+                byRefArgAssignmentsForMethodCall = new Expression[0];
+                byRefArgAssignmentsForReturn = new Expression[0];
+                variablesToDeclareForHandlingOfArguments = new ParameterExpression[0];
+            }
+            else
+            {
+                var argParameters = methodParameters.Select((p, index) => new { Parameter = p, Index = index });
+                argExpressions = argParameters.Select(a =>
+                    a.Parameter.ParameterType.IsByRef
+                        ? (Expression)Expression.Variable(
+                            GetNonByRefType(a.Parameter.ParameterType),
+                            a.Parameter.Name
+                        )
+                        : Expression.Convert(
                             Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
-                            a.Parameter.Type
+                            a.Parameter.ParameterType
                         )
                     )
-                );
-            var byRefArgAssignmentsForReturn = argExpressions
-                .Select((a, index) => new { Parameter = a, Index = index })
-                .Where(a => a.Parameter is ParameterExpression)
-                .Select(a =>
-                    Expression.Assign(
-                        Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
-                        a.Parameter
-                    )
-                );
+                    .ToArray();
+                byRefArgAssignmentsForMethodCall = argExpressions
+                    .Select((a, index) => new { Parameter = a, Index = index })
+                    .Where(a => a.Parameter is ParameterExpression)
+                    .Select(a =>
+                        Expression.Assign(
+                            a.Parameter,
+                            Expression.Convert(
+                                Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                                a.Parameter.Type
+                            )
+                        )
+                    );
+                byRefArgAssignmentsForReturn = argExpressions
+                    .Select((a, index) => new { Parameter = a, Index = index })
+                    .Where(a => a.Parameter is ParameterExpression)
+                    .Select(a =>
+                        Expression.Assign(
+                            Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                            a.Parameter
+                        )
+                    );
+                variablesToDeclareForHandlingOfArguments = argExpressions.OfType<ParameterExpression>();
+            }
 
             var methodCall = Expression.Call(
                 Expression.Convert(targetParameter, targetType),
@@ -648,8 +666,8 @@ namespace CSharpSupport.Implementations
                 argExpressions
             );
 
-            var resultVariable = Expression.Variable(typeof(object));
             Expression[] methodCallAndAndResultAssignments;
+            var resultVariable = Expression.Variable(typeof(object));
             if (method.ReturnType == typeof(void))
             {
                 // If the method has no return type then we'll need to just return null since the GetInvoker delegate that
@@ -671,7 +689,7 @@ namespace CSharpSupport.Implementations
                 {
                     Expression.Assign(
                         resultVariable,
-                        methodCall
+                        methodCall.Type.IsValueType ? (Expression)Expression.Convert(methodCall, typeof(object)) : methodCall
                     )
                 };
             }
@@ -706,10 +724,7 @@ namespace CSharpSupport.Implementations
                     Expression.Catch(exceptionParameter, executionException)
                 );
             }
-            var variablesToDeclare = argExpressions
-                .Where(a => a is ParameterExpression)
-                .Cast<ParameterExpression>()
-                .Concat(new[] { resultVariable });
+            var variablesToDeclare = variablesToDeclareForHandlingOfArguments.Concat(new[] { resultVariable });
             return Expression.Lambda<GetInvoker>(
                 Expression.Block(
                     variablesToDeclare,
@@ -1128,24 +1143,33 @@ namespace CSharpSupport.Implementations
             var typeHasAnyDispIdZeroMember = AnyDispIdZeroMemberExists(type);
             var typeHasAmbiguousDispIdZeroMember = typeHasAnyDispIdZeroMember && DispIdZeroIsAmbiguous(type);
             var allMethods = GetMethodsThatAreNotRelatedToProperties(type);
+            Predicate<MethodInfo> matchesArgumentCount = m =>
+            {
+                // Add some crude support for params array arguments - only dealing with the case where the target method has a single argument of type
+                // params object[] (there is corresponding code the in the GenerateGetInvoker for dealing with methods of this form)
+                var args = m.GetParameters();
+                if (args.Length == numberOfArguments)
+                    return true;
+                return (args.Length == 1) && ParameterIsObjectParamsArray(args[0]);
+            };
             var applicableMethods = allMethods
                     .Where(m => nameMatcher(m.Name))
-                    .Where(m => m.GetParameters().Length == numberOfArguments)
                     .Where(m =>
                         (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
                         (m.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
                         (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(m))
-                    );
+                    )
+                    .Where(m => matchesArgumentCount(m));
             var readableProperties = type.GetProperties().Where(p => p.CanRead);
             var applicableProperties = readableProperties
                 .Where(p => nameMatcher(p.Name))
-                .Where(p => p.GetIndexParameters().Length == numberOfArguments)
                 .Where(p =>
                     (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
                     (p.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
                     (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(p))
                 )
-                .Select(p => p.GetGetMethod());
+                .Select(p => p.GetGetMethod())
+                .Where(m => matchesArgumentCount(m));
 
             // If no matches were found and we're looking for a parameter-less default member access and the target type was not translated from VBScript
             // source, then apply the other fallbacks that the C# compiler would have added to the IDispatch interface
@@ -1161,6 +1185,14 @@ namespace CSharpSupport.Implementations
             // In the cases where multiple options are identified, sort by the most specific (members declared on the current type those declared further
             // down in the inheritance tree)
             return allOptions.OrderByDescending(m => GetMemberInheritanceDepth(m, type));
+        }
+
+        private bool ParameterIsObjectParamsArray(ParameterInfo parameter)
+        {
+            if (parameter == null)
+                throw new ArgumentNullException("parameter");
+
+            return (parameter.ParameterType == typeof(object[])) && (parameter.GetCustomAttributes(typeof(ParamArrayAttribute), false).Length > 0);
         }
 
         private IEnumerable<MethodInfo> GetSetMethods(
