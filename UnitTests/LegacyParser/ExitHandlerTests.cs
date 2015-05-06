@@ -16,10 +16,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 new KeyWordToken("Exit", 0),
                 new KeyWordToken("function", 0)
             };
-            Assert.DoesNotThrow(() =>
-            {
-                (new ExitHandler()).Process(tokens);
-            });
+            (new ExitHandler()).Process(tokens);
         }
     }
 }
