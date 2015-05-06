@@ -36,7 +36,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void NegativeLengthIsNotAcceptable()
             {
-                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Assert.Throws<InvalidProcedureCallOrArgumentException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().RIGHT("", -1);
                 });

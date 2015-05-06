@@ -415,9 +415,12 @@ namespace CSharpSupport.Implementations
         {
             // Validate inputs first
             value = VAL(value);
+            maxLength = VAL(maxLength);
+            if (maxLength == DBNull.Value)
+                throw new InvalidUseOfNullException();
             var maxLengthInt = CLNG(maxLength);
             if (maxLengthInt < 0)
-                throw new ArgumentOutOfRangeException("Invalid procedure call or argument: 'LEFT' (maxLength may not be a negative value)");
+                throw new InvalidProcedureCallOrArgumentException("'LEFT' (maxLength may not be a negative value)");
 
             // Deal with special cases
             if (value == null)
@@ -435,9 +438,12 @@ namespace CSharpSupport.Implementations
         {
             // Validate inputs first
             value = VAL(value);
+            maxLength = VAL(maxLength);
+            if (maxLength == DBNull.Value)
+                throw new InvalidUseOfNullException();
             var maxLengthInt = CLNG(maxLength);
             if (maxLengthInt < 0)
-                throw new ArgumentOutOfRangeException("Invalid procedure call or argument: 'LEFT' (maxLength may not be a negative value)");
+                throw new InvalidProcedureCallOrArgumentException("'LEFT' (maxLength may not be a negative value)");
 
             // Deal with special cases
             if (value == null)
