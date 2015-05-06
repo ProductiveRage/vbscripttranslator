@@ -135,7 +135,9 @@ namespace CSharpSupport
         object FORMATPERCENT(object value);
         object FILTER(object value);
         object HEX(object value);
-        object INSTR(object value);
+        object INSTR(object valueToSearch, object valueToSearchFor);
+        object INSTR(object startIndex, object valueToSearch, object valueToSearchFor);
+        object INSTR(object startIndex, object valueToSearch, object valueToSearchFor, object compareMode);
         object INSTRREV(object value);
         object LEN(object value);
         object LENB(object value);

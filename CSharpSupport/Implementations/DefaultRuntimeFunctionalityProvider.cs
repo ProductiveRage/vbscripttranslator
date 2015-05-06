@@ -398,7 +398,44 @@ namespace CSharpSupport.Implementations
         public object FORMATNUMBER(object value) { throw new NotImplementedException(); }
         public object FORMATPERCENT(object value) { throw new NotImplementedException(); }
         public object HEX(object value) { throw new NotImplementedException(); }
-        public object INSTR(object value) { throw new NotImplementedException(); }
+
+        public object INSTR(object valueToSearch, object valueToSearchFor) { return INSTR(1, valueToSearch, valueToSearchFor); }
+        public object INSTR(object startIndex, object valueToSearch, object valueToSearchFor) { return INSTR(startIndex, valueToSearch, valueToSearchFor, 0); }
+        public object INSTR(object startIndex, object valueToSearch, object valueToSearchFor, object compareMode)
+        {
+            // Validate input
+            startIndex = VAL(startIndex);
+            valueToSearch = VAL(valueToSearch);
+            valueToSearchFor = VAL(valueToSearchFor);
+            compareMode = VAL(compareMode);
+            if (startIndex == DBNull.Value)
+                throw new InvalidUseOfNullException("startIndex may not be null");
+            var startIndexInt = CLNG(startIndex);
+            if (startIndexInt <= 0)
+                throw new InvalidProcedureCallOrArgumentException("'INSTR' (startIndex must be a positive integer)");
+            if (compareMode == DBNull.Value)
+                throw new InvalidUseOfNullException("compareMode may not be null");
+            var compareModeInt = CLNG(compareMode);
+            if ((compareModeInt != 0) && (compareModeInt != 1))
+                throw new InvalidProcedureCallOrArgumentException("'INSTR' (compareMode may only be 0 or 1)");
+
+            // Deal with special cases
+            if ((valueToSearch == DBNull.Value) || (valueToSearchFor == DBNull.Value))
+                return DBNull.Value;
+            if (valueToSearch == null)
+                return 0;
+            if (valueToSearchFor == null)
+                return 1;
+
+            var useCaseInsensitiveTextComparisonMode = (compareModeInt == 1);
+            var zeroBasedMatchIndex = valueToSearch.ToString().IndexOf(
+                valueToSearchFor.ToString(),
+                startIndexInt - 1, // This is one-based in VBScript but zero-based in C# (hence the minus one)
+                useCaseInsensitiveTextComparisonMode ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
+            );
+            return zeroBasedMatchIndex + 1;
+        }
+
         public object INSTRREV(object value) { throw new NotImplementedException(); }
         public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value)
