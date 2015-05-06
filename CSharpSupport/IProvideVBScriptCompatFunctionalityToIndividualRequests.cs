@@ -138,7 +138,9 @@ namespace CSharpSupport
         object INSTR(object valueToSearch, object valueToSearchFor);
         object INSTR(object startIndex, object valueToSearch, object valueToSearchFor);
         object INSTR(object startIndex, object valueToSearch, object valueToSearchFor, object compareMode);
-        object INSTRREV(object value);
+        object INSTRREV(object valueToSearch, object valueToSearchFor);
+        object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex);
+        object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex, object compareMode);
         object LEN(object value);
         object LENB(object value);
         object LEFT(object value, object maxLength);

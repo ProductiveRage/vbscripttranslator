@@ -419,7 +419,7 @@ namespace CSharpSupport.Implementations
             if ((compareModeInt != 0) && (compareModeInt != 1))
                 throw new InvalidProcedureCallOrArgumentException("'INSTR' (compareMode may only be 0 or 1)");
 
-            // Deal with special cases
+            // Deal with null-ish special cases
             if ((valueToSearch == DBNull.Value) || (valueToSearchFor == DBNull.Value))
                 return DBNull.Value;
             if (valueToSearch == null)
@@ -443,7 +443,66 @@ namespace CSharpSupport.Implementations
             return zeroBasedMatchIndex + 1;
         }
 
-        public object INSTRREV(object value) { throw new NotImplementedException(); }
+        public object INSTRREV(object valueToSearch, object valueToSearchFor)
+        {
+            // Unlike INSTR, we have to do some work if no startIndex is specified since the default value should be indicate the last character in
+            // valueToSearch, if that can be transformed into a non-blank string (if it can not be transformed into a non-object reference at all then
+            // throw an exception, and if it is considered to be the equivalent of blank string then default to a startIndex of one, since it's not
+            // valid to have a startIndex of zero)
+            valueToSearch = VAL(valueToSearch);
+            int startIndex;
+            if ((valueToSearch == null) || (valueToSearch == DBNull.Value))
+                startIndex = 1;
+            else
+                startIndex = Math.Max(1, valueToSearch.ToString().Length);
+            return INSTRREV(valueToSearch, valueToSearchFor, startIndex);
+        }
+        public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex) { return INSTRREV(valueToSearch, valueToSearchFor, startIndex, 0); }
+        public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex, object compareMode)
+        {
+            // Validate input
+            startIndex = VAL(startIndex);
+            valueToSearch = VAL(valueToSearch);
+            valueToSearchFor = VAL(valueToSearchFor);
+            compareMode = VAL(compareMode);
+            if (startIndex == DBNull.Value)
+                throw new InvalidUseOfNullException("startIndex may not be null");
+            var startIndexInt = CLNG(startIndex);
+            if (startIndexInt <= 0)
+                throw new InvalidProcedureCallOrArgumentException("'INSTRREV' (startIndex must be a positive integer)");
+            if (compareMode == DBNull.Value)
+                throw new InvalidUseOfNullException("compareMode may not be null");
+            var compareModeInt = CLNG(compareMode);
+            if ((compareModeInt != 0) && (compareModeInt != 1))
+                throw new InvalidProcedureCallOrArgumentException("'INSTRREV' (compareMode may only be 0 or 1)");
+
+            // Deal with null-ish special cases
+            if ((valueToSearch == DBNull.Value) || (valueToSearchFor == DBNull.Value))
+                return DBNull.Value;
+            if (valueToSearch == null)
+                return 0;
+            if (valueToSearchFor == null)
+                return 1;
+
+            // For INSTRREV, the startIndex is taken from the start of the string, like INSTR. But, unlike INSTR, the content to consider is the content
+            // preceding this point, rather than the content following it. As such, there is different past-the-end-of-the-content logic to consider and
+            // different substring matching logic to apply.
+            // - If the startIndex goes beyond the end of the valueToSearch then no match is allowed, similarly if the startIndex indicates a point in
+            //   the valueToSearch where there is insufficient content to match valueToSearchFor
+            var valueToSearchString = valueToSearch.ToString();
+            var valueToSearchForString = valueToSearchFor.ToString();
+            if ((startIndexInt > valueToSearchString.Length) || (valueToSearchForString.Length > startIndexInt))
+                return 0;
+            
+            // When searching for a match, only consider the allowed substring of valueToSearch
+            var useCaseInsensitiveTextComparisonMode = (compareModeInt == 1);
+            var zeroBasedMatchIndex = valueToSearchString.Substring(0, startIndexInt).LastIndexOf(
+                valueToSearchForString,
+                useCaseInsensitiveTextComparisonMode ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
+            );
+            return zeroBasedMatchIndex + 1;
+        }
+
         public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value)
         {

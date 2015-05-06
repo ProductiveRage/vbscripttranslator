@@ -15,7 +15,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(expectedResult, DefaultRuntimeSupportClassFactory.Get().INSTR(startIndex, valueToSearch, valueToSearchFor, compareMode));
             }
-
+            
             [Theory, MemberData("InvalidUseOfNullData")]
             public void InvalidUseOfNullCases(string description, object startIndex, object valueToSearch, object valueToSearchFor, object compareMode)
             {
@@ -62,7 +62,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "StartIndex 4 will return 4 when searching for 't' within 'test'", 4, "test", "t", 0, 4 }; // Off-by-one check
 
                     // These are more edge cases that nevertheless return real values
-                    yield return new object[] { "Standard rounding rules are applied to startIndex (0.9 rounds to 1)", 1, "Test", "t", 1.4, 1 };
+                    yield return new object[] { "Standard rounding rules are applied to startIndex (0.9 rounds to 1)", 0.9, "Test", "t", 1, 1 };
                     yield return new object[] { "Standard rounding rules are applied to compareMode (1.4 rounds to 1)", 1, "Test", "t", 1.4, 1 };
                     yield return new object[] { "If valueToSearchFor is longer than valueToSearch then zero is returned", 1, "Test", "aaaaaaaaa", 0, 0 };
                     yield return new object[] { "If startIndex is larger than valueToSearch's length then zero is returned", 5, "Test", "t", 0, 0 };
