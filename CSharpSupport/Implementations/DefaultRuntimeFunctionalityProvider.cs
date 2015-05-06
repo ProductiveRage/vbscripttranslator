@@ -427,9 +427,16 @@ namespace CSharpSupport.Implementations
             if (valueToSearchFor == null)
                 return 1;
 
+            // If the startIndex would go past the end of valueToSearch then return zero
+            // - Since startIndex is one-based, we need to subtract one from it to perform this test
+            var valueToSearchString = valueToSearch.ToString();
+            var valueToSearchForString = valueToSearchFor.ToString();
+            if (valueToSearchForString.Length + (startIndexInt - 1) > valueToSearchString.Length)
+                return 0;
+
             var useCaseInsensitiveTextComparisonMode = (compareModeInt == 1);
-            var zeroBasedMatchIndex = valueToSearch.ToString().IndexOf(
-                valueToSearchFor.ToString(),
+            var zeroBasedMatchIndex = valueToSearchString.IndexOf(
+                valueToSearchForString,
                 startIndexInt - 1, // This is one-based in VBScript but zero-based in C# (hence the minus one)
                 useCaseInsensitiveTextComparisonMode ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
             );
