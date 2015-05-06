@@ -558,9 +558,9 @@ namespace CSharpSupport.Implementations
         public object TYPENAME(object value)
         {
             if (value == null)
-                return "Null";
-            if (value == DBNull.Value)
                 return "Empty";
+            if (value == DBNull.Value)
+                return "Null";
             if (IsVBScriptNothing(value))
                 return "Nothing";
             var type = value.GetType();
