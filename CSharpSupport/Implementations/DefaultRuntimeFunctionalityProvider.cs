@@ -162,6 +162,7 @@ namespace CSharpSupport.Implementations
         }
 
         // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
+        // - Read http://blogs.msdn.com/b/ericlippert/archive/2004/07/15/184431.aspx
         public object NOT(object o) { throw new NotImplementedException(); }
         public object AND(object l, object r) { throw new NotImplementedException(); }
         public object OR(object l, object r) { throw new NotImplementedException(); }
@@ -631,8 +632,32 @@ namespace CSharpSupport.Implementations
             return value.GetType().IsArray;
         }
         public object ISDATE(object value) { throw new NotImplementedException(); }
-        public object ISEMPTY(object value) { throw new NotImplementedException(); }
-        public object ISNULL(object value) { throw new NotImplementedException(); }
+        public object ISEMPTY(object value)
+        {
+            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+            return value == null;
+        }
+        public object ISNULL(object value)
+        {
+            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+            return value == DBNull.Value;
+        }
         public object ISNUMERIC(object value) { throw new NotImplementedException(); }
         public object ISOBJECT(object value) { throw new NotImplementedException(); }
         public object TYPENAME(object value)

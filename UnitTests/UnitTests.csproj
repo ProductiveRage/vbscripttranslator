@@ -50,6 +50,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ISNULL.cs" />
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ISEMPTY.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ISARRAY.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ARRAY.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_CDBL.cs" />
