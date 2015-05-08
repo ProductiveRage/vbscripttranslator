@@ -619,25 +619,47 @@ namespace CSharpSupport.Implementations
         public object ISARRAY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
+            if (IsVBScriptValueType(value))
+                return value.GetType().IsArray;
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
                 return false;
-            if (value == null)
-                return false;
+            }
             return value.GetType().IsArray;
         }
         public object ISDATE(object value) { throw new NotImplementedException(); }
         public object ISEMPTY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
+            if (IsVBScriptValueType(value))
+                return value == null;
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
                 return false;
+            }
             return value == null;
         }
         public object ISNULL(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
+            if (IsVBScriptValueType(value))
+                return value == DBNull.Value;
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
                 return false;
+            }
             return value == DBNull.Value;
         }
         public object ISNUMERIC(object value) { throw new NotImplementedException(); }
@@ -1006,7 +1028,7 @@ namespace CSharpSupport.Implementations
         }
         public object VAL(object o)
         {
-            return _valueRetriever.IsVBScriptValueType(o);
+            return _valueRetriever.VAL(o);
         }
         public object OBJ(object o)
         {
