@@ -619,14 +619,8 @@ namespace CSharpSupport.Implementations
         public object ISARRAY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            try
-            {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
+            if (!IsVBScriptValueType(value))
                 return false;
-            }
             if (value == null)
                 return false;
             return value.GetType().IsArray;
@@ -635,31 +629,22 @@ namespace CSharpSupport.Implementations
         public object ISEMPTY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            try
-            {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
+            if (!IsVBScriptValueType(value))
                 return false;
-            }
             return value == null;
         }
         public object ISNULL(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            try
-            {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
+            if (!IsVBScriptValueType(value))
                 return false;
-            }
             return value == DBNull.Value;
         }
         public object ISNUMERIC(object value) { throw new NotImplementedException(); }
-        public object ISOBJECT(object value) { throw new NotImplementedException(); }
+        public object ISOBJECT(object value)
+        {
+            throw new NotImplementedException(); // TODO: ..
+        }
         public object TYPENAME(object value)
         {
             if (value == null)
@@ -1015,9 +1000,13 @@ namespace CSharpSupport.Implementations
         {
             _valueRetriever.SET(valueToSetTo, target, optionalMemberAccessor, argumentProvider);
         }
+        public bool IsVBScriptValueType(object o)
+        {
+            return _valueRetriever.IsVBScriptValueType(o);
+        }
         public object VAL(object o)
         {
-            return _valueRetriever.VAL(o);
+            return _valueRetriever.IsVBScriptValueType(o);
         }
         public object OBJ(object o)
         {

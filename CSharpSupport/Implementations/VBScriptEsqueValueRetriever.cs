@@ -57,6 +57,15 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// This will never throw an exception, a value is either considered by VBScript to be a value type (including values such as Empty,
+        /// Null, numbers, dates, strings, arrays) or not
+        /// </summary>
+        public bool IsVBScriptValueType(object o)
+        {
+            return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string) || (o.GetType().IsArray));
+        }
+
+        /// <summary>
         /// The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the implementation details of
         /// DispatchWrapper. This method delivers a reliable way to test for it.
         /// </summary>
@@ -1345,14 +1354,6 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("type");
 
             return type.GetMembers().Count(m => MemberHasDispIdZero(m)) > 1;
-        }
-
-        /// <summary>
-        /// VBScript considers all of these to be value types (nulls and string as well as CLR value types)
-        /// </summary>
-        private bool IsVBScriptValueType(object o)
-        {
-            return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string) || (o.GetType().IsArray));
         }
 
         private sealed class InvokerCacheKey

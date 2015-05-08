@@ -29,6 +29,12 @@ namespace CSharpSupport
         void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider);
 
         /// <summary>
+        /// This will never throw an exception, a value is either considered by VBScript to be a value type (including values such as Empty,
+        /// Null, numbers, dates, strings, arrays) or not
+        /// </summary>
+        bool IsVBScriptValueType(object o);
+
+        /// <summary>
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is
         /// acceptable as an input and corresponding return value)
         /// </summary>
