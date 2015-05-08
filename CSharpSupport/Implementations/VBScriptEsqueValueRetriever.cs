@@ -513,7 +513,7 @@ namespace CSharpSupport.Implementations
             if (targetType.IsArray)
             {
                 if (targetType.GetArrayRank() != argumentsArray.Length)
-                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
+                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match array rank (" + targetType.GetArrayRank() + ")");
 
                 var arrayTargetParameter = Expression.Parameter(typeof(object), "target");
                 var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
@@ -753,7 +753,7 @@ namespace CSharpSupport.Implementations
             if ((optionalMemberAccessor == null) && targetType.IsArray)
             {
                 if (targetType.GetArrayRank() != argumentsArray.Length)
-                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match arrary rank (" + targetType.GetArrayRank() + ")");
+                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match array rank (" + targetType.GetArrayRank() + ")");
 
                 // Without the targetType.GetElementType() specified for the Expression.Catch, a "Body of catch must have the same type as body of try" exception
                 // will be raised. Since I would have expected the try block to return nothing (void) I'm not quite sure why this is.
@@ -1352,7 +1352,7 @@ namespace CSharpSupport.Implementations
         /// </summary>
         private bool IsVBScriptValueType(object o)
         {
-            return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string));
+            return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string) || (o.GetType().IsArray));
         }
 
         private sealed class InvokerCacheKey

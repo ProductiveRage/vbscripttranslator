@@ -615,7 +615,21 @@ namespace CSharpSupport.Implementations
             return value.ToString().ToUpper();
         }
         // - Type comparisons
-        public object ISARRAY(object value) { throw new NotImplementedException(); }
+        public object ISARRAY(object value)
+        {
+            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
+            try
+            {
+                value = VAL(value);
+            }
+            catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+            if (value == null)
+                return false;
+            return value.GetType().IsArray;
+        }
         public object ISDATE(object value) { throw new NotImplementedException(); }
         public object ISEMPTY(object value) { throw new NotImplementedException(); }
         public object ISNULL(object value) { throw new NotImplementedException(); }
