@@ -665,7 +665,7 @@ namespace CSharpSupport.Implementations
         public object ISNUMERIC(object value) { throw new NotImplementedException(); }
         public object ISOBJECT(object value)
         {
-            throw new NotImplementedException(); // TODO: ..
+            return !IsVBScriptValueType(value);
         }
         public object TYPENAME(object value)
         {
