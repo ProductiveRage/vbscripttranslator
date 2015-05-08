@@ -620,7 +620,7 @@ namespace CSharpSupport.Implementations
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (IsVBScriptValueType(value))
-                return value.GetType().IsArray;
+                return (value != null) && value.GetType().IsArray;
             try
             {
                 value = VAL(value);
@@ -629,7 +629,7 @@ namespace CSharpSupport.Implementations
             {
                 return false;
             }
-            return value.GetType().IsArray;
+            return (value != null) && value.GetType().IsArray;
         }
         public object ISDATE(object value) { throw new NotImplementedException(); }
         public object ISEMPTY(object value)
