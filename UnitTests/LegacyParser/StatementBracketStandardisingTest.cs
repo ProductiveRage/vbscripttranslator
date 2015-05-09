@@ -664,6 +664,41 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new TokenSetComparer()
                 );
             }
+
+            [Fact]
+            public void Test6() // TODO: Rename
+            {
+                // "x.y (i), j" should be rewritten as "x.y((i), j)"
+                var tokens = new IToken[]
+                {
+                    new NameToken("x", 0),
+                    new MemberAccessorOrDecimalPointToken(".", 0),
+                    new NameToken("y", 0),
+                    new OpenBrace(0),
+                    new NameToken("i", 0),
+                    new CloseBrace(0),
+                    new ArgumentSeparatorToken(",", 0),
+                    new NameToken("j", 0)
+                };
+                var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
+                Assert.Equal(
+                    new IToken[]
+                    {
+                        new NameToken("x", 0),
+                        new MemberAccessorOrDecimalPointToken(".", 0),
+                        new NameToken("y", 0),
+                        new OpenBrace(0),
+                        new OpenBrace(0),
+                        new NameToken("i", 0),
+                        new CloseBrace(0),
+                        new ArgumentSeparatorToken(",", 0),
+                        new NameToken("j", 0),
+                        new CloseBrace(0)
+                    },
+                    statement.GetBracketStandardisedTokens(),
+                    new TokenSetComparer()
+                );
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -241,6 +242,30 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 expected.Select(s => s.Trim()).ToArray(),
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
+        }
+
+        [Theory, MemberData("VariousBracketDeterminedRefValArgumentData")]
+        public void VariousBracketDeterminedRefValArgumentCases(string source, string expectedResult)
+        {
+            var translatedContent = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
+            Assert.Equal(expectedResult, translatedContent.Select(c => c.Trim()).Single(c => c != ""));
+        }
+
+        public static IEnumerable<object[]> VariousBracketDeterminedRefValArgumentData
+        {
+            get
+            {
+                yield return new object[] { "func x", "_.CALL(_env.func, _.ARGS.Ref(_env.x, v1 => { _env.x = v1; }));" };
+                yield return new object[] { "func (x)", "_.CALL(_env.func, _.ARGS.Val(_env.x));" };
+
+                yield return new object[] { "func x, y", "_.CALL(_env.func, _.ARGS.Ref(_env.x, v1 => { _env.x = v1; }).Ref(_env.y, v2 => { _env.y = v2; }));" };
+                yield return new object[] { "func (x), y", "_.CALL(_env.func, _.ARGS.Val(_env.x).Ref(_env.y, v1 => { _env.y = v1; }));" };
+                yield return new object[] { "func x, (y)", "_.CALL(_env.func, _.ARGS.Ref(_env.x, v1 => { _env.x = v1; }).Val(_env.y));" };
+
+                yield return new object[] { "z = func(x)", "_env.z = _.VAL(_.CALL(_env.func, _.ARGS.Ref(_env.x, v1 => { _env.x = v1; })));" };
+                yield return new object[] { "z = func(x, y)", "_env.z = _.VAL(_.CALL(_env.func, _.ARGS.Ref(_env.x, v1 => { _env.x = v1; }).Ref(_env.y, v2 => { _env.y = v2; })));" };
+                yield return new object[] { "z = func((x), y)", "_env.z = _.VAL(_.CALL(_env.func, _.ARGS.Val(_env.x).Ref(_env.y, v1 => { _env.y = v1; })));" };
+            }
         }
     }
 }

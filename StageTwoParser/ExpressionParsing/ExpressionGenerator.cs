@@ -147,7 +147,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                             if (bracketedExpressions.Count() > 1)
                                 throw new ArgumentException("If bracketed content is not for an argument list then it's invalid for there to be multiple expressions within it");
                             expressionSegments.Add(
-                                WrapExpressionSegments(bracketedExpressions.Single().Segments)
+                                WrapExpressionSegments(bracketedExpressions.Single().Segments, unwrapSingleBracketedTerm: false)
                             );
                         }
                     }
@@ -235,7 +235,24 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                 .Select((s, index) => Tuple.Create(s as OperationExpressionSegment, index))
                 .Where(s => s.Item1 != null);
             if (operatorSegments.Count() < 2)
+            {
+                if (operatorSegments.Any())
+                {
+                    // While it's true that we don't need to apply any more wrapping to expressions if there is only a single operator, we do want to UNWRAP any
+                    // unnecessarily-wrapped segments, which the WrapExpressionSegments function achieves (when unwrapSingleBracketedTerm is true). This deals
+                    // with cases such as
+                    //   If (a = (1)) Then
+                    // where the unnecessary brackets around the "1" need to be removed so that the comparison forces "a" into a number. This only needs to be
+                    // done when there is an operator in the expression and only CAN be done in there is an operator, so that the brackets are not deemed
+                    // unnecessary in
+                    //   a = Test((b))
+                    // since the "extra" brackets around "b" are NOT extraneous and indicate that "b" must be passed ByVal into Test.
+                    return GetCallExpressionSegmentGroupedExpression(
+                        segmentsArray.Select(s => WrapExpressionSegments(new[] { s }, unwrapSingleBracketedTerm: true))
+                    );
+                }
                 return GetCallExpressionSegmentGroupedExpression(segmentsArray);
+            }
 
             // See http://msdn.microsoft.com/en-us/library/6s7zy3d1(v=vs.84).aspx: "arithmetic operators are evaluated first, comparison operators are evaluated
             // next, and logical operators are evaluated last". The information from that article is also incorporated into the AtomToken ComparisonTokenValues,
@@ -283,21 +300,21 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             //   "a + b * c" then "b * c" should be bracketed since multiplication takes precedence, so we break on the "+" and bracket off the b,
             //   c multiplication against the remaining a token - so we had to break on the operator with the least precedence, hence taking the
             //   last element of the ordered set)
-            var segmentToBreakOn = operatorSegments
+            var operatorSegmentToBreakOn = operatorSegments
                 .OrderBy(s => s, new IndexerOperationExpressionSegmentSorter())
                 .Last();
 
-            var left = segmentsArray.Take(segmentToBreakOn.Item2);
-            var right = segmentsArray.Skip(segmentToBreakOn.Item2 + 1);
+            var left = segmentsArray.Take(operatorSegmentToBreakOn.Item2);
+            var right = segmentsArray.Skip(operatorSegmentToBreakOn.Item2 + 1);
             var expressionSegmentsToGroup = new List<IExpressionSegment>();
             if (left.Any())
-                expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(left).Segments));
-            else if (!segmentToBreakOn.Item1.Token.Content.Equals("NOT", StringComparison.OrdinalIgnoreCase))
+                expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(left).Segments, unwrapSingleBracketedTerm: true));
+            else if (!operatorSegmentToBreakOn.Item1.Token.Content.Equals("NOT", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("The content to the left of an operator may only be empty if it is a \"NOT\" logical operator");
-            expressionSegmentsToGroup.Add(segmentToBreakOn.Item1);
+            expressionSegmentsToGroup.Add(operatorSegmentToBreakOn.Item1);
             if (!right.Any())
                 throw new ArgumentException("The content to the right of an operator may not be empty");
-            expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(right).Segments));
+            expressionSegmentsToGroup.Add(WrapExpressionSegments(GetExpression(right).Segments, unwrapSingleBracketedTerm: true));
             return GetCallExpressionSegmentGroupedExpression(
                 expressionSegmentsToGroup
             );
@@ -322,9 +339,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
             return segmentsArray.Take(index)
                 .Concat(new[] {
-                    WrapExpressionSegments(
-                        segmentsArray.Skip(index).Take(count)
-                    )
+                    WrapExpressionSegments(segmentsArray.Skip(index).Take(count), unwrapSingleBracketedTerm: false)
                 })
                 .Concat(
                     segmentsArray.Skip(index + count)
@@ -470,7 +485,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 		/// that segment rather than wrapping it again (this is done recursively in case there are multiple layers of over-wrapped bracketed segments). Note: If
 		/// it ends up that there's only one expression segment in total then this will be returned, unwrapped.
 		/// </summary>
-		private static IExpressionSegment WrapExpressionSegments(IEnumerable<IExpressionSegment> segments)
+        private static IExpressionSegment WrapExpressionSegments(IEnumerable<IExpressionSegment> segments, bool unwrapSingleBracketedTerm)
 		{
 			if (segments == null)
 				throw new ArgumentNullException("segments");
@@ -490,12 +505,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 
 				segmentsArray = onlySegmentAsBracketedSegment.Segments.ToArray();
 			}
-			if (segmentsArray.Length == 1)
-			{
-				// If there's only one term to wrap then we can just return that without any wrapping!
-				return segmentsArray[0];
-			}
-			return new BracketedExpressionSegment(segmentsArray);
+            if ((segmentsArray.Length == 1) && (unwrapSingleBracketedTerm || (segmentsArray[0] is BracketedExpressionSegment)))
+            {
+                // If we've ended up with a single segment then we might not have to wrap it up further. This is the case if it is a BracketedExpressionSegment
+                // (if this is the case then it brackets multiple segments). It may also be the case it the expression is for a simple expression (eg. "a") -
+                // in this case we may or may not bracket it up, depending upon the unwrapSingleBracketedTerm argument value; this will vary depending upon
+                // whether the simple expression is one side of an operator (in which case bracketing will never be required and so unwrapSingleBracketedTerm
+                // will be true) or if it is a function argument (in which case we can't be sure that removing bracketing will have no effect, it may force
+                // an argument to be passed ByVal when it would otherwise be ByRef, for example - in this case unwrapSingleBracketedTerm will be false and
+                // the single term WILL be bracketed up).
+                return segmentsArray[0];
+            }
+            return new BracketedExpressionSegment(segmentsArray);
 		}
 
         /// <summary>

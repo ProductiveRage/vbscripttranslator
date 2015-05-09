@@ -309,8 +309,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                         tokenArray = firstItemTokens
                             .Concat(new[] { new OpenBrace(lineIndexForInsertedOpenBrace) })
                             .Concat(bracketedContent)
-                            .Concat(new[] { new CloseBrace(lineIndexForInsertedCloseBrace) })
                             .Concat(remainingTokensAfterBracketedContent)
+                            .Concat(new[] { new CloseBrace(lineIndexForInsertedCloseBrace) })
                             .ToArray();
                         break;
                     }
