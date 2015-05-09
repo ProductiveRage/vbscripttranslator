@@ -66,6 +66,33 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Fact]
+            public void PositiveNumberWithNoZeroBeforeDecimalPoint()
+            {
+                Assert.Equal(
+                    0.4,
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(" .4 ")
+                );
+            }
+
+            [Fact]
+            public void NegativeNumberWithNoZeroBeforeDecimalPoint()
+            {
+                Assert.Equal(
+                    -0.4,
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(" -.4 ")
+                );
+            }
+
+            [Fact]
+            public void NegativeNumberWithNoZeroBeforeDecimalPointAndSpaceBetweenSignAndPoint()
+            {
+                Assert.Equal(
+                    -0.4,
+                    DefaultRuntimeSupportClassFactory.Get().CDBL(" - .4 ")
+                );
+            }
+
+            [Fact]
             public void NegativeNumberAsString()
             {
                 Assert.Equal(

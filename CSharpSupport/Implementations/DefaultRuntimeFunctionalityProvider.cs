@@ -1,10 +1,11 @@
-﻿using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using CSharpSupport.Attributes;
+using CSharpSupport.Exceptions;
 
 namespace CSharpSupport.Implementations
 {
@@ -619,15 +620,16 @@ namespace CSharpSupport.Implementations
         public bool ISARRAY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (IsVBScriptValueType(value))
-                return (value != null) && value.GetType().IsArray;
-            try
+            if (!IsVBScriptValueType(value))
             {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
-                return false;
+                try
+                {
+                    value = VAL(value);
+                }
+                catch (ObjectVariableNotSetException)
+                {
+                    return false;
+                }
             }
             return (value != null) && value.GetType().IsArray;
         }
@@ -635,34 +637,57 @@ namespace CSharpSupport.Implementations
         public bool ISEMPTY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (IsVBScriptValueType(value))
-                return value == null;
-            try
+            if (!IsVBScriptValueType(value))
             {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
-                return false;
+                try
+                {
+                    value = VAL(value);
+                }
+                catch (ObjectVariableNotSetException)
+                {
+                    return false;
+                }
             }
             return value == null;
         }
         public bool ISNULL(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (IsVBScriptValueType(value))
-                return value == DBNull.Value;
-            try
+            if (!IsVBScriptValueType(value))
             {
-                value = VAL(value);
-            }
-            catch (ObjectVariableNotSetException)
-            {
-                return false;
+                try
+                {
+                    value = VAL(value);
+                }
+                catch (ObjectVariableNotSetException)
+                {
+                    return false;
+                }
             }
             return value == DBNull.Value;
         }
-        public bool ISNUMERIC(object value) { throw new NotImplementedException(); }
+        private static Regex SpaceFollowingMinusSignRemover = new Regex(@"-\s+", RegexOptions.Compiled);
+        public bool ISNUMERIC(object value)
+        {
+            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
+            if (!IsVBScriptValueType(value))
+            {
+                try
+                {
+                    value = VAL(value);
+                }
+                catch (ObjectVariableNotSetException)
+                {
+                    return false;
+                }
+            }
+            if (value == null)
+                return true; // Empty is identified as numeric in VBScript
+            // double.TryParse seems to match VBScript's pretty well (see the test cases for more details) with one exception; VBScript will tolerate whitespace between
+            // a negative sign and the start of the content, so we need to do consider replacements (any "-" followed by whitespace should become just "-")
+            double numericValue;
+            return double.TryParse(SpaceFollowingMinusSignRemover.Replace(value.ToString(), "-"), out numericValue);
+        }
         public bool ISOBJECT(object value)
         {
             return !IsVBScriptValueType(value);

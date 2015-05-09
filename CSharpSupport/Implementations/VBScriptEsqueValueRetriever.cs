@@ -1,6 +1,4 @@
-﻿using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,6 +7,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using CSharpSupport.Attributes;
+using CSharpSupport.Exceptions;
 
 namespace CSharpSupport.Implementations
 {
@@ -233,7 +234,12 @@ namespace CSharpSupport.Implementations
             // If the value is a string then that will always become a Double (it doesn't matter if it's "1", which could easily be an "Integer", it will
             // always become a Double)
             if (value is string)
-                return Convert.ToDouble(value);
+            {
+                // Convert.ToDouble seems to match VBScript's string-to-number behaviour pretty well (see the test cases for more details) with one exception;
+                // VBScript will tolerate whitespace between a negative sign and the start of the content, so we need to do consider replacements (any "-"
+                // followed by whitespace should become just "-")
+                return Convert.ToDouble(SpaceFollowingMinusSignRemover.Replace(value.ToString(), "-"));
+            }
 
             // These are the types that map directly onto VBScript types, we can return these unaltered
             if ((value is byte)
@@ -256,6 +262,7 @@ namespace CSharpSupport.Implementations
             else
                 throw new ArgumentException("Unsupported type, do not know how to fit it to a VBScript numeric type: " + value.GetType());
         }
+        private static Regex SpaceFollowingMinusSignRemover = new Regex(@"-\s+", RegexOptions.Compiled);
 
         /// <summary>
         /// There are some values which can be treated as numbers (such as Empty, booleans and dates), some of which result in error if this is attempted
