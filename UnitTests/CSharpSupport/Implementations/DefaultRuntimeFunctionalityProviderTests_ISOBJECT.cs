@@ -10,25 +10,37 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
     {
         public class ISOBJECT
         {
-            [Theory, MemberData("SuccessData")]
-            public void SuccessCases(string description, object value, bool expectedResult)
+            [Theory, MemberData("TrueData")]
+            public void TrueCases(string description, object value)
             {
-                Assert.Equal(expectedResult, DefaultRuntimeSupportClassFactory.Get().ISOBJECT(value));
+                Assert.True(DefaultRuntimeSupportClassFactory.Get().ISOBJECT(value));
             }
 
-            public static IEnumerable<object[]> SuccessData
+            [Theory, MemberData("FalseData")]
+            public void FalseCases(string description, object value)
+            {
+                Assert.False(DefaultRuntimeSupportClassFactory.Get().ISOBJECT(value));
+            }
+
+            public static IEnumerable<object[]> TrueData
             {
                 get
                 {
-                    yield return new object[] { "Empty", null, false };
-                    yield return new object[] { "Null", DBNull.Value, false };
-                    yield return new object[] { "Zero", 0, false };
-                    yield return new object[] { "Blank string", "", false };
-                    yield return new object[] { "Unintialised array", new object[0], false };
+                    yield return new object[] { "Nothing", VBScriptConstants.Nothing };
+                    yield return new object[] { "new Object", new object() };
+                    yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype() };
+                }
+            }
 
-                    yield return new object[] { "Nothing", VBScriptConstants.Nothing, true };
-                    yield return new object[] { "new Object", new object(), true};
-                    yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype(), true };
+            public static IEnumerable<object[]> FalseData
+            {
+                get
+                {
+                    yield return new object[] { "Empty", null };
+                    yield return new object[] { "Null", DBNull.Value };
+                    yield return new object[] { "Zero", 0 };
+                    yield return new object[] { "Blank string", "" };
+                    yield return new object[] { "Unintialised array", new object[0] };
                 }
             }
 
