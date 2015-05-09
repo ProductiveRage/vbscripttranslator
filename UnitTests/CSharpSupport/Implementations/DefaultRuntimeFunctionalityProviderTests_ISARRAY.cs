@@ -10,27 +10,38 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
     {
         public class ISARRAY
         {
-            [Theory, MemberData("SuccessData")]
-            public void SuccessCases(string description, object value, bool expectedResult)
+            [Theory, MemberData("TrueData")]
+            public void TrueCases(string description, object value)
             {
-                Assert.Equal(expectedResult, DefaultRuntimeSupportClassFactory.Get().ISARRAY(value));
+                Assert.True(DefaultRuntimeSupportClassFactory.Get().ISARRAY(value));
             }
 
-            public static IEnumerable<object[]> SuccessData
+            [Theory, MemberData("FalseData")]
+            public void FalseCases(string description, object value)
+            {
+                Assert.False(DefaultRuntimeSupportClassFactory.Get().ISARRAY(value));
+            }
+
+            public static IEnumerable<object[]> TrueData
             {
                 get
                 {
-                    yield return new object[] { "Empty", null, false };
-                    yield return new object[] { "Null", DBNull.Value, false };
-                    yield return new object[] { "Nothing", VBScriptConstants.Nothing, false };
-                    yield return new object[] { "Zero", 0, false };
-                    yield return new object[] { "Blank string", "", false };
+                    yield return new object[] { "Empty 1D array", new object[0] };    // In VBScript: Either "Array()" or "Array(-1)"
+                    yield return new object[] { "Empty 2D array", new object[0, 0] }; // In VBScript: "Array(-1, -1)"
+                    yield return new object[] { "Populated 1D array", new object[] { 1 } };
+                    yield return new object[] { "Object with default property which is Populated 1D array", new exampledefaultpropertytype { result = new object[] { 1 } } };
+                }
+            }
 
-                    yield return new object[] { "Empty 1D array", new object[0], true };    // In VBScript: Either "Array()" or "Array(-1)"
-                    yield return new object[] { "Empty 2D array", new object[0, 0], true }; // In VBScript: "Array(-1, -1)"
-                    yield return new object[] { "Populated 1D array", new object[] { 1 }, true };
-                    
-                    yield return new object[] { "Object with default property which is Populated 1D array", new exampledefaultpropertytype { result = new object[] { 1 } }, true };
+            public static IEnumerable<object[]> FalseData
+            {
+                get
+                {
+                    yield return new object[] { "Empty", null };
+                    yield return new object[] { "Null", DBNull.Value };
+                    yield return new object[] { "Nothing", VBScriptConstants.Nothing };
+                    yield return new object[] { "Zero", 0 };
+                    yield return new object[] { "Blank string", "" };
                 }
             }
 

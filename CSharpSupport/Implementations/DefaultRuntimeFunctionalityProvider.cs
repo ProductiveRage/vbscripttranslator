@@ -616,7 +616,7 @@ namespace CSharpSupport.Implementations
             return value.ToString().ToUpper();
         }
         // - Type comparisons
-        public object ISARRAY(object value)
+        public bool ISARRAY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (IsVBScriptValueType(value))
@@ -631,8 +631,8 @@ namespace CSharpSupport.Implementations
             }
             return (value != null) && value.GetType().IsArray;
         }
-        public object ISDATE(object value) { throw new NotImplementedException(); }
-        public object ISEMPTY(object value)
+        public bool ISDATE(object value) { throw new NotImplementedException(); }
+        public bool ISEMPTY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (IsVBScriptValueType(value))
@@ -647,7 +647,7 @@ namespace CSharpSupport.Implementations
             }
             return value == null;
         }
-        public object ISNULL(object value)
+        public bool ISNULL(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (IsVBScriptValueType(value))
@@ -662,8 +662,8 @@ namespace CSharpSupport.Implementations
             }
             return value == DBNull.Value;
         }
-        public object ISNUMERIC(object value) { throw new NotImplementedException(); }
-        public object ISOBJECT(object value)
+        public bool ISNUMERIC(object value) { throw new NotImplementedException(); }
+        public bool ISOBJECT(object value)
         {
             return !IsVBScriptValueType(value);
         }

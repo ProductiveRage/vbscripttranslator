@@ -161,12 +161,12 @@ namespace CSharpSupport
         object LCASE(object value);
         object UCASE(object value);
         // - Type comparisons
-        object ISARRAY(object value);
-        object ISDATE(object value);
-        object ISEMPTY(object value);
-        object ISNULL(object value);
-        object ISNUMERIC(object value);
-        object ISOBJECT(object value);
+        bool ISARRAY(object value);
+        bool ISDATE(object value);
+        bool ISEMPTY(object value);
+        bool ISNULL(object value);
+        bool ISNUMERIC(object value);
+        bool ISOBJECT(object value);
         object TYPENAME(object value);
         object VARTYPE(object value);
         // - Array functions
