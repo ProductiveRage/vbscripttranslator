@@ -26,8 +26,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
-                    yield return new object[] { "Empty 1D array", new object[0] };    // In VBScript: Either "Array()" or "Array(-1)"
-                    yield return new object[] { "Empty 2D array", new object[0, 0] }; // In VBScript: "Array(-1, -1)"
+                    yield return new object[] { "Empty 1D array", new object[0] };    // In VBScript: Either "Array()" or "Dim arr: ReDim arr(-1)"
+                    yield return new object[] { "Empty 2D array", new object[0, 0] }; // In VBScript: "Dim arr: ReDim arr(-1, -1)"
                     yield return new object[] { "Populated 1D array", new object[] { 1 } };
                     yield return new object[] { "Object with default property which is Populated 1D array", new exampledefaultpropertytype { result = new object[] { 1 } } };
                 }

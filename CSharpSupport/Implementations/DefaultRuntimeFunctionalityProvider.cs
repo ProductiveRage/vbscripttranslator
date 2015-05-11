@@ -735,8 +735,30 @@ namespace CSharpSupport.Implementations
         }
         public object ERASE(object value) { throw new NotImplementedException(); }
         public object JOIN(object value) { throw new NotImplementedException(); }
-        public object LBOUND(object value) { throw new NotImplementedException(); }
-        public object UBOUND(object value) { throw new NotImplementedException(); }
+        public int LBOUND(object value) { return LBOUND(value, 1); }
+        public int LBOUND(object value, object dimension)
+        {
+            // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
+            var dimensionInt = CLNG(dimension);
+            var array = VAL(value) as Array;
+            if (array == null)
+                throw new TypeMismatchException("'LBound'");
+            if ((dimensionInt < 1) || (dimensionInt > array.Rank))
+                throw new SubscriptOutOfRangeException("'LBound'");
+            return array.GetLowerBound(dimensionInt - 1); // Note: VBScript uses one-based a dimension value here while C# is zero-based, hence the -1
+        }
+        public int UBOUND(object value) { return UBOUND(value, 1); }
+        public int UBOUND(object value, object dimension)
+        {
+            // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
+            var dimensionInt = CLNG(dimension);
+            var array = VAL(value) as Array;
+            if (array == null)
+                throw new TypeMismatchException("'UBound'");
+            if ((dimensionInt < 1) || (dimensionInt > array.Rank))
+                throw new SubscriptOutOfRangeException("'UBound'");
+            return array.GetUpperBound(dimensionInt - 1); // Note: VBScript uses one-based a dimension value here while C# is zero-based, hence the -1
+        }
         // - Date functions
         public DateTime NOW() { return DateTime.Now; }
         public DateTime DATE() { return DateTime.Now.Date; }

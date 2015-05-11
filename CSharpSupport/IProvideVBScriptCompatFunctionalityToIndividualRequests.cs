@@ -173,8 +173,10 @@ namespace CSharpSupport
         object ARRAY(params object[] value);
         object ERASE(object value);
         object JOIN(object value);
-        object LBOUND(object value);
-        object UBOUND(object value);
+        int LBOUND(object value, object dimension);
+        int LBOUND(object value);
+        int UBOUND(object value);
+        int UBOUND(object value, object dimension);
         // - Date functions
         DateTime NOW();
         DateTime DATE();
