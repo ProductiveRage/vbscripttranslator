@@ -633,7 +633,27 @@ namespace CSharpSupport.Implementations
             }
             return (value != null) && value.GetType().IsArray;
         }
-        public bool ISDATE(object value) { throw new NotImplementedException(); }
+        public bool ISDATE(object value)
+        {
+            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
+            if (!IsVBScriptValueType(value))
+            {
+                try
+                {
+                    value = VAL(value);
+                }
+                catch (ObjectVariableNotSetException)
+                {
+                    return false;
+                }
+            }
+            if (value == null)
+                return false;
+            if (value is DateTime)
+                return true;
+            DateTime parsedValue;
+            return DateTime.TryParse(value.ToString(), out parsedValue);
+        }
         public bool ISEMPTY(object value)
         {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
