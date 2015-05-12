@@ -854,7 +854,13 @@ namespace CSharpSupport.Implementations
         }
         public object WEEKDAY(object value) { throw new NotImplementedException(); }
         public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
-        public object HOUR(object value) { throw new NotImplementedException(); }
+        public object HOUR(object value)
+        {
+            value = VAL(value);
+            if (value == DBNull.Value)
+                return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+            return CDATE(value).Hour;
+        }
         public object MINUTE(object value) { throw new NotImplementedException(); }
         public object SECOND(object value) { throw new NotImplementedException(); }
         // - Object creation
