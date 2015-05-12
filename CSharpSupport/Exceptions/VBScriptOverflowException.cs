@@ -12,11 +12,13 @@ namespace CSharpSupport.Exceptions
     {
         private const string BASIC_ERROR_DESCRIPTION = "Overflow";
 
-        public VBScriptOverflowException(double value, Exception innerException = null) : this(value.ToString(), innerException) { }
-        public VBScriptOverflowException(decimal value, Exception innerException = null) : this(value.ToString(), innerException) { }
-        
-        private VBScriptOverflowException(string valueAsString, Exception innerException = null)
-            : base(BASIC_ERROR_DESCRIPTION, "'[number: " + valueAsString + "]'", innerException) { }
+        public VBScriptOverflowException(string additionalInformationIfAny, Exception innerException = null)
+            : base(BASIC_ERROR_DESCRIPTION, additionalInformationIfAny, innerException) { }
+
+        public VBScriptOverflowException(double value, Exception innerException = null) : this((object)value, innerException) { }
+        public VBScriptOverflowException(decimal value, Exception innerException = null) : this((object)value, innerException) { }
+        private VBScriptOverflowException(object numericValue, Exception innerException = null)
+            : base(BASIC_ERROR_DESCRIPTION, "'[number: " + ((numericValue == null) ? "" : numericValue.ToString()) + "]'", innerException) { }
 
         protected VBScriptOverflowException(SerializationInfo info, StreamingContext context) : base(info, context) { }
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

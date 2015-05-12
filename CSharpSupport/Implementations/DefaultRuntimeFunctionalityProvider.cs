@@ -366,7 +366,47 @@ namespace CSharpSupport.Implementations
         public object CBOOL(object value) { throw new NotImplementedException(); }
         public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
-        public object CDATE(object value) { throw new NotImplementedException(); }
+        public object CDATE(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return VBScriptConstants.ZeroDate;
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'CDate'");
+            if (value is DateTime)
+                return value;
+            var valueString = value.ToString();
+            double valueNumber;
+            if (double.TryParse(valueString, out valueNumber))
+            {
+                // VBScript has some absolutely bonkers logic for negative values here - eg. CDate(-400.2) = 1898-11-25 04:48:00 which is equal to
+                // (CDate(-400) + CDate(0.2)) and NOT equal to (CDate(-400) + CDate(-0.2)). It appears that the negative sign is just removed from
+                // fractions, since CDate(0.1) = CDate(-0.1) and CDate(0.2) = CDate(-0.2) in VBScript.
+                var integerPortion = Math.Truncate(valueNumber);
+                var fractionalPortion = Math.Abs(valueNumber - integerPortion);
+                var calculatedDate = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
+                if (integerPortion >= 0)
+                {
+                    if (integerPortion > VBScriptConstants.LatestPossibleDate.Subtract(calculatedDate).TotalDays)
+                        throw new VBScriptOverflowException("'CDate'");
+                    return calculatedDate.AddDays(integerPortion);
+                }
+                else
+                {
+                    if (integerPortion < VBScriptConstants.EarliestPossibleDate.Subtract(calculatedDate).TotalDays)
+                        throw new VBScriptOverflowException("'CDate'");
+                    return calculatedDate.AddDays(integerPortion);
+                }
+            }
+            DateTime valueDate;
+            if (DateTime.TryParse(valueString, out valueDate))
+            {
+                if ((valueDate < VBScriptConstants.EarliestPossibleDate) || (valueDate > VBScriptConstants.LatestPossibleDate))
+                    throw new VBScriptOverflowException("'CDate'");
+                return valueDate;
+            }
+            throw new TypeMismatchException("'CDate'");
+        }
         public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
         public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
         public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
