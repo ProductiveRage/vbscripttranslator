@@ -830,7 +830,13 @@ namespace CSharpSupport.Implementations
         public object DATEVALUE(object value) { throw new NotImplementedException(); }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
         public object TIMEVALUE(object value) { throw new NotImplementedException(); }
-        public object DAY(object value) { throw new NotImplementedException(); }
+        public object DAY(object value)
+        {
+            value = VAL(value);
+            if (value == DBNull.Value)
+                return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+            return CDATE(value).Day;
+        }
         public object MONTH(object value)
         {
             value = VAL(value);
