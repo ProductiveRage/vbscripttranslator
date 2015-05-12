@@ -374,7 +374,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'CDate'");
             if (value is DateTime)
-                return (DateTime)value;
+                return ReduceFidelityToSeconds((DateTime)value);
             var valueString = value.ToString();
             double valueNumber;
             if (double.TryParse(valueString, out valueNumber))
@@ -382,20 +382,26 @@ namespace CSharpSupport.Implementations
                 // VBScript has some absolutely bonkers logic for negative values here - eg. CDate(-400.2) = 1898-11-25 04:48:00 which is equal to
                 // (CDate(-400) + CDate(0.2)) and NOT equal to (CDate(-400) + CDate(-0.2)). It appears that the negative sign is just removed from
                 // fractions, since CDate(0.1) = CDate(-0.1) and CDate(0.2) = CDate(-0.2) in VBScript.
+                // Important: Limit the precision of fractionalPortion to a Single, rather than Double, to be consistent with VBScript. Otherwise
+                // the incorrect value will be returned for the minutes values of 2958465.9 (the largest integer value that will be accepted before
+                // an overflow occurs, with a fractional time component included on top of it); when VBScript CDATE's that value it will get a time
+                // of 21:35:59 but if we didn't limit fractionalPortion's range to a Single then we'd get 21:36:00. Doing this, however, can
+                // introduce precision issues with milliseconds being returned that are not expected - these can be removed, entirely,
+                // though, since VBScript does not deal with millisecond granularity.
                 var integerPortion = Math.Truncate(valueNumber);
-                var fractionalPortion = Math.Abs(valueNumber - integerPortion);
+                var fractionalPortion = (Single)Math.Abs(valueNumber - integerPortion);
                 var calculatedDate = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
                 if (integerPortion >= 0)
                 {
                     if (integerPortion > VBScriptConstants.LatestPossibleDate.Subtract(calculatedDate).TotalDays)
                         throw new VBScriptOverflowException("'CDate'");
-                    return calculatedDate.AddDays(integerPortion);
+                    return ReduceFidelityToSeconds(calculatedDate.AddDays(integerPortion));
                 }
                 else
                 {
                     if (integerPortion < VBScriptConstants.EarliestPossibleDate.Subtract(calculatedDate).TotalDays)
                         throw new VBScriptOverflowException("'CDate'");
-                    return calculatedDate.AddDays(integerPortion);
+                    return ReduceFidelityToSeconds(calculatedDate.AddDays(integerPortion));
                 }
             }
             DateTime valueDate;
@@ -403,9 +409,13 @@ namespace CSharpSupport.Implementations
             {
                 if ((valueDate < VBScriptConstants.EarliestPossibleDate) || (valueDate > VBScriptConstants.LatestPossibleDate))
                     throw new VBScriptOverflowException("'CDate'");
-                return valueDate;
+                return ReduceFidelityToSeconds(valueDate);
             }
             throw new TypeMismatchException("'CDate'");
+        }
+        private DateTime ReduceFidelityToSeconds(DateTime value)
+        {
+            return new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second);
         }
         public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
         public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
@@ -861,7 +871,13 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return CDATE(value).Hour;
         }
-        public object MINUTE(object value) { throw new NotImplementedException(); }
+        public object MINUTE(object value)
+        {
+            value = VAL(value);
+            if (value == DBNull.Value)
+                return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+            return CDATE(value).Minute;
+        }
         public object SECOND(object value) { throw new NotImplementedException(); }
         // - Object creation
         public object CREATEOBJECT(object value) { throw new NotImplementedException(); }
