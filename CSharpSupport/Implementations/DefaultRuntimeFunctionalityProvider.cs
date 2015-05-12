@@ -374,7 +374,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'CDate'");
             if (value is DateTime)
-                return value;
+                return (DateTime)value;
             var valueString = value.ToString();
             double valueNumber;
             if (double.TryParse(valueString, out valueNumber))
