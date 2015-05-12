@@ -25,6 +25,12 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Equal(4, DefaultRuntimeSupportClassFactory.Get().LEN("Test"));
             }
+
+            [Fact]
+            public void NumericValue()
+            {
+                Assert.Equal(1, DefaultRuntimeSupportClassFactory.Get().LEN(4)); // Numbers get cast as strings, so the number 4 becomes the string "4" and so has length 1
+            }
         }
     }
 }
