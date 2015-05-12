@@ -366,7 +366,7 @@ namespace CSharpSupport.Implementations
         public object CBOOL(object value) { throw new NotImplementedException(); }
         public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
-        public object CDATE(object value)
+        public DateTime CDATE(object value)
         {
             value = VAL(value);
             if (value == null)

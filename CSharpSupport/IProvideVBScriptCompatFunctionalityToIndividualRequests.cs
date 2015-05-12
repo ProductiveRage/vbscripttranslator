@@ -100,7 +100,7 @@ namespace CSharpSupport
         object CBOOL(object value);
         decimal CCUR(object value);
         double CDBL(object value);
-        object CDATE(object value);
+        DateTime CDATE(object value);
         Int16 CINT(object value);
         int CLNG(object value);
         float CSNG(object value);

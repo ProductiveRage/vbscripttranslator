@@ -12,7 +12,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public class CDATE
         {
             [Theory, MemberData("SuccessData")]
-            public void SuccessCases(string description, object value, object expectedResult)
+            public void SuccessCases(string description, object value, DateTime expectedResult)
             {
                 Assert.Equal(expectedResult, DefaultRuntimeSupportClassFactory.Get().CDATE(value));
             }
