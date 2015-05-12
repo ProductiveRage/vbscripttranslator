@@ -832,7 +832,13 @@ namespace CSharpSupport.Implementations
         public object TIMEVALUE(object value) { throw new NotImplementedException(); }
         public object NOW(object value) { throw new NotImplementedException(); }
         public object DAY(object value) { throw new NotImplementedException(); }
-        public object MONTH(object value) { throw new NotImplementedException(); }
+        public object MONTH(object value)
+        {
+            value = VAL(value);
+            if (value == DBNull.Value)
+                return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+            return CDATE(value).Month;
+        }
         public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value)
         {
