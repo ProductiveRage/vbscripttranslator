@@ -186,7 +186,6 @@ namespace CSharpSupport
         object DATEPART(object value);
         object DATESERIAL(object year, object month, object date);
         object DATEVALUE(object value);
-        object NOW(object value);
         object DAY(object value);
         object MONTH(object value);
         object MONTHNAME(object value);

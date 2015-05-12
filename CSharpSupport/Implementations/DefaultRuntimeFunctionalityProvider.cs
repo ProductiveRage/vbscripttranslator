@@ -830,7 +830,6 @@ namespace CSharpSupport.Implementations
         public object DATEVALUE(object value) { throw new NotImplementedException(); }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
         public object TIMEVALUE(object value) { throw new NotImplementedException(); }
-        public object NOW(object value) { throw new NotImplementedException(); }
         public object DAY(object value) { throw new NotImplementedException(); }
         public object MONTH(object value)
         {
