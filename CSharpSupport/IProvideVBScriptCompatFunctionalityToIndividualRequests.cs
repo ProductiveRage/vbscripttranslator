@@ -97,7 +97,7 @@ namespace CSharpSupport
         // parameters and overloads to deal with optional parameters)
         // - Type conversions
         byte CBYTE(object value);
-        object CBOOL(object value);
+        bool CBOOL(object value);
         decimal CCUR(object value);
         double CDBL(object value);
         DateTime CDATE(object value);

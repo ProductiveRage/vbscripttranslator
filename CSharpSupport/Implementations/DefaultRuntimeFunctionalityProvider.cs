@@ -363,7 +363,28 @@ namespace CSharpSupport.Implementations
         // overloads to deal with optional parameters)
         // - Type conversions
         public byte CBYTE(object value) { return GetAsNumber<byte>(value, Convert.ToByte); }
-        public object CBOOL(object value) { throw new NotImplementedException(); }
+        public bool CBOOL(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return false;
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'CBool'");
+            if (value is bool)
+                return (bool)value;
+            if (value is DateTime)
+                return ((DateTime)value) != VBScriptConstants.ZeroDate;
+            var valueString = value.ToString();
+            if (valueString.Equals("true", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (valueString.Equals("false", StringComparison.OrdinalIgnoreCase))
+                return false;
+            double valueNumber;
+            if (!double.TryParse(valueString, out valueNumber))
+                throw new TypeMismatchException("'CBool'");
+            return valueNumber != 0;
+
+        }
         public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
         public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
         public DateTime CDATE(object value)
