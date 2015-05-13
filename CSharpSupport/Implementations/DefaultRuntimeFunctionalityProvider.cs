@@ -411,18 +411,18 @@ namespace CSharpSupport.Implementations
                 // though, since VBScript does not deal with millisecond granularity.
                 var integerPortion = Math.Truncate(valueNumber);
                 var fractionalPortion = (Single)Math.Abs(valueNumber - integerPortion);
-                var calculatedDate = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
+                var calculatedTimeComponent = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
                 if (integerPortion >= 0)
                 {
-                    if (integerPortion > VBScriptConstants.LatestPossibleDate.Subtract(calculatedDate).TotalDays)
+                    if (integerPortion > VBScriptConstants.LatestPossibleDate.Subtract(calculatedTimeComponent).TotalDays)
                         throw new VBScriptOverflowException("'CDate'");
-                    return ReduceFidelityToSeconds(calculatedDate.AddDays(integerPortion));
+                    return ReduceFidelityToSeconds(calculatedTimeComponent.AddDays(integerPortion));
                 }
                 else
                 {
-                    if (integerPortion < VBScriptConstants.EarliestPossibleDate.Subtract(calculatedDate).TotalDays)
+                    if (integerPortion < VBScriptConstants.EarliestPossibleDate.Subtract(calculatedTimeComponent).TotalDays)
                         throw new VBScriptOverflowException("'CDate'");
-                    return ReduceFidelityToSeconds(calculatedDate.AddDays(integerPortion));
+                    return ReduceFidelityToSeconds(calculatedTimeComponent.AddDays(integerPortion));
                 }
             }
             DateTime valueDate;
@@ -899,7 +899,13 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return CDATE(value).Minute;
         }
-        public object SECOND(object value) { throw new NotImplementedException(); }
+        public object SECOND(object value)
+        {
+            value = VAL(value);
+            if (value == DBNull.Value)
+                return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+            return CDATE(value).Second;
+        }
         // - Object creation
         public object CREATEOBJECT(object value) { throw new NotImplementedException(); }
         public object GETOBJECT(object value) { throw new NotImplementedException(); }
