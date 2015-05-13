@@ -172,7 +172,8 @@ namespace CSharpSupport
         // - Array functions
         object ARRAY(params object[] value);
         object ERASE(object value);
-        object JOIN(object value);
+        string JOIN(object value);
+        string JOIN(object value, object delimeter);
         int LBOUND(object value, object dimension);
         int LBOUND(object value);
         int UBOUND(object value);

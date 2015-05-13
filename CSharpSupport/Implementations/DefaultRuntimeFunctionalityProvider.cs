@@ -825,7 +825,40 @@ namespace CSharpSupport.Implementations
             return values;
         }
         public object ERASE(object value) { throw new NotImplementedException(); }
-        public object JOIN(object value) { throw new NotImplementedException(); }
+        public string JOIN(object value) { return JOIN(value, " "); }
+        public string JOIN(object value, object delimiter)
+        {
+            delimiter = VAL(delimiter);
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'Join'");
+            value = VAL(value);
+            if (delimiter == DBNull.Value)
+                throw new InvalidUseOfNullException("'Join'");
+            if (value == null)
+                throw new TypeMismatchException("'Join'");
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'Join'");
+            var valueType = value.GetType();
+            if (!valueType.IsArray)
+                throw new TypeMismatchException("'Join'");
+            var arrayRank = valueType.GetArrayRank();
+            if (arrayRank == 0)
+                return "";
+            else if (arrayRank > 1)
+                throw new TypeMismatchException("'Join'");
+            return string.Join(
+                (delimiter == null) ? "" : delimiter.ToString(),
+                ((Array)value)
+                    .Cast<object>()
+                    .Select(element =>
+                    {
+                        element = VAL(element);
+                        if (element == DBNull.Value)
+                            throw new TypeMismatchException("'Join'");
+                        return (element == null) ? "" : element.ToString();
+                    })
+            );
+        }
         public int LBOUND(object value) { return LBOUND(value, 1); }
         public int LBOUND(object value, object dimension)
         {
