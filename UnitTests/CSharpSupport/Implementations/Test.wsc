@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" ?>
+<?component error="false" debug="false" ?>
+<package>
+	<component id="Test">
+		<registration progid="ExampleWSC.Test" description="Example WSC Component" version="1.0.0" />
+		<public>
+		</public>
+		<script language="VBScript">
+		<![CDATA[
+		]]>
+		</script>
+	</component>
+</package>

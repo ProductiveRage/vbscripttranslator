@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using CSharpSupport;
-using CSharpSupport.Attributes;
+using Microsoft.VisualBasic;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -39,6 +40,11 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "COM Visible Class", new ComVisibleClass(), "ComVisibleClass" };
                     yield return new object[] { "Non-COM-Visible Class derived from a COM Visible Class", new NonComVisibleClassDerivedFromComVisibleClass(), "ComVisibleClass" };
                     yield return new object[] { "Non-COM-Visible Class", new NonComVisibleClass(), "Object" };
+                    yield return new object[] {
+                        "WSC Component",
+                        Interaction.GetObject("script:" + Path.Combine(new DirectoryInfo(".").FullName, @"CSharpSupport\Implementations\Test.wsc")),
+                        "Test"
+                    };
                 }
             }
 
