@@ -479,7 +479,47 @@ namespace CSharpSupport.Implementations
         public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
         public string CSTR(object value) { throw new NotImplementedException(); }
         public string INT(object value) { throw new NotImplementedException(); }
-        public string STRING(object value) { throw new NotImplementedException(); }
+        public string STRING(object numberOfTimesToRepeat, object character)
+        {
+            character = VAL(character);
+            numberOfTimesToRepeat = VAL(numberOfTimesToRepeat);
+            if ((numberOfTimesToRepeat == DBNull.Value) || (character == DBNull.Value))
+                throw new InvalidUseOfNullException("'String'");
+            int numberOfTimesToRepeatNumber;
+            if (numberOfTimesToRepeat == null)
+                numberOfTimesToRepeatNumber = 0;
+            else
+            {
+                numberOfTimesToRepeatNumber = CINT(numberOfTimesToRepeat);
+                if (numberOfTimesToRepeatNumber <= 0)
+                    throw new InvalidProcedureCallOrArgumentException("'String'");
+            }
+            if (character == null)
+                return "";
+            char characterChar;
+            var characterString = character as string;
+            if (characterString != null)
+            {
+                if (characterString == "")
+                    throw new InvalidProcedureCallOrArgumentException("'String'");
+                characterChar = characterString[0];
+            }
+            else
+            {
+                var characterCode = CINT(character);
+                if (characterCode > 256)
+                    characterCode = (short)(characterCode % 256);
+                else if (characterCode < 0)
+                {
+                    var numberOf256sToAdd = Math.Ceiling(Math.Abs((double)characterCode / 256));
+                    characterCode += (short)(numberOf256sToAdd * 256);
+                }
+                characterChar = (char)characterCode;
+            }
+            if (numberOfTimesToRepeatNumber == 0)
+                return "";
+            return new string(characterChar, numberOfTimesToRepeatNumber);
+        }
         // - Number functions
         public object ABS(object value) { throw new NotImplementedException(); }
         public object ATN(object value) { throw new NotImplementedException(); }
@@ -1222,7 +1262,7 @@ namespace CSharpSupport.Implementations
             }
             catch (OverflowException e)
             {
-                throw new VBScriptOverflowException((double)value, e);
+                throw new VBScriptOverflowException(Convert.ToDouble(value), e);
             }
             catch (Exception e)
             {
