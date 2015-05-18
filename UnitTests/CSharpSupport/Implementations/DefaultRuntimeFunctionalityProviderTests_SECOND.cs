@@ -138,16 +138,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "Largest positive integer before overflow + 0.9999999999", 2958465.9999999999 }; // This is the fewest 9s that must be allowed before an overflow occurs
                 }
             }
-
-            /// <summary>
-            /// This is an example of the type of class that may be emitted by the translation process, one with a parameter-less default member
-            /// </summary>
-            [TranslatedProperty("ExampleDefaultPropertyType")]
-            private class exampledefaultpropertytype
-            {
-                [IsDefault]
-                public object result { get; set; }
-            }
         }
     }
 }

@@ -86,16 +86,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "1D array where dimension 2 is requested", new object[1], 2 };
                 }
             }
-
-            /// <summary>
-            /// This is an example of the type of class that may be emitted by the translation process, one with a parameter-less default member
-            /// </summary>
-            [TranslatedProperty("ExampleDefaultPropertyType")]
-            private class exampledefaultpropertytype
-            {
-                [IsDefault]
-                public object result { get; set; }
-            }
         }
     }
 }

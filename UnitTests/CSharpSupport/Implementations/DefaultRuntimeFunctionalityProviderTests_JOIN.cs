@@ -90,16 +90,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "1D object array of numeric/Nothing values with comma delimiter", new object[] { 1, VBScriptConstants.Nothing, 3 }, "," };
                 }
             }
-
-            /// <summary>
-            /// This is an example of the type of class that may be emitted by the translation process, one with a parameter-less default member
-            /// </summary>
-            [TranslatedProperty("ExampleDefaultPropertyType")]
-            private class exampledefaultpropertytype // TODO: Move this into shared location
-            {
-                [IsDefault]
-                public object result { get; set; }
-            }
         }
     }
 }
