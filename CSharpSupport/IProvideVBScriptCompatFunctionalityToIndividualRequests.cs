@@ -126,7 +126,7 @@ namespace CSharpSupport
         object ASC(object value);
         object ASCB(object value);
         object ASCW(object value);
-        object CHR(object value);
+        string CHR(object value);
         object CHRB(object value);
         object CHRW(object value);
         object FORMATCURRENCY(object value);

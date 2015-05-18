@@ -538,7 +538,17 @@ namespace CSharpSupport.Implementations
         public object ASC(object value) { throw new NotImplementedException(); }
         public object ASCB(object value) { throw new NotImplementedException(); }
         public object ASCW(object value) { throw new NotImplementedException(); }
-        public object CHR(object value) { throw new NotImplementedException(); }
+        public string CHR(object value)
+        {
+            try
+            {
+                return new string((char)CBYTE(value), 1);
+            }
+            catch (VBScriptOverflowException e)
+            {
+                throw new InvalidProcedureCallOrArgumentException("'CHR'", e);
+            }
+        }
         public object CHRB(object value) { throw new NotImplementedException(); }
         public object CHRW(object value) { throw new NotImplementedException(); }
         public object FILTER(object value) { throw new NotImplementedException(); }
