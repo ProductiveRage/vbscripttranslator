@@ -167,7 +167,7 @@ namespace CSharpSupport
         bool ISNULL(object value);
         bool ISNUMERIC(object value);
         bool ISOBJECT(object value);
-        object TYPENAME(object value);
+        string TYPENAME(object value);
         object VARTYPE(object value);
         // - Array functions
         object ARRAY(params object[] value);

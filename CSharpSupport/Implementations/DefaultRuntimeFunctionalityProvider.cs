@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
+using Microsoft.VisualBasic;
 
 namespace CSharpSupport.Implementations
 {
@@ -817,7 +819,7 @@ namespace CSharpSupport.Implementations
         {
             return !IsVBScriptValueType(value);
         }
-        public object TYPENAME(object value)
+        public string TYPENAME(object value)
         {
             if (value == null)
                 return "Empty";
@@ -825,30 +827,47 @@ namespace CSharpSupport.Implementations
                 return "Null";
             if (IsVBScriptNothing(value))
                 return "Nothing";
+
             var type = value.GetType();
+            if (type.IsArray && (type.GetElementType() == typeof(Object)))
+                return "Variant()";
+            if (IsVBScriptValueType(value))
+            {
+                if (type == typeof(bool))
+                    return "Boolean";
+                if (type == typeof(byte))
+                    return "Byte";
+                if (type == typeof(Int16))
+                    return "Integer";
+                if (type == typeof(Int32))
+                    return "Long";
+                if (type == typeof(double))
+                    return "Double";
+                if (type == typeof(DateTime))
+                    return "Date";
+                if (type == typeof(Decimal))
+                    return "Currency";
+                return Information.TypeName(value);
+            }
+
+            if (type.IsCOMObject)
+            {
+                var typeDescriptorClassName = TypeDescriptor.GetClassName(value);
+                if (!string.IsNullOrWhiteSpace(typeDescriptorClassName))
+                    return typeDescriptorClassName;
+            }
             var sourceClassName = type.GetCustomAttributes(typeof(SourceClassName), inherit: true).FirstOrDefault() as SourceClassName;
             if (sourceClassName != null)
                 return sourceClassName.Name;
 
-            // TODO: This needs to deal with numeric types much better - eg. "Int16" => "Integer" - have they all been covered now?
-            if (type == typeof(bool))
-                return "Boolean";
-            if (type == typeof(byte))
-                return "Byte";
-            if (type == typeof(Int16))
-                return "Integer";
-            if (type == typeof(Int32))
-                return "Long";
-            if (type == typeof(double))
-                return "Double";
-            if (type == typeof(DateTime))
-                return "Date";
-            if (type == typeof(Decimal))
-                return "Currency";
-
-            // TODO: Does this deal with COM objects such as "Recordset" or will it show "_COMObject" (or whatever)
-            // - If ComVisible then step through the type inheritance tree for the first ComVisible(true) and use that class' Type Name?
-            return value.GetType().Name;
+            // This will always fall through to Object if it finds nothing better along the way
+            while (true)
+            {
+                var comVisibleAttributeIfAny = type.GetCustomAttributes(typeof(ComVisibleAttribute), inherit: false).Cast<ComVisibleAttribute>().FirstOrDefault();
+                if ((comVisibleAttributeIfAny != null) && comVisibleAttributeIfAny.Value)
+                    return type.Name;
+                type = type.BaseType;
+            }
         }
         public object VARTYPE(object value) { throw new NotImplementedException(); }
         // - Array functions
