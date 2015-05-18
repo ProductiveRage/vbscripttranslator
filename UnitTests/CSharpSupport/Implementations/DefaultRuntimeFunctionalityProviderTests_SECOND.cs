@@ -32,6 +32,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Theory, MemberData("ObjectVariableNotSetExceptionData")]
             public void ObjectVariableNotSetExceptionCases(string description, object value)
             {
+
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().SECOND(value);
@@ -70,7 +71,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "String \"2009-10-11\"", "2009-10-11", 0 };
                     yield return new object[] { "String \"2009-10-11 20:12:44\"", "2009-10-11 20:12:44", 44 };
                     yield return new object[] { "A Date", new DateTime(2009, 7, 6, 20, 12, 44), 44 };
-                    
+
                     yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype(), 0 };
                     yield return new object[] { "Object with default property which is Null", new exampledefaultpropertytype { result = DBNull.Value }, DBNull.Value };
                     yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype(), 0 };
@@ -78,10 +79,20 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 
                     // Some bizarre behaviour occurs at the very top end of the supported range - at the very last integer, when 0.02 is added the number of seconds is inconsistent
                     // with 0.02 being added to ANY (positive?) integer smaller than it; it changes from always being 53 to being 52 at the very last change.
+                    // Some bizarre behaviour occurs at the very top end of the supported range - at the very last integer, when 0.002 is present as the time component, then the number
+                    // of seconds is inconsistent with ANY other value in the acceptable range that has a 0.002 time component; it changes from always being 53 to being 52 at the very
+                    // last chance.
                     yield return new object[] { "Minus 400.002", -400.002, 53 };
                     yield return new object[] { "Plus 2000000.002 (approx 2/3 of largest possible positive integer)", 2000000.002, 53 };
                     yield return new object[] { "One before the largest positive integer before overflow + 0.02", 2958464.002, 53 };
                     yield return new object[] { "Largest positive integer before overflow + 0.02", 2958465.002, 52 };
+                    yield return new object[] { "Most negative possible value with .002 time component", -657434.002, 53 };
+
+                    yield return new object[] { "Minus 400.9", -400.9, 0 };
+                    yield return new object[] { "Plus 2000000.9 (approx 2/3 of largest possible positive integer)", 2000000.9, 0 };
+                    yield return new object[] { "One before the largest positive integer before overflow + 0.9", 2958464.9, 0 };
+                    yield return new object[] { "Largest positive integer before overflow + 0.9", 2958465.9, 59 };
+                    yield return new object[] { "Most negative possible value with .9 time component", -657434.9, 0 };
 
                     // Overflow edge checks
                     yield return new object[] { "Largest positive integer before overflow", 2958465, 0 };

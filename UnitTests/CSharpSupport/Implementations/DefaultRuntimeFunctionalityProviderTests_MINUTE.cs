@@ -71,6 +71,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype(), 0 };
                     yield return new object[] { "Object with default property which is String \"2009-10-11 20:12:44\"", new exampledefaultpropertytype { result = "2009-10-11 20:12:44" }, 12 };
 
+                    // Some bizarre behaviour occurs at the very top end of the supported range - at the very last integer, when 0.9 is present as the time component, then the number
+                    // of minutes is inconsistent with ANY other value in the acceptable range that has a 0.9 time component; it changes from always being 36 to being 35 at the very
+                    // last chance.
+                    yield return new object[] { "Minus 400.9", -400.9, 36 };
+                    yield return new object[] { "Plus 2000000.9 (approx 2/3 of largest possible positive integer)", 2000000.9, 36 };
+                    yield return new object[] { "One before the largest positive integer before overflow + 0.9", 2958464.9, 36 };
+                    yield return new object[] { "Largest positive integer before overflow + 0.9", 2958465.9, 35 };
+                    yield return new object[] { "Most negative possible value with 0.9 time component", -657434.9, 36 };
+
                     // Overflow edge checks
                     yield return new object[] { "Largest positive integer before overflow", 2958465, 0 };
                     yield return new object[] { "Largest positive integer before overflow + 0.9", 2958465.9, 35 };

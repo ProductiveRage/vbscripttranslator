@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using CSharpSupport;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
@@ -11,12 +12,28 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
     {
         public class CDATE
         {
+            /// <summary>
+            /// Values that go through a CDATE / CDBL cycle should come out unchanged. There are some unfortunate exceptions to this in the current implementation, special handling
+            /// had to be added around the integer that represents the greatest possible date in VBScript (2958465 / 9999-12-31) and so any non-integer values based upon that number
+            /// will fail a round trip by a small margin (eg. 2958465.9), but other values should pass through a round trip unaltered (to a certain level of precision).
+            /// </summary>
+            [Fact]
+            public void RoundTripConversionCases()
+            {
+                var _ = DefaultRuntimeSupportClassFactory.Get();
+                var values = new[] { 0, 1, -1, -400, -400.2, -400.008, -400.8, 400.2, 400.8, 40000.001, 40000.01, 40000.02, 40000.08, -400.002, 2000000.002, 2958464.002, -657434.002, -400.9, 2000000.9, 2958464.9, -657434.9, -657434 };
+                Assert.Equal(
+                    values,
+                    values.Select(value => _.CDBL(_.CDATE(value))).ToArray()
+                );
+            }
+
             [Theory, MemberData("SuccessData")]
             public void SuccessCases(string description, object value, DateTime expectedResult)
             {
                 Assert.Equal(expectedResult, DefaultRuntimeSupportClassFactory.Get().CDATE(value));
             }
-            
+
             [Theory, MemberData("InvalidUseOfNullData")]
             public void InvalidUseOfNullCases(string description, object value)
             {

@@ -386,7 +386,13 @@ namespace CSharpSupport.Implementations
 
         }
         public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
-        public double CDBL(object value) { return GetAsNumber<double>(value, Convert.ToDouble); }
+        public double CDBL(object value)
+        {
+            // Some precision gets lost in VBScript in these translations, which we can emulate with a double-decimal-double conversion - eg. if 40000.01
+            // is passed into CDATE and then back through CDBL then 40000.01 should come back out
+            var valueDouble = GetAsNumber<double>(value, Convert.ToDouble);
+            return (double)((decimal)valueDouble);
+        }
         public DateTime CDATE(object value)
         {
             value = VAL(value);
@@ -395,48 +401,76 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'CDate'");
             if (value is DateTime)
-                return ReduceFidelityToSeconds((DateTime)value);
-            var valueString = value.ToString();
-            double valueNumber;
-            if (double.TryParse(valueString, out valueNumber))
+                return (DateTime)value;
+
+            double? valueNumber;
+            try
+            {
+                valueNumber = Convert.ToDouble(value);
+            }
+            catch
+            {
+                valueNumber = null;
+            }
+            if (valueNumber != null)
             {
                 // VBScript has some absolutely bonkers logic for negative values here - eg. CDate(-400.2) = 1898-11-25 04:48:00 which is equal to
                 // (CDate(-400) + CDate(0.2)) and NOT equal to (CDate(-400) + CDate(-0.2)). It appears that the negative sign is just removed from
                 // fractions, since CDate(0.1) = CDate(-0.1) and CDate(0.2) = CDate(-0.2) in VBScript.
-                // Important: Limit the precision of fractionalPortion to a Single, rather than Double, to be consistent with VBScript. Otherwise
-                // the incorrect value will be returned for the minutes values of 2958465.9 (the largest integer value that will be accepted before
-                // an overflow occurs, with a fractional time component included on top of it); when VBScript CDATE's that value it will get a time
-                // of 21:35:59 but if we didn't limit fractionalPortion's range to a Single then we'd get 21:36:00. Doing this, however, can
-                // introduce precision issues with milliseconds being returned that are not expected - these can be removed, entirely,
-                // though, since VBScript does not deal with millisecond granularity.
-                var integerPortion = Math.Truncate(valueNumber);
-                var fractionalPortion = (Single)Math.Abs(valueNumber - integerPortion);
-                var calculatedTimeComponent = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
-                if (integerPortion >= 0)
+                var integerPortion = Math.Truncate(valueNumber.Value);
+                var isGreatestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
+                double fractionalPortion;
+                if (isGreatestPossibleDate)
                 {
-                    if (integerPortion > VBScriptConstants.LatestPossibleDate.Subtract(calculatedTimeComponent).TotalDays)
+                    // There is also some even stranger logic around times on the last possible day that can be represented. A time component from
+                    // a .9 value (eg. -100.9, 0.9, 10.9, 42140.9) will always show 21:36:00 EXCEPT for when part of a value that represents that
+                    // time on the very last representable day, in which case it will 21:35:59 (try it: 2958465.9). VBScript does not seem to lose
+                    // any precision when converting from and to dates - eg. CDate(2958465.9) is "31/12/9999 21:35:59" and CDbl(CDate(2958465.9))
+                    // is still 2958465.9 - so I think that there must be a bug in the date-handling that I don't know how to fully recreate. I'm
+                    // going to try to always return a value from here that will be consistent with what VBScript would return from CDate, so the
+                    // value 2958465.9 will return "31/12/9999 21:35:59" (while all other .9 values will return 21:36:00) but at the sacrifice of
+                    // "back and forth precision" - so CDbl(CDate(2958465.9)) will be 2958465.8999884259, though all other values will maintain
+                    // precision correctly (so CDbl(CDate(2958464.9)) will be 2958464.9)
+                    // - On top of this, there is a hard limit on the time component of the last possible day, at which point an overflow will
+                    //   occur; 2958465.9999999997672 will overflow while 2958465.99999999976719999999 (as many 9s as you like) won't. I have
+                    //   no idea what that relates to, but a special case is applied here to deal with it.
+                    fractionalPortion = Math.Abs(valueNumber.Value - integerPortion);
+                    if (fractionalPortion >= 0.9999999997672)
                         throw new VBScriptOverflowException("'CDate'");
-                    return ReduceFidelityToSeconds(calculatedTimeComponent.AddDays(integerPortion));
+                    var numberOfDigitsToAllow = 8;
+                    fractionalPortion = Math.Truncate(fractionalPortion * Math.Pow(10, numberOfDigitsToAllow)) / Math.Pow(10, numberOfDigitsToAllow);
                 }
                 else
+                    fractionalPortion = Math.Abs(valueNumber.Value - integerPortion);
+                var isEarliestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
+                if (isEarliestPossibleDate)
                 {
-                    if (integerPortion < VBScriptConstants.EarliestPossibleDate.Subtract(calculatedTimeComponent).TotalDays)
+                    // There is a similar limit to the time component on the other end of the scale, at which point an overflow will occur (the
+                    // value -657434.0.9999999999418 will CDate while -657434.9999999999417999999  99, with as many 9s as you like, will not)
+                    if (fractionalPortion >= 0.9999999999418)
                         throw new VBScriptOverflowException("'CDate'");
-                    return ReduceFidelityToSeconds(calculatedTimeComponent.AddDays(integerPortion));
                 }
+                if ((integerPortion > Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays))
+                || (integerPortion < Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays)))
+                    throw new VBScriptOverflowException("'CDate'");
+                var calculatedTimeComponent = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
+                if (isGreatestPossibleDate)
+                {
+                    // Continuing the crazy-logic-on-last-representable-date, only must the precision of the time component be reduced on the
+                    // greatest possible date, but any millisecond component must be stripped (not rounded) completely. The is how we ensure
+                    // that 2958465.9 results in the time "21:35:59" and not "21:36:00".
+                    calculatedTimeComponent = calculatedTimeComponent.Subtract(TimeSpan.FromMilliseconds(calculatedTimeComponent.Millisecond));
+                }
+                return calculatedTimeComponent.AddDays(integerPortion);
             }
             DateTime valueDate;
-            if (DateTime.TryParse(valueString, out valueDate))
+            if (DateTime.TryParse(value.ToString(), out valueDate))
             {
                 if ((valueDate < VBScriptConstants.EarliestPossibleDate) || (valueDate > VBScriptConstants.LatestPossibleDate))
                     throw new VBScriptOverflowException("'CDate'");
-                return ReduceFidelityToSeconds(valueDate);
+                return valueDate;
             }
             throw new TypeMismatchException("'CDate'");
-        }
-        private DateTime ReduceFidelityToSeconds(DateTime value)
-        {
-            return new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second);
         }
         public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
         public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
@@ -899,14 +933,14 @@ namespace CSharpSupport.Implementations
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Day;
+            return ToClosestSecond(CDATE(value)).Day;
         }
         public object MONTH(object value)
         {
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Month;
+            return ToClosestSecond(CDATE(value)).Month;
         }
         public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value)
@@ -914,7 +948,7 @@ namespace CSharpSupport.Implementations
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Year;
+            return ToClosestSecond(CDATE(value)).Year;
         }
         public object WEEKDAY(object value) { throw new NotImplementedException(); }
         public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
@@ -923,21 +957,28 @@ namespace CSharpSupport.Implementations
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Hour;
+            return ToClosestSecond(CDATE(value)).Hour;
         }
         public object MINUTE(object value)
         {
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Minute;
+            return ToClosestSecond(CDATE(value)).Minute;
         }
         public object SECOND(object value)
         {
             value = VAL(value);
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return CDATE(value).Second;
+            return ToClosestSecond(CDATE(value)).Second;
+        }
+        private DateTime ToClosestSecond(DateTime value)
+        {
+            var approximateValue = new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second);
+            if (value.Millisecond >= 500) // TODO: Check whether this rounding is correct, should it be banker's rounding?
+                approximateValue = approximateValue.AddSeconds(1);
+            return approximateValue;
         }
         // - Object creation
         public object CREATEOBJECT(object value) { throw new NotImplementedException(); }
@@ -1199,7 +1240,19 @@ namespace CSharpSupport.Implementations
 
         private double DateToDouble(DateTime value)
         {
-            return ((DateTime)value).Subtract(VBScriptConstants.ZeroDate).TotalDays;
+            // When VBScript describes a date as a number, it applies somewhat counter-intuitive handling to the date component; 400.2 and -400.2 both
+            // represent that same time (but on different days). Which means that -400.2 comes AFTER -400.0 chronologically, where as -400.2 comes
+            // BEFORE -400 on the number scale. This behaviour needs to be reflected when we translate back from a DateTime to a double, the time
+            // needs to be applied differently to a positive value than a negative. -400.2 is equivalent to "25/11/1898 04:48:00". If this date was
+            // naively translated back into a number (by taking the total number of days, both whole and fractional, between the value and VBScript's
+            // "zero date") then it would become -399.8. Instead the date component must be used to calculate -400 and then this SUBTRACTED from the
+            // value for negatives, rather than added, so -400 becomes -400.2 (a subtraction of 0.2 from -400).
+            double valueDouble;
+            if (value < VBScriptConstants.ZeroDate)
+                valueDouble = value.Date.Subtract(VBScriptConstants.ZeroDate).Subtract(value.TimeOfDay).TotalDays;
+            else
+                valueDouble = value.Date.Subtract(VBScriptConstants.ZeroDate).Add(value.TimeOfDay).TotalDays;
+            return valueDouble;
         }
 
         /// <summary>
