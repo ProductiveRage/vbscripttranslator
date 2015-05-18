@@ -106,7 +106,7 @@ namespace CSharpSupport
         float CSNG(object value);
         string CSTR(object value);
         string INT(object value);
-        string STRING(object value);
+        string STRING(object numberOfTimesToRepeat, object character);
 
         // - Number functions
         object ABS(object value);
