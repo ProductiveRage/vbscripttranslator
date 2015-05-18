@@ -477,7 +477,17 @@ namespace CSharpSupport.Implementations
         public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
         public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
         public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
-        public string CSTR(object value) { throw new NotImplementedException(); }
+        public string CSTR(object value)
+        {
+            value = VAL(value);
+            if (value == null)
+                return "";
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'CStr'");
+            if (value.GetType().IsArray)
+                throw new TypeMismatchException("'CStr'");
+            return value.ToString(); // Note: For dates, the default locale-based formatting should be consistent with VBScript
+        }
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object numberOfTimesToRepeat, object character)
         {
