@@ -151,7 +151,8 @@ namespace CSharpSupport
         object RIGHTB(object value, object maxLength);
         object REPLACE(object value);
         object SPACE(object value);
-        object SPLIT(object value);
+        object[] SPLIT(object value);
+        object[] SPLIT(object value, object delimiter);
         object STRCOMP(object string1, object string2);
         object STRCOMP(object string1, object string2, object compare);
         object STRREVERSE(object value);

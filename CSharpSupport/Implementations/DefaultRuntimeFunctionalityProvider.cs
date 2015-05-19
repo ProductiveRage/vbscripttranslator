@@ -730,7 +730,24 @@ namespace CSharpSupport.Implementations
         public object RIGHTB(object value, object maxLength) { throw new NotImplementedException(); }
         public object REPLACE(object value) { throw new NotImplementedException(); }
         public object SPACE(object value) { throw new NotImplementedException(); }
-        public object SPLIT(object value) { throw new NotImplementedException(); }
+        public object[] SPLIT(object value) { return SPLIT(value, " "); }
+        public object[] SPLIT(object value, object delimiter)
+        {
+            // Basic input validation
+            delimiter = VAL(delimiter);
+            if (delimiter == DBNull.Value)
+                throw new InvalidUseOfNullException("'Split'");
+            if ((delimiter != null) && delimiter.GetType().IsArray)
+                throw new TypeMismatchException("'Split'");
+            value = VAL(value);
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'Split'");
+            if ((value != null) && value.GetType().IsArray)
+                throw new TypeMismatchException("'Split'");
+
+            // Should be fine to translate both values into strings using the standard mechanism (no exception should arise)
+            return CSTR(value).Split(new[] { CSTR(delimiter) }, StringSplitOptions.None).Cast<object>().ToArray();
+        }
         public object STRCOMP(object string1, object string2) { return STRCOMP(string1, string2, 0); }
         public object STRCOMP(object string1, object string2, object compare) { return ToVBScriptNullable<int>(STRCOMP_Internal(string1, string2, compare)); }
         private int? STRCOMP_Internal(object string1, object string2, object compare)
@@ -1004,9 +1021,39 @@ namespace CSharpSupport.Implementations
         public object DATEDIFF(object value) { throw new NotImplementedException(); }
         public object DATEPART(object value) { throw new NotImplementedException(); }
         public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
-        public object DATEVALUE(object value) { throw new NotImplementedException(); }
+        public DateTime DATEVALUE(object value)
+        {
+            // In summary, this will do a subset of the processing of CDATE (it will accept a DateTime or a parse-able string, but not a numeric value such as 123.45) and return only the date:
+            //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
+            //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
+            // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
+            value = VAL(value);
+            if (value == null)
+                throw new TypeMismatchException("'DateValue'");
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'DateValue'");
+            double valueDouble;
+            if (double.TryParse(value.ToString(), out valueDouble))
+                throw new TypeMismatchException("'DateValue'");
+            return CDATE(value).Date;
+        }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
-        public object TIMEVALUE(object value) { throw new NotImplementedException(); }
+        public DateTime TIMEVALUE(object value)
+        {
+            // In summary, this will do a subset of the processing of CDATE (it will accept a DateTime or a parse-able string, but not a numeric value such as 123.45) and return only the time component:
+            //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
+            //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
+            // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
+            value = VAL(value);
+            if (value == null)
+                throw new TypeMismatchException("'TimeValue'");
+            if (value == DBNull.Value)
+                throw new InvalidUseOfNullException("'TimeValue'");
+            double valueDouble;
+            if (double.TryParse(value.ToString(), out valueDouble))
+                throw new TypeMismatchException("'TimeValue'");
+            return VBScriptConstants.ZeroDate.Add(CDATE(value).TimeOfDay);
+        }
         public object DAY(object value)
         {
             value = VAL(value);
