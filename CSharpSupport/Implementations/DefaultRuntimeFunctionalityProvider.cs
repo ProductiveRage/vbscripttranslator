@@ -375,7 +375,7 @@ namespace CSharpSupport.Implementations
         private byte CBYTE(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<byte>(value, exceptionMessageForInvalidContent, Convert.ToByte); }
         public bool CBOOL(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'CBool'");
             if (value == null)
                 return false;
             if (value == DBNull.Value)
@@ -407,7 +407,7 @@ namespace CSharpSupport.Implementations
         }
         public DateTime CDATE(object value)
         {
-            value = VAL(value);
+            value = VAL(value, 'CDate'");
             if (value == null)
                 return VBScriptConstants.ZeroDate;
             if (value == DBNull.Value)
@@ -495,7 +495,7 @@ namespace CSharpSupport.Implementations
         {
             if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
                 throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
-            value = VAL(value);
+            value = VAL(value, "'CStr'");
             if (value == null)
                 return "";
             if (value == DBNull.Value)
@@ -507,8 +507,8 @@ namespace CSharpSupport.Implementations
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object numberOfTimesToRepeat, object character)
         {
-            character = VAL(character);
-            numberOfTimesToRepeat = VAL(numberOfTimesToRepeat);
+            character = VAL(character, "'String'");
+            numberOfTimesToRepeat = VAL(numberOfTimesToRepeat, "'String'");
             if ((numberOfTimesToRepeat == DBNull.Value) || (character == DBNull.Value))
                 throw new InvalidUseOfNullException("'String'");
             int numberOfTimesToRepeatNumber;
@@ -516,7 +516,7 @@ namespace CSharpSupport.Implementations
                 numberOfTimesToRepeatNumber = 0;
             else
             {
-                numberOfTimesToRepeatNumber = CINT(numberOfTimesToRepeat);
+                numberOfTimesToRepeatNumber = CINT(numberOfTimesToRepeat, "'String'");
                 if (numberOfTimesToRepeatNumber <= 0)
                     throw new InvalidProcedureCallOrArgumentException("'String'");
             }
@@ -589,18 +589,18 @@ namespace CSharpSupport.Implementations
         public object INSTR(object startIndex, object valueToSearch, object valueToSearchFor, object compareMode)
         {
             // Validate input
-            startIndex = VAL(startIndex);
-            valueToSearch = VAL(valueToSearch);
-            valueToSearchFor = VAL(valueToSearchFor);
-            compareMode = VAL(compareMode);
+            startIndex = VAL(startIndex, "'InStr'");
+            valueToSearch = VAL(valueToSearch, "'InStr'");
+            valueToSearchFor = VAL(valueToSearchFor, "'InStr'");
+            compareMode = VAL(compareMode, "'InStr'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("startIndex may not be null");
-            var startIndexInt = CLNG(startIndex);
+            var startIndexInt = CLNG(startIndex, "'InStr'");
             if (startIndexInt <= 0)
                 throw new InvalidProcedureCallOrArgumentException("'INSTR' (startIndex must be a positive integer)");
             if (compareMode == DBNull.Value)
                 throw new InvalidUseOfNullException("compareMode may not be null");
-            var compareModeInt = CLNG(compareMode);
+            var compareModeInt = CLNG(compareMode, "'InStr'");
             if ((compareModeInt != 0) && (compareModeInt != 1))
                 throw new InvalidProcedureCallOrArgumentException("'INSTR' (compareMode may only be 0 or 1)");
 
@@ -634,7 +634,7 @@ namespace CSharpSupport.Implementations
             // valueToSearch, if that can be transformed into a non-blank string (if it can not be transformed into a non-object reference at all then
             // throw an exception, and if it is considered to be the equivalent of blank string then default to a startIndex of one, since it's not
             // valid to have a startIndex of zero)
-            valueToSearch = VAL(valueToSearch);
+            valueToSearch = VAL(valueToSearch, "'InStrRev'");
             int startIndex;
             if ((valueToSearch == null) || (valueToSearch == DBNull.Value))
                 startIndex = 1;
@@ -646,18 +646,18 @@ namespace CSharpSupport.Implementations
         public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex, object compareMode)
         {
             // Validate input
-            startIndex = VAL(startIndex);
-            valueToSearch = VAL(valueToSearch);
-            valueToSearchFor = VAL(valueToSearchFor);
-            compareMode = VAL(compareMode);
+            startIndex = VAL(startIndex, "'InStrRev'");
+            valueToSearch = VAL(valueToSearch, "'InStrRev'");
+            valueToSearchFor = VAL(valueToSearchFor, "'InStrRev'");
+            compareMode = VAL(compareMode, "'InStrRev'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("startIndex may not be null");
-            var startIndexInt = CLNG(startIndex);
+            var startIndexInt = CLNG(startIndex, "'InStrRev'");
             if (startIndexInt <= 0)
                 throw new InvalidProcedureCallOrArgumentException("'INSTRREV' (startIndex must be a positive integer)");
             if (compareMode == DBNull.Value)
                 throw new InvalidUseOfNullException("compareMode may not be null");
-            var compareModeInt = CLNG(compareMode);
+            var compareModeInt = CLNG(compareMode, "'InStrRev'");
             if ((compareModeInt != 0) && (compareModeInt != 1))
                 throw new InvalidProcedureCallOrArgumentException("'INSTRREV' (compareMode may only be 0 or 1)");
 
@@ -691,7 +691,7 @@ namespace CSharpSupport.Implementations
         public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Len'");
             if (value == null)
                 return 0;
             else if (value == DBNull.Value)
@@ -702,11 +702,11 @@ namespace CSharpSupport.Implementations
         public object LEFT(object value, object maxLength)
         {
             // Validate inputs first
-            value = VAL(value);
-            maxLength = VAL(maxLength);
+            value = VAL(value, "'Left'");
+            maxLength = VAL(maxLength, "'Left'");
             if (maxLength == DBNull.Value)
                 throw new InvalidUseOfNullException();
-            var maxLengthInt = CLNG(maxLength);
+            var maxLengthInt = CLNG(maxLength, "'Left'");
             if (maxLengthInt < 0)
                 throw new InvalidProcedureCallOrArgumentException("'LEFT' (maxLength may not be a negative value)");
 
@@ -725,11 +725,11 @@ namespace CSharpSupport.Implementations
         public object RIGHT(object value, object maxLength)
         {
             // Validate inputs first
-            value = VAL(value);
-            maxLength = VAL(maxLength);
+            value = VAL(value, "'Right'");
+            maxLength = VAL(maxLength, "'Right'");
             if (maxLength == DBNull.Value)
                 throw new InvalidUseOfNullException();
-            var maxLengthInt = CLNG(maxLength);
+            var maxLengthInt = CLNG(maxLength, "'Right'");
             if (maxLengthInt < 0)
                 throw new InvalidProcedureCallOrArgumentException("'LEFT' (maxLength may not be a negative value)");
 
@@ -750,19 +750,19 @@ namespace CSharpSupport.Implementations
         public string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
         {
             // Input validation / type-enforcing
-            compareMode = VAL(compareMode);
+            compareMode = VAL(compareMode, "'Replace'");
             if (compareMode == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var compareModeNumber = CLNG(compareMode, "'Replace'");
             if ((compareModeNumber != 0) && (compareModeNumber != 1))
                 throw new InvalidProcedureCallOrArgumentException("'Replace'");
-            maxNumberOfReplacements = VAL(maxNumberOfReplacements);
+            maxNumberOfReplacements = VAL(maxNumberOfReplacements, "'Replace'");
             if (maxNumberOfReplacements == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var maxNumberOfReplacementsNumber = CLNG(maxNumberOfReplacements);
             if (maxNumberOfReplacementsNumber < -1)
                 throw new InvalidProcedureCallOrArgumentException("'Replace'");
-            startIndex = VAL(startIndex);
+            startIndex = VAL(startIndex, "'Replace'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var startIndexNumber = CLNG(startIndex);
@@ -795,10 +795,10 @@ namespace CSharpSupport.Implementations
         public object[] SPLIT(object value, object delimiter)
         {
             // Basic input validation
-            delimiter = VAL(delimiter);
+            delimiter = VAL(delimiter, "'Split'");
             if (delimiter == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
-            value = VAL(value);
+            value = VAL(value, "'Split'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
 
@@ -814,7 +814,7 @@ namespace CSharpSupport.Implementations
         public object STRREVERSE(object value) { throw new NotImplementedException(); }
         public object TRIM(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Trim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
@@ -823,7 +823,7 @@ namespace CSharpSupport.Implementations
         }
         public object LTRIM(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'LTrim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
@@ -832,7 +832,7 @@ namespace CSharpSupport.Implementations
         }
         public object RTRIM(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'RTrim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
@@ -841,7 +841,7 @@ namespace CSharpSupport.Implementations
         }
         public object LCASE(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'LCase'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
@@ -850,7 +850,7 @@ namespace CSharpSupport.Implementations
         }
         public object UCASE(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'UCase'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
@@ -865,7 +865,7 @@ namespace CSharpSupport.Implementations
             {
                 try
                 {
-                    value = VAL(value);
+                    value = VAL(value, "'IsArray'");
                 }
                 catch (ObjectVariableNotSetException)
                 {
@@ -881,7 +881,7 @@ namespace CSharpSupport.Implementations
             {
                 try
                 {
-                    value = VAL(value);
+                    value = VAL(value, "'IsDate'");
                 }
                 catch (ObjectVariableNotSetException)
                 {
@@ -902,7 +902,7 @@ namespace CSharpSupport.Implementations
             {
                 try
                 {
-                    value = VAL(value);
+                    value = VAL(value, "'IsEmpty'");
                 }
                 catch (ObjectVariableNotSetException)
                 {
@@ -918,7 +918,7 @@ namespace CSharpSupport.Implementations
             {
                 try
                 {
-                    value = VAL(value);
+                    value = VAL(value, "'IsNull'");
                 }
                 catch (ObjectVariableNotSetException)
                 {
@@ -935,7 +935,7 @@ namespace CSharpSupport.Implementations
             {
                 try
                 {
-                    value = VAL(value);
+                    value = VAL(value, "'IsNumeric'");
                 }
                 catch (ObjectVariableNotSetException)
                 {
@@ -1015,10 +1015,10 @@ namespace CSharpSupport.Implementations
         public string JOIN(object value) { return JOIN(value, " "); }
         public string JOIN(object value, object delimiter)
         {
-            delimiter = VAL(delimiter);
+            delimiter = VAL(delimiter, "'Join'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'Join'");
-            value = VAL(value);
+            value = VAL(value, "'Join'");
             if (delimiter == DBNull.Value)
                 throw new InvalidUseOfNullException("'Join'");
             if (value == null)
@@ -1039,7 +1039,7 @@ namespace CSharpSupport.Implementations
                     .Cast<object>()
                     .Select(element =>
                     {
-                        element = VAL(element);
+                        element = VAL(element, "'Join'");
                         if (element == DBNull.Value)
                             throw new TypeMismatchException("'Join'");
                         return (element == null) ? "" : element.ToString();
@@ -1050,8 +1050,8 @@ namespace CSharpSupport.Implementations
         public int LBOUND(object value, object dimension)
         {
             // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
-            var dimensionInt = CLNG(dimension);
-            var array = VAL(value) as Array;
+            var dimensionInt = CLNG(dimension, "'LBound'");
+            var array = VAL(value, "'LBound'") as Array;
             if (array == null)
                 throw new TypeMismatchException("'LBound'");
             if ((dimensionInt < 1) || (dimensionInt > array.Rank))
@@ -1062,8 +1062,8 @@ namespace CSharpSupport.Implementations
         public int UBOUND(object value, object dimension)
         {
             // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
-            var dimensionInt = CLNG(dimension);
-            var array = VAL(value) as Array;
+            var dimensionInt = CLNG(dimension, "'UBound'");
+            var array = VAL(value, "'UBound'") as Array;
             if (array == null)
                 throw new TypeMismatchException("'UBound'");
             if ((dimensionInt < 1) || (dimensionInt > array.Rank))
@@ -1084,7 +1084,7 @@ namespace CSharpSupport.Implementations
             //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
             //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
             // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
-            value = VAL(value);
+            value = VAL(value, "'DateValue'");
             if (value == null)
                 throw new TypeMismatchException("'DateValue'");
             if (value == DBNull.Value)
@@ -1101,7 +1101,7 @@ namespace CSharpSupport.Implementations
             //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
             //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
             // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
-            value = VAL(value);
+            value = VAL(value, "'TimeValue'");
             if (value == null)
                 throw new TypeMismatchException("'TimeValue'");
             if (value == DBNull.Value)
@@ -1113,14 +1113,14 @@ namespace CSharpSupport.Implementations
         }
         public object DAY(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Day'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Day;
         }
         public object MONTH(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Month'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Month;
@@ -1128,7 +1128,7 @@ namespace CSharpSupport.Implementations
         public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Year'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Year;
@@ -1137,21 +1137,21 @@ namespace CSharpSupport.Implementations
         public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
         public object HOUR(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Hour'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Hour;
         }
         public object MINUTE(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Minute'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Minute;
         }
         public object SECOND(object value)
         {
-            value = VAL(value);
+            value = VAL(value, "'Second'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value)).Second;
