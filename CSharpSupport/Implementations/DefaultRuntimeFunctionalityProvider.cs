@@ -143,12 +143,19 @@ namespace CSharpSupport.Implementations
         // String concatenation
         public object CONCAT(object l, object r)
         {
+            // TODO: Confirm that the following work as expected:
+            //   WScript.Echo "#" & Empty & "#"  ' Returns "##" (has length 2)
+            //   WScript.Echo "#" & Chr(0) & "#" ' Return "#" (null terminator stops the string, has length 3)
+
             // See https://msdn.microsoft.com/en-us/library/sx97884w(v=vs.84).aspx
             l = VAL(l);
             r = VAL(r);
             if ((l == DBNull.Value) && (r == DBNull.Value))
                 return DBNull.Value;
-            return ((l == null) ? "" : l.ToString()) + ((r == null) ? "" : r.ToString());
+            var combinedValue = ((l == null) ? "" : l.ToString()) + ((r == null) ? "" : r.ToString());
+            if (combinedValue.Length > MAX_VBSCRIPT_STRING_LENGTH)
+                throw new OutOfStringSpaceException();
+            return combinedValue;
         }
         
         /// <summary>
@@ -516,32 +523,37 @@ namespace CSharpSupport.Implementations
                 numberOfTimesToRepeatNumber = 0;
             else
             {
-                numberOfTimesToRepeatNumber = CINT(numberOfTimesToRepeat, "'String'");
+                numberOfTimesToRepeatNumber = CLNG(numberOfTimesToRepeat, "'String'");
                 if (numberOfTimesToRepeatNumber <= 0)
                     throw new InvalidProcedureCallOrArgumentException("'String'");
             }
-            if (character == null)
-                return "";
             char characterChar;
-            var characterString = character as string;
-            if (characterString != null)
-            {
-                if (characterString == "")
-                    throw new InvalidProcedureCallOrArgumentException("'String'");
-                characterChar = characterString[0];
-            }
+            if (character == null)
+                characterChar = '\0';
             else
             {
-            var characterCode = CINT(character);
-                if (characterCode > 256)
-                    characterCode = (short)(characterCode % 256);
-                else if (characterCode < 0)
+                var characterString = character as string;
+                if (characterString != null)
                 {
-                    var numberOf256sToAdd = Math.Ceiling(Math.Abs((double)characterCode / 256));
-                    characterCode += (short)(numberOf256sToAdd * 256);
+                    if (characterString == "")
+                        throw new InvalidProcedureCallOrArgumentException("'String'");
+                    characterChar = characterString[0];
                 }
-                characterChar = (char)characterCode;
+                else
+                {
+                    var characterCode = CINT(character, "'String'");
+                    if (characterCode > 256)
+                        characterCode = (short)(characterCode % 256);
+                    else if (characterCode < 0)
+                    {
+                        var numberOf256sToAdd = Math.Ceiling(Math.Abs((double)characterCode / 256));
+                        characterCode += (short)(numberOf256sToAdd * 256);
+                    }
+                    characterChar = (char)characterCode;
+                }
             }
+            if (numberOfTimesToRepeatNumber > MAX_VBSCRIPT_STRING_LENGTH)
+                throw new OutOfStringSpaceException("'String'");
             if (numberOfTimesToRepeatNumber == 0)
                 return "";
             return new string(characterChar, numberOfTimesToRepeatNumber);

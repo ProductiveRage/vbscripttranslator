@@ -61,11 +61,20 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
+            [Theory, MemberData("OutOfStringSpaceData")]
+            public void OutOfStringSpaceCases(string description, object numberOfTimesToRepeat, object character)
+            {
+                Assert.Throws<OutOfStringSpaceException>(() =>
+                {
+                    DefaultRuntimeSupportClassFactory.Get().STRING(numberOfTimesToRepeat, character);
+                });
+            }
+
             public static IEnumerable<object[]> SuccessData
             {
                 get
                 {
-                    yield return new object[] { "Empty character (with numberOfTimesToRepeat 1)", 1, null, "" };
+                    yield return new object[] { "Empty character (with numberOfTimesToRepeat 1)", 1, null, "\0" };
                     yield return new object[] { "Empty numberOfTimesToRepeat (with character \"a\")", null, "a", "" };
                     yield return new object[] { "Single character \"a\"", 1, "a", "a" };
                     yield return new object[] { "5x character \"a\"", 5, "a", "aaaaa" };
@@ -105,7 +114,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
-                    yield return new object[] { "VBScript Integer (.net Int16) MaxValue + 1 numberOfTimesToRepeat (with character \"a\")", Int16.MaxValue + 1, "a" };
+                    yield return new object[] { "VBScript Long (.net Int32) MaxValue + 1 numberOfTimesToRepeat (with character \"a\")", (Int64)int.MaxValue + 1, "a" };
+                    yield return new object[] { "VBScript Int (.net Int16) MaxValue + 1 character (with numberOfTimesToRepeat 1)", 1, (Int32)Int16.MaxValue+ 1 };
                 }
             }
 
@@ -114,6 +124,14 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 get
                 {
                     yield return new object[] { "Blank string character (with numberOfTimesToRepeat 1)", 1, "" };
+                }
+            }
+
+            public static IEnumerable<object[]> OutOfStringSpaceData
+            {
+                get
+                {
+                    yield return new object[] { "More characters than VBScript can handle (int.MaxValue / 2)", int.MaxValue / 2, "*" };
                 }
             }
         }
