@@ -570,14 +570,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 .FirstOrDefault(m => m.GetParameters().Length == desiredNumberOfArguments);
             if (idealMatch != null)
             {
-                // If location a support function with the desired number of arguments (in the correct format; "in only" and type "object") then return a
+                // If located a support function with the desired number of arguments (in the correct format; "in only" and type "object") then return a
                 // BuiltInFunctionDetails with the name from that match (just in case the case of the function name varies - the match above is case insensitive)
-                return new BuiltInFunctionDetails(builtInFunctionToken, idealMatch.Name, desiredNumberOfArguments);
+                return new BuiltInFunctionDetails(builtInFunctionToken, idealMatch.Name, desiredNumberOfArguments, idealMatch.ReturnType);
             }
             // If a match was found for the name but not the desired number of arguments then return a result with null "desiredNumberOfArgumentsMatchedAgainst"
-            // value (it doesn't matter which of the names we select - for cases where they vary by case, which is not expected but not impossible - so just
-            // return the first matched support function name)
-            return new BuiltInFunctionDetails(builtInFunctionToken, supportFunctionMatches.First().Name, null);
+            // and "returnTypeIfKnown" values (it doesn't matter which of the names we select - for cases where they vary by case, which is not expected but not
+            // impossible - so just return the first matched support function name)
+            return new BuiltInFunctionDetails(builtInFunctionToken, supportFunctionMatches.First().Name, null, null);
         }
 
         private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
@@ -860,9 +860,28 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
             supportFunctionCallContent.Append(")");
+            ExpressionReturnTypeOptions supportFunctionReturnType;
+            if (function.ReturnTypeIfKnown == null)
+                supportFunctionReturnType = ExpressionReturnTypeOptions.NotSpecified;
+            else if (function.ReturnTypeIfKnown == typeof(void))
+                supportFunctionReturnType = ExpressionReturnTypeOptions.None;
+            else if ((function.ReturnTypeIfKnown.IsValueType) || (function.ReturnTypeIfKnown == typeof(string)) || function.ReturnTypeIfKnown.IsArray)
+                supportFunctionReturnType = ExpressionReturnTypeOptions.Value;
+            else if (function.ReturnTypeIfKnown == typeof(object))
+            {
+                // If it's got "object" return type then it might be because it needs to be a string OR DBNull.Value, or it might genuinely be because
+                // it needs to return a Reference type object. There's no way to know so we have to resort to NotSpecified.
+                supportFunctionReturnType = ExpressionReturnTypeOptions.NotSpecified;
+            }
+            else
+            {
+                // If it's a non-object return type (that which is too vague to reason about) and it isn't a type that we know is Value type, then it
+                // must be a Reference type.
+                supportFunctionReturnType = ExpressionReturnTypeOptions.Reference;
+            }
             return new TranslatedStatementContentDetailsWithContentType(
                 supportFunctionCallContent.ToString(),
-                ExpressionReturnTypeOptions.NotSpecified,
+                supportFunctionReturnType,
                 variablesAccessed
             );
         }
@@ -1459,7 +1478,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             );
         }
 
-
         private class TranslatedStatementContentDetailsWithContentType : TranslatedStatementContentDetails
         {
             public TranslatedStatementContentDetailsWithContentType(
@@ -1481,16 +1499,20 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
         private class BuiltInFunctionDetails
         {
-            public BuiltInFunctionDetails(BuiltInFunctionToken token, string supportFunctionName, int? desiredNumberOfArgumentsMatchedAgainst)
+            public BuiltInFunctionDetails(BuiltInFunctionToken token, string supportFunctionName, int? desiredNumberOfArgumentsMatchedAgainst, Type returnTypeIfKnown)
             {
                 if (token == null)
                     throw new ArgumentNullException("token");
                 if (string.IsNullOrWhiteSpace(supportFunctionName))
                     throw new ArgumentException("Null/blank name specified");
+                if (((desiredNumberOfArgumentsMatchedAgainst == null) && (returnTypeIfKnown != null))
+                || ((desiredNumberOfArgumentsMatchedAgainst != null) && (returnTypeIfKnown == null)))
+                    throw new ArgumentException("If one of desiredNumberOfArgumentsMatchedAgainst and returnTypeIfKnown is null then they both must be and vice versa");
 
                 Token = token;
                 SupportFunctionName = supportFunctionName;
                 DesiredNumberOfArgumentsMatchedAgainst = desiredNumberOfArgumentsMatchedAgainst;
+                ReturnTypeIfKnown = returnTypeIfKnown;
             }
 
             /// <summary>
@@ -1510,6 +1532,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             /// this will be null.
             /// </summary>
             public int? DesiredNumberOfArgumentsMatchedAgainst { get; private set; }
+
+            /// <summary>
+            /// This will be null if DesiredNumberOfArgumentsMatchedAgainst is null and non-null if not since it relies upon the same criteria when trying
+            /// to identify a target support function.
+            /// </summary>
+            public Type ReturnTypeIfKnown { get; set; }
         }
     }
 }

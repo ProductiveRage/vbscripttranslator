@@ -196,7 +196,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new CloseBrace(0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_env.a = _.VAL(_.CDATE(_env.a))",
+                "_env.a = _.CDATE(_env.a)",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
