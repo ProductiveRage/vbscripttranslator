@@ -40,8 +40,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
-            [Theory, MemberData("ObjectVariableNotSetExceptionData")]
-            public void ObjectVariableNotSetExceptionCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
+            [Theory, MemberData("ObjectVariableNotSetData")]
+            public void ObjectVariableNotSetCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
             {
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
@@ -49,16 +49,16 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
-            [Theory, MemberData("InvalidProcedureCallOrArgumentExceptionData")]
-            public void InvalidProcedureCallOrArgumentExceptionCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
+            [Theory, MemberData("InvalidProcedureCallOrArgumentData")]
+            public void InvalidProcedureCallOrArgumentCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
             {
                 Assert.Throws<InvalidProcedureCallOrArgumentException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().REPLACE(value, toSearchFor, toReplaceWith, startIndex, maxNumberOfReplacements, compareMode);
                 });
             }
-            [Theory, MemberData("OverflowExceptionData")]
-            public void OverflowExceptionCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
+            [Theory, MemberData("OverflowData")]
+            public void OverflowCases(string description, object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
             {
                 Assert.Throws<VBScriptOverflowException>(() =>
                 {
@@ -123,7 +123,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> ObjectVariableNotSetExceptionData
+            public static IEnumerable<object[]> ObjectVariableNotSetData
             {
                 get
                 {
@@ -136,7 +136,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> InvalidProcedureCallOrArgumentExceptionData
+            public static IEnumerable<object[]> InvalidProcedureCallOrArgumentData
             {
                 get
                 {
@@ -146,7 +146,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> OverflowExceptionData
+            public static IEnumerable<object[]> OverflowData
             {
                 get
                 {

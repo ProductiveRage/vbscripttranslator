@@ -34,8 +34,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
-            [Theory, MemberData("ObjectVariableNotSetExceptionData")]
-            public void ObjectVariableNotSetExceptionCases(string description, object value)
+            [Theory, MemberData("ObjectVariableNotSetData")]
+            public void ObjectVariableNotSetCases(string description, object value)
             {
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
@@ -43,8 +43,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
-            [Theory, MemberData("InvalidProcedureCallOrArgumentExceptionData")]
-            public void InvalidProcedureCallOrArgumentExceptionCases(string description, object value)
+            [Theory, MemberData("InvalidProcedureCallOrArgumentData")]
+            public void InvalidProcedureCallOrArgumentCases(string description, object value)
             {
                 Assert.Throws<InvalidProcedureCallOrArgumentException>(() =>
                 {
@@ -83,7 +83,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> ObjectVariableNotSetExceptionData
+            public static IEnumerable<object[]> ObjectVariableNotSetData
             {
                 get
                 {
@@ -92,7 +92,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> InvalidProcedureCallOrArgumentExceptionData
+            public static IEnumerable<object[]> InvalidProcedureCallOrArgumentData
             {
                 get
                 {

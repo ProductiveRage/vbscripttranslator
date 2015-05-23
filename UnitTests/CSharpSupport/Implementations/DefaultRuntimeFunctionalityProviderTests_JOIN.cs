@@ -35,8 +35,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
-            [Theory, MemberData("ObjectVariableNotSetExceptionData")]
-            public void ObjectVariableNotSetExceptionCases(string description, object value, object delimiter)
+            [Theory, MemberData("ObjectVariableNotSetData")]
+            public void ObjectVariableNotSetCases(string description, object value, object delimiter)
             {
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
@@ -81,7 +81,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> ObjectVariableNotSetExceptionData
+            public static IEnumerable<object[]> ObjectVariableNotSetData
             {
                 get
                 {
