@@ -41,20 +41,20 @@ namespace CSharpSupport.Implementations
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is
         /// acceptable as an input and corresponding return value)
         /// </summary>
-        public object VAL(object o)
+        public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {
             if (IsVBScriptValueType(o))
                 return o;
 
             if (IsVBScriptNothing(o))
-                throw new ObjectVariableNotSetException();
+                throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
 
             var defaultValueFromObject = InvokeGetter(o, null, new object[0]);
             if (IsVBScriptValueType(defaultValueFromObject))
                 return defaultValueFromObject;
 
             // We don't recursively try defaults, so if this default is still not a value type then we're out of luck
-            throw new ObjectVariableNotSetException("Object expected (default method/property of object also returned non-value type data)");
+            throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent + " Object expected (default method/property of object also returned non-value type data)");
         }
 
         /// <summary>

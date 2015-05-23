@@ -38,7 +38,7 @@ namespace CSharpSupport
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is
         /// acceptable as an input and corresponding return value)
         /// </summary>
-        object VAL(object o);
+        object VAL(object o, string exceptionMessageForInvalidContent = null);
 
         /// <summary>
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand

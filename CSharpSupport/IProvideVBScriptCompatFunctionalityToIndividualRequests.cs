@@ -149,7 +149,10 @@ namespace CSharpSupport
         object RGB(object value);
         object RIGHT(object value, object maxLength);
         object RIGHTB(object value, object maxLength);
-        object REPLACE(object value);
+        string REPLACE(object value, object toSearchFor, object toReplaceWith);
+        string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex);
+        string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements);
+        string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode);
         object SPACE(object value);
         object[] SPLIT(object value);
         object[] SPLIT(object value, object delimiter);

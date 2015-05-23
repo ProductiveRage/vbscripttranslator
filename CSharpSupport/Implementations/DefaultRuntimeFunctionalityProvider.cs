@@ -20,6 +20,13 @@ namespace CSharpSupport.Implementations
     /// </summary>
     public class DefaultRuntimeFunctionalityProvider : IProvideVBScriptCompatFunctionalityToIndividualRequests
     {
+        /// <summary>
+        /// VBScript has a string length limited by its data storage mechanism; each character is represented by two bytes and the index into that
+        /// array of data must be an signed int, since it is capped at half of int.MaxValue.. minus one. I'm not sure if the minus one is to do with
+        /// a requirement for there to be a null terminator at the end or some VBScript one-based-index weirdness.. or something else.
+        /// </summary>
+        private static readonly int MAX_VBSCRIPT_STRING_LENGTH = (int.MaxValue / 2) - 1;
+
         private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
         private readonly List<IDisposable> _disposableReferencesToClearAfterTheRequest;
         private readonly Queue<int> _availableErrorTokens;
@@ -364,7 +371,8 @@ namespace CSharpSupport.Implementations
         // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple parameters and
         // overloads to deal with optional parameters)
         // - Type conversions
-        public byte CBYTE(object value) { return GetAsNumber<byte>(value, Convert.ToByte); }
+        public byte CBYTE(object value) { return CBYTE(value, "'CByte'"); }
+        private byte CBYTE(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<byte>(value, exceptionMessageForInvalidContent, Convert.ToByte); }
         public bool CBOOL(object value)
         {
             value = VAL(value);
@@ -387,12 +395,14 @@ namespace CSharpSupport.Implementations
             return valueNumber != 0;
 
         }
-        public decimal CCUR(object value) { return GetAsNumber<decimal>(value, Convert.ToDecimal); }
-        public double CDBL(object value)
+        public decimal CCUR(object value) { return CCUR(value, "'CCur'"); }
+        private decimal CCUR(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<decimal>(value, exceptionMessageForInvalidContent, Convert.ToDecimal); }
+        public double CDBL(object value) { return CDBL(value, "'CDbl'"); }
+        private double CDBL(object value, string exceptionMessageForInvalidContent)
         {
             // Some precision gets lost in VBScript in these translations, which we can emulate with a double-decimal-double conversion - eg. if 40000.01
             // is passed into CDATE and then back through CDBL then 40000.01 should come back out
-            var valueDouble = GetAsNumber<double>(value, Convert.ToDouble);
+            var valueDouble = GetAsNumber<double>(value, exceptionMessageForInvalidContent, Convert.ToDouble);
             return (double)((decimal)valueDouble);
         }
         public DateTime CDATE(object value)
@@ -474,18 +484,24 @@ namespace CSharpSupport.Implementations
             }
             throw new TypeMismatchException("'CDate'");
         }
-        public Int16 CINT(object value) { return GetAsNumber<Int16>(value, Convert.ToInt16); }
-        public int CLNG(object value) { return GetAsNumber<int>(value, Convert.ToInt32); }
-        public float CSNG(object value) { return GetAsNumber<float>(value, Convert.ToSingle); }
-        public string CSTR(object value)
+        public Int16 CINT(object value) { return CINT(value, "'CInt'"); }
+        private Int16 CINT(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<Int16>(value, exceptionMessageForInvalidContent, Convert.ToInt16); }
+        public int CLNG(object value) { return CLNG(value, "'CLng'"); }
+        public int CLNG(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<int>(value, exceptionMessageForInvalidContent, Convert.ToInt32); }
+        public float CSNG(object value) { return CSNG(value, "'CSng'"); }
+        private float CSNG(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<float>(value, exceptionMessageForInvalidContent, Convert.ToSingle); }
+        public string CSTR(object value) { return CSTR(value, "'CStr'"); }
+        private string CSTR(object value, string exceptionMessageForInvalidContent)
         {
+            if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
+                throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
             value = VAL(value);
             if (value == null)
                 return "";
             if (value == DBNull.Value)
-                throw new InvalidUseOfNullException("'CStr'");
+                throw new InvalidUseOfNullException(exceptionMessageForInvalidContent);
             if (value.GetType().IsArray)
-                throw new TypeMismatchException("'CStr'");
+                throw new TypeMismatchException(exceptionMessageForInvalidContent);
             return value.ToString(); // Note: For dates, the default locale-based formatting should be consistent with VBScript
         }
         public string INT(object value) { throw new NotImplementedException(); }
@@ -728,7 +744,52 @@ namespace CSharpSupport.Implementations
             return valueString.Substring(valueString.Length - maxLengthInt);
         }
         public object RIGHTB(object value, object maxLength) { throw new NotImplementedException(); }
-        public object REPLACE(object value) { throw new NotImplementedException(); }
+        public string REPLACE(object value, object toSearchFor, object toReplaceWith) { return REPLACE(value, toSearchFor, toReplaceWith, 1); }
+        public string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex) { return REPLACE(value, toSearchFor, toReplaceWith, startIndex, -1); }
+        public string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements) { return REPLACE(value, toSearchFor, toReplaceWith, startIndex, maxNumberOfReplacements, 0); }
+        public string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
+        {
+            // Input validation / type-enforcing
+            compareMode = VAL(compareMode);
+            if (compareMode == DBNull.Value)
+                throw new InvalidUseOfNullException("'Replace'");
+            var compareModeNumber = CLNG(compareMode, "'Replace'");
+            if ((compareModeNumber != 0) && (compareModeNumber != 1))
+                throw new InvalidProcedureCallOrArgumentException("'Replace'");
+            maxNumberOfReplacements = VAL(maxNumberOfReplacements);
+            if (maxNumberOfReplacements == DBNull.Value)
+                throw new InvalidUseOfNullException("'Replace'");
+            var maxNumberOfReplacementsNumber = CLNG(maxNumberOfReplacements);
+            if (maxNumberOfReplacementsNumber < -1)
+                throw new InvalidProcedureCallOrArgumentException("'Replace'");
+            startIndex = VAL(startIndex);
+            if (startIndex == DBNull.Value)
+                throw new InvalidUseOfNullException("'Replace'");
+            var startIndexNumber = CLNG(startIndex);
+            if ((startIndexNumber < 1) || (startIndexNumber > MAX_VBSCRIPT_STRING_LENGTH))
+                throw new InvalidProcedureCallOrArgumentException("'Replace'");
+            var toReplaceWithString = CSTR(toReplaceWith, "'Replace'");
+            var toSearchForString = CSTR(toSearchFor, "'Replace'");
+            var valueString = CSTR(value, "'Replace'");
+            if ((maxNumberOfReplacementsNumber == 0) || (valueString == "") || (toSearchForString == "") || (startIndexNumber > valueString.Length)) // Note: VBScript's startIndex is one-based while C#'s is zero-based
+                return valueString;
+
+            // Real work
+            while ((maxNumberOfReplacementsNumber == -1) || (maxNumberOfReplacementsNumber > 0))
+            {
+                var replacementIndex = valueString.IndexOf(
+                    toSearchForString,
+                    startIndexNumber - 1, // VBScript's startIndex is one-based while C#'s is zero-based
+                    (compareModeNumber == 0) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase
+                );
+                if (replacementIndex == -1)
+                    break;
+                valueString = valueString.Substring(0, replacementIndex) + toReplaceWithString + valueString.Substring(replacementIndex + toSearchForString.Length);
+                if (maxNumberOfReplacementsNumber  != -1)
+                    maxNumberOfReplacementsNumber--;
+            }
+            return valueString;
+        }
         public object SPACE(object value) { throw new NotImplementedException(); }
         public object[] SPLIT(object value) { return SPLIT(value, " "); }
         public object[] SPLIT(object value, object delimiter)
@@ -737,16 +798,12 @@ namespace CSharpSupport.Implementations
             delimiter = VAL(delimiter);
             if (delimiter == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
-            if ((delimiter != null) && delimiter.GetType().IsArray)
-                throw new TypeMismatchException("'Split'");
             value = VAL(value);
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
-            if ((value != null) && value.GetType().IsArray)
-                throw new TypeMismatchException("'Split'");
 
             // Should be fine to translate both values into strings using the standard mechanism (no exception should arise)
-            return CSTR(value).Split(new[] { CSTR(delimiter) }, StringSplitOptions.None).Cast<object>().ToArray();
+            return CSTR(value, "'Split'").Split(new[] { CSTR(delimiter, "'Split'") }, StringSplitOptions.None).Cast<object>().ToArray();
         }
         public object STRCOMP(object string1, object string2) { return STRCOMP(string1, string2, 0); }
         public object STRCOMP(object string1, object string2, object compare) { return ToVBScriptNullable<int>(STRCOMP_Internal(string1, string2, compare)); }
@@ -1313,11 +1370,14 @@ namespace CSharpSupport.Implementations
         /// translated into the desired type. If there are no applicable special cases then the value will be passed through the VAL function and then through
         /// the processor (if this fails then a TypeMismatchException will be raised).
         /// </summary>
-        private T GetAsNumber<T>(object value, Func<object, T> converter) where T : struct
+        private T GetAsNumber<T>(object value, string exceptionMessageForInvalidContent, Func<object, T> converter) where T : struct
         {
             if (converter == null)
                 throw new ArgumentNullException("nonSpecialCaseProcessor");
+            if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
+                throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
 
+            value = VAL(value, exceptionMessageForInvalidContent);
             value = _valueRetriever.NUM(value);
             if (value is DateTime)
                 value = DateToDouble((DateTime)value);
@@ -1333,7 +1393,7 @@ namespace CSharpSupport.Implementations
             }
             catch (Exception e)
             {
-                throw new TypeMismatchException(e);
+                throw new TypeMismatchException(exceptionMessageForInvalidContent, e);
             }
         }
 
@@ -1411,9 +1471,9 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.IsVBScriptValueType(o);
         }
-        public object VAL(object o)
+        public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {
-            return _valueRetriever.VAL(o);
+            return _valueRetriever.VAL(o, optionalExceptionMessageForInvalidContent);
         }
         public object OBJ(object o)
         {
