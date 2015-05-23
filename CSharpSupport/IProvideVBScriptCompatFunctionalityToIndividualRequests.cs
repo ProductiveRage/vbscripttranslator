@@ -187,7 +187,7 @@ namespace CSharpSupport
         object DATEDIFF(object value);
         object DATEPART(object value);
         object DATESERIAL(object year, object month, object date);
-        object DATEVALUE(object value);
+        DateTime DATEVALUE(object value);
         object DAY(object value);
         object MONTH(object value);
         object MONTHNAME(object value);
@@ -198,7 +198,7 @@ namespace CSharpSupport
         object MINUTE(object value);
         object SECOND(object value);
         object TIMESERIAL(object value);
-        object TIMEVALUE(object value);
+        DateTime TIMEVALUE(object value);
         // - Object creation
         object CREATEOBJECT(object value);
         object GETOBJECT(object value);
