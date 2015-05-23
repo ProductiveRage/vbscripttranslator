@@ -407,7 +407,7 @@ namespace CSharpSupport.Implementations
         }
         public DateTime CDATE(object value)
         {
-            value = VAL(value, 'CDate'");
+            value = VAL(value, "'CDate'");
             if (value == null)
                 return VBScriptConstants.ZeroDate;
             if (value == DBNull.Value)
@@ -532,7 +532,7 @@ namespace CSharpSupport.Implementations
             }
             else
             {
-                var characterCode = CINT(character);
+            var characterCode = CINT(character);
                 if (characterCode > 256)
                     characterCode = (short)(characterCode % 256);
                 else if (characterCode < 0)
