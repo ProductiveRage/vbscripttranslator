@@ -51,6 +51,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CSharpSupport\DateParserTests.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_REPLACE.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_SPLIT.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_CSTR.cs" />

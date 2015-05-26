@@ -412,8 +412,12 @@ namespace CSharpSupport.Implementations
             var valueDouble = GetAsNumber<double>(value, exceptionMessageForInvalidContent, Convert.ToDouble);
             return (double)((decimal)valueDouble);
         }
-        public DateTime CDATE(object value)
+        public DateTime CDATE(object value) { return CDATE(value, "'CDate'"); }
+        private DateTime CDATE(object value, string exceptionMessageForInvalidContent)
         {
+            if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
+                throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
+
             value = VAL(value, "'CDate'");
             if (value == null)
                 return VBScriptConstants.ZeroDate;
@@ -482,14 +486,14 @@ namespace CSharpSupport.Implementations
                 }
                 return calculatedTimeComponent.AddDays(integerPortion);
             }
-            DateTime valueDate;
-            if (DateTime.TryParse(value.ToString(), out valueDate))
+            try
             {
-                if ((valueDate < VBScriptConstants.EarliestPossibleDate) || (valueDate > VBScriptConstants.LatestPossibleDate))
-                    throw new VBScriptOverflowException("'CDate'");
-                return valueDate;
+                return DateParser.Default.Parse(value.ToString()).Value;
             }
-            throw new TypeMismatchException("'CDate'");
+            catch (Exception e)
+            {
+                throw new TypeMismatchException(exceptionMessageForInvalidContent, e);
+            }
         }
         public Int16 CINT(object value) { return CINT(value, "'CInt'"); }
         private Int16 CINT(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<Int16>(value, exceptionMessageForInvalidContent, Convert.ToInt16); }
@@ -1104,7 +1108,7 @@ namespace CSharpSupport.Implementations
             double valueDouble;
             if (double.TryParse(value.ToString(), out valueDouble))
                 throw new TypeMismatchException("'DateValue'");
-            return CDATE(value).Date;
+            return CDATE(value, "'DateValue'").Date;
         }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
         public DateTime TIMEVALUE(object value)
@@ -1121,21 +1125,21 @@ namespace CSharpSupport.Implementations
             double valueDouble;
             if (double.TryParse(value.ToString(), out valueDouble))
                 throw new TypeMismatchException("'TimeValue'");
-            return VBScriptConstants.ZeroDate.Add(CDATE(value).TimeOfDay);
+            return VBScriptConstants.ZeroDate.Add(CDATE(value, "'TimeValue'").TimeOfDay);
         }
         public object DAY(object value)
         {
             value = VAL(value, "'Day'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Day;
+            return ToClosestSecond(CDATE(value, "'Day'")).Day;
         }
         public object MONTH(object value)
         {
             value = VAL(value, "'Month'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Month;
+            return ToClosestSecond(CDATE(value, "'Month'")).Month;
         }
         public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value)
@@ -1143,7 +1147,7 @@ namespace CSharpSupport.Implementations
             value = VAL(value, "'Year'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Year;
+            return ToClosestSecond(CDATE(value, "'Year'")).Year;
         }
         public object WEEKDAY(object value) { throw new NotImplementedException(); }
         public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
@@ -1152,21 +1156,21 @@ namespace CSharpSupport.Implementations
             value = VAL(value, "'Hour'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Hour;
+            return ToClosestSecond(CDATE(value, "'Hour'")).Hour;
         }
         public object MINUTE(object value)
         {
             value = VAL(value, "'Minute'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Minute;
+            return ToClosestSecond(CDATE(value, "'Minute'")).Minute;
         }
         public object SECOND(object value)
         {
             value = VAL(value, "'Second'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
-            return ToClosestSecond(CDATE(value)).Second;
+            return ToClosestSecond(CDATE(value, "'Second'")).Second;
         }
         private DateTime ToClosestSecond(DateTime value)
         {

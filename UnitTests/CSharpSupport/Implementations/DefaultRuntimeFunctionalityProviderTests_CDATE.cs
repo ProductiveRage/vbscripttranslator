@@ -12,6 +12,9 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
     {
         public class CDATE
         {
+            // Note: We could go mad with testing all variety of string format through CDATE, but since CDATE relies upon the DateParser for string-handling (other than the case
+            // where the string represents a single number), it makes sense to leave all the tests in the DateParser test suite, rather than duplicating them here
+
             /// <summary>
             /// Values that go through a CDATE / CDBL cycle should come out unchanged. There are some unfortunate exceptions to this in the current implementation, special handling
             /// had to be added around the integer that represents the greatest possible date in VBScript (2958465 / 9999-12-31) and so any non-integer values based upon that number
