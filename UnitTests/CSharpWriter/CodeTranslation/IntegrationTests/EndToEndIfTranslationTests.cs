@@ -302,6 +302,30 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
                 );
             }
+
+            /// <summary>
+            /// If there is a case of where a date literal is compared to a numeric literal, the numeric literal rule takes precedence and the date value
+            /// must be considered as a number in the comparison
+            /// </summary>
+            [Fact]
+            public void DateLiteralWillBeInterpretedAsNumberIfComparedToNumericLiteral()
+            {
+                var source = @"
+			        If (1 = #1 1#) Then
+			        End If
+                ";
+                var expected = new[]
+                {
+                    "if (_.IF(_.EQ((Int16)1, _.NullableNUM(_.DateLiteralParser.Parse(\"1 1\")))))",
+                    "{",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
         }
 
         /// <summary>
@@ -369,6 +393,29 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var expected = new[]
                 {
                     "if (_.IF(_.EQ(_.NullableNUM(\"aa\"), (Int16)1)))",
+                    "{",
+                    "}"
+                };
+                Assert.Equal(
+                    expected.Select(s => s.Trim()).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
+
+            /// <summary>
+            /// If there is a case of where a date literal is compared to a string literal, the date literal rule takes precedence and the string
+            /// value must be parsed into a date (or a type mismatch raised)
+            /// </summary>
+            [Fact]
+            public void StringConstantWillBeParsedAsDateIfComparedToDateLiteral()
+            {
+                var source = @"
+			        If (""aa"" = #1 1#) Then
+			        End If
+                ";
+                var expected = new[]
+                {
+                    "if (_.IF(_.EQ(_.NullableDATE(\"aa\"), _.DateLiteralParser.Parse(\"1 1\"))))",
                     "{",
                     "}"
                 };
