@@ -39,6 +39,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             && (tokens[2].Content == "="))
             {
                 if ((tokens[3] is NumericValueToken)
+                || (tokens[3] is DateLiteralToken)
                 || (tokens[3] is StringToken)
                 || ((tokens[3] is BuiltInValueToken) && acceptableBuiltinValues.Contains(tokens[3].Content, StringComparer.OrdinalIgnoreCase)))
                     name = (NameToken)tokens[1];

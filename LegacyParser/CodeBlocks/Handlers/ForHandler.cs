@@ -127,7 +127,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             {
                 if (tokens[index] is AbstractEndOfStatementToken)
                     break;
-                IToken token = base.getToken_AtomOrStringOnly(tokens, index);
+                IToken token = base.getToken_AtomOrDateStringLiteralOnly(tokens, index);
                 if ((token is AtomToken) && (endMarkerContent != null))
                 {
                     if (((AtomToken)token).Content.ToUpper() == endMarkerContent.ToUpper())

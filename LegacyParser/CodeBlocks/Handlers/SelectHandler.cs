@@ -37,7 +37,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 }
 
                 // Add token to expression (must be Atom or String)
-                expressionTokens.Add(base.getToken_AtomOrStringOnly(tokens, index));
+                expressionTokens.Add(base.getToken_AtomOrDateStringLiteralOnly(tokens, index));
             }
 
             // Look for the first CASE entry (note: it's allowable for there to be no

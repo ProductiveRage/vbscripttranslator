@@ -63,11 +63,66 @@ namespace CSharpSupport
         }
 
         /// <summary>
+        /// Translate a numeric value into a date, following VBScript's logic. This will throw an OverflowException for a number outside of the acceptable range.
+        /// </summary>
+        public DateTime Parse(double value)
+        {
+            // VBScript has some absolutely bonkers logic for negative values here - eg. CDate(-400.2) = 1898-11-25 04:48:00 which is equal to
+            // (CDate(-400) + CDate(0.2)) and NOT equal to (CDate(-400) + CDate(-0.2)). It appears that the negative sign is just removed from
+            // fractions, since CDate(0.1) = CDate(-0.1) and CDate(0.2) = CDate(-0.2) in VBScript.
+            var integerPortion = Math.Truncate(value);
+            var isGreatestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
+            double fractionalPortion;
+            if (isGreatestPossibleDate)
+            {
+                // There is also some even stranger logic around times on the last possible day that can be represented. A time component from
+                // a .9 value (eg. -100.9, 0.9, 10.9, 42140.9) will always show 21:36:00 EXCEPT for when part of a value that represents that
+                // time on the very last representable day, in which case it will 21:35:59 (try it: 2958465.9). VBScript does not seem to lose
+                // any precision when converting from and to dates - eg. CDate(2958465.9) is "31/12/9999 21:35:59" and CDbl(CDate(2958465.9))
+                // is still 2958465.9 - so I think that there must be a bug in the date-handling that I don't know how to fully recreate. I'm
+                // going to try to always return a value from here that will be consistent with what VBScript would return from CDate, so the
+                // value 2958465.9 will return "31/12/9999 21:35:59" (while all other .9 values will return 21:36:00) but at the sacrifice of
+                // "back and forth precision" - so CDbl(CDate(2958465.9)) will be 2958465.8999884259, though all other values will maintain
+                // precision correctly (so CDbl(CDate(2958464.9)) will be 2958464.9)
+                // - On top of this, there is a hard limit on the time component of the last possible day, at which point an overflow will
+                //   occur; 2958465.9999999997672 will overflow while 2958465.99999999976719999999 (as many 9s as you like) won't. I have
+                //   no idea what that relates to, but a special case is applied here to deal with it.
+                fractionalPortion = Math.Abs(value - integerPortion);
+                if (fractionalPortion >= 0.9999999997672)
+                    throw new OverflowException();
+                var numberOfDigitsToAllow = 8;
+                fractionalPortion = Math.Truncate(fractionalPortion * Math.Pow(10, numberOfDigitsToAllow)) / Math.Pow(10, numberOfDigitsToAllow);
+            }
+            else
+                fractionalPortion = Math.Abs(value - integerPortion);
+            var isEarliestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
+            if (isEarliestPossibleDate)
+            {
+                // There is a similar limit to the time component on the other end of the scale, at which point an overflow will occur (the
+                // value -657434.0.9999999999418 will CDate while -657434.9999999999417999999  99, with as many 9s as you like, will not)
+                if (fractionalPortion >= 0.9999999999418)
+                    throw new OverflowException();
+            }
+            if ((integerPortion > Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays))
+            || (integerPortion < Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays)))
+                throw new OverflowException();
+            var calculatedTimeComponent = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
+            if (isGreatestPossibleDate)
+            {
+                // Continuing the crazy-logic-on-last-representable-date, only must the precision of the time component be reduced on the
+                // greatest possible date, but any millisecond component must be stripped (not rounded) completely. The is how we ensure
+                // that 2958465.9 results in the time "21:35:59" and not "21:36:00".
+                calculatedTimeComponent = calculatedTimeComponent.Subtract(TimeSpan.FromMilliseconds(calculatedTimeComponent.Millisecond));
+            }
+            return calculatedTimeComponent.AddDays(integerPortion);
+        }
+
+        /// <summary>
         /// This will throw an exception if the value can not be interpreted as a DateTime following VBScript's rules or if the value is null. Note that this ONLY supports
         /// the parsing of a string that is in a supported date format, it does not deal with cases such as CDate("2015"), where the string is parsed into a number and
         /// then a date calculated by taking the number of days from VBScript's "zero date". This will never return null;
         /// </summary>
-        public DateResult Parse(string value)
+        public DateTime Parse(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Null/blank value specified");
@@ -78,14 +133,13 @@ namespace CSharpSupport
             var threeSegmentDateComponentMatch = _wholeStringThreeSegmentDateComponent.Match(value);
             if (threeSegmentDateComponentMatch.Success)
             {
-                return DateResult.FixedYear(
+                return 
                     GetDate(
                         int.Parse(threeSegmentDateComponentMatch.Groups[1].Value),
                         int.Parse(threeSegmentDateComponentMatch.Groups[2].Value),
                         int.Parse(threeSegmentDateComponentMatch.Groups[3].Value)
                     )
-                    .Add(time)
-                );
+                    .Add(time);
             }
 
             var twoSegmentDateComponentMatch = _wholeStringTwoSegmentDateComponent.Match(value);
@@ -262,7 +316,7 @@ namespace CSharpSupport
         /// (for example "2 10" is 2nd October 2015 - if the current year is 2015 - and "2 2015" is 1st February 2015) and then return a DateTime with the now-three values.
         /// If the date segments provided are invalid then this will throw an exception.
         /// </summary>
-        private DateResult GetDate(int dateSegment1, int dateSegment2)
+        private DateTime GetDate(int dateSegment1, int dateSegment2)
         {
             if (dateSegment1 < 0)
                 throw new ArgumentOutOfRangeException("dateSegment1");
@@ -283,8 +337,8 @@ namespace CSharpSupport
             {
                 var defaultYear = _defaultYearRetriever();
                 if (PreferMonthBeforeDate())
-                    return DateResult.DynamicYear(new DateTime(defaultYear, month: dateSegment1, day: dateSegment2));
-                return DateResult.DynamicYear(new DateTime(defaultYear, month: dateSegment2, day: dateSegment1));
+                    return new DateTime(defaultYear, month: dateSegment1, day: dateSegment2);
+                return new DateTime(defaultYear, month: dateSegment2, day: dateSegment1);
             }
 
             // If there is one segment within the month range (1 to 12, inclusive) and one within the day range but obviously not the month range (so 13 to 31, inclusive,
@@ -295,7 +349,7 @@ namespace CSharpSupport
             {
                 var defaultYear = _defaultYearRetriever();
                 if (largerDateSegment <= GetNumberOfDaysInMonth(smallerDateSegment, defaultYear))
-                    return DateResult.DynamicYear(new DateTime(defaultYear, month: smallerDateSegment, day: largerDateSegment));
+                    return new DateTime(defaultYear, month: smallerDateSegment, day: largerDateSegment);
             }
 
             // Finally, if one segment is within the month range and other clearly not within the day range, then the other must be a year. Values of 100 or greater are
@@ -313,7 +367,7 @@ namespace CSharpSupport
                 monthValue = dateSegment2;
                 yearValue = dateSegment1;
             }
-            return DateResult.FixedYear(new DateTime(EnsureIsFourDigitYear(yearValue), monthValue, 1));
+            return new DateTime(EnsureIsFourDigitYear(yearValue), monthValue, 1);
         }
 
         private static int EnsureIsFourDigitYear(int year)
@@ -339,25 +393,6 @@ namespace CSharpSupport
             var sampleDate = new DateTime(2015, 5, 1); // The month and day values must be different in this sample date, obviously!
             var dateValuesMatchResult = _simpleThreeSegmentNumberExtractor.Match(sampleDate.ToShortDateString());
             return dateValuesMatchResult.Success && (int.Parse(dateValuesMatchResult.Groups[1].Value) == sampleDate.Month);
-        }
-
-        public class DateResult
-        {
-            public static DateResult DynamicYear(DateTime value) { return new DateResult(value, yearIsDynamic: true); }
-            public static DateResult FixedYear(DateTime value) { return new DateResult(value, yearIsDynamic: false); }
-            private DateResult(DateTime value, bool yearIsDynamic)
-            {
-                Value = value;
-                YearIsDynamic = yearIsDynamic;
-                RequiresLeapYear = (value.Month == 2) && (value.Day == 29);
-            }
-            public DateTime Value { get; private set; }
-            public bool YearIsDynamic { get; private set; }
-            public bool RequiresLeapYear { get; private set; }
-            public DateResult Add(TimeSpan value)
-            {
-                return new DateResult(Value.Add(value), YearIsDynamic);
-            }
         }
     }
 }

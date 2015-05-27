@@ -121,6 +121,7 @@
     <Compile Include="Tokens\Basic\EndOfStatementNewLineToken.cs" />
     <Compile Include="Tokens\Basic\EndOfStatementSameLineToken.cs" />
     <Compile Include="Tokens\Basic\OperatorToken.cs" />
+    <Compile Include="Tokens\Basic\DateLiteralToken.cs" />
     <Compile Include="Tokens\IToken.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -148,7 +149,12 @@
     <Compile Include="Tokens\Basic\StringToken.cs" />
     <Compile Include="Tokens\Basic\UnprocessedContentToken.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
+      <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
+      <Name>CSharpSupport</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

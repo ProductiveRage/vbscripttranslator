@@ -113,6 +113,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     throw new ArgumentException("Null reference encountered in expressionSegments set");
 
                 if ((expressionSegment is BuiltInValueExpressionSegment)
+                || (expressionSegment is DateValueExpressionSegment)
                 || (expressionSegment is NewInstanceExpressionSegment)
                 || (expressionSegment is NumericValueExpressionSegment)
                 || (expressionSegment is OperationExpressionSegment)

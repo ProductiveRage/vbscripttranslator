@@ -14,13 +14,14 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
     public class CallSetItemExpressionSegment : IExpressionSegment
     {
         private static IEnumerable<Type> AllowableTypes = new[] {
-            // Note that StringToken and BuiltInValueToken are acceptable here are call target types since - although they will fail in many cases at runtime
-            // (eg. "1"() or "1".a member accesses against a string will fail), they need to be allowed to fail AT RUNTIME. Numeric literals, however, would
-            // result in compile errors in VBScript and so do not need to be allowed here (BuiltInValueToken includes True and False as well as values such
-            // as vbObjectError).
+            // Note that StringToken and BuiltInValueToken are acceptable here as call target types since - although they will fail in many cases at runtime
+            // (eg. "1"() or "1".a member accesses against a string will fail), they need to be allowed to fail AT RUNTIME. Same applies for numeric values
+            // and date literals - eg. 1() will fail at runtime with a type mismatch, as will #1 1#()
             typeof(BuiltInFunctionToken),
             typeof(BuiltInValueToken),
+            typeof(DateLiteralToken),
             typeof(KeyWordToken),
+            typeof(NumericValueToken),
             typeof(NameToken),
             typeof(StringToken)
         };
@@ -126,8 +127,10 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				return string.Join(
 					"",
 					((IExpressionSegment)this).AllTokens.Select(t =>
-						(t is StringToken) ? ("\"" + t.Content.Replace("\"", "\"\"") + "\"") : t.Content
-					)
+                        (t is StringToken)
+                            ? ("\"" + t.Content.Replace("\"", "\"\"") + "\"")
+                            : (t is DateLiteralToken) ? ("#" + t.Content + "#") : t.Content
+                    )
 				);
             }
         }

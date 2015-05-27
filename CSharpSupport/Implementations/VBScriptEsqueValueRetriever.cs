@@ -213,6 +213,45 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// This is similar to NullableNUM in that it is used for comparisons involving date literals, where the other side has to be interpreted as
+        /// a date but must also support null. It supports all VBScript date parsing methods (eg. the string "1" will be parsed into the number 1
+        /// and then translated into a date by being one day after the VBScript zero date, or "28 2" will be interpreted as 28th of February in
+        /// the current year).
+        /// </summary>
+        public object NullableDATE(object o)
+        {
+            o = VAL(o);
+            if (o == null)
+                return VBScriptConstants.ZeroDate;
+            if ((o == DBNull.Value) || (o is DateTime))
+                return o;
+
+            double? numericValue;
+            try
+            {
+                numericValue = Convert.ToDouble(o);
+            }
+            catch
+            {
+                numericValue = null;
+            }
+            try
+            {
+                if (numericValue != null)
+                    return DateParser.Default.Parse(numericValue.Value);
+                return DateParser.Default.Parse(o.ToString());
+            }
+            catch (OverflowException e)
+            {
+                throw new VBScriptOverflowException(e);
+            }
+            catch (Exception e)
+            {
+                throw new TypeMismatchException(e);
+            }
+        }
+
+        /// <summary>
         /// VBScript only supports a limited set of number types, when NUM is called to determine what type that loop variable should be, it should only be
         /// one of those set. This will ensure that a value is returned as a number that is one of those types (or an exception will be raised, it will
         /// never return null).

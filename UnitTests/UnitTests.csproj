@@ -115,6 +115,7 @@
     <Compile Include="Shared\Comparers\BuiltInValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\RuntimeErrorExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\NewInstanceExpressionSegmentComparer.cs" />
+    <Compile Include="Shared\Comparers\DateValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\StringValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\NumericValueExpressionSegmentComparer.cs" />
     <Compile Include="Shared\Comparers\TokenComparer.cs" />

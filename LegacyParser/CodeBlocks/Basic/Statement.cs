@@ -99,6 +99,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 var token = tokensList[index];
                 if (token is StringToken)
                     output.Append("\"" + token.Content + "\"");
+                else if (token is DateLiteralToken)
+                    output.Append("#" + token.Content + "#");
                 else
                     output.Append(token.Content);
 
@@ -181,6 +183,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 var valueTokenTypes = new[] {
                     typeof(BuiltInFunctionToken),
                     typeof(BuiltInValueToken),
+                    typeof(DateLiteralToken),
                     typeof(KeyWordToken),
                     typeof(NameToken),
                     typeof(NumericValueToken),
@@ -352,9 +355,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     if (bracketCount == 0)
                     {
                         var insertBracketsBeforeThisToken = false;
-                        if (token is StringToken)
+                        if ((token is DateLiteralToken) || (token is StringToken))
                         {
-                            // If we've reached an un-bracketed string then we need to standardise the brackets starting before this token and closing around the last
+                            // If we've reached an un-bracketed string or date literal then we need to standardise the brackets starting before this token and closing around the last
                             insertBracketsBeforeThisToken = true;
                         }
 						if (IsTokenAcceptableToCommenceCallExecution(token, nextTokenIfAny)
@@ -412,6 +415,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 (token.GetType() == typeof(KeyWordToken)) ||
 
                 (token is NameToken) ||
+                (token.GetType() == typeof(DateLiteralToken)) ||
                 (token.GetType() == typeof(NumericValueToken)) ||
                 (token.GetType() == typeof(StringToken))
             );

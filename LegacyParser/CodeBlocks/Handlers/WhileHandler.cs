@@ -38,7 +38,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     tokens.RemoveAt(0);
                     break;
                 }
-                IToken tokenCondition = base.getToken_AtomOrStringOnly(tokens, 0);
+                IToken tokenCondition = base.getToken_AtomOrDateStringLiteralOnly(tokens, 0);
                 tokensInCondition.Add(tokenCondition);
                 tokens.RemoveAt(0);
             }

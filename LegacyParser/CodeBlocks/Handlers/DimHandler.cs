@@ -147,7 +147,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             {
                 if (token == null)
                     throw new Exception("Invalid token - null");
-                if ((!(token is AtomToken)) && (!(token is StringToken)))
+                if ((!(token is AtomToken)) && (!(token is DateLiteralToken)) && (!(token is StringToken)))
                     throw new Exception("Invalid token - not AtomToken or StringToken");
             }
 

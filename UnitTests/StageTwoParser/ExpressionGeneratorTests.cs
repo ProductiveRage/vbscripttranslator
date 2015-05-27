@@ -1130,6 +1130,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 if (memberAccessTokens.Single() is NumericValueToken)
                     return new NumericValueExpressionSegment(memberAccessTokens.Single() as NumericValueToken);
+                if (memberAccessTokens.Single() is DateLiteralToken)
+                    return new DateValueExpressionSegment(memberAccessTokens.Single() as DateLiteralToken);
                 if (memberAccessTokens.Single() is StringToken)
                     return new StringValueExpressionSegment(memberAccessTokens.Single() as StringToken);
             }
@@ -1207,6 +1209,8 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
             {
                 if (memberAccessTokens.Single() is NumericValueToken)
                     return new NumericValueExpressionSegment(memberAccessTokens.Single() as NumericValueToken);
+                if (memberAccessTokens.Single() is DateLiteralToken)
+                    return new DateValueExpressionSegment(memberAccessTokens.Single() as DateLiteralToken);
                 if (memberAccessTokens.Single() is StringToken)
                     return new StringValueExpressionSegment(memberAccessTokens.Single() as StringToken);
             }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CSharpSupport;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
@@ -8,7 +9,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
 {
     public static class StringBreaker
     {
-        private static char[] WhiteSpaceCharsExceptLineReturn
+        private static char[] _whiteSpaceCharsExceptLineReturn
             = Enumerable.Range((int)char.MinValue, (int)char.MaxValue)
                 .Select(v => (char)v)
                 .Where(c => (c != '\n') && char.IsWhiteSpace(c))
@@ -44,7 +45,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     var threeChars = scriptContent.Substring(index, 3);
                     var fourthChar = (index == scriptContent.Length - 3) ? (char?)null : scriptContent[index + 3];
                     if (threeChars.Equals("REM", StringComparison.InvariantCultureIgnoreCase)
-                    && ((fourthChar == null) || WhiteSpaceCharsExceptLineReturn.Contains(fourthChar.Value)))
+                    && ((fourthChar == null) || _whiteSpaceCharsExceptLineReturn.Contains(fourthChar.Value)))
                     {
                         isComment = true;
                         index += 2;
@@ -69,14 +70,10 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     else
                         isInlineComment = false;
 
-                    // Move past comment marker and look for end of comment (end of the
-                    // line) then store in a CommentToken instance
-                    // - Note: Always want an EndOfStatementNewLineToken to appear before
-                    //   comments, so ensure this is the case (if the previous token was
-                    //   a Comment it doesn't matter, if the previous statement was a
-                    //   String we'll definitely need an end-of-statement, if the
-                    //   previous was Unprocessed, we only need end-of-statement
-                    //   if the content didn't end with a line-return)
+                    // Move past comment marker and look for end of comment (end of the line) then store in a CommentToken instance
+                    // - Note: Always want an EndOfStatementNewLineToken to appear before comments, so ensure this is the case (if the previous token was
+                    //   a Comment it doesn't matter, if the previous statement was a String we'll definitely need an end-of-statement, if the previous
+                    //   was Unprocessed, we only need end-of-statement if the content didn't end with a line-return)
                     lineIndexForStartOfContent = lineIndex;
                     index++;
                     int breakPoint = scriptContent.IndexOf("\n", index);
@@ -88,7 +85,7 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         if (prevToken is UnprocessedContentToken)
                         {
                             // UnprocessedContentToken MAY conclude with end-of-statement content, we'll need to check
-                            if (!prevToken.Content.TrimEnd(WhiteSpaceCharsExceptLineReturn).EndsWith("\n"))
+                            if (!prevToken.Content.TrimEnd(_whiteSpaceCharsExceptLineReturn).EndsWith("\n"))
                             {
                                 tokens.RemoveAt(tokens.Count - 1);
                                 var unprocessedContentToRecord = prevToken.Content.TrimEnd('\t', ' ');
@@ -100,12 +97,12 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             }
                         }
                     }
-                    if (tokens.Any() && (tokens.Last() is StringToken))
+                    if (tokens.Any() && ((tokens.Last() is DateLiteralToken) || (tokens.Last() is StringToken)))
                     {
-                        // StringToken CAN'T contain end-of-statement content so we'll definitely need an EndOfStatementNewLineToken
-                        // Note: This has to be done after the above work in case there was a StringToken then some whitespace (which is removed above)
+                        // Quoted literals (ie. string or date) CAN'T contain end-of-statement content so we'll definitely need an EndOfStatementNewLineToken
+                        // Note: This has to be done after the above work in case there was a literal token then some whitespace (which is removed above)
                         // then a Comment. If the work above wasn't done before this check then "prevToken" would not be a StringToken, it would be the
-                        // whitespace - but that would be removed and then the StringToken would be arranged right next to the Comment, without an end-
+                        // whitespace - but that would be removed and then the literal would be arranged right next to the Comment, without an end-
                         // of-statement token between them!
                         tokens.Add(new EndOfStatementSameLineToken(lineIndexForStartOfContent));
                     }
@@ -175,8 +172,8 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 else if (chr == "[")
                 {
                     // Store any previous token content
-					if (tokenContent != "")
-						tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
+                    if (tokenContent != "")
+                        tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
 
                     lineIndexForStartOfContent = lineIndex;
                     tokenContent = "[";
@@ -189,9 +186,9 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                         tokenContent += chr;
                         if (chr == "]")
                         {
-							tokens.Add(AtomToken.GetNewToken(tokenContent, lineIndexForStartOfContent));
+                            tokens.Add(AtomToken.GetNewToken(tokenContent, lineIndexForStartOfContent));
                             tokenContent = "";
-							lineIndexForStartOfContent = lineIndex;
+                            lineIndexForStartOfContent = lineIndex;
                             index = indexString;
                             break;
                         }
@@ -199,7 +196,53 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                     }
                 }
 
-                // Mustn't be neither comment, string nor VBScript-escaped-variable-name..
+                // VBScript supports date literals, wrapped in hashes. These introduce a range of complications - such as literal comparisons requiring
+                // special logic, as string and number literals do - eg. ("a" = #2015-5-27#) will fail at runtime as "a" must be parse-able as a date,
+                // and it isn't. It also has complications around culture - so the value #1 5 2015# must be parsed as 2015-5-1 in the UK when the
+                // translated output is executed but as 2015-1-5 in the US. On top of that, VBScript is very flexible in its acceptance of date formats -
+                // amongst these problems is that the year is optional and so #1 5# means 1st of May or 5th of January (depending upon culture) in the
+                // current year - however, once a date literal has had a default year set for a given request it must stick to that year; so if the request
+                // is unfortunate enough to be slow and cross years, a given date literal must consistently stick to using the year from when the request
+                // started. When a new request starts, however, if the year has changed then that new request must default to that new year, it would be no
+                // good if the year was determined once (at translation time) and then never changed, since this would be inconsistent with VBScript's behaviour
+                // of treating each request as a whole new start-up / serve / tear-down process. This means that the value #29 2# will change by year, being
+                // the 29th of February if the current year is a leap year and the 1st of February 2029 if not (since #29 2# will be interpreted as year 29
+                // and month 2 since 29 could not be a valid month - and then 29 will be treated as a two-digit year which must be bumped up to 2029). Also
+                // note that even in the US #29 2# will be interpreted as the 29th of February (or 1st of February 2029) since there is no way to parse that
+                // as a month-then-day format).
+                // - Note: This gets the lowest priority in terms of wrapping characters, so [#1 1#] is a variable name and not something containing a
+                //   date, likewise "#1 1#" is a string and nothing to do with a date. There are no escape characters. If the wrapped value can not
+                //   possibly be valid then an exception will be raised at this point.
+                else if (chr == "#")
+                {
+                    // Store any previous token content
+                    if (tokenContent != "")
+                        tokens.Add(new UnprocessedContentToken(tokenContent, lineIndexForStartOfContent));
+
+                    lineIndexForStartOfContent = lineIndex;
+                    tokenContent = "";
+                    var indexString = index + 1;
+                    while (true)
+                    {
+                        chr = scriptContent.Substring(indexString, 1);
+                        if (chr == "\n")
+                            throw new Exception("Encountered line return in date literal content");
+                        if (chr == "#")
+                        {
+                            // Note: The DateLiteralToken constructor will throw an exception for invalid date content
+                            tokens.Add(new DateLiteralToken(tokenContent, lineIndexForStartOfContent));
+                            tokenContent = "";
+                            lineIndexForStartOfContent = lineIndex;
+                            index = indexString;
+                            break;
+                        }
+                        else
+                            tokenContent += chr;
+                        indexString++;
+                    }
+                }
+
+                // Mustn't be neither comment, string, date nor VBScript-escaped-variable-name..
                 else
                     tokenContent += chr;
 

@@ -208,9 +208,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 else
                 {
                     if ((!(token is AtomToken))
+                    && (!(token is DateLiteralToken))
                     && (!(token is StringToken))
                     && (!(token is EndOfStatementSameLineToken)))
-                        throw new Exception("IfHandler.processSingleLine: Encountered invalid Token - should all be AtomToken, StringToken or EndOfStatementSameLineToken until new-line end of statement");
+                        throw new Exception("IfHandler.processSingleLine: Encountered invalid Token - should all be AtomToken, DateLiteralToken, StringToken or EndOfStatementSameLineToken until new-line end of statement");
                     ifTokens.Add(token);
                 }
             }
@@ -302,12 +303,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             if (tokens == null)
                 throw new ArgumentNullException("token");
 
-            // Look for "THEN" token - only acceptable tokens are Atom or String
+            // Look for "THEN" token - only acceptable tokens are Atom or literal (String or Date)
             int offsetThen = -1;
             for (var index = 0; index < tokens.Count; index++)
             {
                 var token = tokens[index];
-                if ((!(token is AtomToken)) && (!(token is StringToken)))
+                if ((!(token is AtomToken)) && (!(token is DateLiteralToken)) && (!(token is StringToken)))
                     throw new Exception("Encountered invalid token looking for THEN content");
                 if ((token is AtomToken) && (token.Content.ToUpper() == "THEN"))
                 {

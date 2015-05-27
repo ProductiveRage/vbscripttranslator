@@ -12,6 +12,7 @@ namespace CSharpSupport.Exceptions
     {
         private const string BASIC_ERROR_DESCRIPTION = "Overflow";
 
+        public VBScriptOverflowException(Exception innerException = null) : this(null, innerException) { }
         public VBScriptOverflowException(string additionalInformationIfAny, Exception innerException = null)
             : base(BASIC_ERROR_DESCRIPTION, additionalInformationIfAny, innerException) { }
 

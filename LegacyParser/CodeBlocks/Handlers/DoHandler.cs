@@ -120,7 +120,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 // Once the end-of-statement has been identified, don't try to remove it - leave that up to the caller
                 if (base.isEndOfStatement(tokens, 0))
                     break;
-                var tokenCondition = base.getToken_AtomOrStringOnly(tokens, 0);
+                var tokenCondition = base.getToken_AtomOrDateStringLiteralOnly(tokens, 0);
                 tokensInCondition.Add(tokenCondition);
                 tokens.RemoveAt(0);
             }

@@ -142,7 +142,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             var segmentLeft = segments[0];
             var segmentRight = segments[2];
-            bool mustConvertLeftValueToNumber, mustConvertRightValueToNumber, mustConvertLeftValueToString, mustConvertRightValueToString;
+            bool mustConvertLeftValueToNumber, mustConvertRightValueToNumber;
+            bool mustConvertLeftValueToDate, mustConvertRightValueToDate;
+            bool mustConvertLeftValueToString, mustConvertRightValueToString;
             if (operatorSegmentWithIndex.Segment.Token is ComparisonOperatorToken)
             {
                 // If the operator segment is a ComparisonOperatorToken (not a LogicalOperatorToken and not any other type of OperatorToken, such
@@ -162,6 +164,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 //   being parsed, this must be considered (currently the OperatorCombiner will replace --1 with CDbl(1) so that it's
                 //   obvious to the processing here that it should not be a numeric literal - if it replaced --1 with 1 then it WOULD
                 //   look like a numeric literal here and there would be an inconsistency with the VBScript interpreter).
+                // - Further update: Eric didn't talk about date literals, but they also have similar behaviour to numbers and strings! :(
+                //   Dates have higher priority than strings but lower than numbers, so the following is an error
+                //     If ("a" = #2015-5-27#) Then
+                //   because "a" can not be parsed into a date, but
+                //     If (-657435 = #2015-5-27#) Then
+                //   is not an error, even though -657435 falls just outside of the VBScript date ranges (because #2015-5-27# is interpreted as
+                //   a number, rather than -657435 being parsed as a date)
                 var segmentLeftAsNumericValue = segmentLeft as NumericValueExpressionSegment;
                 var segmentRightAsNumericValue = segmentRight as NumericValueExpressionSegment;
                 var segmentLeftIsNonNegativeNumericValue = (segmentLeftAsNumericValue != null) && (segmentLeftAsNumericValue.Token.Value >= 0);
@@ -172,6 +181,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // terms of casting values at this point
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
@@ -181,15 +192,41 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // a "Type mismatch" error should be raised; the statement "IF ("aa" > 0) THEN" will error, for example
                     mustConvertLeftValueToNumber = !segmentLeftIsNonNegativeNumericValue;
                     mustConvertRightValueToNumber = !segmentRightIsNonNegativeNumericValue;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
+                }
+                else if ((segmentLeft is DateValueExpressionSegment) && (segmentRight is DateValueExpressionSegment))
+                {
+                    // If both sides of an operation are date literals, then the comparison will be simple and not require any interfering in
+                    // terms of casting values at this point
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
+                    mustConvertLeftValueToString = false;
+                    mustConvertRightValueToString = false;
+                }
+                else if ((segmentLeft is DateValueExpressionSegment) || (segmentRight is DateValueExpressionSegment))
+                {
+                    // However, if one side of an operation is a date literal then the other side must be parsed as a date before the comparison
+                    // is made
+                    mustConvertLeftValueToNumber = false;
+                    mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = !(segmentLeft is DateValueExpressionSegment);
+                    mustConvertRightValueToDate = !(segmentRight is DateValueExpressionSegment);
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
                 else if ((segmentLeft is StringValueExpressionSegment) && (segmentRight is StringValueExpressionSegment))
                 {
-                    // If both sides of an operation are numeric constants, then the comparison will be simple and not require any interfering in
+                    // If both sides of an operation are string constants, then the comparison will be simple and not require any interfering in
                     // terms of casting values at this point
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
@@ -206,15 +243,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // converted into a string since there is no string constant in the statement.
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
                     mustConvertLeftValueToString = !(segmentLeft is StringValueExpressionSegment);
                     mustConvertRightValueToString = !(segmentRight is StringValueExpressionSegment);
                 }
                 else
                 {
-                    // If neither side is a numeric constant then there is nothing to worry about (any complexities of how values should be
-                    // compared can be left up to the runtime comparison method implementation)
+                    // If neither side is a literal then there is nothing to worry about (any complexities of how values should be compared
+                    // can be left up to the runtime comparison method implementation)
                     mustConvertLeftValueToNumber = false;
                     mustConvertRightValueToNumber = false;
+                    mustConvertLeftValueToDate = false;
+                    mustConvertRightValueToDate = false;
                     mustConvertLeftValueToString = false;
                     mustConvertRightValueToString = false;
                 }
@@ -223,21 +264,27 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             {
                 mustConvertLeftValueToNumber = false;
                 mustConvertRightValueToNumber = false;
+                mustConvertLeftValueToDate = false;
+                mustConvertRightValueToDate = false;
                 mustConvertLeftValueToString = false;
                 mustConvertRightValueToString = false;
             }
             var resultLeft = TranslateNonOperatorSegment(segmentLeft, scopeAccessInformation);
-            if (mustConvertLeftValueToNumber && mustConvertLeftValueToString)
-                throw new Exception("Something went wrong in the processing, both mustConvertLeftValueToNumber and mustConvertLeftValueToString are set for a comparison");
+            if (new[] { mustConvertLeftValueToNumber, mustConvertLeftValueToDate, mustConvertLeftValueToString}.Count(v => v) > 1)
+                throw new Exception("Something went wrong in the processing, no more than one of mustConvertLeftValueToNumber, mustConvertLeftValueToDate and mustConvertLeftValueToString may be set for a comparison");
             if (mustConvertLeftValueToNumber)
                 resultLeft = WrapTranslatedResultInNumericCast(resultLeft);
+            else if (mustConvertLeftValueToDate)
+                resultLeft = WrapTranslatedResultInDateCast(resultLeft);
             else if (mustConvertLeftValueToString)
                 resultLeft = WrapTranslatedResultInStringConversion(resultLeft);
             var resultRight = TranslateNonOperatorSegment(segmentRight, scopeAccessInformation);
-            if (mustConvertRightValueToNumber && mustConvertRightValueToString)
-                throw new Exception("Something went wrong in the processing, both mustConvertRightValueToNumber and mustConvertRightValueToString are set for a comparison");
+            if (new[] { mustConvertRightValueToNumber, mustConvertRightValueToDate, mustConvertRightValueToString }.Count(v => v) > 1)
+                throw new Exception("Something went wrong in the processing, no more than one of mustConvertRightValueToNumber, mustConvertRightValueToDate and mustConvertRightValueToString may be set for a comparison");
             if (mustConvertRightValueToNumber)
                 resultRight = WrapTranslatedResultInNumericCast(resultRight);
+            else if (mustConvertRightValueToDate)
+                resultRight = WrapTranslatedResultInDateCast(resultRight);
             else if (mustConvertRightValueToString)
                 resultRight = WrapTranslatedResultInStringConversion(resultRight);
             return new TranslatedStatementContentDetails(
@@ -269,6 +316,22 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
                     "{0}.NullableNUM({1})",
+                    _supportRefName.Name,
+                    translatedStatement.TranslatedContent
+                ),
+                ExpressionReturnTypeOptions.Value,
+                translatedStatement.VariablesAccessed
+            );
+        }
+
+        private TranslatedStatementContentDetailsWithContentType WrapTranslatedResultInDateCast(TranslatedStatementContentDetailsWithContentType translatedStatement)
+        {
+            if (translatedStatement == null)
+                throw new ArgumentNullException("translatedStatement");
+
+            return new TranslatedStatementContentDetailsWithContentType(
+                string.Format(
+                    "{0}.NullableDATE({1})",
                     _supportRefName.Name,
                     translatedStatement.TranslatedContent
                 ),
@@ -317,6 +380,25 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             {
                 return new TranslatedStatementContentDetailsWithContentType(
                     stringValueSegment.Token.Content.ToLiteral(),
+                    ExpressionReturnTypeOptions.Value,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
+
+            var dateValueSegment = segment as DateValueExpressionSegment;
+            if (dateValueSegment != null)
+            {
+                // When initialising a date literal, the culture at runtime may affect the value, as may the current year if the format of the literal did not specify
+                // a year. As such, date literals are interpreted at runtime. In the case of a "dynamic year" date literal, the compat layer will ensure that the year
+                // from when the request started is used in all cases - if the request is slow and the year ticks over part-way through, all date literals with dynamic
+                // years must be use the year from when the request started. Subsequent requests will use the new year. This is consistent with VBScript since the
+                // script is re-interpreted each time it's run.
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
+                        "{0}.DateLiteralParser.Parse({1})",
+                        _supportRefName.Name,
+                        dateValueSegment.Token.Content.ToLiteral()
+                    ),
                     ExpressionReturnTypeOptions.Value,
                     new NonNullImmutableList<NameToken>()
                 );
@@ -1055,7 +1137,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // passed wrapped in extra brackets as being ByVal), same if it's a NewInstanceExpressionSegment (there is no point allowing the
             // reference to be changed since nothing has a reference to the new instance being passed in)
             var singleSegment = argumentValue.Segments.First();
-            if ((singleSegment is NumericValueExpressionSegment)
+            if ((singleSegment is DateValueExpressionSegment)
+            || (singleSegment is NumericValueExpressionSegment)
             || (singleSegment is StringValueExpressionSegment)
             || (singleSegment is BuiltInValueExpressionSegment)
             || (singleSegment is NewInstanceExpressionSegment)

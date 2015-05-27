@@ -68,6 +68,14 @@ namespace CSharpSupport
         object NullableNUM(object o);
 
         /// <summary>
+        /// This is similar to NullableNUM in that it is used for comparisons involving date literals, where the other side has to be interpreted as
+        /// a date but must also support null. It supports all VBScript date parsing methods (eg. the string "1" will be parsed into the number 1
+        /// and then translated into a date by being one day after the VBScript zero date, or "28 2" will be interpreted as 28th of February in
+        /// the current year).
+        /// </summary>
+        object NullableDATE(object o);
+
+        /// <summary>
         /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.
         /// Null (aka VBScript Empty) is acceptable and will result in null being returned. DBNull.Value (aka VBScript Null) is also acceptable and
         /// will also result in itself being returned - this is the only case in which a non-null-and-non-string value will be returned. This

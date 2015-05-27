@@ -58,7 +58,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // If the target expression is a simple constant then we can skip any work required in evaluating its value (note that it if appears simple - eg. a single NameToken - we shouldn't
             // try to perform any shortcut here because then we'd have to worry about ensuring it is a non-object reference and that is already dealt with by the StatementTranslator)
             IToken evaluatedTarget;
-            if (Is<NumericValueToken>(selectBlock.Expression) || Is<StringToken>(selectBlock.Expression) || Is<BuiltInValueToken>(selectBlock.Expression))
+            if (Is<NumericValueToken>(selectBlock.Expression) || Is<DateLiteralToken>(selectBlock.Expression) || Is<StringToken>(selectBlock.Expression) || Is<BuiltInValueToken>(selectBlock.Expression))
                 evaluatedTarget = selectBlock.Expression.Tokens.Single();
             else
             {

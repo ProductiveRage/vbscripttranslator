@@ -46,6 +46,7 @@
     <Compile Include="ExpressionParsing\CallSetItemExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\RuntimeErrorExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\NewInstanceExpressionSegment.cs" />
+    <Compile Include="ExpressionParsing\DateValueExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\StringValueExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\NumericValueExpressionSegment.cs" />
     <Compile Include="ExpressionParsing\OperationExpressionSegment.cs" />

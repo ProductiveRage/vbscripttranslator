@@ -433,7 +433,22 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
                         }
                         return new StringValueExpressionSegment(stringValue);
                     }
-					var builtInValue = tokensList[0] as BuiltInValueToken;
+                    var dateValue = tokensList[0] as DateLiteralToken;
+                    if (dateValue != null)
+                    {
+                        if (argumentsAreBracketed)
+                        {
+                            warningLogger("Date literal accessed as a method - this will result in a runtime error (line " + (dateValue.LineIndex + 1) + ")");
+                            return new RuntimeErrorExpressionSegment(
+                                "#" + dateValue.Content + "#()",
+                                new IToken[] { dateValue, new OpenBrace(dateValue.LineIndex), new CloseBrace(dateValue.LineIndex) },
+                                typeof(TypeMismatchException),
+                                "'[date: #" + dateValue.Content + "#]' is called like a function"
+                            );
+                        }
+                        return new DateValueExpressionSegment(dateValue);
+                    }
+                    var builtInValue = tokensList[0] as BuiltInValueToken;
                     if (builtInValue != null)
                     {
                         if (argumentsAreBracketed)

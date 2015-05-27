@@ -41,6 +41,7 @@ namespace CSharpSupport.Implementations
             _disposableReferencesToClearAfterTheRequest = new List<IDisposable>();
             _availableErrorTokens = new Queue<int>();
             _activeErrorTokens = new Dictionary<int, ErrorTokenState>();
+            DateLiteralParser = new DateParser(DateTime.Now.Year);
             _trappedErrorIfAny = null;
         }
 
@@ -418,11 +419,11 @@ namespace CSharpSupport.Implementations
             if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
                 throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
 
-            value = VAL(value, "'CDate'");
+            value = VAL(value, exceptionMessageForInvalidContent);
             if (value == null)
                 return VBScriptConstants.ZeroDate;
             if (value == DBNull.Value)
-                throw new InvalidUseOfNullException("'CDate'");
+                throw new InvalidUseOfNullException(exceptionMessageForInvalidContent);
             if (value is DateTime)
                 return (DateTime)value;
 
@@ -435,60 +436,15 @@ namespace CSharpSupport.Implementations
             {
                 valueNumber = null;
             }
-            if (valueNumber != null)
-            {
-                // VBScript has some absolutely bonkers logic for negative values here - eg. CDate(-400.2) = 1898-11-25 04:48:00 which is equal to
-                // (CDate(-400) + CDate(0.2)) and NOT equal to (CDate(-400) + CDate(-0.2)). It appears that the negative sign is just removed from
-                // fractions, since CDate(0.1) = CDate(-0.1) and CDate(0.2) = CDate(-0.2) in VBScript.
-                var integerPortion = Math.Truncate(valueNumber.Value);
-                var isGreatestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
-                double fractionalPortion;
-                if (isGreatestPossibleDate)
-                {
-                    // There is also some even stranger logic around times on the last possible day that can be represented. A time component from
-                    // a .9 value (eg. -100.9, 0.9, 10.9, 42140.9) will always show 21:36:00 EXCEPT for when part of a value that represents that
-                    // time on the very last representable day, in which case it will 21:35:59 (try it: 2958465.9). VBScript does not seem to lose
-                    // any precision when converting from and to dates - eg. CDate(2958465.9) is "31/12/9999 21:35:59" and CDbl(CDate(2958465.9))
-                    // is still 2958465.9 - so I think that there must be a bug in the date-handling that I don't know how to fully recreate. I'm
-                    // going to try to always return a value from here that will be consistent with what VBScript would return from CDate, so the
-                    // value 2958465.9 will return "31/12/9999 21:35:59" (while all other .9 values will return 21:36:00) but at the sacrifice of
-                    // "back and forth precision" - so CDbl(CDate(2958465.9)) will be 2958465.8999884259, though all other values will maintain
-                    // precision correctly (so CDbl(CDate(2958464.9)) will be 2958464.9)
-                    // - On top of this, there is a hard limit on the time component of the last possible day, at which point an overflow will
-                    //   occur; 2958465.9999999997672 will overflow while 2958465.99999999976719999999 (as many 9s as you like) won't. I have
-                    //   no idea what that relates to, but a special case is applied here to deal with it.
-                    fractionalPortion = Math.Abs(valueNumber.Value - integerPortion);
-                    if (fractionalPortion >= 0.9999999997672)
-                        throw new VBScriptOverflowException("'CDate'");
-                    var numberOfDigitsToAllow = 8;
-                    fractionalPortion = Math.Truncate(fractionalPortion * Math.Pow(10, numberOfDigitsToAllow)) / Math.Pow(10, numberOfDigitsToAllow);
-                }
-                else
-                    fractionalPortion = Math.Abs(valueNumber.Value - integerPortion);
-                var isEarliestPossibleDate = (integerPortion == Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays));
-                if (isEarliestPossibleDate)
-                {
-                    // There is a similar limit to the time component on the other end of the scale, at which point an overflow will occur (the
-                    // value -657434.0.9999999999418 will CDate while -657434.9999999999417999999  99, with as many 9s as you like, will not)
-                    if (fractionalPortion >= 0.9999999999418)
-                        throw new VBScriptOverflowException("'CDate'");
-                }
-                if ((integerPortion > Math.Truncate(VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays))
-                || (integerPortion < Math.Truncate(VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays)))
-                    throw new VBScriptOverflowException("'CDate'");
-                var calculatedTimeComponent = VBScriptConstants.ZeroDate.AddDays(fractionalPortion);
-                if (isGreatestPossibleDate)
-                {
-                    // Continuing the crazy-logic-on-last-representable-date, only must the precision of the time component be reduced on the
-                    // greatest possible date, but any millisecond component must be stripped (not rounded) completely. The is how we ensure
-                    // that 2958465.9 results in the time "21:35:59" and not "21:36:00".
-                    calculatedTimeComponent = calculatedTimeComponent.Subtract(TimeSpan.FromMilliseconds(calculatedTimeComponent.Millisecond));
-                }
-                return calculatedTimeComponent.AddDays(integerPortion);
-            }
             try
             {
-                return DateParser.Default.Parse(value.ToString()).Value;
+                if (valueNumber != null)
+                    return DateParser.Default.Parse(valueNumber.Value);
+                return DateParser.Default.Parse(value.ToString());
+            }
+            catch (OverflowException e)
+            {
+                throw new VBScriptOverflowException(exceptionMessageForInvalidContent, e);
             }
             catch (Exception e)
             {
@@ -1503,6 +1459,10 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.NullableNUM(o);
         }
+        public object NullableDATE(object o)
+        {
+            return _valueRetriever.NullableDATE(o);
+        }
         public object STR(object o)
         {
             return _valueRetriever.STR(o);
@@ -1515,5 +1475,14 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.ENUMERABLE(o);
         }
+
+        /// <summary>
+        /// Where date literals were present in the source code, in a format that does not specify a date, they must be translated into dates at
+        /// runtime. They must all be expanded to have whatever year it was when the request started - if the request happens to take sufficient
+        /// time that the year ticks over during processing, all date literals (without explicit years) must be associated with the year when
+        /// the request started. Note that if a new request starts with a different year, then date literals without years within that request
+        /// must be associatedw ith the new year (this is consistent with how the VBScript interpreter would re-process the script each time).
+        /// </summary>
+        public DateParser DateLiteralParser { get; private set; }
     }
 }

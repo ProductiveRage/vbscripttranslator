@@ -273,5 +273,14 @@ namespace CSharpSupport
         /// as true, since this is VBScript's behaviour. It will throw an exception for a null valueEvaluator or an invalid errorToken.
         /// </summary>
         bool IF(Func<object> valueEvaluator, int errorToken);
+
+        /// <summary>
+        /// Where date literals were present in the source code, in a format that does not specify a date, they must be translated into dates at
+        /// runtime. They must all be expanded to have whatever year it was when the request started - if the request happens to take sufficient
+        /// time that the year ticks over during processing, all date literals (without explicit years) must be associated with the year when
+        /// the request started. Note that if a new request starts with a different year, then date literals without years within that request
+        /// must be associated with the new year (this is consistent with how the VBScript interpreter would re-process the script each time).
+        /// </summary>
+        DateParser DateLiteralParser { get; }
     }
 }

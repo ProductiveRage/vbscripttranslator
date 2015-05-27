@@ -60,7 +60,9 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 				return string.Join(
 					"",
 					((IExpressionSegment)this).AllTokens.Select(t =>
-						(t is StringToken) ? ("\"" + t.Content.Replace("\"", "\"\"") + "\"") : t.Content
+                        (t is StringToken)
+                            ? ("\"" + t.Content.Replace("\"", "\"\"") + "\"")
+                            : (t is DateLiteralToken) ? ("#" + t.Content + "#") : t.Content
 					)
 				);
             }

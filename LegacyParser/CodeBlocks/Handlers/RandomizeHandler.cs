@@ -35,7 +35,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     tokensProcessed++;
                     break;
                 }
-                seedTokens.Add(base.getToken_AtomOrStringOnly(tokens, index));
+                seedTokens.Add(base.getToken_AtomOrDateStringLiteralOnly(tokens, index));
                 tokensProcessed++;
             }
 

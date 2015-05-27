@@ -77,11 +77,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
             });
         }
 
-        protected IToken getToken_AtomOrStringOnly(IEnumerable<IToken> tokens, int offset)
+        protected IToken getToken_AtomOrDateStringLiteralOnly(IEnumerable<IToken> tokens, int offset)
         {
             return getToken(tokens, offset, new List<Type>()
             {
                 typeof(AtomToken),
+                typeof(DateLiteralToken),
                 typeof(StringToken)
             });
         }
@@ -184,7 +185,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
             if ((!(endMarker is AtomToken)) && (!(endMarker is AbstractEndOfStatementToken)))
                 throw new ArgumentException("Invalid endMarker - must be Atom or EndOfStatement Token");
 
-            var allowedTokenTypes = new List<Type>() { typeof(AtomToken), typeof(StringToken) };
+            var allowedTokenTypes = new List<Type>() { typeof(AtomToken), typeof(DateLiteralToken), typeof(StringToken) };
             var entryList = new List<List<IToken>>();
             var buffer = new List<IToken>();
             var bracketCount = 0;
