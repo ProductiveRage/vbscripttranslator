@@ -181,7 +181,18 @@ namespace CSharpSupport.Implementations
 
         // Logical operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
         // - Read http://blogs.msdn.com/b/ericlippert/archive/2004/07/15/184431.aspx
-        public object NOT(object o) { throw new NotImplementedException(); }
+        public object NOT(object o)
+        {
+            var bitwiseOperationValues = GetForBitwiseOperations("'Not'", o);
+            var valueToNot = bitwiseOperationValues.Item1.Single();
+            if (valueToNot == null)
+            {
+                // GetForBitwiseOperations returns nullable int values - since VBScript's Empty (ie. C#'s null) will be interpreted as zero then any
+                // null values here mean VBScript's null (ie. DBNull.Value), and so that is what must be returned from this function
+                return DBNull.Value;
+            }
+            return bitwiseOperationValues.Item2(~valueToNot.Value); // Note: VBScript's Not operation is bitwise, not logical (so the ~ operator is used)
+        }
         public object AND(object l, object r) { throw new NotImplementedException(); }
         public object OR(object l, object r) { throw new NotImplementedException(); }
         public object XOR(object l, object r) { throw new NotImplementedException(); }
@@ -1367,6 +1378,63 @@ namespace CSharpSupport.Implementations
             {
                 throw new TypeMismatchException(exceptionMessageForInvalidContent, e);
             }
+        }
+
+        /// <summary>
+        /// Given a set of values, this will return nullable ints for each of the values - null if the value was a VBScript null (ie. DBNull.Value) and an int
+        /// otherwise. Along with this set, it will return a lambda which will transform an int into the largest common bitwise-applicable value type that was
+        /// encountered across the values (if all of the values were booleans, then this will transform an int into a boolean, if all of the values were booleans
+        /// or bytes then it will transform an int into a byte - the range of types are, in ascending order: boolean, byte, Int16, Int32). If it is is not possible
+        /// to translate any of the values into an int (or if there were no values specified) then an exception will be raised. This is because the VBScript "logical"
+        /// operators actually perform bitwise operations, limiting the size of those numbers to int aka Int32 aka VBScript "Long" (so any number that won't fit into
+        /// the range of an Int32 will result in an overflow). After VBScript performs the operation, it will return a value that relates to the inputs - so if two
+        /// booleans were operated on then a boolean will be returned, if an "Integer" (Int16) or a "Long" (Int32) were operated on then an Int32 will be returned
+        /// (this is what the lambda is for).
+        /// </summary>
+        private Tuple<IEnumerable<int?>, Func<int, object>> GetForBitwiseOperations(string exceptionMessageForInvalidContent, params object[] values)
+        {
+            if (values == null)
+                throw new ArgumentNullException("values");
+            if (values.Length == 0)
+                throw new ArgumentException("At least one value must be specified");
+            if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
+                throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
+
+            // It must be possible to reduce all of the values as value types. After that the operations will be performed on them as if they are the VBScript
+            // "Long" type (C# Int32). However, the return type should be limitied to the size of the largest type of the input values - so if they are all
+            // booleans then the final result of the bitwise operation should be a boolean. If they're all bytes or all booleans-or-bytes then then the final
+            // result should be an Int16. The supported types, in ascending order of size, are boolean, byte, Int16 (VBScript "Integer") and Int32 (VBScript
+            // "Long"). This means that values that overflow Int32 will result in an overflow here.
+            
+            // 1. Ensure that all values are of acceptable types (note that Empty will be parsed as a number, becoming an Int32 since it has no explicit type)
+            //    and DBNull.Value will remain as DBNull.Value
+            values = values.Select(v => VAL(v, exceptionMessageForInvalidContent)).ToArray();
+            
+            // 2. Determine the return type based upon all of the values types and generate a lambda that will transform an Int32 into this type
+            Func<int, object> returnTypeConverter;
+            if (values.All(v => v is bool))
+                returnTypeConverter = finalValue => (finalValue != 0);
+            else if (values.All(v => (v is bool) || (v is byte)))
+                returnTypeConverter = finalValue => Convert.ToByte(finalValue & byte.MaxValue);
+            else if (values.All(v => (v is bool) || (v is byte) || (v is Int16)))
+            {
+                // This is the only complicated type conversion, really. To translate from an Int32 into an Int16, we want to take the last 8 (of 16) bits. For
+                // example, if this is part of a NOT operation that is given an Int16 value of one, then that will be translated into a long (see below) and then
+                // manipulated by the caller - in this case, changing from binary "0000000000000001" to "1111111111111110" (-2 in decimal). If we mask out the last
+                // 8 bits then we get "11111110" and need only cast that to an Int16. This is why we can't use Convert.ToInt16 - since the long value we have manipulated
+                // could easily cause an overflow (as it would in the example here).
+                returnTypeConverter = finalValue => (Int16)(finalValue & 0xffff);
+            }
+            else
+                returnTypeConverter = finalValue => finalValue;
+
+            // 3. Return the values as null (where VBScript Null values were found) or as Int32 values - using the convention of a C# null for a VBScript null
+            //    (despite the fact that they're not the same elsewhere VBScript Null = DBNull.Value in C#, VBScript Empty = null in C#) allows us to take
+            //    advantage of the Nullable<int> type, rather than having to return IEnumerable<object> where everything is either Int32 or DBNull.Value
+            return Tuple.Create(
+                values.Select(v => (v == DBNull.Value) ? (int?)null : CLNG(v, exceptionMessageForInvalidContent)),
+                returnTypeConverter
+            );
         }
 
         private bool IsDotNetNumericType(object l)
