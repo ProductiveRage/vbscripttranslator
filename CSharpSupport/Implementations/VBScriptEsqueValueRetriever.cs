@@ -79,10 +79,10 @@ namespace CSharpSupport.Implementations
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
         /// side of a SET assignment)
         /// </summary>
-        public object OBJ(object o)
+        public object OBJ(object o, string optionalExceptionMessageForInvalidContent = null)
         {
             if ((o == null) || IsVBScriptValueType(o))
-                throw new Exception("Object expected (SET-assignment-derived statement requires a non-value-type)");
+                throw new ObjectRequiredException(optionalExceptionMessageForInvalidContent);
 
             return o;
         }

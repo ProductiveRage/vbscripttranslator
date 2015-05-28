@@ -49,7 +49,7 @@ namespace CSharpSupport
         object GT(object l, object r);
         object LTE(object l, object r);
         object GTE(object l, object r);
-        object IS(object l, object r);
+        bool IS(object l, object r);
         object EQV(object l, object r);
         object IMP(object l, object r);
         /// <summary>

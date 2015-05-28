@@ -44,7 +44,7 @@ namespace CSharpSupport
         /// This will only return a non-VBScript-value-type, if unable to then an exception will be raised (this is used to wrap the right-hand
         /// side of a SET assignment)
         /// </summary>
-        object OBJ(object o);
+        object OBJ(object o, string optionalExceptionMessageForInvalidContent = null);
 
         /// <summary>
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing

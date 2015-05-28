@@ -383,7 +383,12 @@ namespace CSharpSupport.Implementations
             return !opposingLessThanResult.Value;
         }
 
-        public object IS(object l, object r) { throw new NotImplementedException(); }
+        public bool IS(object l, object r)
+        {
+            if (IsVBScriptNothing(l) && IsVBScriptNothing(r))
+                return true;
+            return OBJ(l, "'Is'") == OBJ(r, "'Is'");
+        }
         public object EQV(object l, object r) { throw new NotImplementedException(); }
         public object IMP(object l, object r) { throw new NotImplementedException(); }
 
@@ -1515,9 +1520,9 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.VAL(o, optionalExceptionMessageForInvalidContent);
         }
-        public object OBJ(object o)
+        public object OBJ(object o, string optionalExceptionMessageForInvalidContent = null)
         {
-            return _valueRetriever.OBJ(o);
+            return _valueRetriever.OBJ(o, optionalExceptionMessageForInvalidContent);
         }
         public object NUM(object o, params object[] numericValuesTheTypeMustBeAbleToContain)
         {
