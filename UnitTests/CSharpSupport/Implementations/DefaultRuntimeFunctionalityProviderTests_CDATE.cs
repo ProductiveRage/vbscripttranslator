@@ -93,7 +93,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "A Date", new DateTime(2009, 7, 6, 20, 12, 44), new DateTime(2009, 7, 6, 20, 12, 44) };
                     
                     yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype(), new DateTime(1899, 12, 30, 0, 0, 0) };
-                    yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype(), new DateTime(1899, 12, 30, 0, 0, 0) };
+                    yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype { result = 0 }, new DateTime(1899, 12, 30, 0, 0, 0) };
                     yield return new object[] { "Object with default property which is String \"2009-10-11 20:12:44\"", new exampledefaultpropertytype { result = "2009-10-11 20:12:44" }, new DateTime(2009, 10, 11, 20, 12, 44) };
 
                     // These may go some way to explaining the -400.2 case above, it appears that the negative sign is removed from fractional values in VBScript

@@ -68,7 +68,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     
                     yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype(), 0 };
                     yield return new object[] { "Object with default property which is Null", new exampledefaultpropertytype { result = DBNull.Value }, DBNull.Value };
-                    yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype(), 0 };
+                    yield return new object[] { "Object with default property which is Zero", new exampledefaultpropertytype { result = 0 }, 0 };
                     yield return new object[] { "Object with default property which is String \"2009-10-11 20:12:44\"", new exampledefaultpropertytype { result = "2009-10-11 20:12:44" }, 20 };
 
                     // Overflow edge checks

@@ -1105,10 +1105,21 @@ namespace CSharpSupport.Implementations
                 throw new TypeMismatchException("'DateValue'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'DateValue'");
-            double valueDouble;
-            if (double.TryParse(value.ToString(), out valueDouble))
-                throw new TypeMismatchException("'DateValue'");
-            return CDATE(value, "'DateValue'").Date;
+            DateTime dateValue;
+            if (value is DateTime)
+                dateValue = (DateTime)value;
+            else
+            {
+                try
+                {
+                    dateValue = DateParser.Default.Parse(value.ToString());
+                }
+                catch (Exception e)
+                {
+                    throw new TypeMismatchException("'DateValue'", e);
+                }
+            }
+            return dateValue.Date;
         }
         public object TIMESERIAL(object value) { throw new NotImplementedException(); }
         public DateTime TIMEVALUE(object value)
@@ -1122,10 +1133,22 @@ namespace CSharpSupport.Implementations
                 throw new TypeMismatchException("'TimeValue'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'TimeValue'");
-            double valueDouble;
-            if (double.TryParse(value.ToString(), out valueDouble))
-                throw new TypeMismatchException("'TimeValue'");
-            return VBScriptConstants.ZeroDate.Add(CDATE(value, "'TimeValue'").TimeOfDay);
+            DateTime dateValue;
+            if (value is DateTime)
+                dateValue = (DateTime)value;
+            else
+            {
+                try
+                {
+                    dateValue = DateParser.Default.Parse(value.ToString());
+                }
+                catch (Exception e)
+                {
+                    throw new TypeMismatchException("'TimeValue'", e);
+                }
+            }
+            // VBScript represents times by taking its "zero date" and adding hours / minutes / seconds to it
+            return VBScriptConstants.ZeroDate.Add(dateValue.TimeOfDay);
         }
         public object DAY(object value)
         {
