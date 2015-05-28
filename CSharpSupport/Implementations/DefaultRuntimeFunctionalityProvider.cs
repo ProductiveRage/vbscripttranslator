@@ -513,7 +513,17 @@ namespace CSharpSupport.Implementations
                 throw new InvalidUseOfNullException(exceptionMessageForInvalidContent);
             if (value.GetType().IsArray)
                 throw new TypeMismatchException(exceptionMessageForInvalidContent);
+            if (value is DateTime)
+                return DateToString((DateTime)value);
             return value.ToString(); // Note: For dates, the default locale-based formatting should be consistent with VBScript
+        }
+        private string DateToString(DateTime value)
+        {
+            var dateComponent = (value.Date == VBScriptConstants.ZeroDate) ? "" : value.ToShortDateString();
+            var timeComponent = ((value.TimeOfDay == TimeSpan.Zero) && (dateComponent != "")) ? "" : value.ToLongTimeString();
+            if ((dateComponent != "") && (timeComponent != ""))
+                return dateComponent + " " + timeComponent;
+            return dateComponent + timeComponent;
         }
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object numberOfTimesToRepeat, object character)

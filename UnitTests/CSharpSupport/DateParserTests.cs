@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Threading;
 using CSharpSupport;
+using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport
@@ -95,23 +95,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport
                     yield return new object[] { "Month, Day and Year (30 is interpreted 1930) \"5 10 30\"", "5 10 30", 2015, new DateTime(1930, 5, 10) };
                     yield return new object[] { "Month, Day and Year (29 is interpreted 2029) \"5 10 29\"", "5 10 29", 2015, new DateTime(2029, 5, 10) };
                 }
-            }
-        }
-
-        public abstract class CultureOverridingTests
-        {
-            private readonly CultureInfo _originalCulture;
-            protected CultureOverridingTests(CultureInfo culture)
-            {
-                if (culture == null)
-                    throw new ArgumentNullException("culture");
-
-                _originalCulture = Thread.CurrentThread.CurrentCulture;
-                Thread.CurrentThread.CurrentCulture = culture;
-            }
-            ~CultureOverridingTests()
-            {
-                Thread.CurrentThread.CurrentCulture = _originalCulture;
             }
         }
     }

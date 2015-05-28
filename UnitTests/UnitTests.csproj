@@ -132,6 +132,7 @@
     <Compile Include="Shared\Comparers\ExpressionSegmentSetComparer.cs" />
     <Compile Include="Shared\Comparers\TokenSetComparer.cs" />
     <Compile Include="Shared\Comparers\TranslatedStatementContentDetailsComparer.cs" />
+    <Compile Include="Shared\CultureOverridingTests.cs" />
     <Compile Include="StageTwoParser\ExpressionGeneratorTests.cs" />
     <Compile Include="StageTwoParser\OperatorCombinerTests.cs" />
     <Compile Include="StageTwoParser\NumberRebuilderTests.cs" />
