@@ -193,7 +193,18 @@ namespace CSharpSupport.Implementations
             }
             return bitwiseOperationValues.Item2(~valueToNot.Value); // Note: VBScript's Not operation is bitwise, not logical (so the ~ operator is used)
         }
-        public object AND(object l, object r) { throw new NotImplementedException(); }
+        public object AND(object l, object r)
+        {
+            var bitwiseOperationValues = GetForBitwiseOperations("'And'", l, r);
+            var left = bitwiseOperationValues.Item1.First();
+            var right = bitwiseOperationValues.Item1.Skip(1).Single();
+            if ((left == null) || (right == null))
+            {
+                // If GetForBitwiseOperations returns null values then it means there were VBScript Null values provided
+                return DBNull.Value;
+            }
+            return bitwiseOperationValues.Item2(left.Value & right.Value);
+        }
         public object OR(object l, object r) { throw new NotImplementedException(); }
         public object XOR(object l, object r) { throw new NotImplementedException(); }
 
@@ -1405,21 +1416,19 @@ namespace CSharpSupport.Implementations
             if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
                 throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
 
-            // It must be possible to reduce all of the values as value types. After that the operations will be performed on them as if they are the VBScript
-            // "Long" type (C# Int32). However, the return type should be limitied to the size of the largest type of the input values - so if they are all
-            // booleans then the final result of the bitwise operation should be a boolean. If they're all bytes or all booleans-or-bytes then then the final
-            // result should be an Int16. The supported types, in ascending order of size, are boolean, byte, Int16 (VBScript "Integer") and Int32 (VBScript
-            // "Long"). This means that values that overflow Int32 will result in an overflow here.
-            
             // 1. Ensure that all values are of acceptable types (note that Empty will be parsed as a number, becoming an Int32 since it has no explicit type)
             //    and DBNull.Value will remain as DBNull.Value
             values = values.Select(v => VAL(v, exceptionMessageForInvalidContent)).ToArray();
             
             // 2. Determine the return type based upon all of the values types and generate a lambda that will transform an Int32 into this type
+            //    - It seems that VBScript does not do anything as simple as choosing the smallest data type (boolean, byte, Int16, Int32).. while in MOST cases it does
+            //      that (eg. boolean and Int16 => Int16, boolean and Int32 => Int32, Int16 and Int32 => Int32, boolean and Int32 => Int32) if there is a boolean and a
+            //      byte then it jumps to Int16. In fairness, I imagine this is because byte is an unsigned type and so can not represent -1, which is what boolean True
+            //      is represented by as a number - so Int16 is the smallest type that can contain all boolean AND byte values.
             Func<int, object> returnTypeConverter;
             if (values.All(v => v is bool))
                 returnTypeConverter = finalValue => (finalValue != 0);
-            else if (values.All(v => (v is bool) || (v is byte)))
+            else if (values.All(v => v is byte))
                 returnTypeConverter = finalValue => Convert.ToByte(finalValue & byte.MaxValue);
             else if (values.All(v => (v is bool) || (v is byte) || (v is Int16)))
             {
