@@ -368,8 +368,8 @@ namespace CSharpSupport.Implementations
             // - Booleans (which return zero or minus one when passed through CDBL)
             // - Null aka VBScript Empty (which returns zero when passed through CDBL)
             // - Blank strings (which can not be passed through CDBL without causing an error, but which we can treat as zero)
-            var lNumeric = (lString == "") ? 0 : CDBL(l);
-            var rNumeric = (rString == "") ? 0 : CDBL(r);
+            var lNumeric = (lString == "") ? 0 : CDBL_Precise(l);
+            var rNumeric = (rString == "") ? 0 : CDBL_Precise(r);
             return lNumeric < rNumeric;
         }
 
@@ -449,13 +449,21 @@ namespace CSharpSupport.Implementations
         }
         public decimal CCUR(object value) { return CCUR(value, "'CCur'"); }
         private decimal CCUR(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<decimal>(value, exceptionMessageForInvalidContent, Convert.ToDecimal); }
-        public double CDBL(object value) { return CDBL(value, "'CDbl'"); }
-        private double CDBL(object value, string exceptionMessageForInvalidContent)
+        public double CDBL(object value)
         {
-            // Some precision gets lost in VBScript in these translations, which we can emulate with a double-decimal-double conversion - eg. if 40000.01
-            // is passed into CDATE and then back through CDBL then 40000.01 should come back out
-            var valueDouble = GetAsNumber<double>(value, exceptionMessageForInvalidContent, Convert.ToDouble);
-            return (double)((decimal)valueDouble);
+            // When working with CDBL / CDATE, it seemed like some precision was getting lost when values are passed back and forth through them - eg. if 40000.01
+            // is passed into CDATE and then back through CDBL then 40000.01 should come back out. This can be emulate with a double-decimal-double conversion so
+            // that these sort of translations seem consistent. However, when trying to parse numbers for other purposes internally, this shouldn't be done since
+            // the precision may be important (there are some edge cases in DATEADD where this applies - eg. adding 1.999999999999999 seconds (15x 9s) to a date
+            // results in 1 second being added, while adding 1.9999999999999999 seconds (16x 9s) results in 2 seconds being added. I don't think there's a way
+            // to perfectly recreate all of VBScript's precision oddities in all cases, so I'm just trying to stick to it being consistent in as many places
+            // as possible (which unfortunately means that there's a discrepancy between the internal and public CDBL implementations here).
+            return (double)((decimal)CDBL_Precise(value, "'CDbl'"));
+        }
+        private double CDBL_Precise(object value) { return CDBL_Precise(value, null); }
+        private double CDBL_Precise(object value, string optionalExceptionMessageForInvalidContent)
+        {
+            return GetAsNumber<double>(value, optionalExceptionMessageForInvalidContent, Convert.ToDouble);
         }
         public DateTime CDATE(object value) { return CDATE(value, "'CDate'"); }
         private DateTime CDATE(object value, string exceptionMessageForInvalidContent)
@@ -1100,7 +1108,84 @@ namespace CSharpSupport.Implementations
         public DateTime NOW() { return DateTime.Now; }
         public DateTime DATE() { return DateTime.Now.Date; }
         public DateTime TIME() { return new DateTime(DateTime.Now.TimeOfDay.Ticks); }
-        public object DATEADD(object value) { throw new NotImplementedException(); }
+        public object DATEADD(object interval, object number, object value)
+        {
+            // DateAdd seems to be an usual functions - it ignores fractions in "number" rather than rounding them (so adding 101, 101.5 or 101.9 is the same as adding 101).
+            // It's also unusual in that it won't overflow for enormous numeric values, it always falls back to an invalid-procedure-call-or-argument error (if the number
+            // would result in an unrepresentable date). On top of this, it doesn't validate all of its arguments before considering any work - DateAdd("x", "y", Null)
+            // returns Null, despite the fact that the "interval" and "number" arguments are nonsense; DateAdd("x", "y", Now()) would result in a type-mismatch error.
+            value = VAL(value, "'DateAdd'");
+            if (value == DBNull.Value)
+                return DBNull.Value; // Don't even check the other arguments if we got a Null value argument
+            var dateValue = CDATE(value, "'DateAdd'");
+            // The MSDN documentation (for VBA, but which is the closest I could find: https://msdn.microsoft.com/en-us/library/aa262710%28v=vs.60%29.aspx) says that "If
+            // number isn't a Long value, it is rounded to the nearest whole number before being evaluated." However, testing with VBScript shows this not to be the case.
+            // For example, adding (for any interval) 103, 103.1, 103.5 or 103.9 all have the same effect, as do adding 102, 102.1, 102.5 or 102.9, which indicates that
+            // the fractional part of the number is being ignored, not rounded. Pushing the limits shows that 1.999999999999999 (15x 9s) will result in 1 being added while
+            // 1.9999999999999999 (16x 9s) will result in 2 being added. With 10.9999 it's still 15 vs 16 9s where it changes (from 10 to 11), while with 100.999 it's
+            // 14 vs 15 9s. This is consistent with double precision in .net and using CDBL_Precise and then truncating the value will achieve the same effect.
+            // - On top of this, if the number lies outside the Int32 range ("Long" in VBScript), then it initially looks like it rolls over.. but actually it just rolls
+            //   over and gets stuck at Int32.MinValue; for example any of the following number values will result in the same as if -2147483648 (Int32.MinValue) had been
+            //   specified as the number argument: 2147483648 (Int32.MaxValue + 1), 21474836470 (Int32.MaxValue * 10), 1844674407370955161500 (UInt64.MaxValue * 10)
+            int intNumber;
+            var doubleNumber = Math.Truncate(CDBL_Precise(number, "'DateAdd'"));
+            if ((doubleNumber < int.MinValue) || (doubleNumber > int.MaxValue))
+                intNumber = int.MinValue;
+            else
+                intNumber = (int)doubleNumber;
+            interval = VAL(interval, "'DateAdd'");
+            if (interval == DBNull.Value)
+                throw new InvalidUseOfNullException("'DateAdd'");
+            var intervalString = interval as string;
+            if (intervalString == null)
+                throw new InvalidProcedureCallOrArgumentException("'DateAdd'");
+            Func<DateTime, int, DateTime> dateManipulator;
+            switch (intervalString.ToLower()) // Interval matching is case-insensitive in VBScript (it won't allow leading or trailing whitespace, though)
+            {
+                default:
+                    throw new InvalidProcedureCallOrArgumentException("'DateAdd'");
+                case "yyyy":
+                    dateManipulator = (date, increment) => date.AddYears(increment);
+                    break;
+                case "q":
+                    dateManipulator = (date, increment) => date.AddMonths(increment * 3); // quarter
+                    break;
+                case "m":
+                    dateManipulator = (date, increment) => date.AddMonths(increment);
+                    break;
+                case "ww":
+                    dateManipulator = (date, increment) => date.AddDays(increment * 7); // week
+                    break;
+                case "y":
+                case "d":
+                case "w":
+                    // Any of "y" (Day of year), "d" (Day) or "w" (weekday) may be used to alter the date, apparently, according to an MSDN article (but this also says that fractional number
+                    // values are rounded to the NEAREST whole number, which they aren't, so what does it know.. https://msdn.microsoft.com/en-us/library/aa262710%28v=vs.60%29.aspx). Presumably
+                    // these three values are all supported for consistency with related functions such as DATEPART, where the three values will NOT act the same)
+                    dateManipulator = (date, increment) => date.AddDays(increment);
+                    break;
+                case "h":
+                    dateManipulator = (date, increment) => date.AddHours(increment);
+                    break;
+                case "n":
+                    dateManipulator = (date, increment) => date.AddMinutes(increment); // This is minutes since "m" is used for months (and don't differentiate between "M" and "m", unlike .net)
+                    break;
+                case "s":
+                    dateManipulator = (date, increment) => date.AddSeconds(increment);
+                    break;
+            }
+            try
+            {
+                dateValue = dateManipulator(dateValue, intNumber);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidProcedureCallOrArgumentException("'DateAdd'", e);
+            }
+            if ((dateValue < VBScriptConstants.EarliestPossibleDate) || (dateValue.Date > VBScriptConstants.LatestPossibleDate.Date))
+                throw new InvalidProcedureCallOrArgumentException("'DateAdd'");
+            return dateValue;
+        }
         public object DATEDIFF(object value) { throw new NotImplementedException(); }
         public object DATEPART(object value) { throw new NotImplementedException(); }
         public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
@@ -1419,14 +1504,12 @@ namespace CSharpSupport.Implementations
         /// translated into the desired type. If there are no applicable special cases then the value will be passed through the VAL function and then through
         /// the processor (if this fails then a TypeMismatchException will be raised).
         /// </summary>
-        private T GetAsNumber<T>(object value, string exceptionMessageForInvalidContent, Func<object, T> converter) where T : struct
+        private T GetAsNumber<T>(object value, string optionalExceptionMessageForInvalidContent, Func<object, T> converter) where T : struct
         {
             if (converter == null)
                 throw new ArgumentNullException("nonSpecialCaseProcessor");
-            if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
-                throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
 
-            value = VAL(value, exceptionMessageForInvalidContent);
+            value = VAL(value, optionalExceptionMessageForInvalidContent);
             value = _valueRetriever.NUM(value);
             if (value is DateTime)
                 value = DateToDouble((DateTime)value);
@@ -1442,7 +1525,7 @@ namespace CSharpSupport.Implementations
             }
             catch (Exception e)
             {
-                throw new TypeMismatchException(exceptionMessageForInvalidContent, e);
+                throw new TypeMismatchException(optionalExceptionMessageForInvalidContent, e);
             }
         }
 

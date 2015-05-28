@@ -186,7 +186,7 @@ namespace CSharpSupport
         DateTime NOW();
         DateTime DATE();
         DateTime TIME();
-        object DATEADD(object value);
+        object DATEADD(object interval, object number, object value);
         object DATEDIFF(object value);
         object DATEPART(object value);
         object DATESERIAL(object year, object month, object date);
