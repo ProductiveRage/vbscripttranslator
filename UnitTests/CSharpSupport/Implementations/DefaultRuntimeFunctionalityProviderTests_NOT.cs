@@ -58,6 +58,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "Zero (Byte)", (byte)0, (byte)255 };
                     yield return new object[] { "One (Byte)", (byte)1, (byte)254 };
                     yield return new object[] { "255 (Byte)", (byte)255, (byte)0 };
+                    yield return new object[] { "Int32.MinValue", Int32.MinValue, Int32.MaxValue }; // Smallest value before overflow
+                    yield return new object[] { "Int32.MaxValue", Int32.MaxValue, Int32.MinValue }; // Largest value before overflow
 
                     yield return new object[] { "0.1", 0.1, -1 }; // 0.1 will be rounded down to 0 and treated as a VBScript Long since it is not explicitly a Boolean, Byte or Integer
                     yield return new object[] { "0.5", 0.5, -1 }; // 0.5 will be rounded down to 0 and so be the same 0.1
@@ -67,6 +69,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 
                     yield return new object[] { "String \"1.1\"", "1.1", -2 }; // The string "1.1" will be parsed into the number 1.1
                     yield return new object[] { "String \"1\"", "1", -2 }; // The string "1" will be parsed into the number 1 (and treated as a VBScript Long)
+
+                    yield return new object[] { "Date 2015-05-28 16:04:58", new DateTime(2015, 5, 28, 16, 4, 58), -42154 };
                 }
             }
 
@@ -83,6 +87,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
+                    yield return new object[] { "Int32.MinValue - 1", (Int64)Int32.MinValue - 1 };
                     yield return new object[] { "Int32.MaxValue + 1", (Int64)Int32.MaxValue + 1 };
                 }
             }
