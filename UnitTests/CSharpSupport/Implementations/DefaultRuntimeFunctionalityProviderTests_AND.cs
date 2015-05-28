@@ -48,7 +48,11 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 get
                 {
                     yield return new object[] { "Empty AND Empty", null, null, 0 }; // Result is type VBScript "Long" (ie. Int32) since no type is explicitly stated where Empty is used
+
+                    // If one or both of the values are Null, then Null will be returned
                     yield return new object[] { "Null AND Null", DBNull.Value, DBNull.Value, DBNull.Value };
+                    yield return new object[] { "1 OR Null", 1, DBNull.Value, DBNull.Value };
+                    yield return new object[] { "Null OR 1", DBNull.Value, 1, DBNull.Value };
 
                     yield return new object[] { "True AND True", true, true, true };
                     yield return new object[] { "True AND False", true, false, false };

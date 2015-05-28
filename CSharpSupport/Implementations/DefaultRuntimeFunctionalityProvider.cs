@@ -200,12 +200,29 @@ namespace CSharpSupport.Implementations
             var right = bitwiseOperationValues.Item1.Skip(1).Single();
             if ((left == null) || (right == null))
             {
-                // If GetForBitwiseOperations returns null values then it means there were VBScript Null values provided
+                // If GetForBitwiseOperations returns null values then it means there were VBScript Null values provided. When AND'ing, if either (or both)
+                // values are Null then Null is returned.
                 return DBNull.Value;
             }
             return bitwiseOperationValues.Item2(left.Value & right.Value);
         }
-        public object OR(object l, object r) { throw new NotImplementedException(); }
+        public object OR(object l, object r)
+        {
+            var bitwiseOperationValues = GetForBitwiseOperations("'Or'", l, r);
+            var left = bitwiseOperationValues.Item1.First();
+            var right = bitwiseOperationValues.Item1.Skip(1).Single();
+            if ((left == null) && (right == null))
+            {
+                // If GetForBitwiseOperations returns null values then it means there were VBScript Null values provided. When OR'ing, if one value is Null
+                // but the other isn't, then the non-Null value is returned - only if both values are Null is Null returned.
+                return DBNull.Value;
+            }
+            else if (left == null)
+                return right;
+            else if (right == null)
+                return left;
+            return bitwiseOperationValues.Item2(left.Value | right.Value);
+        }
         public object XOR(object l, object r) { throw new NotImplementedException(); }
 
         // Comparison operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
