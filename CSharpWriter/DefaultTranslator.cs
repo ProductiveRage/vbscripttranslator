@@ -40,6 +40,7 @@ namespace CSharpWriter
 
             var startClassName = new CSharpName("TranslatedProgram");
             var startMethodName = new CSharpName("Go");
+            var runtimeDateLiteralValidatorClassName = new CSharpName("RuntimeDateLiteralValidator");
             var supportRefName = new CSharpName("_");
             var envClassName = new CSharpName("EnvironmentReferences");
             var envRefName = new CSharpName("_env");
@@ -63,6 +64,7 @@ namespace CSharpWriter
             var codeBlockTranslator = new OuterScopeBlockTranslator(
                 startClassName,
                 startMethodName,
+                runtimeDateLiteralValidatorClassName,
                 supportRefName,
                 envClassName,
                 envRefName,

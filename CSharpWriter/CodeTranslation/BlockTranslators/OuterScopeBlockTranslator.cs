@@ -31,13 +31,14 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
     /// </summary>
     public class OuterScopeBlockTranslator : CodeBlockTranslator
     {
-        private readonly CSharpName _startClassName, _startMethodName;
+        private readonly CSharpName _startClassName, _startMethodName, _runtimeDateLiteralValidatorClassName;
         private readonly NonNullImmutableList<NameToken> _externalDependencies;
         private readonly OutputTypeOptions _outputType;
         private readonly ILogInformation _logger;
         public OuterScopeBlockTranslator(
             CSharpName startClassName,
             CSharpName startMethodName,
+            CSharpName runtimeDateLiteralValidatorClassName,
             CSharpName supportRefName,
             CSharpName envClassName,
             CSharpName envRefName,
@@ -56,6 +57,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 throw new ArgumentNullException("startClassName");
             if (startMethodName == null)
                 throw new ArgumentNullException("startMethodName");
+            if (runtimeDateLiteralValidatorClassName == null)
+                throw new ArgumentNullException("runtimeDateLiteralValidatorClassName");
             if (externalDependencies == null)
                 throw new ArgumentNullException("externalDependencies");
             if (!Enum.IsDefined(typeof(OutputTypeOptions), outputType))
@@ -65,6 +68,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             _startClassName = startClassName;
             _startMethodName = startMethodName;
+            _runtimeDateLiteralValidatorClassName = runtimeDateLiteralValidatorClassName;
             _externalDependencies = externalDependencies;
             _outputType = outputType;
             _logger = logger;
@@ -87,6 +91,17 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         {
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
+
+            // There are some date literal values that need to be validated at runtime (they may vary by culture - if they include a month name, basically, which will
+            // depend upon the current language). If any of these literals are invalid for the runtime culture then no further processing may take place (this is the
+            // same as the VBScript interpreter refusing to process a script when it reads it, in whatever culture is active when it executes). We need to build this
+            // list before we remove any duplicate functions since, although VBScript will "overwrite" functions with the same name in the outermost scope, if the
+            // functions it overwrites / ignores contained any invalid date literals, the interpreter will still not execute. We'll use this data further down..
+            var dateLiteralsToValidateAtRuntime = EnumerateAllDateLiteralTokens(blocks)
+                .Where(d => d.RequiresRuntimeValidation)
+                .GroupBy(d => d.Content)
+                .Select(g => new { DateLiteralValue = g.Key, LineNumbers = g.Select(d => d.LineIndex + 1) })
+                .ToArray();
 
             // Note: There is no need to check for identically-named classes since that would cause a "Name Redefined" error even if Option Explicit was not enabled
             blocks = RemoveDuplicateFunctions(blocks);
@@ -194,8 +209,16 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translatedStatements = translatedStatements.AddRange(new[]
                 {
                     new TranslatedStatement("using System;", 0),
-                    new TranslatedStatement("using System.Collections;", 0),
-                    new TranslatedStatement("using System.Runtime.InteropServices;", 0),
+                    new TranslatedStatement("using System.Collections;", 0)
+                });
+                if (dateLiteralsToValidateAtRuntime.Any())
+                {
+                    // System.Collections.ObjectModel is only required for the ReadOnlyCollection, which is only used when there are date literals that need validating at runtime
+                    translatedStatements = translatedStatements.Add(new TranslatedStatement("using System.Collections.ObjectModel;", 0));
+                }
+                translatedStatements = translatedStatements.Add(new TranslatedStatement("using System.Runtime.InteropServices;", 0));
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
                     new TranslatedStatement("using " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Namespace + ";", 0),
                     new TranslatedStatement("using " + typeof(SourceClassName).Namespace + ";", 0),
                     new TranslatedStatement("using " + typeof(SpecificVBScriptException).Namespace + ";", 0),
@@ -210,7 +233,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("if (compatLayer == null)", 3),
                     new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 4),
                     new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 3),
-                    new TranslatedStatement("}", 2),
+                    new TranslatedStatement("}", 2)
+                });
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
                     new TranslatedStatement("", 0),
                     new TranslatedStatement(
                         string.Format(
@@ -248,10 +274,27 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement(
                         string.Format("var {0} = new {1}({2}, {3});", _outerRefName.Name, _outerClassName.Name, _supportRefName.Name, _envRefName.Name),
                         3
-                    ),
-                    new TranslatedStatement("", 0)
+                    )
                 });
+                if (dateLiteralsToValidateAtRuntime.Any())
+                {
+                    // When rendering in full Executable format (not just in WithoutScaffolding), if there were any date literals in the source content that could not
+                    // be confirmed as valid at translation time (meaning they include a month name, which will vary in validity depending upon the culture of the
+                    // environment at runtime) then these literals need to be validated each run before any other work is attempted. (This is the equivalent of
+                    // the VBScript interpreter reading the script for every execution and validating date literals against the current culture - if it finds
+                    // any of them to be invalid then it will raise a syntax error and not attempt to execute any of the script).
+                    translatedStatements = translatedStatements.Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.ValidateAgainstCurrentCulture({1});",
+                            _runtimeDateLiteralValidatorClassName.Name,
+                            _supportRefName.Name
+                        ),
+                        3
+                    ));
+                }
+                translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
             }
+
             if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
             {
                 translatedStatements = translatedStatements
@@ -281,29 +324,95 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             if (_outputType == OutputTypeOptions.Executable)
             {
-                translatedStatements = translatedStatements
-                    .AddRange(new[]
+                // Close the main "TranslatedProgram" function and then write out the runtime-date-literal-validation logic and the global references class (when a complete executable
+                // is not required, none of this is of much benefit and detracts from the core of what's being translated - most tests will specify WithoutScaffolding rather than
+                // Executable so that just the real meat of the source code is generated)
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("}", 2),
+                    new TranslatedStatement("", 0)
+                });
+
+                if (dateLiteralsToValidateAtRuntime.Any())
+                {
+                    // Declare a static readonly immutable set of date literals that need validating against the current culture before any request can do any actual work
+                    translatedStatements = translatedStatements.AddRange(new[]
                     {
-                        new TranslatedStatement("}", 2),
-                        new TranslatedStatement("", 0)
-                    })
-                    .AddRange(new[]
-                    {
-                        new TranslatedStatement("public class " + _outerClassName.Name, 2),
+                        new TranslatedStatement(
+                            string.Format(
+                                "private static class {0}",
+                                _runtimeDateLiteralValidatorClassName.Name
+                            ),
+                            2
+                        ),
                         new TranslatedStatement("{", 2),
-                        new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " " + _supportRefName.Name + ";", 3),
-                        new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", 3),
-                        new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", 3),
-                        new TranslatedStatement("public " + _outerClassName.Name + "(" + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " compatLayer, " + _envClassName.Name + " env)", 3),
+                        new TranslatedStatement("private static readonly ReadOnlyCollection<Tuple<string, int[]>> _literalsToValidate =", 3),
+                        new TranslatedStatement("new ReadOnlyCollection<Tuple<string, int[]>>(new[] {", 3)
+                    });
+                    foreach (var indexedDateLiteralToValidate in dateLiteralsToValidateAtRuntime.Select((d, i) => new { Index = i, DateLiteralValue = d.DateLiteralValue, LineNumbers = d.LineNumbers }))
+                    {
+                        translatedStatements = translatedStatements.Add(new TranslatedStatement(
+                            string.Format(
+                                "Tuple.Create({0}, new[] {{ {1} }}){2}",
+                                indexedDateLiteralToValidate.DateLiteralValue.ToLiteral(),
+                                string.Join<int>(", ", indexedDateLiteralToValidate.LineNumbers),
+                                (indexedDateLiteralToValidate.Index < (dateLiteralsToValidateAtRuntime.Length - 1)) ? "," : ""
+                            ),
+                            4
+                        ));
+                    }
+                    translatedStatements = translatedStatements.Add(new TranslatedStatement("});", 3));
+                    translatedStatements = translatedStatements.Add(new TranslatedStatement("", 0));
+
+                    // Declare the function that reads the data above and performs the validation work
+                    translatedStatements = translatedStatements.AddRange(new[]
+                    {
+                        new TranslatedStatement("public static void ValidateAgainstCurrentCulture(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer)", 3),
                         new TranslatedStatement("{", 3),
                         new TranslatedStatement("if (compatLayer == null)", 4),
                         new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 5),
-                        new TranslatedStatement("if (env == null)", 4),
-                        new TranslatedStatement("throw new ArgumentNullException(\"env\");", 5),
-                        new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
-                        new TranslatedStatement(_envRefName.Name + " = env;", 4),
-                        new TranslatedStatement(_outerRefName.Name + " = this;", 4)
+                        new TranslatedStatement("foreach (var dateLiteralValueAndLineNumbers in _literalsToValidate)", 4),
+                        new TranslatedStatement("{", 4),
+                        new TranslatedStatement(
+                            string.Format(
+                                "try {{ compatLayer.DateLiteralParser.Parse(dateLiteralValueAndLineNumbers.Item1); }}",
+                                _runtimeDateLiteralValidatorClassName.Name
+                            ),
+                            5
+                        ),
+                        new TranslatedStatement("catch", 5),
+                        new TranslatedStatement("{", 5),
+                        new TranslatedStatement("throw new SyntaxError(string.Format(", 6),
+                        new TranslatedStatement("\"Invalid date literal #{0}# on line{1} {2}\",", 7),
+                        new TranslatedStatement("dateLiteralValueAndLineNumbers.Item1,", 7),
+                        new TranslatedStatement("(dateLiteralValueAndLineNumbers.Item2.Length == 1) ? \"\" : \"s\",", 7),
+                        new TranslatedStatement("string.Join<int>(\", \", dateLiteralValueAndLineNumbers.Item2)", 7),
+                        new TranslatedStatement("));", 6),
+                        new TranslatedStatement("}", 5),
+                        new TranslatedStatement("}", 4),
+                        new TranslatedStatement("}", 3),
+                        new TranslatedStatement("}", 2),
+                        new TranslatedStatement("", 0)
                     });
+                }
+
+                translatedStatements = translatedStatements.AddRange(new[]
+                {
+                    new TranslatedStatement("public class " + _outerClassName.Name, 2),
+                    new TranslatedStatement("{", 2),
+                    new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " " + _supportRefName.Name + ";", 3),
+                    new TranslatedStatement("private readonly " + _outerClassName.Name + " " + _outerRefName.Name + ";", 3),
+                    new TranslatedStatement("private readonly " + _envClassName.Name + " " + _envRefName.Name + ";", 3),
+                    new TranslatedStatement("public " + _outerClassName.Name + "(" + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " compatLayer, " + _envClassName.Name + " env)", 3),
+                    new TranslatedStatement("{", 3),
+                    new TranslatedStatement("if (compatLayer == null)", 4),
+                    new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 5),
+                    new TranslatedStatement("if (env == null)", 4),
+                    new TranslatedStatement("throw new ArgumentNullException(\"env\");", 5),
+                    new TranslatedStatement(_supportRefName.Name + " = compatLayer;", 4),
+                    new TranslatedStatement(_envRefName.Name + " = env;", 4),
+                    new TranslatedStatement(_outerRefName.Name + " = this;", 4)
+                });
 
                 // Note: Any repeated "explicitVariableDeclarationsFromWithOuterScope" entries are ignored - this makes the ReDim translation process easier (where ReDim statements
                 // may target already-declared variables or they may be considered to implicitly declare them) but it means that the Dim translation has to do some extra work to
@@ -493,7 +602,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         /// (that way, an error may be raised immediately if any of them are no longer valid - emulating the VBScript interpreter's stop-before-executing
         /// behaviour).
         /// </summary>
-        private IEnumerable<DateLiteralToken> EnumerateAllDateLiteralToken(IEnumerable<ICodeBlock> blocks)
+        private IEnumerable<DateLiteralToken> EnumerateAllDateLiteralTokens(IEnumerable<ICodeBlock> blocks)
         {
             if (blocks == null)
                 throw new ArgumentNullException("blocks");
@@ -521,7 +630,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var nestedContentBlock = block as IHaveNestedContent;
                 if (nestedContentBlock != null)
                 {
-                    foreach (var nestedDateLiteral in EnumerateAllDateLiteralToken(nestedContentBlock.AllExecutableBlocks))
+                    foreach (var nestedDateLiteral in EnumerateAllDateLiteralTokens(nestedContentBlock.AllExecutableBlocks))
                         yield return nestedDateLiteral;
                 }
             }
