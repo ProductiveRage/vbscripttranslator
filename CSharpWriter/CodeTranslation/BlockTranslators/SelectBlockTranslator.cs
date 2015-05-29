@@ -54,204 +54,23 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             foreach (var openingComment in selectBlock.OpeningComments)
                 translationResult = base.TryToTranslateComment(translationResult, openingComment, scopeAccessInformation, indentationDepth);
 
-            // If the target expression is a simple constant then we can skip any work required in evaluating its value. If it's a single NameToken then we can also avoid some work since we
-            // don't need to evaluate it (but do need to apply the usual logic to determine whether it's an undeclared variable). If the target IS a single NameToken, it does not matter at this
-            // point whether it is a VBScript value or object type at this point - if it IS an object type then it will need a default parameterless method or property, but that will be called
-            // when each comparison is made (this is important; the default member will not be called once and its value stashed, it will be called for EACH comparison - so the NameToken is
-            // not wrapped in a VAL call at this point, the must-be-value-type logic will be handled in the EQ implementation in the compat library since EQ only deals with value types, the
-            // IS operator deals with object types).
-            CSharpName successfullyEvaluatedTargetNameIfRequired;
-            IToken evaluatedTarget;
-            if (Is<NumericValueToken>(selectBlock.Expression) || Is<DateLiteralToken>(selectBlock.Expression) || Is<StringToken>(selectBlock.Expression) || Is<BuiltInValueToken>(selectBlock.Expression))
-            {
-                evaluatedTarget = selectBlock.Expression.Tokens.Single();
-                successfullyEvaluatedTargetNameIfRequired = null;
-            }
-            else if (Is<NameToken>(selectBlock.Expression))
-            {
-                var targetNameToken = (NameToken)selectBlock.Expression.Tokens.Single();
-                if (!scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(targetNameToken), _nameRewriter))
-                {
-                    _logger.Warning("Undeclared variable: \"" + targetNameToken.Content + "\" (line " + (targetNameToken.LineIndex + 1) + ")");
-                    translationResult = translationResult.AddUndeclaredVariables(new[] { targetNameToken });
-                }
-                evaluatedTarget = targetNameToken;
-                successfullyEvaluatedTargetNameIfRequired = null;
-            }
-            else
-            {
-                // If we have to evaluate the target expression then we'll store it in a local variable which will be referenced by the comparisons. This variable needs to be added to the
-                // scope access information so that when the comparisons are translated into C#, the code that does so knows that it is a declared local variable and not an undeclared variable
-                // that must be accessed through the "Environment References" class. Note that there is currently no way to add a name token to the scope that will not pass through the name
-                // rewriter, so the name "target" needs to be one that we do not expect the name rewriter to affect (this is not great since it means that there is an undeclared implicit
-                // dependency on the VBScriptNameRewriter implementation but it's all I've got at the moment - since ScopedNameToken is derived from NameToken, I would have to change this
-                // around to support a ScopedDoNotRenameNameToken).
-                var evaluatedTargetName = _tempNameGenerator(new CSharpName("target"), scopeAccessInformation);
-                scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
-                    new ScopedNameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
-                }));
+            // Do all of the work to decide what needs doing with the target expression (if it's not a simple value then it will be evaluating - this is done once for the entire
+            // block and the resulting value reused for each case-value comparison)
+            var targetExpressionTranslationDetails = TranslateTargetExpression(selectBlock.Expression, translationResult, scopeAccessInformation, indentationDepth);
+            translationResult = targetExpressionTranslationDetails.ExtendedTranslationResult;
+            scopeAccessInformation = targetExpressionTranslationDetails.ExtendedScopeAccessInformation;
 
-                // If error-trapping may be enabled at runtime then we need to wrap the select target evaluation in a HANDLEERROR call. If the evaulation fails then nothing else in the select
-                // construct should be considered - so a flag is set to false before evaluation is attempted and set to true if the evaluation was successful, the comparisons work will only
-                // be executed if the flag was true. (In some cases, VBScript tries to do *something* if an error occurs but is trapped, but this is not one of them - unlike when the
-                // comparisons ARE considered; if any of them raise an error while error-trapping is enabled then they will be considered to match and their child statements will
-                // be executed).
-                // - This complexity is avoided if error-trapping is definitely not in play
-                TranslatedStatementContentDetails evaluatedTargetContent;
-                var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
-                var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
-                    selectBlock.Expression.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
-                    scopeAccessInformation,
-                    new NonNullImmutableList<FuncByRefMapping>()
-                );
-                if (byRefArgumentsToRewrite.Any())
-                {
-                    // If we're in a function or property and that function / property has by-ref arguments that we then need to pass into further function / property calls
-                    // in order to evaluate the current conditional, then we need to record those values in temporary references, try to evaulate the value and then push the
-                    // temporary values back into the original references. This is required in order to be consistent with VBScript and yet also produce code that compiles as
-                    // C# (which will not let "ref" arguments of the containing function be used in lambdas, which is how we deal with updating by-ref arguments after function
-                    // or property calls complete).
-                    scopeAccessInformation = scopeAccessInformation.ExtendVariables(
-                        byRefArgumentsToRewrite
-                            .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
-                            .ToNonNullImmutableList()
-                    );
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "object {0} = null;",
-                            evaluatedTargetName.Name
-                        ),
-                        indentationDepth
-                    ));
-                    if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
-                        successfullyEvaluatedTargetNameIfRequired = null;
-                    else
-                    {
-                        successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("targetWasEvaluated"), scopeAccessInformation);
-                        translationResult = translationResult.Add(new TranslatedStatement(
-                            "var " + successfullyEvaluatedTargetNameIfRequired.Name + " = false;",
-                            indentationDepth
-                        ));
-                    }
-                    var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                    translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
-                    indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
-                    if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
-                    {
-                        translationResult = translationResult.Add(new TranslatedStatement(
-                            string.Format(
-                                "{0}.HANDLEERROR({1}, () => {{",
-                                _supportRefName.Name,
-                                scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                            ),
-                            indentationDepth
-                        ));
-                        indentationDepth++;
-                    }
-                    var rewrittenConditionalContent = _statementTranslator.Translate(
-                        byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(selectBlock.Expression, _nameRewriter),
-                        scopeAccessInformation,
-                        ExpressionReturnTypeOptions.NotSpecified,
-                        _logger.Warning
-                    );
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "{0} = {1};",
-                            evaluatedTargetName.Name,
-                            rewrittenConditionalContent.TranslatedContent
-                        ),
-                        indentationDepth
-                    ));
-                    if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
-                    {
-                        translationResult = translationResult.Add(new TranslatedStatement(
-                            successfullyEvaluatedTargetNameIfRequired.Name + " = true;",
-                            indentationDepth
-                        ));
-                        indentationDepth--;
-                        translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
-                    }
-                    indentationDepth -= byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
-                    translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-                    evaluatedTargetContent = new TranslatedStatementContentDetails(
-                        evaluatedTargetName.Name,
-                        rewrittenConditionalContent.VariablesAccessed
-                    );
-                }
-                else if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
-                {
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "object {0} = null;",
-                            evaluatedTargetName.Name
-                        ),
-                        indentationDepth
-                    ));
-                    successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("targetWasEvaluated"), scopeAccessInformation);
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format("var {0} = false;", successfullyEvaluatedTargetNameIfRequired.Name),
-                        indentationDepth
-                    ));
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "{0}.HANDLEERROR({1}, () => {{",
-                            _supportRefName.Name,
-                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                        ),
-                        indentationDepth
-                    ));
-                    evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "{0} = {1};",
-                            evaluatedTargetName.Name,
-                            evaluatedTargetContent.TranslatedContent
-                        ),
-                        indentationDepth + 1
-                    ));
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format("{0} = true;", successfullyEvaluatedTargetNameIfRequired.Name),
-                        indentationDepth + 1
-                    ));
-                    translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
-                }
-                else
-                {
-                    evaluatedTargetContent = _statementTranslator.Translate(selectBlock.Expression, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format(
-                            "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
-                            evaluatedTargetName.Name,
-                            evaluatedTargetContent.TranslatedContent
-                        ),
-                        indentationDepth
-                    ));
-                    successfullyEvaluatedTargetNameIfRequired = null; // Not required since we can don't have to deal with fail cases (since error handling is not enabled)
-                }
-                var undeclaredVariablesAccessedInTargetExpression = evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
-                foreach (var undeclaredVariable in undeclaredVariablesAccessedInTargetExpression)
-                    _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-                translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesAccessedInTargetExpression);
-
-                // If the expression was not evaluated then no comparisons work is required - note that this check is not required if there are zero comparisons to deal with. In
-                // this case, VBScript would still evaluate the target even though there's nothing to compare it to (and we remain consistent with that; the target evaluation
-                // occurs above but we do nothing more if there are no comparison values).
-                if ((successfullyEvaluatedTargetNameIfRequired != null) && selectBlock.Content.Any())
-                {
-                    translationResult = translationResult.Add(new TranslatedStatement(
-                        string.Format("if ({0})", successfullyEvaluatedTargetNameIfRequired.Name),
-                        indentationDepth
-                    ));
-                    translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
-                    indentationDepth++;
-                }
-
-                // Since the target expression wasn't something simple (like a literal or built-in value), then it's stored in a variable so that it's not evaluated for each case
-                // comparison (if it's a function call, for example, then the function shouldn't be called for each comparison). However, if it's an object reference, then each
-                // comparison is going to try to force it into a value type reference - meaning it will require a parameter-less default method or property. Assuming it has one
-                // of these, this WILL be accessed for each comparison (so it's important not to try to force the evaluatedTarget into a VAL at this point - the comparisons
-                // will force it into a value type and the getter / default property will be called each time then, as is consistent with VBScript).
-                evaluatedTarget = new NameToken(evaluatedTargetName.Name, selectBlock.Expression.Tokens.First().LineIndex);
+            // If evaluation of the target expression fails at runtime then no comparisons work is required - note that this check is not required if there are zero comparisons
+            // to deal with. In this case, VBScript would still evaluate the target even though there's nothing to compare it to (and we remain consistent with that; the target
+            // evaluation occurs above but we do nothing more if there are no comparison values).
+            if ((targetExpressionTranslationDetails.SuccessfullyEvaluatedTargetNameIfRequired != null) && selectBlock.Content.Any())
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("if ({0})", targetExpressionTranslationDetails.SuccessfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+                indentationDepth++;
             }
 
             var numberOfIndentsRequiredForErrorTrappingStructure = 0;
@@ -271,9 +90,21 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var explicitOptionsCaseBlock = annotatedCaseBlock.CaseBlock as SelectBlock.CaseBlockExpressionSegment;
                 if (explicitOptionsCaseBlock != null)
                 {
+                    var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+                    var byRefArgumentsToRewrite = new NonNullImmutableList<FuncByRefMapping>();
+                    foreach (var caseValue in explicitOptionsCaseBlock.Values)
+                    {
+                        byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                            selectBlock.Expression.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                            scopeAccessInformation,
+                            byRefArgumentsToRewrite
+                        );
+                    }
+
+
                     var conditions = explicitOptionsCaseBlock.Values
                         .Select((value, index) => GetComparison(
-                            evaluatedTarget,
+                            targetExpressionTranslationDetails.EvaluatedTarget,
                             value,
                             isFirstValueInCaseSet: (index == 0),
                             scopeAccessInformation: scopeAccessInformation
@@ -409,7 +240,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // If error-trapping may be active at runtime then the meat of translated content will have been wrapped in an "if", based upon whether the select target was successfully evaluated (in which case
             // we'll need to close that content here). Note that this will not have been the case if there were no expression to compare the target to (VBScript allows this - it evaluates the target expression
             // but then does nothing more).
-            if ((successfullyEvaluatedTargetNameIfRequired != null) && selectBlock.Content.Any())
+            if ((targetExpressionTranslationDetails.SuccessfullyEvaluatedTargetNameIfRequired != null) && selectBlock.Content.Any())
             {
                 indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
@@ -417,6 +248,216 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             return translationResult;
 		}
+
+        private SelectTargetExpressionTranslationData TranslateTargetExpression(Expression targetExpression, TranslationResult translationResult, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            if (targetExpression == null)
+                throw new ArgumentNullException("targetExpression");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (translationResult == null)
+                throw new ArgumentNullException("translationResult");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth");
+
+            // If the target expression is a simple constant then we can skip any work required in evaluating its value
+            if (Is<NumericValueToken>(targetExpression) || Is<DateLiteralToken>(targetExpression) || Is<StringToken>(targetExpression) || Is<BuiltInValueToken>(targetExpression))
+            {
+                return new SelectTargetExpressionTranslationData(
+                    evaluatedTarget: targetExpression.Tokens.Single(),
+                    successfullyEvaluatedTargetNameIfRequired: null,
+                    extendedTranslationResult: translationResult,
+                    extendedScopeAccessInformation: scopeAccessInformation
+                );
+            }
+
+            // If it's a single NameToken then we can also avoid some work since we don't need to evaluate it (but do need to apply the usual logic to determine whether it's an undeclared
+            // variable). If the target IS a single NameToken, it does not matter at this point whether it is a VBScript value or object type at this point - if it IS an object type then it
+            // will need a default parameterless method or property, but that will be called when each comparison is made (this is important; the default member will not be called once and
+            // its value stashed, it will be called for EACH comparison - so the NameToken is not wrapped in a VAL call at this point, the must-be-value-type logic will be handled in the EQ
+            // implementation in the compat library since EQ only deals with value types, the IS operator deals with object types).
+            if (Is<NameToken>(targetExpression))
+            {
+                var targetNameToken = (NameToken)targetExpression.Tokens.Single();
+                if (!scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(targetNameToken), _nameRewriter))
+                {
+                    _logger.Warning("Undeclared variable: \"" + targetNameToken.Content + "\" (line " + (targetNameToken.LineIndex + 1) + ")");
+                    translationResult = translationResult.AddUndeclaredVariables(new[] { targetNameToken });
+                }
+                return new SelectTargetExpressionTranslationData(
+                    evaluatedTarget: targetNameToken,
+                    successfullyEvaluatedTargetNameIfRequired: null,
+                    extendedTranslationResult: translationResult,
+                    extendedScopeAccessInformation: scopeAccessInformation
+                );
+            }
+
+            // If we have to evaluate the target expression then we'll store it in a local variable which will be referenced by the comparisons. This variable needs to be added to the
+            // scope access information so that when the comparisons are translated into C#, the code that does so knows that it is a declared local variable and not an undeclared variable
+            // that must be accessed through the "Environment References" class. Note that there is currently no way to add a name token to the scope that will not pass through the name
+            // rewriter, so the name "target" needs to be one that we do not expect the name rewriter to affect (this is not great since it means that there is an undeclared implicit
+            // dependency on the VBScriptNameRewriter implementation but it's all I've got at the moment - since ScopedNameToken is derived from NameToken, I would have to change this
+            // around to support a ScopedDoNotRenameNameToken).
+            var evaluatedTargetName = _tempNameGenerator(new CSharpName("target"), scopeAccessInformation);
+            scopeAccessInformation = scopeAccessInformation.ExtendVariables(new NonNullImmutableList<ScopedNameToken>(new[] {
+                new ScopedNameToken(evaluatedTargetName.Name, targetExpression.Tokens.First().LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
+            }));
+
+            // If error-trapping may be enabled at runtime then we need to wrap the select target evaluation in a HANDLEERROR call. If the evaulation fails then nothing else in the select
+            // construct should be considered - so a flag is set to false before evaluation is attempted and set to true if the evaluation was successful, the comparisons work will only
+            // be executed if the flag was true. (In some cases, VBScript tries to do *something* if an error occurs but is trapped, but this is not one of them - unlike when the
+            // comparisons ARE considered; if any of them raise an error while error-trapping is enabled then they will be considered to match and their child statements will
+            // be executed).
+            // - This complexity is avoided if error-trapping is definitely not in play
+            TranslatedStatementContentDetails evaluatedTargetContent;
+            var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+            var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                targetExpression.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                scopeAccessInformation,
+                new NonNullImmutableList<FuncByRefMapping>()
+            );
+            CSharpName successfullyEvaluatedTargetNameIfRequired;
+            if (byRefArgumentsToRewrite.Any())
+            {
+                // If we're in a function or property and that function / property has by-ref arguments that we then need to pass into further function / property calls
+                // in order to evaluate the current conditional, then we need to record those values in temporary references, try to evaulate the value and then push the
+                // temporary values back into the original references. This is required in order to be consistent with VBScript and yet also produce code that compiles as
+                // C# (which will not let "ref" arguments of the containing function be used in lambdas, which is how we deal with updating by-ref arguments after function
+                // or property calls complete).
+                scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                    byRefArgumentsToRewrite
+                        .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                        .ToNonNullImmutableList()
+                );
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "object {0} = null;",
+                        evaluatedTargetName.Name
+                    ),
+                    indentationDepth
+                ));
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+                    successfullyEvaluatedTargetNameIfRequired = null;
+                else
+                {
+                    successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("targetWasEvaluated"), scopeAccessInformation);
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        "var " + successfullyEvaluatedTargetNameIfRequired.Name + " = false;",
+                        indentationDepth
+                    ));
+                }
+                var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+                indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "{0}.HANDLEERROR({1}, () => {{",
+                            _supportRefName.Name,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                        ),
+                        indentationDepth
+                    ));
+                    indentationDepth++;
+                }
+                var rewrittenConditionalContent = _statementTranslator.Translate(
+                    byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(targetExpression, _nameRewriter),
+                    scopeAccessInformation,
+                    ExpressionReturnTypeOptions.NotSpecified,
+                    _logger.Warning
+                );
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0} = {1};",
+                        evaluatedTargetName.Name,
+                        rewrittenConditionalContent.TranslatedContent
+                    ),
+                    indentationDepth
+                ));
+                if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+                {
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        successfullyEvaluatedTargetNameIfRequired.Name + " = true;",
+                        indentationDepth
+                    ));
+                    indentationDepth--;
+                    translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+                }
+                indentationDepth -= byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+                translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                evaluatedTargetContent = new TranslatedStatementContentDetails(
+                    evaluatedTargetName.Name,
+                    rewrittenConditionalContent.VariablesAccessed
+                );
+            }
+            else if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "object {0} = null;",
+                        evaluatedTargetName.Name
+                    ),
+                    indentationDepth
+                ));
+                successfullyEvaluatedTargetNameIfRequired = _tempNameGenerator(new CSharpName("targetWasEvaluated"), scopeAccessInformation);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("var {0} = false;", successfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}.HANDLEERROR({1}, () => {{",
+                        _supportRefName.Name,
+                        scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
+                    ),
+                    indentationDepth
+                ));
+                evaluatedTargetContent = _statementTranslator.Translate(targetExpression, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0} = {1};",
+                        evaluatedTargetName.Name,
+                        evaluatedTargetContent.TranslatedContent
+                    ),
+                    indentationDepth + 1
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format("{0} = true;", successfullyEvaluatedTargetNameIfRequired.Name),
+                    indentationDepth + 1
+                ));
+                translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth));
+            }
+            else
+            {
+                evaluatedTargetContent = _statementTranslator.Translate(targetExpression, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "object {0} = {1};", // Best to declare "object" type rather than "var" in case the SELECT CASE target is Empty (ie. null)
+                        evaluatedTargetName.Name,
+                        evaluatedTargetContent.TranslatedContent
+                    ),
+                    indentationDepth
+                ));
+                successfullyEvaluatedTargetNameIfRequired = null; // Not required since we can don't have to deal with fail cases (since error handling is not enabled)
+            }
+            var undeclaredVariablesAccessedInTargetExpression = evaluatedTargetContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
+            foreach (var undeclaredVariable in undeclaredVariablesAccessedInTargetExpression)
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesAccessedInTargetExpression);
+
+            // Since the target expression wasn't something simple (like a literal or built-in value), then it's stored in a variable so that it's not evaluated for each case
+            // comparison (if it's a function call, for example, then the function shouldn't be called for each comparison). However, if it's an object reference, then each
+            // comparison is going to try to force it into a value type reference - meaning it will require a parameter-less default method or property. Assuming it has one
+            // of these, this WILL be accessed for each comparison (so it's important not to try to force the evaluatedTarget into a VAL at this point - the comparisons
+            // will force it into a value type and the getter / default property will be called each time then, as is consistent with VBScript).
+            return new SelectTargetExpressionTranslationData(
+                evaluatedTarget: new NameToken(evaluatedTargetName.Name, targetExpression.Tokens.First().LineIndex),
+                successfullyEvaluatedTargetNameIfRequired: successfullyEvaluatedTargetNameIfRequired,
+                extendedTranslationResult: translationResult,
+                extendedScopeAccessInformation: scopeAccessInformation
+            );
+        }
 
         private TranslatedStatementContentDetails GetComparison(
             IToken evaluatedTarget,
@@ -567,5 +608,45 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				indentationDepth
 			);
 		}
+
+        private class SelectTargetExpressionTranslationData
+        {
+            public SelectTargetExpressionTranslationData(IToken evaluatedTarget, CSharpName successfullyEvaluatedTargetNameIfRequired, TranslationResult extendedTranslationResult, ScopeAccessInformation extendedScopeAccessInformation)
+            {
+                if (evaluatedTarget == null)
+                    throw new ArgumentNullException("evaluatedTarget");
+                if (extendedTranslationResult == null)
+                    throw new ArgumentNullException("extendedTranslationResult");
+                if (extendedScopeAccessInformation == null)
+                    throw new ArgumentNullException("extendedScopeAccessInformation");
+
+                EvaluatedTarget = evaluatedTarget;
+                SuccessfullyEvaluatedTargetNameIfRequired = successfullyEvaluatedTargetNameIfRequired;
+                ExtendedTranslationResult = extendedTranslationResult;
+                ExtendedScopeAccessInformation = extendedScopeAccessInformation;
+            }
+
+            /// <summary>
+            /// This will always be a single token since either the target expression is a simple constant or a single NameToken (in which case the token for it will be present here) or
+            /// it's something that needs evaluating, in which case a NameToken will be generated for the temporary value that the expression result will be set into
+            /// </summary>
+            public IToken EvaluatedTarget { get; private set; }
+
+            /// <summary>
+            /// If the target expresssion is simple and does not require evaluation, or if there is no error-handling (in which case a failed evaluation would result in a termination of
+            /// work at this point), then this will be null.
+            /// </summary>
+            public CSharpName SuccessfullyEvaluatedTargetNameIfRequired { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public TranslationResult ExtendedTranslationResult { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public ScopeAccessInformation ExtendedScopeAccessInformation { get; private set; }
+        }
     }
 }
