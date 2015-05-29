@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CSharpSupport;
 using CSharpSupport.Exceptions;
+using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
-        public class SPLIT
+        public class SPLIT : CultureOverridingTests // There is date formatting involved in one of the tests so don't leave culture to chance
         {
+            public SPLIT() : base(new CultureInfo("en-GB")) { }
+
             [Theory, MemberData("SuccessData")]
             public void SuccessCases(string description, object value, object delimiter, object[] expectedResult)
             {
