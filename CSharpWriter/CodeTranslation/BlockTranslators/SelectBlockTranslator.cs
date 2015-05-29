@@ -11,6 +11,11 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.BlockTranslators
 {
+    // TODO: Test..
+    //  1. Literal value cases enforce appropriate comparisons (strings, dates, numbers?)
+    //  2. Literal target enforces appropriate comparisons, where required
+    //  3. VAL is not called on the target (needs to be called for each comparison)
+
     public class SelectBlockTranslator : CodeBlockTranslator
     {
         private readonly ITranslateIndividualStatements _statementTranslator;
@@ -482,7 +487,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // If the target case is a numeric literal then the first option in each case set must be parseable as a number
             // If the target case is a numeric literal the non-first options in each case set need not be parseable as numbers but flexible matching will be applied (1 and "1" are considered equal)
             // - Before dealing with these, if the current value is a numeric constant and the target case is a numeric literal then we can do a straight EQ call on them
-            var evaluatedExpression = _statementTranslator.Translate(value, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
+            // Note: There is no need to specify ExpressionReturnTypeOptions.Value here, it just adds noise to the output since the EQ method will ensure that the left and right values are both
+            // value types (since EQ only compares value types - unlike IS, which only compares object types).
+            var evaluatedExpression = _statementTranslator.Translate(value, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
             if ((evaluatedTarget is NumericValueToken) && IsNumericLiteral((NumericValueToken)evaluatedTarget))
             {
                 if (Is<NumericValueToken>(value))
