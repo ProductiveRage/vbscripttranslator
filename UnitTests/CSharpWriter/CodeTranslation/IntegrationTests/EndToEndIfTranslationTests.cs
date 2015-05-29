@@ -269,7 +269,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR((Int16)12))))",
+                    "if (_.IF(_.EQ(\"12\", _.NullableSTR((Int16)12))))",
                     "{",
                     "}"
                 };
@@ -293,7 +293,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"12\", _.STR((Int16)12))))",
+                    "if (_.IF(_.EQ(\"12\", _.NullableSTR((Int16)12))))",
                     "{",
                     "}"
                 };
@@ -347,7 +347,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.STR(_env.i), \"1\")))",
+                    "if (_.IF(_.EQ(_.NullableSTR(_env.i), \"1\")))",
                     "{",
                     "}"
                 };
@@ -438,7 +438,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"True\", _.STR(VBScriptConstants.True))))",
+                    "if (_.IF(_.EQ(\"True\", _.NullableSTR(VBScriptConstants.True))))",
                     "{",
                     "}"
                 };

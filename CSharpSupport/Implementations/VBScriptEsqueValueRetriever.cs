@@ -345,7 +345,7 @@ namespace CSharpSupport.Implementations
         /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
         /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
         /// </summary>
-        public object STR(object o)
+        public object NullableSTR(object o)
         {
             // Get the null-esque cases out of the way
             if ((o == null) || (o == DBNull.Value))

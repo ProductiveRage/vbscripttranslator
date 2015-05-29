@@ -1678,9 +1678,9 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.NullableDATE(o);
         }
-        public object STR(object o)
+        public object NullableSTR(object o)
         {
-            return _valueRetriever.STR(o);
+            return _valueRetriever.NullableSTR(o);
         }
         public bool IF(object o)
         {

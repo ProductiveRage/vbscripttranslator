@@ -347,7 +347,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             return new TranslatedStatementContentDetailsWithContentType(
                 string.Format(
-                    "{0}.STR({1})",
+                    "{0}.NullableSTR({1})",
                     _supportRefName.Name,
                     translatedStatement.TranslatedContent
                 ),

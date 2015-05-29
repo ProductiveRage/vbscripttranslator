@@ -82,7 +82,7 @@ namespace CSharpSupport
         /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
         /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
         /// </summary>
-        object STR(object o);
+        object NullableSTR(object o);
 
         /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then
