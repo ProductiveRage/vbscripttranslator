@@ -63,8 +63,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         {
             get
             {
-                foreach (var statement in ConditionalClauses.SelectMany(c => c.Statements))
-                    yield return statement;
+                foreach (var conditionalClause in ConditionalClauses)
+                {
+                    yield return conditionalClause.Condition;
+                    foreach (var statement in conditionalClause.Statements)
+                        yield return statement;
+                }
                 if (OptionalElseClause == null)
                     yield break;
                 foreach (var statement in OptionalElseClause.Statements)
