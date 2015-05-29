@@ -16,6 +16,23 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                 .ToArray();
 
         /// <summary>
+        /// We don't know what culture the translated program will be running in, so we can't do full date literal validation here (if we're running the
+        /// translation process in English then #1 May 2015# will be a valid date, but if the translated program runs in French then it won't be). With
+        /// VBScript, date literals will be parsed each time the script is read and a syntax error raised if any of them are invalid, before any of the
+        /// script is executed - this means that the script may behave differently in different cultures. This means that we can not assume any culture
+        /// here and so can't fully verify date literals if they have a month name in them. What we CAN do is check the validity of date literals that
+        /// are composed solely of numeric segments and we can check for some invalid date literals that contain month names (eg. #May June# is invalid
+        /// since there are TWO months and #42 May 99# is invalid since the numbers 42 and 99 can not be used in any combination to represent a valid
+        /// date). We can do this by returning 1 for any month name. It won't catch invalid dates such as "30 Feb 2012" and it won't catch invalid month
+        /// names, but it's better than nothing. This compromise means that runtime checks are required at the start of the translated program, ensuring
+        /// that an exception is raised before any work is performed if there are any invalid date literals present, considering the runtime culture.
+        /// </summary>
+        private static DateParser _limitedDateParser = new DateParser(
+            monthNameTranslator: monthName => 1,
+            defaultYearOverride: 2015
+        );
+
+        /// <summary>
         /// Break down scriptContent into a combination of StringToken, CommentToken, UnprocessedContentToken and EndOfStatementNewLine instances (the
         /// end of statement tokens will not have been comprehensively handled).  This will never return null nor a set containing any null references.
         /// </summary>
@@ -229,7 +246,18 @@ namespace VBScriptTranslator.LegacyParser.ContentBreaking
                             throw new Exception("Encountered line return in date literal content");
                         if (chr == "#")
                         {
-                            // Note: The DateLiteralToken constructor will throw an exception for invalid date content
+                            // We can only catch certain kinds of invalid date literal format here since some formats are culture-dependent (eg. "1 May 2010" is
+                            // valid in English but not in French) and I don't want to assume that translated programs are running with the same culture as the
+                            // translation process. The "limitedDateParser" can catch some invalid formats, which is better than nothing, but others will have
+                            // to checked at runtime (see the notes around the instantiation of the limitedDateParser).
+                            try
+                            {
+                                _limitedDateParser.Parse(tokenContent);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new ArgumentException("Invalid date literal content encountered on line " + lineIndex + ": #" + tokenContent + "#", e);
+                            }
                             tokens.Add(new DateLiteralToken(tokenContent, lineIndexForStartOfContent));
                             tokenContent = "";
                             lineIndexForStartOfContent = lineIndex;

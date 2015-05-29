@@ -16,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport
             [Theory, MemberData("SuccessData")]
             public void SuccessCases(string description, string value, int defaultYear, DateTime expectedDate)
             {
-                Assert.Equal(expectedDate, (new DateParser(defaultYearOverride: defaultYear)).Parse(value));
+                Assert.Equal(expectedDate, (new DateParser(DateParser.DefaultMonthNameTranslator, defaultYearOverride: defaultYear)).Parse(value));
             }
 
             [Theory, MemberData("ErrorData")]
@@ -24,7 +24,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport
             {
                 Assert.Throws<ArgumentException>(() =>
                 {
-                    (new DateParser(defaultYearOverride: defaultYear)).Parse(value);
+                    (new DateParser(DateParser.DefaultMonthNameTranslator, defaultYearOverride: defaultYear)).Parse(value);
                 });
             }
 
@@ -52,6 +52,30 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport
                     yield return new object[] { "Year, Month and Day (zero is only valid as a year, will be treated as 2000) \"0 1 1\"", "0 1 1", 2015, new DateTime(2000, 1, 1) };
                     yield return new object[] { "Day, Month and Year (30 is interpreted 1930) \"5 10 30\"", "5 10 30", 2015, new DateTime(1930, 10, 5) };
                     yield return new object[] { "Day, Month and Year (29 is interpreted 2029) \"5 10 29\"", "5 10 29", 2015, new DateTime(2029, 10, 5) };
+
+                    yield return new object[] { "Day and month name \"11 May\" (default year 2015)", "11 May", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Month name and day \"May 11\" (default year 2015)", "May 11", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Month name and short year \"May 0\"", "May 0", 2015, new DateTime(2000, 5, 1) };
+                    yield return new object[] { "Month name and short year \"May 101\"", "May 101", 2015, new DateTime(101, 5, 1) };
+                    yield return new object[] { "Month name and year \"May 2015\"", "May 2015", 2015, new DateTime(2015, 5, 1) };
+                    yield return new object[] { "Short year and month name \"0 May\"", "0 May", 2015, new DateTime(2000, 5, 1) };
+                    yield return new object[] { "Short year and month name \"101 May\"", "101 May", 2015, new DateTime(101, 5, 1) };
+                    yield return new object[] { "Year and month name \"2015 May\"", "2015 May", 2015, new DateTime(2015, 5, 1) };
+
+                    yield return new object[] { "Month name, day and year \"May 11 2015\"", "May 11 2015", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Year, month name and day \"2015 May 11\"", "2015 May 11", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Year, day and month name \"2015 11 May\"", "2015 11 May", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Day, year and month name \"11 2015 May\"", "11 2015 May", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Month name, year and day \"May 2015 11\"", "May 2015 11", 2015, new DateTime(2015, 5, 11) };
+
+                    yield return new object[] { "Month name, day and short year \"May 11 15\"", "May 11 15", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Day, month name and short year \"11 May 15\"", "11 May 15", 2015, new DateTime(2015, 5, 11) };
+                    yield return new object[] { "Day, short year and month name \"11 15 May\"", "11 15 May", 2015, new DateTime(2015, 5, 11) };
+
+                    yield return new object[] { "Full month name, day and year \"October 11 2015\"", "October 11 2015", 2015, new DateTime(2015, 10, 11) };
+                    yield return new object[] { "Abbreviated month name, day and year \"Oct 11 2015\"", "Oct 11 2015", 2015, new DateTime(2015, 10, 11) };
+                    yield return new object[] { "Lower-case abbreviated month name, day and year \"oct 11 2015\"", "oct 11 2015", 2015, new DateTime(2015, 10, 11) };
+                    yield return new object[] { "Upper-case abbreviated month name, day and year \"OCT 11 2015\"", "OCT 11 2015", 2015, new DateTime(2015, 10, 11) };
                 }
             }
 
@@ -77,7 +101,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport
             [Theory, MemberData("SuccessData")]
             public void SuccessCases(string description, string value, int defaultYear, DateTime expectedDate)
             {
-                Assert.Equal(expectedDate, (new DateParser(defaultYearOverride: 2015)).Parse(value));
+                Assert.Equal(expectedDate, (new DateParser(DateParser.DefaultMonthNameTranslator, defaultYearOverride: 2015)).Parse(value));
             }
 
             public static IEnumerable<object[]> SuccessData

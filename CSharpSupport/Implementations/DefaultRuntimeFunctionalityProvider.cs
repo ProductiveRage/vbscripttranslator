@@ -41,7 +41,7 @@ namespace CSharpSupport.Implementations
             _disposableReferencesToClearAfterTheRequest = new List<IDisposable>();
             _availableErrorTokens = new Queue<int>();
             _activeErrorTokens = new Dictionary<int, ErrorTokenState>();
-            DateLiteralParser = new DateParser(DateTime.Now.Year);
+            DateLiteralParser = new DateParser(DateParser.DefaultMonthNameTranslator, DateTime.Now.Year);
             _trappedErrorIfAny = null;
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace CSharpSupport
@@ -9,57 +10,74 @@ namespace CSharpSupport
         private const string SOME_WHITESPACE_OR_NOTHING = @"\s*";
         private const string DATE_DELIMITER = @"[\/\-,\s]";
         private const string TIME_DELIMITER = @"[\.:]";
+        private const string POTENTIAL_MONTH_NAME = @"[^\d|\s|\/|\-|,|\.|:]+"; // One or more characters that are not delimiters, whitespace or digits
 
-        private const string TWO_SEGMENT_DATE =
-            "(" + ONE_OR_MORE_DIGITS + ")" +
-            SOME_WHITESPACE_OR_NOTHING +
-            DATE_DELIMITER +
-            SOME_WHITESPACE_OR_NOTHING +
-            "(" + ONE_OR_MORE_DIGITS + ")";
-        private const string THREE_SEGMENT_DATE =
-            TWO_SEGMENT_DATE +
-            SOME_WHITESPACE_OR_NOTHING +
-            DATE_DELIMITER +
-            SOME_WHITESPACE_OR_NOTHING +
-            "(" + ONE_OR_MORE_DIGITS + ")";
-        private const string TWO_SEGMENT_TIME =
-            "(" + ONE_OR_MORE_DIGITS + ")" +
-            SOME_WHITESPACE_OR_NOTHING +
-            TIME_DELIMITER +
-            SOME_WHITESPACE_OR_NOTHING +
-            "(" + ONE_OR_MORE_DIGITS + ")";
-        private const string THREE_SEGMENT_TIME =
-            TWO_SEGMENT_TIME +
-            SOME_WHITESPACE_OR_NOTHING +
-            TIME_DELIMITER +
-            SOME_WHITESPACE_OR_NOTHING +
-            "(" + ONE_OR_MORE_DIGITS + ")";
+        // Dates consisting of two or three numeric segments
+        private const string TWO_NUMBER_DATE = "(" + ONE_OR_MORE_DIGITS + ")" + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
+        private const string THREE_NUMBER_DATE = TWO_NUMBER_DATE + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
+
+        // Dates consisting of a month name and one numeric segment
+        private const string MONTHNAME_THEN_NUMBER_DATE = "(" + POTENTIAL_MONTH_NAME + ")" + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
+        private const string NUMBER_THEN_MONTHNAME_DATE = "(" + ONE_OR_MORE_DIGITS + ")" + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + POTENTIAL_MONTH_NAME + ")";
+
+        // Dates consisting of a month name and two numeric segments
+        private const string MONTHNAME_THEN_TWO_NUMBERS_DATE = MONTHNAME_THEN_NUMBER_DATE + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
+        private const string NUMBER_THEN_MONTHNAME_THEN_NUMBERS_DATE = "(" + ONE_OR_MORE_DIGITS + ")" + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + MONTHNAME_THEN_NUMBER_DATE;
+        private const string TWO_NUMBERS_THEN_MONTHNAME_DATE = "(" + ONE_OR_MORE_DIGITS + ")" + SOME_WHITESPACE_OR_NOTHING + DATE_DELIMITER + SOME_WHITESPACE_OR_NOTHING + NUMBER_THEN_MONTHNAME_DATE;
+
+        // Time matches, for either two or three numeric segments (any AM/PM content is removed before using regular expressions)
+        private const string TWO_SEGMENT_TIME = "(" + ONE_OR_MORE_DIGITS + ")" + SOME_WHITESPACE_OR_NOTHING + TIME_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
+        private const string THREE_SEGMENT_TIME = TWO_SEGMENT_TIME + SOME_WHITESPACE_OR_NOTHING + TIME_DELIMITER + SOME_WHITESPACE_OR_NOTHING + "(" + ONE_OR_MORE_DIGITS + ")";
 
         private static readonly Regex _endOfStringThreeSegmentTimeComponent = new Regex(THREE_SEGMENT_TIME + "$", RegexOptions.Compiled);
         private static readonly Regex _endOfStringTwoSegmentTimeComponent = new Regex(TWO_SEGMENT_TIME + "$", RegexOptions.Compiled);
         private static readonly Regex _endOfStringSingleSegmentTimeComponent = new Regex("(" + ONE_OR_MORE_DIGITS + ")$", RegexOptions.Compiled);
 
-        private static readonly Regex _wholeStringThreeSegmentDateComponent = new Regex("^" + THREE_SEGMENT_DATE + "$", RegexOptions.Compiled);
-        private static readonly Regex _wholeStringTwoSegmentDateComponent = new Regex("^" + TWO_SEGMENT_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringThreeNumericSegmentDateComponent = new Regex("^" + THREE_NUMBER_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringTwoNumericSegmentDateComponent = new Regex("^" + TWO_NUMBER_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringMonthNameThenNumberDateComponent = new Regex("^" + MONTHNAME_THEN_NUMBER_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringNumberThenMonthNameDateComponent = new Regex("^" + NUMBER_THEN_MONTHNAME_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringMonthNameThenTwoNumbersDateComponent = new Regex("^" + MONTHNAME_THEN_TWO_NUMBERS_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringNumberThenMonthNameThenNumberDateComponent = new Regex("^" + NUMBER_THEN_MONTHNAME_THEN_NUMBERS_DATE + "$", RegexOptions.Compiled);
+        private static readonly Regex _wholeStringTwoNumbersThenMonthNameDateComponent = new Regex("^" + TWO_NUMBERS_THEN_MONTHNAME_DATE + "$", RegexOptions.Compiled);
 
-        private static DateParser _default = new DateParser(() => DateTime.Now.Year);
+        private static DateParser _default = new DateParser(DefaultMonthNameTranslator, () => DateTime.Now.Year);
         public static DateParser Default { get { return _default; } }
 
         /// <summary>
-        /// This constructor should only be used for testing purposes, the static Default instance is appropriate for other uses
+        /// This constructor should only be used for testing purposes, the static Default instance is appropriate for most other uses
         /// </summary>
-        public DateParser(int defaultYearOverride) : this(() => defaultYearOverride)
+        public DateParser(Func<string, int> monthNameTranslator, int defaultYearOverride) : this(monthNameTranslator, () => defaultYearOverride)
         {
             if ((defaultYearOverride < VBScriptConstants.EarliestPossibleDate.Year) || (defaultYearOverride > VBScriptConstants.LatestPossibleDate.Year))
                 throw new ArgumentOutOfRangeException("defaultYearOverride must be a value that VBScript can represent");
         }
+        private readonly Func<string, int> _monthNameTranslator;
         private readonly Func<int> _defaultYearRetriever;
-        private DateParser(Func<int> defaultYearRetriever)
+        private DateParser(Func<string, int> monthNameTranslator, Func<int> defaultYearRetriever)
         {
+            if (monthNameTranslator == null)
+                throw new ArgumentNullException("monthNameTranslator");
             if (defaultYearRetriever == null)
                 throw new ArgumentNullException("defaultYearRetriever");
-            
+
+            _monthNameTranslator = monthNameTranslator;
             _defaultYearRetriever = defaultYearRetriever;
+        }
+
+        /// <summary>
+        /// This translates month names using the current culture - it supports full and abbreviated month names
+        /// </summary>
+        public static int DefaultMonthNameTranslator(string monthName)
+        {
+            if (string.IsNullOrWhiteSpace(monthName))
+                throw new ArgumentException("Null/blank monthName specified");
+
+            DateTime date;
+            if (DateTime.TryParseExact(monthName, "MMM", CultureInfo.CurrentCulture, DateTimeStyles.None, out date)
+            || DateTime.TryParseExact(monthName, "MMMM", CultureInfo.CurrentCulture, DateTimeStyles.None, out date))
+                return date.Month;
+            throw new ArgumentException("Invalid monthName specified (for current culture \"" + CultureInfo.CurrentCulture.DisplayName + "\"): \"" + monthName + "\"");
         }
 
         /// <summary>
@@ -120,7 +138,8 @@ namespace CSharpSupport
         /// <summary>
         /// This will throw an exception if the value can not be interpreted as a DateTime following VBScript's rules or if the value is null. Note that this ONLY supports
         /// the parsing of a string that is in a supported date format, it does not deal with cases such as CDate("2015"), where the string is parsed into a number and
-        /// then a date calculated by taking the number of days from VBScript's "zero date". This will never return null;
+        /// then a date calculated by taking the number of days from VBScript's "zero date". If a date outside of VBScript's expressible range is described then an
+        /// OverflowException will be thrown. This will never return null.
         /// </summary>
         public DateTime Parse(string value)
         {
@@ -129,29 +148,122 @@ namespace CSharpSupport
 
             TimeSpan time;
             value = ExtractAnyTimeComponent(value, out time).Trim();
+            
+            var date = ParseDateOnly(value);
+            if ((date < VBScriptConstants.EarliestPossibleDate.Date) || (date > VBScriptConstants.LatestPossibleDate.Date))
+                throw new OverflowException();
 
-            var threeSegmentDateComponentMatch = _wholeStringThreeSegmentDateComponent.Match(value);
+            return date.Add(time);
+        }
+
+        private DateTime ParseDateOnly(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("Null/blank value specified");
+
+            // First, check for numeric date formats - these can be validated fully here (and clearly invalid dates will result in an exception)
+            var threeSegmentDateComponentMatch = _wholeStringThreeNumericSegmentDateComponent.Match(value);
             if (threeSegmentDateComponentMatch.Success)
             {
-                return 
-                    GetDate(
-                        int.Parse(threeSegmentDateComponentMatch.Groups[1].Value),
-                        int.Parse(threeSegmentDateComponentMatch.Groups[2].Value),
-                        int.Parse(threeSegmentDateComponentMatch.Groups[3].Value)
-                    )
-                    .Add(time);
+                return GetDate(
+                    int.Parse(threeSegmentDateComponentMatch.Groups[1].Value),
+                    int.Parse(threeSegmentDateComponentMatch.Groups[2].Value),
+                    int.Parse(threeSegmentDateComponentMatch.Groups[3].Value)
+                );
             }
-
-            var twoSegmentDateComponentMatch = _wholeStringTwoSegmentDateComponent.Match(value);
-            if (!twoSegmentDateComponentMatch.Success)
-                throw new ArgumentException("Invalid date format");
-
-            return
-                GetDate(
+            var twoSegmentDateComponentMatch = _wholeStringTwoNumericSegmentDateComponent.Match(value);
+            if (twoSegmentDateComponentMatch.Success)
+            {
+                return GetDate(
                     int.Parse(twoSegmentDateComponentMatch.Groups[1].Value),
                     int.Parse(twoSegmentDateComponentMatch.Groups[2].Value)
-                )
-                .Add(time);
+                );
+            }
+
+            // Now we have to check for the with-month-name date formats
+            // - If there is a month name and a single numeric value, then prefer the value to be a date (using the default year), VBScript does not take the order of the
+            //   values to be of any significance. If the value does not fall within the acceptable range then assume it's a year (and default to the 1st of the month).
+            string monthNameFromTwoSegmentFormat;
+            int numericValueFromTwoSegmentFormat;
+            var monthNameThenNumberComponentMatch = _wholeStringMonthNameThenNumberDateComponent.Match(value);
+            if (monthNameThenNumberComponentMatch.Success)
+            {
+                monthNameFromTwoSegmentFormat = monthNameThenNumberComponentMatch.Groups[1].Value;
+                numericValueFromTwoSegmentFormat = int.Parse(monthNameThenNumberComponentMatch.Groups[2].Value);
+            }
+            else
+            {
+                var numberThenMonthNameComponentMatch = _wholeStringNumberThenMonthNameDateComponent.Match(value);
+                if (numberThenMonthNameComponentMatch.Success)
+                {
+                    monthNameFromTwoSegmentFormat = numberThenMonthNameComponentMatch.Groups[2].Value;
+                    numericValueFromTwoSegmentFormat = int.Parse(numberThenMonthNameComponentMatch.Groups[1].Value);
+                }
+                else
+                {
+                    monthNameFromTwoSegmentFormat = null;
+                    numericValueFromTwoSegmentFormat = 0;
+                }
+            }
+            if (monthNameFromTwoSegmentFormat != null)
+            {
+                var month = _monthNameTranslator(monthNameFromTwoSegmentFormat);
+                var defaultYear = _defaultYearRetriever();
+                if ((numericValueFromTwoSegmentFormat >= 1) && (numericValueFromTwoSegmentFormat <= GetNumberOfDaysInMonth(month, defaultYear)))
+                    return new DateTime(defaultYear, month, numericValueFromTwoSegmentFormat);
+                return new DateTime(EnsureIsFourDigitYear(numericValueFromTwoSegmentFormat), month, 1);
+            }
+            // - If there is a month name and two numeric values and there is would be an ambiguity in what the numbers represent (the ordering of the segments is given
+            //   no significance by VBScript) then it is assumed that the first value is the date and the second the year. If this combination is not valid then the
+            //   first is the year and the second the date (if THIS is not valid then the date literal is invalid).
+            string monthNameFromThreeSegmentFormat;
+            int firstNumericValueFromThreeSegmentFormat, secondNumericValueFromThreeSegmentFormat;
+            var monthNameThenTwoNumbersComponentMatch = _wholeStringMonthNameThenTwoNumbersDateComponent.Match(value);
+            if (monthNameThenTwoNumbersComponentMatch.Success)
+            {
+                monthNameFromThreeSegmentFormat = monthNameThenTwoNumbersComponentMatch.Groups[1].Value;
+                firstNumericValueFromThreeSegmentFormat = int.Parse(monthNameThenTwoNumbersComponentMatch.Groups[2].Value);
+                secondNumericValueFromThreeSegmentFormat = int.Parse(monthNameThenTwoNumbersComponentMatch.Groups[3].Value);
+            }
+            else
+            {
+                var numberThenMonthNameThenNumberComponentMatch = _wholeStringNumberThenMonthNameThenNumberDateComponent.Match(value);
+                if (numberThenMonthNameThenNumberComponentMatch.Success)
+                {
+                    monthNameFromThreeSegmentFormat = numberThenMonthNameThenNumberComponentMatch.Groups[2].Value;
+                    firstNumericValueFromThreeSegmentFormat = int.Parse(numberThenMonthNameThenNumberComponentMatch.Groups[1].Value);
+                    secondNumericValueFromThreeSegmentFormat = int.Parse(numberThenMonthNameThenNumberComponentMatch.Groups[3].Value);
+                }
+                else
+                {
+                    var twoNumbersThenMonthNameComponentMatch = _wholeStringTwoNumbersThenMonthNameDateComponent.Match(value);
+                    if (twoNumbersThenMonthNameComponentMatch.Success)
+                    {
+                        monthNameFromThreeSegmentFormat = twoNumbersThenMonthNameComponentMatch.Groups[3].Value;
+                        firstNumericValueFromThreeSegmentFormat = int.Parse(twoNumbersThenMonthNameComponentMatch.Groups[1].Value);
+                        secondNumericValueFromThreeSegmentFormat = int.Parse(twoNumbersThenMonthNameComponentMatch.Groups[2].Value);
+                    }
+                    else
+                    {
+                        monthNameFromThreeSegmentFormat = null;
+                        firstNumericValueFromThreeSegmentFormat = secondNumericValueFromThreeSegmentFormat = 0;
+                    }
+                }
+            }
+            if (monthNameFromThreeSegmentFormat != null)
+            {
+                var month = _monthNameTranslator(monthNameFromThreeSegmentFormat);
+                var date = firstNumericValueFromThreeSegmentFormat;
+                var year = EnsureIsFourDigitYear(secondNumericValueFromThreeSegmentFormat);
+                if ((date >= 1) && (date <= GetNumberOfDaysInMonth(month, year)))
+                    return new DateTime(year, month, date);
+                date = secondNumericValueFromThreeSegmentFormat;
+                year = EnsureIsFourDigitYear(firstNumericValueFromThreeSegmentFormat);
+                if ((date >= 1) && (date <= GetNumberOfDaysInMonth(month, year)))
+                    return new DateTime(year, month, date);
+            }
+
+            throw new ArgumentException("Invalid date format");
         }
 
         private static string ExtractAnyTimeComponent(string value, out TimeSpan extractedTime)
@@ -242,8 +354,6 @@ namespace CSharpSupport
         {
             if ((month < 1) || (month > 12))
                 throw new ArgumentOutOfRangeException("month");
-            if ((year < VBScriptConstants.EarliestPossibleDate.Year) || (year > VBScriptConstants.LatestPossibleDate.Year))
-                throw new ArgumentOutOfRangeException("year");
 
             return new DateTime(year, month, 1).AddMonths(1).AddDays(-1).Day;
         }
