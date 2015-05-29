@@ -2,6 +2,11 @@
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
+    /// <summary>
+    /// This represents a code block that is built up of other code blocks. The FunctionBlock contains other code blocks and acts as a "scope-defining"
+    /// parent (any undeclared variables within in are implicitly declared within its scope, not the outer scope around it). The IfBlock contains other
+    /// blocks for the conditions and for the statements that are executed when those conditions are met (though it does act as a scope-defining parent).
+    /// </summary>
     public interface IHaveNestedContent : ICodeBlock
     {
         /// This is a flattened list of executable statements - for a function this will be the statements it contains but for an if block it

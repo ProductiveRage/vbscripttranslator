@@ -484,6 +484,49 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			return blocks;
 		}
 
+        /// <summary>
+        /// This will retrieve all DateLiteralToken instances containined in the specified blocks. This may be necessary since there may be some validation
+        /// that must be performed before the translated program does any work. There may be date literals, for example, with an English month name in that
+        /// will fail when parsed if the program is being executed in a non-English-language environment - in VBScript, this would be a Syntax error at the
+        /// point at which the script was parsed, but for programs translated here, we don't want to have to force them to run in the same language as was
+        /// used during translation, so date literals are stored in a VBScript-format and checked for validity just before the real execution takes place
+        /// (that way, an error may be raised immediately if any of them are no longer valid - emulating the VBScript interpreter's stop-before-executing
+        /// behaviour).
+        /// </summary>
+        private IEnumerable<DateLiteralToken> EnumerateAllDateLiteralToken(IEnumerable<ICodeBlock> blocks)
+        {
+            if (blocks == null)
+                throw new ArgumentNullException("blocks");
+
+            foreach (var block in blocks)
+            {
+                if (block == null)
+                    throw new ArgumentException("Null reference encountered in blocks set");
+
+                IEnumerable<Statement> expressionsToInterrogate;
+                var nonNestedExpressionContainingBlock = block as IHaveNonNestedExpressions;
+                if (nonNestedExpressionContainingBlock != null)
+                    expressionsToInterrogate = nonNestedExpressionContainingBlock.NonNestedExpressions;
+                else
+                {
+                    var statement = block as Statement;
+                    if (statement != null)
+                        expressionsToInterrogate = new[] { statement };
+                    else
+                        expressionsToInterrogate = new Statement[0];
+                }
+                foreach (var dateLiteral in expressionsToInterrogate.SelectMany(e => e.Tokens.OfType<DateLiteralToken>()))
+                    yield return dateLiteral;
+
+                var nestedContentBlock = block as IHaveNestedContent;
+                if (nestedContentBlock != null)
+                {
+                    foreach (var nestedDateLiteral in EnumerateAllDateLiteralToken(nestedContentBlock.AllExecutableBlocks))
+                        yield return nestedDateLiteral;
+                }
+            }
+        }
+
         private class Annotated<T> where T : ICodeBlock
         {
             public Annotated(NonNullImmutableList<CommentStatement> leadingComments, T codeBlock)

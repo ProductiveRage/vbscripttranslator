@@ -8,7 +8,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public abstract class BaseDimStatement : ICodeBlock
+    public abstract class BaseDimStatement : IHaveNonNestedExpressions
     {
         // =======================================================================================
         // CLASS INITIALISATION
@@ -30,6 +30,15 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         /// This will never be null nor contain any nulls (though it may be an empty set)
         /// </summary>
         public IEnumerable<DimVariable> Variables { get; protected set; }
+
+        /// <summary>
+        /// This must never return null nor a set containing any nulls, it represents all executable statements within this structure that wraps statement(s)
+        /// in a non-hierarhical manner (unlike the IfBlock, for example, which implements IHaveNestedContent rather than IHaveNonNestedExpressions)
+        /// </summary>
+        IEnumerable<Statement> IHaveNonNestedExpressions.NonNestedExpressions
+        {
+            get { return Variables.Where(v => v.Dimensions != null).SelectMany(v => v.Dimensions); }
+        }
 
         // =======================================================================================
         // DESCRIPTION CLASSES

@@ -6,7 +6,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class RandomizeStatement : ICodeBlock
+    public class RandomizeStatement : IHaveNonNestedExpressions
     {
         // =======================================================================================
         // CLASS INITIALISATION
@@ -26,6 +26,18 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public Expression Seed
         {
             get { return this.seed; }
+        }
+
+        /// <summary>
+        /// This must never return null nor a set containing any nulls, it represents all executable statements within this structure that wraps statement(s)
+        /// in a non-hierarhical manner (unlike the IfBlock, for example, which implements IHaveNestedContent rather than IHaveNonNestedExpressions)
+        /// </summary>
+        IEnumerable<Statement> IHaveNonNestedExpressions.NonNestedExpressions
+        {
+            get
+            {
+                yield return Seed;
+            }
         }
 
         // =======================================================================================

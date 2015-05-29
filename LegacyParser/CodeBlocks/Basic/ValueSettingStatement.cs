@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 {
     [Serializable]
-    public class ValueSettingStatement : ICodeBlock
+    public class ValueSettingStatement : IHaveNonNestedExpressions
     {
         // =======================================================================================
         // CLASS INITIALISATION
@@ -47,6 +48,19 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         {
             Let,
             Set
+        }
+
+        /// <summary>
+        /// This must never return null nor a set containing any nulls, it represents all executable statements within this structure that wraps statement(s)
+        /// in a non-hierarhical manner (unlike the IfBlock, for example, which implements IHaveNestedContent rather than IHaveNonNestedExpressions)
+        /// </summary>
+        IEnumerable<Statement> IHaveNonNestedExpressions.NonNestedExpressions
+        {
+            get
+            {
+                yield return ValueToSet;
+                yield return Expression;
+            }
         }
 
         // =======================================================================================
