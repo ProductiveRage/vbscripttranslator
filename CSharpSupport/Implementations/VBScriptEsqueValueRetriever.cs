@@ -88,6 +88,16 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
+        /// (it is not a valid input for NUM).
+        /// </summary>
+        public object NullableNUM(object o)
+        {
+            o = VAL(o);
+            return (o == DBNull.Value) ? DBNull.Value : NUM(o);
+        }
+
+        /// <summary>
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
         /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or
@@ -204,27 +214,30 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
-        /// (it is not a valid input for NUM).
-        /// </summary>
-        public object NullableNUM(object o)
-        {
-            return (o == DBNull.Value) ? DBNull.Value : (object)NUM(o);
-        }
-
-        /// <summary>
         /// This is similar to NullableNUM in that it is used for comparisons involving date literals, where the other side has to be interpreted as
-        /// a date but must also support null. It supports all VBScript date parsing methods (eg. the string "1" will be parsed into the number 1
-        /// and then translated into a date by being one day after the VBScript zero date, or "28 2" will be interpreted as 28th of February in
-        /// the current year).
+        /// a date but must also support null. It wraps DATE (and so supports all VBScript date parsing methods).
         /// </summary>
         public object NullableDATE(object o)
         {
             o = VAL(o);
+            return (o == DBNull.Value) ? DBNull.Value : (object)DATE(o);
+        }
+
+        /// <summary>
+        /// Reduce a reference down to a date value type, applying VBScript defaults logic and then taking a date representation. Numeric values are
+        /// acceptable (taken as the number of days since the zero date, with support for fractional values). String values are acceptable, they will be
+        /// parsed using VBScript's rules (and taking into account culture, where applicable). Null is acceptable and will return in the zero date being
+        /// returned, DBNull.Value (aka VBScript Null) is not acceptable and will return in an exception being raised.
+        /// </summary>
+        public DateTime DATE(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            o = VAL(o);
             if (o == null)
                 return VBScriptConstants.ZeroDate;
-            if ((o == DBNull.Value) || (o is DateTime))
-                return o;
+            if (o == DBNull.Value)
+                throw new InvalidUseOfNullException(optionalExceptionMessageForInvalidContent);
+            if (o is DateTime)
+                return (DateTime)o;
 
             double? numericValue;
             try
@@ -243,11 +256,11 @@ namespace CSharpSupport.Implementations
             }
             catch (OverflowException e)
             {
-                throw new VBScriptOverflowException(e);
+                throw new VBScriptOverflowException(optionalExceptionMessageForInvalidContent, e);
             }
             catch (Exception e)
             {
-                throw new TypeMismatchException(e);
+                throw new TypeMismatchException(optionalExceptionMessageForInvalidContent, e);
             }
         }
 
@@ -339,25 +352,45 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.
-        /// Null (aka VBScript Empty) is acceptable and will result in null being returned. DBNull.Value (aka VBScript Null) is also acceptable and
-        /// will also result in itself being returned - this is the only case in which a non-null-and-non-string value will be returned. This
-        /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
-        /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
+        /// Apply the same logic as STR but allow DBNull.Value (returning it back). This conversion should only used for comparisons with string literals,
+        /// where special rules apply (which makes the method slightly less useful than NUM, which is used in comparisons with numeric literals but also
+        /// in some other cases, such as FOR loops).
         /// </summary>
         public object NullableSTR(object o)
         {
-            // Get the null-esque cases out of the way
-            if ((o == null) || (o == DBNull.Value))
-                return o;
+            o = VAL(o);
+            return (o == DBNull.Value) ? DBNull.Value : (object)STR(o);
+        }
 
-            // Try to extract the value-type data from the reference, dealing with the same null cases as above first
-            var value = VAL(o);
-            if ((value == null) || (value == DBNull.Value))
-                return value;
+        /// <summary>
+        /// Reduce a reference down to a string value type, applying VBScript defaults logic and then taking a string representation. Null is acceptable
+        /// and will return in a blank string being returned, DBNull.Value (aka VBScript Null) is not acceptable and will return in an exception being
+        /// raised.
+        /// </summary>
+        public string STR(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            o = VAL(o, optionalExceptionMessageForInvalidContent);
+            if (o == null)
+                return "";
+            if (o == DBNull.Value)
+                throw new InvalidUseOfNullException(optionalExceptionMessageForInvalidContent);
+            if (o.GetType().IsArray)
+                throw new TypeMismatchException(optionalExceptionMessageForInvalidContent);
 
-            // Then we only need to call ToString (this, thankfully, works correctly for booleans - the casing is consistent between C# and VBScript)
-            return value.ToString();
+            // Dates should be the only data type we have to special-case - booleans, for example, are fine (the casing is consistent between C# and
+            // VBScript)
+            if (o is DateTime)
+                return DateToString((DateTime)o);
+            return o.ToString();
+        }
+
+        private string DateToString(DateTime value)
+        {
+            var dateComponent = (value.Date == VBScriptConstants.ZeroDate) ? "" : value.ToShortDateString();
+            var timeComponent = ((value.TimeOfDay == TimeSpan.Zero) && (dateComponent != "")) ? "" : value.ToLongTimeString();
+            if ((dateComponent != "") && (timeComponent != ""))
+                return dateComponent + " " + timeComponent;
+            return dateComponent + timeComponent;
         }
 
         /// <summary>

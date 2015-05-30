@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace CSharpSupport
@@ -69,20 +70,31 @@ namespace CSharpSupport
 
         /// <summary>
         /// This is similar to NullableNUM in that it is used for comparisons involving date literals, where the other side has to be interpreted as
-        /// a date but must also support null. It supports all VBScript date parsing methods (eg. the string "1" will be parsed into the number 1
-        /// and then translated into a date by being one day after the VBScript zero date, or "28 2" will be interpreted as 28th of February in
-        /// the current year).
+        /// a date but must also support null. It wraps DATE (and so supports all VBScript date parsing methods).
         /// </summary>
         object NullableDATE(object o);
 
         /// <summary>
-        /// Reduce a reference down to a string value type (in most cases), applying VBScript defaults logic and then taking a string representation.
-        /// Null (aka VBScript Empty) is acceptable and will result in null being returned. DBNull.Value (aka VBScript Null) is also acceptable and
-        /// will also result in itself being returned - this is the only case in which a non-null-and-non-string value will be returned. This
-        /// conversion should only used for comparisons with string literals, where special rules apply (which makes the method slightly
-        /// less useful than NUM, which is used in comparisons with numeric literals but also in some other cases, such as FOR loops).
+        /// Reduce a reference down to a date value type, applying VBScript defaults logic and then taking a date representation. Numeric values are
+        /// acceptable (taken as the number of days since the zero date, with support for fractional values). String values are acceptable, they will be
+        /// parsed using VBScript's rules (and taking into account culture, where applicable). Null is acceptable and will return in the zero date being
+        /// returned, DBNull.Value (aka VBScript Null) is not acceptable and will return in an exception being raised.
+        /// </summary>
+        DateTime DATE(object o, string optionalExceptionMessageForInvalidContent = null);
+
+        /// <summary>
+        /// Apply the same logic as STR but allow DBNull.Value (returning it back). This conversion should only used for comparisons with string literals,
+        /// where special rules apply (which makes the method slightly less useful than NUM, which is used in comparisons with numeric literals but also
+        /// in some other cases, such as FOR loops).
         /// </summary>
         object NullableSTR(object o);
+
+        /// <summary>
+        /// Reduce a reference down to a string value type, applying VBScript defaults logic and then taking a string representation. Null is acceptable
+        /// and will return in a blank string being returned, DBNull.Value (aka VBScript Null) is not acceptable and will return in an exception being
+        /// raised.
+        /// </summary>
+        string STR(object o, string optionalExceptionMessageForInvalidContent = null);
 
         /// <summary>
         /// Reduce a reference down to a boolean, throwing an exception if this is not possible. This will apply the same logic as VAL but then

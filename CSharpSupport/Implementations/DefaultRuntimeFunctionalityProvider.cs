@@ -471,37 +471,8 @@ namespace CSharpSupport.Implementations
             if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
                 throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
 
-            value = VAL(value, exceptionMessageForInvalidContent);
-            if (value == null)
-                return VBScriptConstants.ZeroDate;
-            if (value == DBNull.Value)
-                throw new InvalidUseOfNullException(exceptionMessageForInvalidContent);
-            if (value is DateTime)
-                return (DateTime)value;
-
-            double? valueNumber;
-            try
-            {
-                valueNumber = Convert.ToDouble(value);
-            }
-            catch
-            {
-                valueNumber = null;
-            }
-            try
-            {
-                if (valueNumber != null)
-                    return DateParser.Default.Parse(valueNumber.Value);
-                return DateParser.Default.Parse(value.ToString());
-            }
-            catch (OverflowException e)
-            {
-                throw new VBScriptOverflowException(exceptionMessageForInvalidContent, e);
-            }
-            catch (Exception e)
-            {
-                throw new TypeMismatchException(exceptionMessageForInvalidContent, e);
-            }
+            // Hand off all parsing here to the base valueRetriever.DATE to avoid code duplication
+            return _valueRetriever.DATE(value, exceptionMessageForInvalidContent);
         }
         public Int16 CINT(object value) { return CINT(value, "'CInt'"); }
         private Int16 CINT(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<Int16>(value, exceptionMessageForInvalidContent, Convert.ToInt16); }
@@ -514,24 +485,9 @@ namespace CSharpSupport.Implementations
         {
             if (string.IsNullOrWhiteSpace(exceptionMessageForInvalidContent))
                 throw new ArgumentException("Null/blank exceptionMessageForInvalidContent specified");
-            value = VAL(value, "'CStr'");
-            if (value == null)
-                return "";
-            if (value == DBNull.Value)
-                throw new InvalidUseOfNullException(exceptionMessageForInvalidContent);
-            if (value.GetType().IsArray)
-                throw new TypeMismatchException(exceptionMessageForInvalidContent);
-            if (value is DateTime)
-                return DateToString((DateTime)value);
-            return value.ToString(); // Note: For dates, the default locale-based formatting should be consistent with VBScript
-        }
-        private string DateToString(DateTime value)
-        {
-            var dateComponent = (value.Date == VBScriptConstants.ZeroDate) ? "" : value.ToShortDateString();
-            var timeComponent = ((value.TimeOfDay == TimeSpan.Zero) && (dateComponent != "")) ? "" : value.ToLongTimeString();
-            if ((dateComponent != "") && (timeComponent != ""))
-                return dateComponent + " " + timeComponent;
-            return dateComponent + timeComponent;
+
+            // Hand off all parsing here to the base valueRetriever.STR to avoid code duplication
+            return _valueRetriever.STR(value, exceptionMessageForInvalidContent);
         }
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object numberOfTimesToRepeat, object character)
@@ -1678,9 +1634,17 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.NullableDATE(o);
         }
+        public DateTime DATE(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            return _valueRetriever.DATE(o);
+        }
         public object NullableSTR(object o)
         {
             return _valueRetriever.NullableSTR(o);
+        }
+        public string STR(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            return _valueRetriever.STR(o);
         }
         public bool IF(object o)
         {
