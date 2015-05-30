@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
@@ -28,8 +29,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter,
             TempValueNameGenerator tempNameGenerator,
-			ITranslateIndividualStatements statementTranslator,
-			ITranslateValueSettingsStatements valueSettingStatementTranslator,
+            ITranslateIndividualStatements statementTranslator,
+            ITranslateValueSettingsStatements valueSettingStatementTranslator,
             ILogInformation logger)
             : base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
         {
@@ -43,18 +44,18 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
         }
 
         public TranslationResult Translate(SelectBlock selectBlock, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			if (selectBlock == null)
+        {
+            if (selectBlock == null)
                 throw new ArgumentNullException("selectBlock");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
             // Notes:
             // 1. Case values are lazily evaluated; as soon as one is matched, no more are considered.
             // 2. There is no fall-through from one section to another; the first matched section (if any) is processed and no more are considered.
-            
+
             var translationResult = TranslationResult.Empty;
             foreach (var openingComment in selectBlock.OpeningComments)
                 translationResult = base.TryToTranslateComment(translationResult, openingComment, scopeAccessInformation, indentationDepth);
@@ -78,12 +79,22 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 indentationDepth++;
             }
 
-            var numberOfIndentsRequiredForErrorTrappingStructure = 0;
-            var annotatedCaseBlocks = selectBlock.Content.Select((c, i) => {
+            // In simple cases, a SELECT CASE structure can be represented by a set of "if { .. } else if { .. } else if { .. } else { .. }" configuration. However, if we have to
+            // do any by-ref argument aliasing (if we're in a function with by-ref arguments and any of those arguments is required within case-value-matching AND that case-value-
+            // matching uses lambdas to wrap the work; if error-trapping is enabled, generally) then we need to use temporary booleans for each "CASE" did-match result, which means
+            // that the structure has to become progressively nested - eg. "if { .. } else { if { .. } else { if { .. } else { .. } } }". Each time a CASE is processed, it records
+            // whether an additional level of nesting was required for it, in which case the next CASE will start with an "if" rather than an "else if". Obviously this should be
+            // the case for the very first CASE that will be encountered. On a related note, the number of times that this is required is recorded since when everything else is
+            // complete, there will need to be additional closing braces.
+            var shouldNextCaseValueBlockBeFreshIfBlock = true;
+            var numberOfAdditionalIndentsRequiredForByRefAliasing = 0;
+
+            var annotatedCaseBlocks = selectBlock.Content.Select((c, i) =>
+            {
                 var lastIndex = selectBlock.Content.Count() - 1;
                 return new
                 {
-                    IsFirstCaseBlock = (i == 0),
+                    IsFirstBlock = (i == 0),
                     IsCaseLastBlockWithValuesToCheck =
                         ((i == lastIndex) && (c is SelectBlock.CaseBlockExpressionSegment)) ||
                         ((i == (lastIndex - 1)) && (c is SelectBlock.CaseBlockExpressionSegment) && (selectBlock.Content.Last() is SelectBlock.CaseBlockElseSegment)),
@@ -95,18 +106,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 var explicitOptionsCaseBlock = annotatedCaseBlock.CaseBlock as SelectBlock.CaseBlockExpressionSegment;
                 if (explicitOptionsCaseBlock != null)
                 {
-                    var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
-                    var byRefArgumentsToRewrite = new NonNullImmutableList<FuncByRefMapping>();
-                    foreach (var caseValue in explicitOptionsCaseBlock.Values)
-                    {
-                        byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
-                            selectBlock.Expression.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
-                            scopeAccessInformation,
-                            byRefArgumentsToRewrite
-                        );
-                    }
-
-
+                    // For each case value (VBScript supports multiple values per case, unlike languages like JavaScript and C#). For each value, we'll be generating part of a
+                    // combined "if" condition. The first thing we need to do with these segments is log any undeclared variables that are accessed. We'll use this data later
+                    // on, too, to generate the "if" condition (since we'll often use this at least twice - see note about by-ref argument handling further down as to why we
+                    // don't ALWAYS use it twice - and since we will always access EVERY value while checking for undeclared variable access, we might as well ToArray it to
+                    // prevent repeating any work).
                     var conditions = explicitOptionsCaseBlock.Values
                         .Select((value, index) => GetComparison(
                             targetExpressionTranslationDetails.EvaluatedTarget,
@@ -114,83 +118,115 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             isFirstValueInCaseSet: (index == 0),
                             scopeAccessInformation: scopeAccessInformation
                         ))
-                        .ToArray(); // Call ToArray since we're always going to enumerate the collection twice below, no point doing the work twice
+                        .ToArray();
+
                     var undeclaredVariablesInCondition = conditions.SelectMany(c => c.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter));
                     foreach (var undeclaredVariable in undeclaredVariablesInCondition)
                         _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
                     translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesInCondition);
-                    
-                    // If error-trapping is not enabled then generate an "if" or "else if" conditional that checks each value using an or, so that if one matches then any subsequent values are not evaluated
-                    if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+
+                    // If we're inside a function with by-ref arguments and any of those arguments needs to be accessed within a lambda (such as if error-trapping is enabled,
+                    // meaning we'll be performing the "IF" comparisons using the method signature that takes the expression to evaluate in as a lambda) then we'll need aliases
+                    // for those by-ref arguments. In this case, we'll use a temporary boolean to record the did-any-case-values-match-the-target-expression and set this flag
+                    // using the aliases. We'll then tidy up the aliases and the "if" block itself will just reference that flag. If there are no by-ref argument aliases
+                    // required then this complexity and temporary boolean are not required.
+                    var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+                    var byRefArgumentsToRewrite = new NonNullImmutableList<FuncByRefMapping>();
+                    foreach (var caseValue in explicitOptionsCaseBlock.Values)
                     {
-                        conditions = conditions
-                            .Select(condition => new TranslatedStatementContentDetails(
-                                string.Format(
-                                    "{0}.IF({1})",
-                                    _supportRefName.Name,
-                                    condition.TranslatedContent
-                                ),
-                                condition.VariablesAccessed
-                            ))
-                            .ToArray();
-                        var combinedCondition = (explicitOptionsCaseBlock.Values.Count() == 1)
-                            ? conditions.Single().TranslatedContent
-                            : ("(" + string.Join(") || (", conditions.Select(c => c.TranslatedContent)) + ")");
+                        byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+                            caseValue.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+                            scopeAccessInformation,
+                            byRefArgumentsToRewrite
+                        );
+                    }
+                    ConditionMatchingByRefArgAliasingDetails byRefArgAliasMappingDetailsIfRequired;
+                    if (byRefArgumentsToRewrite.Any())
+                    {
+                        // If this is not the first CASE block then we need to move in a level of indentation to limit the scope of the temporary boolean value but also to ensure
+                        // that if any earlier CASE values matched that these are not evaluated and considered (nor are any later CASE values)
+                        if (!annotatedCaseBlock.IsFirstBlock)
+                        {
+                            translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth));
+                            translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+                            indentationDepth++;
+                            numberOfAdditionalIndentsRequiredForByRefAliasing++;
+                        }
+
+                        var isCaseMatchResultName = _tempNameGenerator(new CSharpName("isCaseMatch"), scopeAccessInformation);
                         translationResult = translationResult.Add(new TranslatedStatement(
-                            string.Format(
-                                "{0} ({1})",
-                                annotatedCaseBlock.IsFirstCaseBlock ? "if" : "else if",
-                                combinedCondition
-                            ),
+                            "bool " + isCaseMatchResultName.Name + ";",
                             indentationDepth
                         ));
+                        var byRefAliasWrappingDetailsIfAny = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                        translationResult = byRefAliasWrappingDetailsIfAny.TranslationResult;
+                        indentationDepth += byRefAliasWrappingDetailsIfAny.DistanceToIndentCodeWithMappedValues;
+                        scopeAccessInformation = scopeAccessInformation.ExtendVariables(
+                            byRefArgumentsToRewrite
+                                .Select(r => new ScopedNameToken(r.To.Name, r.From.LineIndex, ScopeLocationOptions.WithinFunctionOrPropertyOrWith))
+                                .ToNonNullImmutableList()
+                        );
+                        byRefArgAliasMappingDetailsIfRequired = new ConditionMatchingByRefArgAliasingDetails(
+                            byRefArgumentsToRewrite,
+                            byRefAliasWrappingDetailsIfAny,
+                            isCaseMatchResultName
+                        );
+
+                        // The case-value-match condition fragments need to be rewritten to reference the aliases, rather than the by-ref arguments (this means that these fragments
+                        // are safe to use within lambdas now)
+                        conditions = explicitOptionsCaseBlock.Values
+                            .Select((value, index) => GetComparison(
+                                targetExpressionTranslationDetails.EvaluatedTarget,
+                                byRefArgumentsToRewrite.RewriteExpressionUsingByRefArgumentMappings(value, _nameRewriter),
+                                isFirstValueInCaseSet: (index == 0),
+                                scopeAccessInformation: scopeAccessInformation
+                            ))
+                            .ToArray();
                     }
                     else
                     {
-                        // If error-trapping IS potentially enabled, then these conditions must each be wrapped in a call to the IF support function that takes the error token and deals with evaluating
-                        // the value; if the evaluation causes an error and error-trapping is enabled at runtime then VBScript would "resume" into the next statement, meaning the block within the CASE
-                        // (and so the IF support function knows to return true in this case).
-                        // - Since this involves more code for each value comparison, if the CASE has multiple values then they will be split onto multiple lines in the emitted C# code
-                        // - Also note that if error-trapping is enabled then we need to change the structure slightly, from "if.. elseif .. else if.. else" to using nested "if.. else { if.. else { } } }"
-                        //   since each condition will be evaluated within a lambda and so may need rewriting if the expression references any ByRef arguments of the containing function (where applicable)
-                        //   because "ref" references may not be accessed within lambdas in C#. TODO: I haven't dealt with this rewriting yet, but I've laid out this structure here so that I'm able to do
-                        //   that work soon (2015-05-28: The potential rewriting of the target expression has been dealt with, but not any the case values)
-                        conditions = conditions
-                            .Select(condition => new TranslatedStatementContentDetails(
-                                string.Format(
-                                    "{0}.IF(() => {1}, {2})",
-                                    _supportRefName.Name,
-                                    condition.TranslatedContent,
-                                    scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
-                                ),
-                                condition.VariablesAccessed
-                            ))
-                            .ToArray();
-                        if (conditions.Count() == 1)
+                        // If the previous CASE block needed some by-ref alias jiggery pokery and required that this block be indented inside its own "else", then create that structure now
+                        if (!annotatedCaseBlock.IsFirstBlock && shouldNextCaseValueBlockBeFreshIfBlock)
                         {
-                            translationResult = translationResult.Add(new TranslatedStatement(
-                                string.Format("if ({0})", conditions.Single().TranslatedContent),
-                                indentationDepth
-                            ));
+                            translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth));
+                            translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
+                            indentationDepth++;
+                            numberOfAdditionalIndentsRequiredForByRefAliasing++;
                         }
-                        else
-                        {
-                            translationResult = translationResult.Add(new TranslatedStatement(
-                                string.Format("if (({0})", conditions.First().TranslatedContent),
-                                indentationDepth
-                            ));
-                            foreach (var condition in conditions.Skip(1).Reverse().Skip(1).Reverse()) // Every condition except the first and last
-                            {
-                                translationResult = translationResult.Add(new TranslatedStatement(
-                                    string.Format("|| ({0})", condition.TranslatedContent),
-                                    indentationDepth
-                                ));
-                            }
-                            translationResult = translationResult.Add(new TranslatedStatement(
-                                string.Format("|| ({0}))", conditions.Last().TranslatedContent),
-                                indentationDepth
-                            ));
-                        }
+                        byRefArgAliasMappingDetailsIfRequired = null;
+                    }
+
+                    // If byRefArgAliasMappingDetailsIfRequired is null, then there was no funny business - we can just generate an "if" block directly, there mustn't have been any by-ref
+                    // argument handling to do. On the other hand, if byRefArgAliasMappingDetailsIfRequired is NOT null then we need to evaluate the do-any-conditions-match-the-target
+                    // possibilities and store then in a temporary boolean - then the by-ref argument aliases need tidying up and THEN we open an "if" block, using the temporary flag.
+                    if (byRefArgAliasMappingDetailsIfRequired == null)
+                    {
+                        translationResult = OpenIfBlockDirectly(
+                            translationResult,
+                            indentationDepth,
+                            conditions,
+                            openAsElseIf: !shouldNextCaseValueBlockBeFreshIfBlock,
+                            errorRegistrationTokenIfAny: scopeAccessInformation.ErrorRegistrationTokenIfAny
+                        );
+                    }
+                    else
+                    {
+                        translationResult = SetCaseMatchResultValue(
+                            translationResult,
+                            indentationDepth,
+                            conditions,
+                            byRefArgAliasMappingDetailsIfRequired.CaseValueMatchResultName,
+                            scopeAccessInformation.ErrorRegistrationTokenIfAny
+                        );
+                        indentationDepth -= byRefArgAliasMappingDetailsIfRequired.ByRefAliasWrappingDetails.DistanceToIndentCodeWithMappedValues;
+                        translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+                        translationResult = translationResult.Add(new TranslatedStatement(
+                            string.Format(
+                                "if ({0})",
+                                byRefArgAliasMappingDetailsIfRequired.CaseValueMatchResultName.Name
+                            ),
+                            indentationDepth
+                        ));
                     }
 
                     translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
@@ -203,15 +239,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     );
                     translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
 
-                    // See the note above about potentially having to rewrite conditions that include "ref" references - that requires that we change the structure from a more natual "if.. else if.. else if.."
-                    // arrangement to having to nest them (eg. "if { .. else { if.. else { } } }")
-                    if ((scopeAccessInformation.ErrorRegistrationTokenIfAny != null) && !annotatedCaseBlock.IsCaseLastBlockWithValuesToCheck)
-                    {
-                        translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth));
-                        translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth));
-                        indentationDepth++;
-                        numberOfIndentsRequiredForErrorTrappingStructure++;
-                    }
+                    // If we needed to break up the simple "if { .. } else if { .. } else if { .. } else { .. }" structure because by-ref argument aliasing was required and a temporary
+                    // boolean created for this CASE block, then the next CASE block with values (if there is one) needs to start a new "if" block (and not try to pick up with an "else if")
+                    shouldNextCaseValueBlockBeFreshIfBlock = byRefArgumentsToRewrite.Any();
                 }
                 else
                 {
@@ -236,7 +266,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     }
                 }
             }
-            for (var i = 0; i < numberOfIndentsRequiredForErrorTrappingStructure; i++)
+            for (var i = 0; i < numberOfAdditionalIndentsRequiredForByRefAliasing; i++)
             {
                 indentationDepth--;
                 translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth));
@@ -252,7 +282,113 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             return translationResult;
-		}
+        }
+
+        private TranslationResult OpenIfBlockDirectly(
+            TranslationResult translationResult,
+            int indentationDepth,
+            IEnumerable<TranslatedStatementContentDetails> conditionSegments,
+            bool openAsElseIf,
+            CSharpName errorRegistrationTokenIfAny)
+        {
+            if (translationResult == null)
+                throw new ArgumentNullException("translationResult");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth");
+            if (conditionSegments == null)
+                throw new ArgumentNullException("conditionSegments");
+
+            var conditionSegmentsArray = conditionSegments.ToArray();
+            if (conditionSegmentsArray.Length == 0)
+                throw new ArgumentException("There must be at least one condition segment");
+            if (conditionSegmentsArray.Any(segment => segment == null))
+                throw new ArgumentException("Null reference encountered in conditionSegments set");
+
+            var wrappedConditionSegments = conditionSegments
+                .Select(segment => string.Format(
+                    (errorRegistrationTokenIfAny == null) ? "{0}.IF({1})" : "{0}.IF(() => {1}, {2})",
+                    _supportRefName.Name,
+                    segment.TranslatedContent,
+                    (errorRegistrationTokenIfAny == null) ? "" : errorRegistrationTokenIfAny.Name
+                ))
+                .ToArray();
+
+            // The conditions where if blocks are opened directly (no by-ref argument aliasing and no error-trapping) tend to be quite short in a lot of cases - if the combined
+            // content is not that long then put them all on a single line
+            if (wrappedConditionSegments.Sum(segment => segment.Length) < 80)
+            {
+                return translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}if ({1})",
+                        openAsElseIf ? "else " : "",
+                        string.Join(") || (", wrappedConditionSegments.Select(segment => segment))
+                    ),
+                    indentationDepth
+                ));
+            }
+
+            // Otherwise generate one line per condition
+            for (var i = 0; i < wrappedConditionSegments.Length; i++)
+            {
+                string format;
+                if (i == 0)
+                {
+                    format = "if ({0}";
+                    if (openAsElseIf)
+                        format = "else " + format;
+                }
+                else
+                    format = "|| ({0})";
+                if (i == (wrappedConditionSegments.Length - 1))
+                    format += ")";
+
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(format, wrappedConditionSegments[i]),
+                    indentationDepth
+                ));
+            }
+            return translationResult;
+        }
+
+        private TranslationResult SetCaseMatchResultValue(
+            TranslationResult translationResult,
+            int indentationDepth,
+            IEnumerable<TranslatedStatementContentDetails> conditionSegments,
+            CSharpName isCaseMatchResultName,
+            CSharpName errorRegistrationTokenIfAny)
+        {
+            if (translationResult == null)
+                throw new ArgumentNullException("translationResult");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth");
+            if (conditionSegments == null)
+                throw new ArgumentNullException("conditionSegments");
+            if (isCaseMatchResultName == null)
+                throw new ArgumentNullException("isCaseMatchResultName");
+
+            var conditionSegmentsArray = conditionSegments.ToArray();
+            if (conditionSegmentsArray.Length == 0)
+                throw new ArgumentException("There must be at least one condition segment");
+            if (conditionSegmentsArray.Any(segment => segment == null))
+                throw new ArgumentException("Null reference encountered in conditionSegments set");
+
+            for (var i = 0; i < conditionSegmentsArray.Length; i++)
+            {
+                string format;
+                if (i == 0)
+                    format = "{0} = ({1}";
+                else
+                    format = "|| ({1})";
+                if (i == (conditionSegmentsArray.Length - 1))
+                    format += ");";
+
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(format, isCaseMatchResultName.Name, conditionSegmentsArray[i].TranslatedContent),
+                    (i == 0) ? indentationDepth : indentationDepth + 1
+                ));
+            }
+            return translationResult;
+        }
 
         private SelectTargetExpressionTranslationData TranslateTargetExpression(Expression targetExpression, TranslationResult translationResult, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
@@ -489,6 +625,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // - Before dealing with these, if the current value is a numeric constant and the target case is a numeric literal then we can do a straight EQ call on them
             // Note: There is no need to specify ExpressionReturnTypeOptions.Value here, it just adds noise to the output since the EQ method will ensure that the left and right values are both
             // value types (since EQ only compares value types - unlike IS, which only compares object types).
+            // TODO: Need to do the same for date literals too?
             var evaluatedExpression = _statementTranslator.Translate(value, scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning);
             if ((evaluatedTarget is NumericValueToken) && IsNumericLiteral((NumericValueToken)evaluatedTarget))
             {
@@ -517,7 +654,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         evaluatedExpression.VariablesAccessed
                     );
                 }
-                
+
                 return new TranslatedStatementContentDetails(
                     string.Format(
                         "{0}.EQish({1}, {2})",
@@ -529,7 +666,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 );
             }
 
-            // If the case value is a numeric literal then the target must be parseable as a number
+            // If the case value is a numeric literal then the target must be parseable as a number - TODO: Need to do the same for date literals too?
             if (IsNumericLiteral(value))
             {
                 if (evaluatedTarget is NumericValueToken)
@@ -599,22 +736,22 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             return (expression.Tokens.Count() == 1) && (expression.Tokens.Single() is TSingleTokenType);
         }
 
-		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			if (blocks == null)
-				throw new ArgumentNullException("block");
-			if (scopeAccessInformation == null)
-				throw new ArgumentNullException("scopeAccessInformation");
-			if (indentationDepth < 0)
-				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
+        private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            if (blocks == null)
+                throw new ArgumentNullException("block");
+            if (scopeAccessInformation == null)
+                throw new ArgumentNullException("scopeAccessInformation");
+            if (indentationDepth < 0)
+                throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			return base.TranslateCommon(
+            return base.TranslateCommon(
                 base.GetWithinFunctionBlockTranslators(),
-				blocks,
-				scopeAccessInformation,
-				indentationDepth
-			);
-		}
+                blocks,
+                scopeAccessInformation,
+                indentationDepth
+            );
+        }
 
         private class SelectTargetExpressionTranslationData
         {
@@ -654,6 +791,43 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             /// This will never be null
             /// </summary>
             public ScopeAccessInformation ExtendedScopeAccessInformation { get; private set; }
+        }
+
+        private class ConditionMatchingByRefArgAliasingDetails
+        {
+            public ConditionMatchingByRefArgAliasingDetails(
+                NonNullImmutableList<FuncByRefMapping> byRefArgumentsToRewrite,
+                FuncByRefMappingList_Extensions.ByRefReplacementTranslationResultDetails byRefAliasWrappingDetails,
+                CSharpName caseValueMatchResultName)
+            {
+                if (byRefArgumentsToRewrite == null)
+                    throw new ArgumentNullException("byRefArgumentsToRewrite");
+                if (!byRefArgumentsToRewrite.Any())
+                    throw new ArgumentException("byRefArgumentsToRewrite may not be an empty set, otherwise there's no point to creating this instance");
+                if (byRefAliasWrappingDetails == null)
+                    throw new ArgumentNullException("byRefAliasWrappingDetails");
+                if (caseValueMatchResultName == null)
+                    throw new ArgumentNullException("caseValueMatchResultName");
+
+                ByRefArgumentsToRewrite = byRefArgumentsToRewrite;
+                ByRefAliasWrappingDetails = byRefAliasWrappingDetails;
+                CaseValueMatchResultName = caseValueMatchResultName;
+            }
+
+            /// <summary>
+            /// This will never be null or empty
+            /// </summary>
+            public NonNullImmutableList<FuncByRefMapping> ByRefArgumentsToRewrite { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public FuncByRefMappingList_Extensions.ByRefReplacementTranslationResultDetails ByRefAliasWrappingDetails { get; private set; }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public CSharpName CaseValueMatchResultName { get; private set; }
         }
     }
 }
