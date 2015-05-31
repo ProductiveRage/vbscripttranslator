@@ -267,5 +267,26 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 yield return new object[] { "z = func((x), y)", "_env.z = _.VAL(_.CALL(_env.func, _.ARGS.Val(_env.x).Ref(_env.y, v1 => { _env.y = v1; })));" };
             }
         }
+
+        [Theory, MemberData("ZeroArgumentBracketsEnforcedWhereAndOnlyWhereNecessaryData")]
+        public void ZeroArgumentBracketsEnforcedWhereAndOnlyWhereNecessary(string source, string expectedResult)
+        {
+            var translatedContent = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
+            Assert.Equal(expectedResult, translatedContent.Select(c => c.Trim()).Single(c => c != ""));
+        }
+
+        public static IEnumerable<object[]> ZeroArgumentBracketsEnforcedWhereAndOnlyWhereNecessaryData
+        {
+            get
+            {
+                yield return new object[] { "a = b", "_env.a = _.VAL(_env.b);" };
+                yield return new object[] { "a = b()", "_env.a = _.VAL(_.CALL(_env.b, _.ARGS.ForceBrackets()));" };
+                yield return new object[] { "a = b(1)", "_env.a = _.VAL(_.CALL(_env.b, _.ARGS.Val((Int16)1)));" };
+
+                yield return new object[] { "a = b.Name", "_env.a = _.VAL(_.CALL(_env.b, \"Name\"));" };
+                yield return new object[] { "a = b.Name()", "_env.a = _.VAL(_.CALL(_env.b, \"Name\", _.ARGS.ForceBrackets()));" };
+                yield return new object[] { "a = b.Name(1)", "_env.a = _.VAL(_.CALL(_env.b, \"Name\", _.ARGS.Val((Int16)1)));" };
+            }
+        }
     }
 }

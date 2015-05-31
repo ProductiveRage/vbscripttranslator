@@ -583,6 +583,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     _supportRefName.Name,
                     rewrittenMemberAccessTokens,
                     callExpressionSegment.Arguments,
+                    callExpressionSegment.ZeroArgumentBracketsPresence,
                     scopeAccessInformation,
                     indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
                     targetIsKnownToBeBuiltInFunction: true
@@ -612,6 +613,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 targetReference,
                 callExpressionSegment.MemberAccessTokens.Skip(1),
                 callExpressionSegment.Arguments,
+                callExpressionSegment.ZeroArgumentBracketsPresence,
                 scopeAccessInformation,
                 indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
                 targetIsKnownToBeBuiltInFunction: targetIsErrReference // Don't try to rewrite the target reference if it's the Err reference, we've already got it correct
@@ -666,6 +668,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             string targetName,
             IEnumerable<IToken> targetMemberAccessTokens,
             IEnumerable<Expression> arguments,
+            CallSetItemExpressionSegment.ArgumentBracketPresenceOptions? zeroArgumentBracketsPresence,
             ScopeAccessInformation scopeAccessInformation,
             int indexInCallSet,
             bool targetIsKnownToBeBuiltInFunction)
@@ -687,6 +690,17 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var argumentsArray = arguments.ToArray();
             if (argumentsArray.Any(a => a == null))
                 throw new ArgumentException("Null reference encountered in arguments set");
+
+            if (argumentsArray.Length == 0)
+            {
+                if (zeroArgumentBracketsPresence == null)
+                    throw new ArgumentException("zeroArgumentBracketsPresence may not be null if there are zero arguments");
+                if ((zeroArgumentBracketsPresence .Value != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent)
+                && (zeroArgumentBracketsPresence.Value != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present))
+                    throw new ArgumentException("Invalid zeroArgumentBracketsPresence value");
+            }
+            else if (zeroArgumentBracketsPresence != null)
+                throw new ArgumentException("zeroArgumentBracketsPresence must be null if there are arguments present");
 
             // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
             // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
@@ -790,10 +804,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // 2014-04-10 DWR: This is not correct since if there are target member accessors and the target can be identified as a function
             // or property (according to the scope access information) then it would have been caught above. So if there are no target member
             // accessors or arguments then we can return a direct reference to the target here. Note that if a single member access token
-            // constitued the entire statement then it would have to be forced through a .VAL call but that will also have been handled
+            // constituted the entire statement then it would have to be forced through a .VAL call but that will also have been handled
             // before this point in the TryToGetShortCutStatementResponse call in the public Translate method (see notes in the
             // TryToGetShortCutStatementResponse method for more information about this).
-            if (!targetMemberAccessTokensArray.Any() && !argumentsArray.Any())
+            // 2015-05-31 DWR: Argh.. this was still not entirely correct :( We can ONLY take this shortcut if there are no arguments AND there
+            // were no brackets around this absence-of-arguments, otherwise the brackets MAY have significance. Examples: If "a" is a number and
+            // you try to access "a()" then you get a Type mismatch (it's not an array). If "a" is an array then "a()" throws a Subscript out of
+            // range. If "a" is a VBScript class with a property "Name" then "a.Name()" will return the value, the same as "a.Name" (without
+            // brackets), due to how VBScript describes classes internally. If "a" is an IDispatch reference then "a.Name()" will only work
+            // if the target declares it has a method called "Name" (that will return a value for zero arguments), it may have a non-indexed
+            // property called "Name" but it may not consider that applicable for a request for "a.Name()" because the brackets signify a
+            // method, rather than property. So, if there are brackets then the CALL method must be used so that this logic can be
+            // applied - only if there are no arguments and no brackets may the value be returned unwrapped.
+            if (!targetMemberAccessTokensArray.Any() && !argumentsArray.Any() && (zeroArgumentBracketsPresence == CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent))
             {
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
@@ -840,6 +863,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 callExpressionContent.Append(argumentProviderContent.TranslatedContent);
                 callExpressionVariablesAccessed = callExpressionVariablesAccessed.AddRange(
                     argumentProviderContent.VariablesAccessed
+                );
+            }
+            else if (zeroArgumentBracketsPresence == CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present)
+            {
+                callExpressionContent.AppendFormat(
+                    ", {0}.ARGS.ForceBrackets()",
+                    _supportRefName.Name
                 );
             }
 
@@ -1054,7 +1084,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     new CallExpressionSegment(
                         possibleByRefCallExpressionSegment.MemberAccessTokens,
                         new Expression[0],
-                        CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
+                        possibleByRefCallExpressionSegment.ZeroArgumentBracketsPresence
                     ),
                     scopeAccessInformation
                 );
@@ -1074,7 +1104,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         new CallExpressionSegment(
                             possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
                             new Expression[0],
-                            CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present
+                            possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().ZeroArgumentBracketsPresence
                         ),
                         scopeAccessInformation
                     );
@@ -1260,6 +1290,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         content,
                         callSetItemExpression.MemberAccessTokens,
                         callSetItemExpression.Arguments,
+                        callSetItemExpression.ZeroArgumentBracketsPresence,
                         scopeAccessInformation,
                         index,
                         targetIsKnownToBeBuiltInFunction: false

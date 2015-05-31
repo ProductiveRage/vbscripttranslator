@@ -7,8 +7,6 @@ namespace CSharpSupport
 	{
         public const int MaxNumberOfMemberAccessorBeforeArraysRequired = 5;
 
-        private static IProvideCallArguments _zeroArgumentArgumentProvider = new ZeroArgumentArgumentProvider();
-
         // Convenience methods so that the calling code can omit the "GetArgs" call if an IBuildCallArgumentProviders is already available (results in shorter
         // translated code)
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, IEnumerable<string> members, IBuildCallArgumentProviders argumentProviderBuilder)
@@ -37,42 +35,42 @@ namespace CSharpSupport
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new string[0], _zeroArgumentArgumentProvider);
+            return source.CALL(target, new string[0], ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1 }, _zeroArgumentArgumentProvider);
+            return source.CALL(target, new[] { member1 }, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1, member2 }, _zeroArgumentArgumentProvider);
+            return source.CALL(target, new[] { member1, member2 }, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1, member2, member3 }, _zeroArgumentArgumentProvider);
+            return source.CALL(target, new[] { member1, member2, member3 }, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3, string member4)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1, member2, member3, member4 }, _zeroArgumentArgumentProvider);
+            return source.CALL(target, new[] { member1, member2, member3, member4 }, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target, string member1, string member2, string member3, string member4, string member5)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            return source.CALL(target, new[] { member1, member2, member3, member4, member5 }, _zeroArgumentArgumentProvider);
+            return source.CALL(target, new[] { member1, member2, member3, member4, member5 }, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
 
         // Convenience methods for when there are a known number of accessor members (including zero) and arguments - providing the argument builder means that
@@ -137,7 +135,16 @@ namespace CSharpSupport
 
         private class ZeroArgumentArgumentProvider : IProvideCallArguments
         {
+            public static IProvideCallArguments WithEnforcedArgumentBrackets = new ZeroArgumentArgumentProvider(true);
+            public static IProvideCallArguments WithoutEnforcedArgumentBrackets = new ZeroArgumentArgumentProvider(false);
+            private ZeroArgumentArgumentProvider(bool useBracketsWhereZeroArguments)
+            {
+                UseBracketsWhereZeroArguments = useBracketsWhereZeroArguments;
+            }
+
             public int NumberOfArguments { get { return 0; } }
+
+            public bool UseBracketsWhereZeroArguments { get; private set; }
 
             public IEnumerable<object> GetInitialValues()
             {

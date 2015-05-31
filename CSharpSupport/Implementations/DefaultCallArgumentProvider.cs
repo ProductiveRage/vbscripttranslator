@@ -8,6 +8,7 @@ namespace CSharpSupport.Implementations
     {
         private readonly List<Tuple<object, Action<object>>> _valuesWithUpdatesWhereRequired;
 		private readonly IAccessValuesUsingVBScriptRules _vbscriptValueAccessor;
+        private bool _useBracketsWhereZeroArguments;
         public DefaultCallArgumentProvider(IAccessValuesUsingVBScriptRules vbscriptValueAccessor)
         {
 			if (vbscriptValueAccessor == null)
@@ -15,11 +16,12 @@ namespace CSharpSupport.Implementations
 
 			_vbscriptValueAccessor = vbscriptValueAccessor;
 			_valuesWithUpdatesWhereRequired = new List<Tuple<object, Action<object>>>();
+            _useBracketsWhereZeroArguments = false;
         }
 
         /// <summary>
-        /// TODO
-        /// This should return a reference to itself to enable chaining when building up argument sets
+        /// Add an argument to the set that will be passed by-val, regardless of whether the target call site expects a by-ref or by-val argument.
+        /// This should return a reference to itself to enable chaining when building up argument sets.
         /// </summary>
         public IBuildCallArgumentProviders Val(object value)
         {
@@ -28,8 +30,8 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// TODO
-        /// This should return a reference to itself to enable chaining when building up argument sets
+        /// Add an argument to the set that will be passed by-ref if the target call site expects a by-ref argument (otherwise it will be treated as
+        /// by-val). This should return a reference to itself to enable chaining when building up argument sets.
         /// </summary>
         public IBuildCallArgumentProviders Ref(object value, Action<object> valueUpdater)
         {
@@ -41,8 +43,8 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// TODO
-        /// This should return a reference to itself to enable chaining when building up argument sets
+        /// Add an argument to the set that will be passed by-ref if the target call site expects a by-ref argument and if the value is an array
+        /// (otherwise it will be treated as by-val). This should return a reference to itself to enable chaining when building up argument sets.
         /// </summary>
         public IBuildCallArgumentProviders RefIfArray(object target, IEnumerable<IProvideCallArguments> argumentProviders)
         {
@@ -89,28 +91,47 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// TODO
+        /// Specify that brackets were specified, even if there were zero arguments - this may affect the available call mechanisms (eg. it will
+        /// only access methods, not properties, on IDispatch targets). This information is only of use if there are zero arguments (though it
+        /// is not invalid to indicate this even where there are arguments present). This should return a reference to itself to enable chaining
+        /// when building up argument sets.
+        /// </summary>
+        public IBuildCallArgumentProviders ForceBrackets()
+        {
+            _useBracketsWhereZeroArguments = true;
+            return this;
+        }
+
+        /// <summary>
+        /// This will never return null
         /// </summary>
         public IProvideCallArguments GetArgs()
         {
-            return new ArgumentProvider(_valuesWithUpdatesWhereRequired);
+            return new ArgumentProvider(_valuesWithUpdatesWhereRequired, _useBracketsWhereZeroArguments);
         }
 
         private class ArgumentProvider : IProvideCallArguments
         {
             private readonly List<Tuple<object, Action<object>>> _valuesWithUpdatesWhereRequired;
-            public ArgumentProvider(List<Tuple<object, Action<object>>> valuesWithUpdatesWhereRequired)
+            public ArgumentProvider(List<Tuple<object, Action<object>>> valuesWithUpdatesWhereRequired, bool useBracketsWhereZeroArguments)
             {
                 if (valuesWithUpdatesWhereRequired == null)
                     throw new ArgumentNullException("valuesWithUpdatesWhereRequired");
 
                 _valuesWithUpdatesWhereRequired = valuesWithUpdatesWhereRequired;
+                UseBracketsWhereZeroArguments = useBracketsWhereZeroArguments;
             }
 
             /// <summary>
             /// This will always be zero or greater
             /// </summary>
             public int NumberOfArguments { get { return _valuesWithUpdatesWhereRequired.Count; } }
+
+            /// <summary>
+            /// The presence of brackets in the source following a member access with zero arguments may affect the available calling mechanisms on
+            /// the target, so this is important information to record and expose
+            /// </summary>
+            public bool UseBracketsWhereZeroArguments { get; private set; }
 
             /// <summary>
             /// This will always return a set with NumberOfArguments items in it
