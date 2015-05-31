@@ -245,6 +245,43 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         /// <summary>
+        /// This is only really here to go with ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsAnArrayAsByRefArgument and the test that
+        /// that works with, it seemed like an obvious variation on the VBScript source - to follow the variable access with brackets even though there are no
+        /// arguments (call behaviour around zero-argument brackets has just been changed so this is important). Here, the F1 argument will be accessed as an
+        /// array (with no indexes specified) or a method - both of which will fail at runtime in VBScript. But the point is that the argument is not then
+        /// passed on by-ref to F2 and so needs none of the special by-ref aliasing magic applying.
+        /// </summary>
+        [Fact]
+        public void ByRefFunctionArgumentRequiresNoSpecialTreatmentIfAccessAsFunctionOrArray()
+        {
+            var source = @"
+                Function F1(a)
+                    F2 a()
+                End Function
+
+                Function F2(a)
+                End Function
+            ";
+            var expected = new[]
+            {
+                "public object f1(ref object a)",
+                "{",
+                "    object retVal1 = null;",
+                "    _.CALL(_outer, \"f2\", _.ARGS.Val(_.CALL(a, _.ARGS.ForceBrackets())));",
+                "    return retVal1;",
+                "}",
+                "public object f2(ref object a)",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
         /// This works as a another counter-example to ByRefFunctionArgumentRequiresSpecialTreatmentIfDirectlyUsedElsewhereAsByRefArgument, if the ByRef
         /// argument of the containing function constitues only part of a value passed into a function call as an argument that would be ByRef then the alias
         /// variable is not required.

@@ -1076,6 +1076,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var possibleByRefCallExpressionSegment = argumentValue.Segments.Single() as CallExpressionSegment;
             if (possibleByRefCallExpressionSegment != null)
             {
+                // Note: Know that there is at least one argument, so possibleByRefCallExpressionSegment's ZeroArgumentBracketsPresence value will
+                // be null, but we need a non-null value since we'll be creating a new CallExpressionSegment that targets the by-ref alias but that
+                // strips off the arguments for now. If the value we used was "Present" then we would risk introducing additional CALL logic that
+                // we don't want, so specify it as "Absent".
                 if (possibleByRefCallExpressionSegment.MemberAccessTokens.Count() > 2)
                     throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallExpressionSegment with multiple MemberAccessTokens at this point");
                 if (!possibleByRefCallExpressionSegment.MemberAccessTokens.Any())
@@ -1084,7 +1088,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     new CallExpressionSegment(
                         possibleByRefCallExpressionSegment.MemberAccessTokens,
                         new Expression[0],
-                        possibleByRefCallExpressionSegment.ZeroArgumentBracketsPresence
+                        CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
                     ),
                     scopeAccessInformation
                 );
@@ -1100,11 +1104,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     if (possibleByRefCallSetExpressionSegment.CallExpressionSegments.Skip(1).Any(s => s.MemberAccessTokens.Any()))
                         throw new NotSupportedException("Unexpected argumentValue content - didn't expect a CallSetExpressionSegment with subsequent CallExpressionSegments that have MemberAccessTokens at this point");
 
+                    // Note: Specify CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent for the same reason as explain in the logic above
                     possibleByRefTarget = Translate(
                         new CallExpressionSegment(
                             possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().MemberAccessTokens,
                             new Expression[0],
-                            possibleByRefCallSetExpressionSegment.CallExpressionSegments.First().ZeroArgumentBracketsPresence
+                            CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
                         ),
                         scopeAccessInformation
                     );
