@@ -235,7 +235,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 .TakeWhile(dim => dim != explicitVariableDeclarationBlock)
                 .SelectMany(dim => dim.Variables);
             var firstVariableAlreadyDeclaredInTheCurrentScopeIfAny = previouslyDeclaredVariableInCurrentScope
-                .FirstOrDefault(previouslyDeclaredVariable => explicitVariableDeclarationBlock.Variables.Any(v => _nameRewriter.AreNamesEquivalents(v.Name, previouslyDeclaredVariable.Name)));
+                .FirstOrDefault(previouslyDeclaredVariable => explicitVariableDeclarationBlock.Variables.Any(v => _nameRewriter.AreNamesEquivalent(v.Name, previouslyDeclaredVariable.Name)));
             if (firstVariableAlreadyDeclaredInTheCurrentScopeIfAny != null)
             {
                 throw new ArgumentException(string.Format(
@@ -1002,7 +1002,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // If this variable was not explicitly declared with a DIM, but WAS referenced by a REDIM, then VBScript will not consider
                 // it undeclared - in this case, there will be an ExplicitVariableDeclarations entry from the REDIM which must be checked
                 // for here before declaring the variable officially undeclared.
-                if (translationResult.ExplicitVariableDeclarations.Any(v => _nameRewriter.AreNamesEquivalents(v.Name, undeclaredVariable)))
+                if (translationResult.ExplicitVariableDeclarations.Any(v => _nameRewriter.AreNamesEquivalent(v.Name, undeclaredVariable)))
                     continue;
 
                 var rewrittenName = _nameRewriter.GetMemberAccessTokenName(undeclaredVariable);

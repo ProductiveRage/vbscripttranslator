@@ -26,7 +26,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             return source(nameToken).Name;
         }
 
-        public static bool AreNamesEquivalents(this VBScriptNameRewriter source, NameToken x, NameToken y)
+        public static bool AreNamesEquivalent(this VBScriptNameRewriter source, NameToken x, NameToken y)
         {
             if (source == null)
                 throw new ArgumentNullException("source");
