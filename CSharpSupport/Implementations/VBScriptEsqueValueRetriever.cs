@@ -49,7 +49,7 @@ namespace CSharpSupport.Implementations
             if (IsVBScriptNothing(o))
                 throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
 
-            var defaultValueFromObject = InvokeGetter(o, null, new object[0]);
+            var defaultValueFromObject = InvokeGetter(o, null, new object[0], onlyConsiderMethods: false);
             if (IsVBScriptValueType(defaultValueFromObject))
                 return defaultValueFromObject;
 
@@ -482,7 +482,7 @@ namespace CSharpSupport.Implementations
             var arguments = argumentProvider.GetInitialValues().ToArray();
             try
             {
-                return CALL(target, members, arguments);
+                return CALL(target, members, arguments, argumentProvider.UseBracketsWhereZeroArguments);
             }
             finally
             {
@@ -495,7 +495,7 @@ namespace CSharpSupport.Implementations
         /// <summary>
         /// Note: The arguments array elements may be mutated if the call target has "ref" method arguments.
         /// </summary>
-        private object CALL(object target, IEnumerable<string> members, object[] arguments)
+        private object CALL(object target, IEnumerable<string> members, object[] arguments, bool useBracketsWhereZeroArguments)
         {
             if (members == null)
                 throw new ArgumentNullException("members");
@@ -506,13 +506,39 @@ namespace CSharpSupport.Implementations
             if (memberAccessorsArray.Any(m => string.IsNullOrWhiteSpace(m)))
                 throw new ArgumentException("Null/blank value in members set");
 
-            // If there are no member accessor or arguments then just return the object directly (if the caller wants this to be a value type
-            // then they'll have to use VAL to try to apply that requirement). This is the only case in which it's acceptable for target to
-            // be null.
-            if (!memberAccessorsArray.Any() && !arguments.Any())
+            // Deal with special case of a delegate first (as of May 2015, there should't be any way for one of these to sneak in here, but if
+            // GetRef gets implemented in the future then that may change). It's not valid for there to be any member accessors, the delegate
+            // must either be a direct reference, meaning its being passed around as a function pointer or sorts, or it must be an execution
+            // of the delegate (indicated by the presence of arguments or by there being brackets following the reference, even when there
+            // are zero arguments).
+            var delegateTarget = target as Delegate;
+            if (delegateTarget != null)
+            {
+                if (memberAccessorsArray.Any())
+                    throw new ArgumentException("May not specify any member accessors when target is a delegate");
+                if (arguments.Any() || useBracketsWhereZeroArguments)
+                    return delegateTarget.DynamicInvoke(arguments);
+                return delegateTarget;
+            }
+
+            // If there are no member accessor, no arguments and no zero-argument brackets then just return the object directly (if the caller
+            // wants this to be a value type then they'll have to use VAL to try to apply that requirement). This is the only case in which
+            // it's acceptable for target to be null.
+            // - Frankly, I'm not sure why target can EVER be null, even if there ARE no member accessor or aguments... unfortunately, there
+            //   are currently no tests illustrating why at this time and the code here explicitly allows for a null target (in this case),
+            //   so I'm going to leave this be for now (May 2015).
+            var noMemberAccessorsOrArguments = !memberAccessorsArray.Any() && !arguments.Any();
+            if (noMemberAccessorsOrArguments && !useBracketsWhereZeroArguments)
                 return target;
+            else if (noMemberAccessorsOrArguments && useBracketsWhereZeroArguments && (target != null))
+            {
+                // If "a" is an array then "a()" will always throw a "Subscript out of range" exception
+                if (target.GetType().IsArray)
+                    throw new SubscriptOutOfRangeException();
+                throw new TypeMismatchException(); // It's not an array and it's not a function, must be a type mismatch
+            }
             else if (target == null)
-                throw new ArgumentException("The target reference may only be null if there are no member accessors or arguments specified");
+                throw new ArgumentException("The target reference may only be null if there are no member accessors or arguments specified (and no brackets in the zero-argument case)");
 
             // If there are no member accessors but there are arguments then
             // 1. Attempt array access (this is the only time that array access is acceptable (o.Names(0) is not allowed by VBScript if the
@@ -521,20 +547,26 @@ namespace CSharpSupport.Implementations
             // 3. If it's not an IDispatch reference, then the arguments will be passed to a method or indexed property that will accept them,
             //    taking into account the IsDefault attribute
             if (!memberAccessorsArray.Any() && arguments.Any())
-                return InvokeGetter(target, null, arguments);
+                return InvokeGetter(target, null, arguments, onlyConsiderMethods: false);
 
             // If there are member accessors but no arguments then we walk down each member accessor, no defaults are considered
+            // - If useBracketsWhereZeroArguments is true then only consider methods in this lookup (eg. "a.Name()" in VBScript requires that "Name"
+            //   be a method.. when calling external code, such as COM components, at least; internally, VBScript considers property getters to be
+            //   functions so "a.Name" and "a.Name()" will both retrieve the value of a public get-able VBScript class property, but if "a" is an
+            //   IDispatch reference, then only IDispatch methods will be acceptable for use). This is the only time where we need to enforce the
+            //   "onlyConsiderMethods" option since it is only when there are zero arguments and the absence or presence of brackets that different
+            //   logic is required (so other calls to WalkMemberAccessors / InvokeGetter leave that option as false).
             if (!arguments.Any())
-                return WalkMemberAccessors(target, memberAccessorsArray);
+                return WalkMemberAccessors(target, memberAccessorsArray, onlyConsiderMethods: useBracketsWhereZeroArguments);
 
             // If there member accessors AND arguments then all-but-the-last member accessors should be walked through as argument-less lookups
             // and the final member accessor should be a method or property call whose name matches the member accessor. Note that the arguments
-            // can never be for an array look up if there are member accessors, it must always be a function or property.
-            target = WalkMemberAccessors(target, memberAccessorsArray.Take(memberAccessorsArray.Length - 1));
+            // can never be for an array look up at this point because there are member accessors, therefor it must be a function or property.
+            target = WalkMemberAccessors(target, memberAccessorsArray.Take(memberAccessorsArray.Length - 1), onlyConsiderMethods: false);
             var finalMemberAccessor = memberAccessorsArray[memberAccessorsArray.Length - 1];
             if (target == null)
                 throw new ArgumentException("Unable to access member \"" + finalMemberAccessor + "\" on null reference");
-            return InvokeGetter(target, finalMemberAccessor, arguments);
+            return InvokeGetter(target, finalMemberAccessor, arguments, onlyConsiderMethods: false);
         }
 
         /// <summary>
@@ -556,7 +588,7 @@ namespace CSharpSupport.Implementations
             if ((optionalMemberAccessor == null) && !arguments.Any())
                 throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
-            var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, arguments.Length);
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, arguments.Length, onlyConsiderMethods: false);
             SetInvoker invoker;
             if (!_setInvokerCache.TryGetValue(cacheKey, out invoker))
             {
@@ -571,25 +603,25 @@ namespace CSharpSupport.Implementations
         /// <summary>
         /// The arguments set must be an array since its contents may be mutated if the call target has "ref" parameters
         /// </summary>
-        private object InvokeGetter(object target, string optionalName, object[] arguments)
+        private object InvokeGetter(object target, string optionalName, object[] arguments, bool onlyConsiderMethods)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
 
-            var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, arguments.Length);
+            var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, arguments.Length, onlyConsiderMethods);
             GetInvoker invoker;
             if (!_getInvokerCache.TryGetValue(cacheKey, out invoker))
             {
-                invoker = GenerateGetInvoker(target, optionalName, arguments);
+                invoker = GenerateGetInvoker(target, optionalName, arguments, onlyConsiderMethods);
                 _getInvokerCache.TryAdd(cacheKey, invoker);
             }
             return invoker(target, arguments);
         }
 
         private delegate object GetInvoker(object target, object[] arguments);
-        private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments)
+        private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments, bool onlyConsiderMethods)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
@@ -601,7 +633,7 @@ namespace CSharpSupport.Implementations
             if (targetType.IsArray)
             {
                 if (targetType.GetArrayRank() != argumentsArray.Length)
-                    throw new ArgumentException("Argument count (" + argumentsArray.Length + ") does not match array rank (" + targetType.GetArrayRank() + ")");
+                    throw new SubscriptOutOfRangeException("Argument count (" + argumentsArray.Length + ") does not match array rank (" + targetType.GetArrayRank() + ")");
 
                 var arrayTargetParameter = Expression.Parameter(typeof(object), "target");
                 var indexesParameter = Expression.Parameter(typeof(object[]), "arguments");
@@ -639,6 +671,8 @@ namespace CSharpSupport.Implementations
             }
 
             var errorMessageMemberDescription = (optionalName == null) ? "default member" : ("member \"" + optionalName + "\"");
+            if (onlyConsiderMethods)
+                errorMessageMemberDescription += " (allowing methods only)";
             if (argumentsArray.Length == 0)
                 errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
             else
@@ -668,7 +702,9 @@ namespace CSharpSupport.Implementations
                     {
                         return IDispatchAccess.Invoke<object>(
                             invokeTarget,
-                            IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
+                            onlyConsiderMethods
+                                ? IDispatchAccess.InvokeFlags.DISPATCH_METHOD 
+                                : IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
                             dispId,
                             invokeArguments.ToArray()
                         );
@@ -1088,7 +1124,7 @@ namespace CSharpSupport.Implementations
             return (int)Math.Round(value, MidpointRounding.ToEven); // This is what effectively what VBScript does
         }
 
-        private object WalkMemberAccessors(object target, IEnumerable<string> memberAccessors)
+        private object WalkMemberAccessors(object target, IEnumerable<string> memberAccessors, bool onlyConsiderMethods)
         {
             if (target == null)
                 throw new ArgumentNullException("target");
@@ -1104,7 +1140,7 @@ namespace CSharpSupport.Implementations
                 if (target == null)
                     throw new ArgumentException("Unable to access member \"" + memberAccessor + "\" on null reference");
 
-                target = InvokeGetter(target, memberAccessor, new object[0]);
+                target = InvokeGetter(target, memberAccessor, new object[0], onlyConsiderMethods);
             }
             return target;
         }
@@ -1438,7 +1474,7 @@ namespace CSharpSupport.Implementations
         private sealed class InvokerCacheKey
         {
             private readonly int _hashCode;
-            public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments)
+            public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments, bool onlyConsiderMethods)
             {
                 if (targetType == null)
                     throw new ArgumentNullException("targetType");
@@ -1448,8 +1484,9 @@ namespace CSharpSupport.Implementations
                 TargetType = targetType;
                 OptionalName = optionalName;
                 NumberOfArguments = numberOfArguments;
+                OnlyConsiderMethods = onlyConsiderMethods;
 
-                _hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString()).GetHashCode();
+                _hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString() + "\n" + onlyConsiderMethods).GetHashCode();
             }
 
             /// <summary>
@@ -1466,6 +1503,14 @@ namespace CSharpSupport.Implementations
             /// This will always be zero or greater
             /// </summary>
             public int NumberOfArguments { get; private set; }
+
+            /// <summary>
+            /// Some member accesses will only consider methods - eg. "a.Name()" requires that "Name" be a method rather than a property on external references. Note
+            /// that VBScript internally treats properties as method, so if "a" is a VBScript class with a public, readable, argument-less property "Name" then "a.Name()"
+            /// will retrieve its value, as "a.Name" will. But if "a" is an IDispatch reference then it will only be queried for methods, so if it has a "Name" property
+            /// then the call will fail if the interface does not also expose that property as a method.
+            /// </summary>
+            public bool OnlyConsiderMethods { get; private set; }
 
             public override int GetHashCode()
             {
