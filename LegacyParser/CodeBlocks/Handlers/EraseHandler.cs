@@ -112,7 +112,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                         argumentsIfAny: null,
                         wrappedInBraces: true
                     ),
-                    bracesRemoved.Count // = numberOfTokensConsumed
+                    bracesRemoved.Count // This is the numberOfTokensConsumed
                 );
             }
 
@@ -132,7 +132,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     .ToArray();
                 
                 // The number of tokens consumed is 2 (for the braces) + the total number of those in the argument expressions + the separator tokens between arguments
-                numberOfTokensInArguments = 2 + targetArgumentsIfAny.Sum(a => a.Tokens.Count()) + (targetArgumentsIfAny.Count() - 1);
+                if (targetArgumentsIfAny.Any())
+                    numberOfTokensInArguments = 2 + targetArgumentsIfAny.Sum(a => a.Tokens.Count()) + (targetArgumentsIfAny.Count() - 1);
+                else
+                    numberOfTokensInArguments = 2; // If there were no arguments then it's ONLY the two tokens required for the braces
             }
             else
             {
@@ -146,7 +149,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     targetArgumentsIfAny,
                     wrappedInBraces: bracesRemoved.Any()
                 ),
-                targetTokens.Length + numberOfTokensInArguments + bracesRemoved.Count // = numberOfTokensConsumer
+                targetTokens.Length + numberOfTokensInArguments + bracesRemoved.Count // This is the numberOfTokensConsumed
             );
         }
     }
