@@ -227,7 +227,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new BuiltInFunctionToken("CDate", 0),
                 new OpenBrace(0),
                 new NameToken("a", 0),
-                new ArgumentSeparatorToken(",", 0),
+                new ArgumentSeparatorToken(0),
                 new NameToken("b", 0),
                 new CloseBrace(0)
 			});

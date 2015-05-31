@@ -409,7 +409,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                 {
                     new NameToken("Test", 0),
                     new NumericValueToken("1", 0),
-                    new ArgumentSeparatorToken(",", 0),
+                    new ArgumentSeparatorToken(0),
                     new NumericValueToken("2",0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -419,7 +419,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
@@ -441,7 +441,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new NameToken("Test", 0),
                     new OperatorToken("-", 0),
                     new NumericValueToken("1", 0),
-                    new ArgumentSeparatorToken(",", 0),
+                    new ArgumentSeparatorToken(0),
                     new NumericValueToken("2",0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -451,7 +451,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken("-1", 0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
@@ -677,7 +677,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                     new OpenBrace(0),
                     new NameToken("i", 0),
                     new CloseBrace(0),
-                    new ArgumentSeparatorToken(",", 0),
+                    new ArgumentSeparatorToken(0),
                     new NameToken("j", 0)
                 };
                 var statement = new Statement(tokens, Statement.CallPrefixOptions.Absent);
@@ -691,7 +691,7 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
                         new OpenBrace(0),
                         new NameToken("i", 0),
                         new CloseBrace(0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NameToken("j", 0),
                         new CloseBrace(0)
                     },

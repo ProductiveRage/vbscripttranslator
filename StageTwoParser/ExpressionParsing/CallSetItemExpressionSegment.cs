@@ -80,7 +80,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 		/// <summary>
 		/// In very particular scenarios, VBScript uses brackets to determine whether a zero-argument call is a method call or a value assignment (when
 		/// setting the return value for a function, for example). This value will be null if there are any arguments and non-null if there are zero
-		/// argument.s
+		/// arguments.
 		/// </summary>
 		public ArgumentBracketPresenceOptions? ZeroArgumentBracketsPresence { get; private set; }
 
@@ -112,7 +112,7 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
 					{
 						combinedTokens.AddRange(arguments[index].AllTokens);
 						if (index < (arguments.Length - 1))
-                            combinedTokens.Add(new ArgumentSeparatorToken(",", lineIndex));
+                            combinedTokens.Add(new ArgumentSeparatorToken(lineIndex));
 					}
                     combinedTokens.Add(new CloseBrace(lineIndex));
 				}

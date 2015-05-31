@@ -19,11 +19,11 @@ namespace VBScriptTranslator.UnitTests.LegacyParser
             {
                 new KeyWordToken("Dim", 0),
                 new NameToken("i", 0),
-                new ArgumentSeparatorToken(",", 0),
+                new ArgumentSeparatorToken(0),
                 new NameToken("j", 0),
-                new ArgumentSeparatorToken(",", 0),
+                new ArgumentSeparatorToken(0),
                 new NameToken("k", 0),
-                new ArgumentSeparatorToken(",", 0),
+                new ArgumentSeparatorToken(0),
                 new NameToken("l", 0)
             };
             (new DimHandler()).Process(tokens);

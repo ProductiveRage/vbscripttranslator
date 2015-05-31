@@ -281,6 +281,15 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             );
         }
 
+        private TranslationResult TryToTranslateErase(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        {
+            var eraseStatement = block as EraseStatement;
+            if (eraseStatement == null)
+                return null;
+
+            throw new NotImplementedException(); // TODO
+        }
+
         private TranslationResult TryToTranslateExit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
             var exitStatement = block as ExitStatement;
@@ -1057,6 +1066,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 				    this.TryToTranslateDim,
 				    this.TryToTranslateDo,
 				    this.TryToTranslateExit,
+                    this.TryToTranslateErase,
 				    this.TryToTranslateFor,
 				    this.TryToTranslateForEach,
 				    this.TryToTranslateIf,

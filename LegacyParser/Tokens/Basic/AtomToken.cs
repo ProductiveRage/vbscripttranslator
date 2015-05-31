@@ -109,7 +109,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             if (isMemberAccessor(content))
                 return new MemberAccessorOrDecimalPointToken(content, lineIndex);
             if (isArgumentSeparator(content))
-                return new ArgumentSeparatorToken(content, lineIndex);
+                return new ArgumentSeparatorToken(lineIndex);
             if (isOpenBrace(content))
                 return new OpenBrace(lineIndex);
             if (isCloseBrace(content))
@@ -264,7 +264,13 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "DO", "WHILE", "UNTIL", "LOOP", "WEND",
                     "RANDOMIZE",
                     "REM",
-                    "GET"
+                    "GET",
+                    
+                    // This is a keyword, not a function, since built-in functions all take by-val arguments
+                    // while this would be an exception if it was identified as a function (relying upon all
+                    // built-in functions only taking by-val arguments allows for some shortcuts in the
+                    // translation process)
+                    "ERASE" 
                 }
             );
         }
@@ -383,7 +389,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "REPLACE",
                     "STRCOMP", "STRING",
                     "LTRIM", "RTRIM", "TRIM",
-                    "SPLIT", "ARRAY", "ERASE", "JOIN",
+                    "SPLIT", "ARRAY", "JOIN",
                     "EVAL", "EXECUTE", "EXECUTEGLOBAL",
                     "FORMATCURRENCY", "FORMATDATETIME", "FORMATNUMBER", "FORMATPERCENT",
                     "FILTER", "GETLOCALE", "GETREF", "INPUTBOX", "LOADPICTURE", "MID", "MSGBOX", "RGB", "SETLOCALE", "SGN", "STRREVERSE", 

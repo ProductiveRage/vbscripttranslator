@@ -156,7 +156,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new NameToken("Test", 0),
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
@@ -194,7 +194,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new NumericValueToken("1", 0),
                         new CloseBrace(0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NumericValueToken("2",0),
                         new CloseBrace(0)
                     },
@@ -656,7 +656,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
                         new OpenBrace(0),
                         new NumericValueToken("0", 0),
                         new CloseBrace(0),
-                        new ArgumentSeparatorToken(",", 0),
+                        new ArgumentSeparatorToken(0),
                         new NumericValueToken("1", 0),
                         new CloseBrace(0),
                         new OperatorToken("+", 0),

@@ -47,7 +47,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                     }
                 }
                 if (!validTokenType)
-                    throw new Exception("Token is not of an allowed type [" + token.GetType().ToString()+ "]");
+                    throw new Exception("Token is not of an allowed type [" + token.GetType().ToString() + " on line " + (token.LineIndex + 1) + "]");
             }
             return token;
         }
@@ -234,7 +234,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                     {
                         bracketCount--;
                         if (bracketCount < 0)
-                            throw new Exception("Invalid bracketing sequence");
+                            throw new ArgumentException("Mismatched brackets on ERASE statement on line " + (token.LineIndex + 1));
                     }
                 }
                 offset++;

@@ -53,6 +53,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                 
                 // This needs to come after FunctionHandler due to the Private/Public keyword overlap
                 new DimHandler(),
+                new EraseHandler(), 
                 new ConstHandler(),
 
                 new DoHandler(),
