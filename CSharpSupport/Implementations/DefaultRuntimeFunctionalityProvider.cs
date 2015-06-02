@@ -1001,6 +1001,8 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("values");
             return values;
         }
+        public object ERASE(ref object target) { throw new NotImplementedException(); }
+        public object ERASE(object target, params object[] arguments) { throw new NotImplementedException(); }
         public object ERASE(object value) { throw new NotImplementedException(); }
         public string JOIN(object value) { return JOIN(value, " "); }
         public string JOIN(object value, object delimiter)

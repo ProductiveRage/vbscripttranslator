@@ -287,7 +287,128 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (eraseStatement == null)
                 return null;
 
-            throw new NotImplementedException(); // TODO
+            // If the ERASE call is invalid (eg. zero targets "ERASE" or multiple "ERASE a, b" or not a possible by-ref target "ERASE (a)" or "ERASE a.Name" or an invalid array /
+            // reference / method call "ERASE a()") then evaluate the targets (to be consistent with VBScript's behaviour) but then raise an error.
+            string exceptionStatementIfTargetConfigurationIsInvalid;
+            if (eraseStatement.Targets.Count() != 1)
+            {
+                exceptionStatementIfTargetConfigurationIsInvalid = string.Format(
+                    "throw new Exception(\"Wrong number of arguments: 'Erase' (line {0})\");",
+                    eraseStatement.KeywordLineIndex + 1
+                );
+            }
+            else
+            {
+                var eraseTargetToValidate = eraseStatement.Targets.Single();
+                if ((eraseTargetToValidate.ArgumentsIfAny != null) && !eraseTargetToValidate.ArgumentsIfAny.Any())
+                {
+                    // "Erase a()" is invalid, brackets may only be present if "a" is an array and indexes are required to specify the element to erase (which also must be an array)
+                    exceptionStatementIfTargetConfigurationIsInvalid = string.Format(
+                        "throw new SubscriptOutOfRangeException(\"'Erase' (line {0})\");",
+                        eraseStatement.KeywordLineIndex + 1
+                    );
+                }
+                else if ((eraseTargetToValidate.WrappedInBraces) || (eraseTargetToValidate.Target.Tokens.Count() > 1) || !(eraseTargetToValidate.Target.Tokens.Single() is NameToken))
+                {
+                    // "Erase (a)" is invalid, it would result in "a" being passed by-val, which would be senseless when trying to erase a dynamic array
+                    // "Erase a.Roles" is invalid, the target must be a direct reference (again, since an indirect reference like this would not be passed by-ref)
+                    exceptionStatementIfTargetConfigurationIsInvalid = string.Format(
+                        "throw new TypeMismatchException(\"'Erase' (line {0})\");",
+                        eraseStatement.KeywordLineIndex + 1
+                    );
+                }
+                else
+                    exceptionStatementIfTargetConfigurationIsInvalid = null;
+            }
+            if (exceptionStatementIfTargetConfigurationIsInvalid != null)
+            {
+                foreach (var target in eraseStatement.Targets)
+                {
+                    var targetExpressionTokens = target.Target.Tokens.ToList();
+                    if (target.ArgumentsIfAny != null)
+                    {
+                        targetExpressionTokens.Add(new OpenBrace(targetExpressionTokens.Last().LineIndex));
+                        foreach (var indexedArgument in target.ArgumentsIfAny.Select((a, i) => new { Index = i, Argument = a }))
+                        {
+                            if (indexedArgument.Index > 0)
+                                targetExpressionTokens.Add(new ArgumentSeparatorToken(targetExpressionTokens.Last().LineIndex));
+                            targetExpressionTokens.AddRange(indexedArgument.Argument.Tokens);
+                        }
+                        targetExpressionTokens.Add(new CloseBrace(targetExpressionTokens.Last().LineIndex));
+                    }
+                    var translatedTarget = _statementTranslator.Translate(
+                        new Expression(targetExpressionTokens),
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified,
+                        _logger.Warning
+                    );
+                    var undeclaredVariablesReferencedByTarget = translatedTarget.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
+                    foreach (var undeclaredVariable in undeclaredVariablesReferencedByTarget)
+                        _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+                    translationResult = translationResult.Add(new TranslatedStatement(
+                        string.Format(
+                            "var {0} = {1};",
+                            _tempNameGenerator(new CSharpName("invalidEraseTarget"), scopeAccessInformation).Name,
+                            translatedTarget.TranslatedContent
+                        ),
+                        indentationDepth
+                    ));
+                    translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesReferencedByTarget);
+                    translationResult = translationResult.Add(new TranslatedStatement(exceptionStatementIfTargetConfigurationIsInvalid, indentationDepth));
+                    return translationResult;
+                }
+            }
+
+            // If there are no target arguments then we use the ERASE signature that takes only the target (by-ref). Otherwise call the signature that tries to map the
+            // arguments as indexes on an array and then erases that element (which must also be an array) - in this case the target need not be passed by-ref.
+            // - We know that the ArgumentsIfAny set will be null if there are no items in it, since a non-null-but-empty set is an error condition handled above
+            var singleEraseTarget = eraseStatement.Targets.Single();
+            var translatedSingleEraseTarget = _statementTranslator.Translate(
+                singleEraseTarget.Target,
+                scopeAccessInformation,
+                ExpressionReturnTypeOptions.NotSpecified,
+                _logger.Warning
+            );
+            var undeclaredVariablesInSingleEraseTarget = translatedSingleEraseTarget.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter).ToArray();
+            foreach (var undeclaredVariable in undeclaredVariablesInSingleEraseTarget)
+                _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+            translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesInSingleEraseTarget);
+            if (singleEraseTarget.ArgumentsIfAny == null)
+            {
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}.ERASE(ref {1});",
+                        _supportRefName.Name,
+                        translatedSingleEraseTarget.TranslatedContent
+                    ),
+                    indentationDepth
+                ));
+            }
+            else
+            {
+                var translatedArguments = singleEraseTarget.ArgumentsIfAny
+                    .Select(argument => _statementTranslator.Translate(
+                        argument,
+                        scopeAccessInformation,
+                        ExpressionReturnTypeOptions.NotSpecified,
+                        _logger.Warning
+                    ))
+                    .ToArray(); // Going to evaluate everything twice, might as well ToArray it
+                translationResult = translationResult.Add(new TranslatedStatement(
+                    string.Format(
+                        "{0}.ERASE({1}, {2});",
+                        _supportRefName.Name,
+                        translatedSingleEraseTarget.TranslatedContent,
+                        string.Join(", ", translatedArguments.Select(a => a.TranslatedContent))
+                    ),
+                    indentationDepth
+                ));
+                var undeclaredVariablesInArguments = translatedArguments.SelectMany(arg => arg.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter)).ToArray();
+                foreach (var undeclaredVariable in undeclaredVariablesInArguments)
+                    _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+                translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesInArguments);
+            }
+            return translationResult;
         }
 
         private TranslationResult TryToTranslateExit(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
