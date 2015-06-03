@@ -10,6 +10,8 @@ namespace CSharpSupport.Exceptions
             : base(GetMessage(basicErrorDescription, additionalInformationIfAny), innerException) { }
 
         protected SpecificVBScriptException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+
+        public abstract int ErrorNumber { get; }
         
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {

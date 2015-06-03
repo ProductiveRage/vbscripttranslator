@@ -558,7 +558,7 @@ namespace CSharpSupport.Implementations
                 throw new TypeMismatchException(); // It's not an array and it's not a function, must be a type mismatch
             }
             else if (target == null)
-                throw new ArgumentException("The target reference may only be null if there are no member accessors or arguments specified (and no brackets in the zero-argument case)");
+                throw new TypeMismatchException("The target reference may only be null if there are no member accessors or arguments specified (and no brackets in the zero-argument case)");
 
             // If there are no member accessors but there are arguments then
             // 1. Attempt array access (this is the only time that array access is acceptable (o.Names(0) is not allowed by VBScript if the

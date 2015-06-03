@@ -591,33 +591,61 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             // The only BuiltInValueToken that is acceptable here is "Err", since it is the only one that has members that may be accessed. If any other builtin
-            // value is accessed in this manner then an "Object required" error needs to be raised at runtime.
+            // value is accessed in this manner then an "Object required" error needs to be raised at runtime (this will be handled by the code that is generated
+            // since it will likely have use the support library's CALL function which will realise that there is no way to access a property on a value type)
             var targetBuiltInValue = firstMemberAccessToken as BuiltInValueToken;
-            bool targetIsErrReference;
-            if (targetBuiltInValue != null)
+            var targetIsErrReference = (targetBuiltInValue != null) && targetBuiltInValue.Content.Equals("Err", StringComparison.OrdinalIgnoreCase);
+
+            // If the target reference IS "Err", then there is a special case of "Err.Raise" to consider. If Err.Raise is called with the correct number of arguments
+            // then it may be mapped directly onto the support function (either 1, 2 or 3 arguments must be present). If a different number of arguments are present
+            // then the target still needs rewriting from "Err.Raise" to "_.RAISEERROR", but it will have to go through the CALL function.
+            TranslatedStatementContentDetailsWithContentType raiseErrorStatementIfApplicable;
+            string targetReference;
+            var memberAccessors = callExpressionSegment.MemberAccessTokens.Skip(1);
+            if (targetIsErrReference)
             {
-                if (!targetBuiltInValue.Content.Equals("Err", StringComparison.OrdinalIgnoreCase))
+                if ((memberAccessors.Count() == 1) && (memberAccessors.Single() is NameToken) && (memberAccessors.Single().Content.Equals("RAISE", StringComparison.OrdinalIgnoreCase)))
                 {
-                    // TODO: Emit some sort of error? "Object required: {0}"
-                    // - How will this work with nested content (eg. "F1(vbObjectError.Raise)", the exception can't just be raised right there)
-                    // - Maybe just piggy-back onto ERR.RAISE???
-                    throw new NotImplementedException();
+                    var raiseErrorFunctionName = "RAISEERROR";
+                    var raiseErrorFunctionToken = new NameToken(raiseErrorFunctionName, memberAccessors.Single().LineIndex);
+                    var raiseErrorSupportFunction = GetDetailsOfBuiltInFunction(raiseErrorFunctionToken, callExpressionSegment.Arguments.Count());
+                    if (raiseErrorSupportFunction.DesiredNumberOfArgumentsMatchedAgainst != null)
+                        raiseErrorStatementIfApplicable = TranslateAsDirectSupportFunctionCall(raiseErrorSupportFunction, callExpressionSegment.Arguments, scopeAccessInformation);
+                    else
+                    {
+                        // Can't call RAISEERROR directly (argument mismatch that will cause a compile error - so we need to use CALL, which will push the error down
+                        // to runtime) but we still need to rewrite the request from "Err.Raise" to "_.RAISEERROR"
+                        raiseErrorStatementIfApplicable = null;
+                        memberAccessors = new[] { raiseErrorFunctionToken };
+                    }
+                    targetReference = _supportRefName.Name;
                 }
-                targetIsErrReference = true;
+                else
+                {
+                    targetReference = _supportRefName.Name + ".ERR";
+                    raiseErrorStatementIfApplicable = null;
+                }
             }
             else
-                targetIsErrReference = false;
-
-            var targetReference = targetIsErrReference ? (_supportRefName.Name + ".ERR") : _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
-            var result = TranslateCallExpressionSegment(
-                targetReference,
-                callExpressionSegment.MemberAccessTokens.Skip(1),
-                callExpressionSegment.Arguments,
-                callExpressionSegment.ZeroArgumentBracketsPresence,
-                scopeAccessInformation,
-                indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
-                targetIsKnownToBeBuiltInFunction: targetIsErrReference // Don't try to rewrite the target reference if it's the Err reference, we've already got it correct
-            );
+            {
+                targetReference = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
+                raiseErrorStatementIfApplicable = null;
+            }
+            TranslatedStatementContentDetailsWithContentType result;
+            if (raiseErrorStatementIfApplicable != null)
+                result = raiseErrorStatementIfApplicable;
+            else
+            {
+                result = TranslateCallExpressionSegment(
+                    targetReference,
+                    memberAccessors,
+                    callExpressionSegment.Arguments,
+                    callExpressionSegment.ZeroArgumentBracketsPresence,
+                    scopeAccessInformation,
+                    indexInCallSet: 0, // Since this is a single CallExpressionSegment the indexInCallSet value to pass is always zero
+                    targetIsKnownToBeBuiltInFunction: targetIsErrReference // Don't try to rewrite the target reference if it's the Err reference, we've already got it correct
+                );
+            }
             var targetNameToken = firstMemberAccessToken as NameToken;
             if (targetNameToken != null)
             {
@@ -636,7 +664,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         /// of these paramaters matches the specified desiredNumberOfArguments, then the return value will have a DesiredNumberOfArgumentsMatchedAgainst value
         /// that is consistent with desiredNumberOfArguments, otherwise it will be null. This information affects how the support function may be called.
         /// </summary>
-        private BuiltInFunctionDetails GetDetailsOfBuiltInFunction(BuiltInFunctionToken builtInFunctionToken, int desiredNumberOfArguments)
+        private BuiltInFunctionDetails GetDetailsOfBuiltInFunction(IToken builtInFunctionToken, int desiredNumberOfArguments)
         {
             if (builtInFunctionToken == null)
                 throw new ArgumentNullException("builtInFunctionToken");
@@ -955,7 +983,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // - eg. don't emit "CDBL((Int16)1)" since it's going to return a double so the Int16 type information is useless, "CDBL(1)" is no less
                 // useful while being more succinct (and more natural when compared to the source it's being translated from)
                 var argumentValueAsNumericConstant = TryToGetExpressionAsSingleNumericValueExpressionSegment(argumentValue);
-                if ((argumentValueAsNumericConstant != null) && function.Token.GuaranteedToReturnNumericContent)
+                if ((argumentValueAsNumericConstant != null) && (function.Token is BuiltInFunctionToken) && ((BuiltInFunctionToken)function.Token).GuaranteedToReturnNumericContent)
                 {
                     supportFunctionCallContent.Append(argumentValueAsNumericConstant.Token.Value);
                     continue;
@@ -1618,7 +1646,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
         private class BuiltInFunctionDetails
         {
-            public BuiltInFunctionDetails(BuiltInFunctionToken token, string supportFunctionName, int? desiredNumberOfArgumentsMatchedAgainst, Type returnTypeIfKnown)
+            public BuiltInFunctionDetails(IToken token, string supportFunctionName, int? desiredNumberOfArgumentsMatchedAgainst, Type returnTypeIfKnown)
             {
                 if (token == null)
                     throw new ArgumentNullException("token");
@@ -1637,7 +1665,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             /// <summary>
             /// This will never be null
             /// </summary>
-            public BuiltInFunctionToken Token { get; private set; }
+            public IToken Token { get; private set; }
 
             /// <summary>
             /// This will never be null or blank

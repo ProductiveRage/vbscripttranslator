@@ -15,6 +15,8 @@ namespace CSharpSupport.Exceptions
         public ObjectRequiredException(string additionalInformationIfAny, Exception innerException = null)
             : base(BASIC_ERROR_DESCRIPTION, additionalInformationIfAny, innerException) { }
 
+        public override int ErrorNumber { get { return 424; } } // From http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbs241.htm
+
         protected ObjectRequiredException(SerializationInfo info, StreamingContext context) : base(info, context) { }
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {

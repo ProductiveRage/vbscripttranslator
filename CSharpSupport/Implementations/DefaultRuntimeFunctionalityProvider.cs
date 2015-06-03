@@ -1337,7 +1337,14 @@ namespace CSharpSupport.Implementations
             get
             {
                 var currentError = _trappedErrorIfAny;
-                return (currentError == null) ? ErrorDetails.NoError : new ErrorDetails(/* TODO: Get a proper number value */ 1, currentError.Source, currentError.Message);
+                if (currentError == null)
+                    return ErrorDetails.NoError;
+                var currentErrorAsVBScriptSpecificError = currentError as SpecificVBScriptException;
+                return new ErrorDetails(
+                    (currentErrorAsVBScriptSpecificError != null) ? currentErrorAsVBScriptSpecificError.ErrorNumber : 1, // TODO: Still need a better way to get error number for non-VBScript-specific errors
+                    currentError.Source,
+                    currentError.Message
+                );
             }
         }
 
@@ -1355,6 +1362,40 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("e");
 
             throw e;
+        }
+
+        // These method signatures have to return a value since these are what are called when the source code includes "Err.Raise 123", which VBScript allows
+        // to exist in the form "If (Err.Raise(123)) Then" - if these didn't return values then there could be compile errors in the generated C# that were
+        // valid VBScript.
+        public object RAISEERROR(object number) { return RAISEERROR(number, ""); }
+        public object RAISEERROR(object number, object source) { return RAISEERROR(number, source, ""); }
+        public object RAISEERROR(object number, object source, object description)
+        {
+            // This is another function (like ERASE) that doesn't give many clues - almost every failure is a "Type mismatch" (Null values do not result in
+            // "Invalid use of null" and Nothing does not result in "Object variable not set"). However, if "number" is zero then the other two arguments
+            // are not evaluated - this only happens if the value for number is ok. And if number is zero then it DOES get a different error :S
+            int numericNumber;
+            try
+            {
+                numericNumber = CLNG(number);
+            }
+            catch(Exception e)
+            {
+                throw new TypeMismatchException("Err.Raise", e);
+            }
+            if (numericNumber == 0)
+                throw new InvalidProcedureCallOrArgumentException("Err.Raise");
+            string sourceString, descriptionString;
+            try
+            {
+                sourceString = STR(source);
+                descriptionString = STR(description);
+            }
+            catch(Exception e)
+            {
+                throw new TypeMismatchException("Err.Raise", e);
+            }
+            throw new CustomException(numericNumber, sourceString, descriptionString);
         }
 
         public void SETERROR(Exception e)

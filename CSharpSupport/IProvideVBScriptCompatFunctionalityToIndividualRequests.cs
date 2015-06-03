@@ -244,6 +244,13 @@ namespace CSharpSupport
         /// </summary>
         void RAISEERROR(Exception e);
 
+        // These method signatures have to return a value since these are what are called when the source code includes "Err.Raise 123", which VBScript allows
+        // to exist in the form "If (Err.Raise(123)) Then" - if these didn't return values then there could be compile errors in the generated C# that were
+        // valid VBScript.
+        object RAISEERROR(object number);
+        object RAISEERROR(object number, object source);
+        object RAISEERROR(object number, object source, object description);
+
         void CLEARANYERROR();
         void SETERROR(Exception e);
 
