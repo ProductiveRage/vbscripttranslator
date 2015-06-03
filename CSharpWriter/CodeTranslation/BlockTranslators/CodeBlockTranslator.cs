@@ -364,7 +364,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             // If there are no target arguments then we use the ERASE signature that takes only the target (by-ref). Otherwise call the signature that tries to map the
-            // arguments as indexes on an array and then erases that element (which must also be an array) - in this case the target need not be passed by-ref.
+            // arguments as indices on an array and then erases that element (which must also be an array) - in this case the target need not be passed by-ref.
             // - We know that the ArgumentsIfAny set will be null if there are no items in it, since a non-null-but-empty set is an error condition handled above
             var singleEraseTarget = eraseStatement.Targets.Single();
             var translatedSingleEraseTarget = _statementTranslator.Translate(

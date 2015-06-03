@@ -1001,9 +1001,47 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("values");
             return values;
         }
-        public object ERASE(ref object target) { throw new NotImplementedException(); }
-        public object ERASE(object target, params object[] arguments) { throw new NotImplementedException(); }
-        public object ERASE(object value) { throw new NotImplementedException(); }
+        public void ERASE(ref object target)
+        {
+            // ERASE is more like a keyword in VBScript than a function - none of the builtin VBScript functions take arguments by-ref and nearly all of them apply a lot of
+            // similar handling to inputs such as raising invalid-use-of-null errors where VBScript Null is not expected and considering parameter-less default properties
+            // and function when expected a value type and receiving an object reference. ERASE does not do that; if the target is not an array then it's a type mismatch,
+            // doesn't matter whether it's Empty, Null, Nothing, a number, a string, a date, an object reference with a default parameterless property; it's type mismatch!
+            if ((target == null) || !target.GetType().IsArray)
+                throw new TypeMismatchException("'Erase'");
+            target = new object[0];
+        }
+        public void ERASE(object target, params object[] arguments)
+        {
+            // This variation of ERASE is similarly strict to the one above (target must be an array or it's a type mismatch, no matter what!) but the arguments are then
+            // evaluated and interpreted as array index values - if this fails then it's a type mismatch as well. The indices must point at an element in the array that
+            // is also an array, that is what will get erased. If the argument count does not match the array rank then it's a subscript-out-of-range failure (this
+            // includes the case of zero arguments, which is what "ERASE a()" is translated into - it needs to get to this point at runtime so that the type of
+            // "a" can be checked, which determines whether the failure is a type-mismatch or subscript-out-of-range).
+            var targetArray = target as Array;
+            if (targetArray == null)
+                throw new TypeMismatchException("'Erase'");
+            if ((arguments == null) || (arguments.Length == 0))
+                throw new SubscriptOutOfRangeException("'Erase'");
+            var numericArguments = arguments.Select(a => CLNG(a, "'Erase'")).ToArray();
+            if (targetArray.Rank != numericArguments.Length)
+                throw new SubscriptOutOfRangeException("'Erase'");
+            object elementValue;
+            try
+            {
+                elementValue = targetArray.GetValue(numericArguments);
+            }
+            catch (Exception e)
+            {
+                throw new SubscriptOutOfRangeException("'Erase'", e);
+            }
+            if ((elementValue as Array) == null)
+            {
+                // The element in the target array must also so be an array since that is what's effectively getting erased
+                throw new TypeMismatchException("'Erase'");
+            }
+            targetArray.SetValue(new object[0], numericArguments);
+        }
         public string JOIN(object value) { return JOIN(value, " "); }
         public string JOIN(object value, object delimiter)
         {

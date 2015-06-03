@@ -21,8 +21,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 yield return new object[] { "Simplest case: ERASE a", "ERASE a", new[] { "_.ERASE(ref _env.a);" } };
                 yield return new object[] { "Simplest case: ERASE a (with CALL keyword)", "CALL ERASE(a)", new[] { "_.ERASE(ref _env.a);" } };
 
-                // If the target is specified with arguments, then it must be an array where the arguments are indexes. The non-by-ref ERASE method signature is used and validation of the
-                // target (whether it's an array and whether the indexes are valid) is handled at runtime.
+                // If the target is specified with arguments, then it must be an array where the arguments are indices. The non-by-ref ERASE method signature is used and validation of the
+                // target (whether it's an array and whether the indices are valid) is handled at runtime.
                 yield return new object[] { "Target with arguments: ERASE a(0)", "ERASE a(0)", new[] { "_.ERASE(_env.a, (Int16)0);" } };
                 yield return new object[] { "Target with arguments: CALL ERASE(a(0)) (with CALL keyword)", "CALL ERASE(a(0))", new[] { "_.ERASE(_env.a, (Int16)0);" } };
 

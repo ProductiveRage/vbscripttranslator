@@ -175,8 +175,8 @@ namespace CSharpSupport
         object VARTYPE(object value);
         // - Array functions
         object ARRAY(params object[] value);
-        object ERASE(ref object target);
-        object ERASE(object target, params object[] arguments);
+        void ERASE(ref object target);
+        void ERASE(object target, params object[] arguments);
         string JOIN(object value);
         string JOIN(object value, object delimeter);
         int LBOUND(object value, object dimension);

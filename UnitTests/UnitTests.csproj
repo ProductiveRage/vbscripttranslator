@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpSupport\DateParserTests.cs" />
+    <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ERASE.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DATEADD.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_TIMEVALUE.cs" />
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DATEVALUE.cs" />
