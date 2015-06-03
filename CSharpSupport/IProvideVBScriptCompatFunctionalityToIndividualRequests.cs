@@ -223,9 +223,12 @@ namespace CSharpSupport
 
         object NEWREGEXP(); // TODO
 
-        object ERR { get; }
+        /// <summary>
+        /// This will never be null (if there is no error then an ErrorDetails with Number zero will be returned)
+        /// </summary>
+        ErrorDetails ERR { get; }
+        
         /* TODO
-            "ERR", // This is NOT a function (it's a value)
             "TIMER", // This IS a function (as are all of the below)
          */
 

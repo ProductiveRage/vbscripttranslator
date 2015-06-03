@@ -48,6 +48,11 @@ namespace CSharpSupport
         object OBJ(object o, string optionalExceptionMessageForInvalidContent = null);
 
         /// <summary>
+        /// Reduce a reference down to a boolean value type, in the same ways that VBScript would attempt.
+        /// </summary>
+        bool BOOL(object o, string optionalExceptionMessageForInvalidContent = null);
+
+        /// <summary>
         /// Reduce a reference down to a numeric value type, applying VBScript defaults logic and then trying to parse as a number - throwing
         /// an exception if this is not possible. Null (aka VBScript Empty) is acceptable and will result in zero being returned. DBNull.Value
         /// (aka VBScript Null) is not acceptable and will result in an exception being raised, as any other invalid value (eg. a string or

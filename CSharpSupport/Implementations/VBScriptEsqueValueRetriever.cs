@@ -88,6 +88,31 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
+        /// Reduce a reference down to a boolean value type, in the same ways that VBScript would attempt.
+        /// </summary>
+        public bool BOOL(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            o = VAL(o, optionalExceptionMessageForInvalidContent);
+            if (o == null)
+                return false;
+            if (o == DBNull.Value)
+                throw new InvalidUseOfNullException(optionalExceptionMessageForInvalidContent);
+            if (o is bool)
+                return (bool)o;
+            if (o is DateTime)
+                return ((DateTime)o) != VBScriptConstants.ZeroDate;
+            var valueString = o.ToString();
+            if (valueString.Equals("true", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (valueString.Equals("false", StringComparison.OrdinalIgnoreCase))
+                return false;
+            double valueNumber;
+            if (!double.TryParse(valueString, out valueNumber))
+                throw new TypeMismatchException(optionalExceptionMessageForInvalidContent);
+            return valueNumber != 0;
+        }
+
+        /// <summary>
         /// This wraps a call to NUM and allows an exception to be made for DBNull.Value (VBScript Null) in that the same value will be returned
         /// (it is not a valid input for NUM).
         /// </summary>
@@ -443,17 +468,12 @@ namespace CSharpSupport.Implementations
             if (o == null)
                 return false;
 
-            // Try to extract the value-type data from the reference, dealing with the false-Empty/Null cases first
+            // The BOOL function will not accept VBScript Null since it can't strictly be translated into a boolean, in the context of an IF
+            // condition it can be taken to mean false, though
             var value = VAL(o);
-            if ((value == null) || (value == DBNull.Value))
+            if (value == DBNull.Value)
                 return false;
-
-            // Then fall back to parsing as a string
-            var valueString = value.ToString();
-            double parsedValue;
-            if (!double.TryParse(valueString, out parsedValue))
-                throw new TypeMismatchException("[string \"" + valueString + "\"] (unable to translate into boolean for IF statement)");
-            return parsedValue != 0;
+            return BOOL(value);
         }
 
         /// <summary>

@@ -425,28 +425,7 @@ namespace CSharpSupport.Implementations
         // - Type conversions
         public byte CBYTE(object value) { return CBYTE(value, "'CByte'"); }
         private byte CBYTE(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<byte>(value, exceptionMessageForInvalidContent, Convert.ToByte); }
-        public bool CBOOL(object value)
-        {
-            value = VAL(value, "'CBool'");
-            if (value == null)
-                return false;
-            if (value == DBNull.Value)
-                throw new InvalidUseOfNullException("'CBool'");
-            if (value is bool)
-                return (bool)value;
-            if (value is DateTime)
-                return ((DateTime)value) != VBScriptConstants.ZeroDate;
-            var valueString = value.ToString();
-            if (valueString.Equals("true", StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (valueString.Equals("false", StringComparison.OrdinalIgnoreCase))
-                return false;
-            double valueNumber;
-            if (!double.TryParse(valueString, out valueNumber))
-                throw new TypeMismatchException("'CBool'");
-            return valueNumber != 0;
-
-        }
+        public bool CBOOL(object value) { return _valueRetriever.BOOL(value, "'CBool'"); }
         public decimal CCUR(object value) { return CCUR(value, "'CCur'"); }
         private decimal CCUR(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<decimal>(value, exceptionMessageForInvalidContent, Convert.ToDecimal); }
         public double CDBL(object value)
@@ -1350,8 +1329,17 @@ namespace CSharpSupport.Implementations
 
         public object NEWREGEXP() { throw new NotImplementedException("NEWREGEXP not yet implemented"); } // TODO
 
-        // TODO: Consider using error translations from http://blogs.msdn.com/b/ericlippert/archive/2004/08/25/error-handling-in-vbscript-part-three.aspx
-        public object ERR { get { throw new NotImplementedException("ERR not implemented yet"); } } // TODO
+        /// <summary>
+        /// This will never be null (if there is no error then an ErrorDetails with Number zero will be returned)
+        /// </summary>
+        public ErrorDetails ERR
+        {
+            get
+            {
+                var currentError = _trappedErrorIfAny;
+                return (currentError == null) ? ErrorDetails.NoError : new ErrorDetails(/* TODO: Get a proper number value */ 1, currentError.Source, currentError.Message);
+            }
+        }
 
         /// <summary>
         /// There are some occassions when the translated code needs to throw a runtime exception based on the content of the source code - eg.
@@ -1661,6 +1649,10 @@ namespace CSharpSupport.Implementations
         public object OBJ(object o, string optionalExceptionMessageForInvalidContent = null)
         {
             return _valueRetriever.OBJ(o, optionalExceptionMessageForInvalidContent);
+        }
+        public bool BOOL(object o, string optionalExceptionMessageForInvalidContent = null)
+        {
+            return _valueRetriever.BOOL(o, optionalExceptionMessageForInvalidContent);
         }
         public object NUM(object o, params object[] numericValuesTheTypeMustBeAbleToContain)
         {

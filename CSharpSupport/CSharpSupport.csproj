@@ -40,6 +40,7 @@
     <Compile Include="Compat\BasicIReflectImplementation.cs" />
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
+    <Compile Include="ErrorDetails.cs" />
     <Compile Include="DateParser.cs" />
     <Compile Include="DefaultRuntimeSupportClassFactory.cs" />
     <Compile Include="Exceptions\InvalidProcedureCallOrArgumentException.cs" />
