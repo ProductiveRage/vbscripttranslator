@@ -18,10 +18,17 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 throw new ArgumentNullException("tokens");
 
             bool includesCallKeyword;
+            int numberOfKeywordTokens;
             if (base.checkAtomTokenPattern(tokens, new[] { "CALL", "ERASE" }, false))
+            {
                 includesCallKeyword = true;
+                numberOfKeywordTokens = 2;
+            }
             else if (base.checkAtomTokenPattern(tokens, new[] { "ERASE" }, false))
+            {
                 includesCallKeyword = false;
+                numberOfKeywordTokens = 1;
+            }
             else
                 return null;
 
@@ -32,26 +39,38 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             //   re-parsing. The getEntryList function will throw an exception if arguments are mismatched, indicating invalid VBScript. The translation process
             //   relies upon the source code not having any VBScript compile errors (in some places it tries to be helpful with explaining where there would be
             //   compile failures in the VBScript interpreter and in other places - like here - it pretty much just assume valid content.
-            var keywordLineIndex = tokens[0].LineIndex;
-            var targetExpressionsTokenSets = base.getEntryList(tokens, offset: (includesCallKeyword ? 2 : 1), endMarker: new EndOfStatementNewLineToken(tokens.First().LineIndex));
-            if (includesCallKeyword)
+            int numberOfTokensConsumedInStatement;
+            IEnumerable<Tuple<EraseStatement.TargetDetails, int>> targetDetails;
+            if (tokens.Count == numberOfKeywordTokens)
             {
-                if (targetExpressionsTokenSets.Count != 1)
-                    throw new Exception("Expected only a single argument token set to have been extracted when CALL is present, since brackets should have wrapped all argument(s) in valid VBScript");
-                var argumentTokens = targetExpressionsTokenSets[0];
-                var terminator = new EndOfStatementNewLineToken(argumentTokens.Last().LineIndex);
-                targetExpressionsTokenSets = base.getEntryList(
-                    argumentTokens.Skip(1).Take(argumentTokens.Count - 2).Concat(new[] { terminator }),
-                    0,
-                    terminator
-                );
+                // It's a runtime error if there is an ERASE statement with no targets. But if it's the last statement then there may not be any more tokens to
+                // consume - if so, don't try to look ahead!
+                numberOfTokensConsumedInStatement = numberOfKeywordTokens;
+                targetDetails = new Tuple<EraseStatement.TargetDetails, int>[0];
             }
-            var targetDetails = targetExpressionsTokenSets.Select(targetTokens => GetTargetExpressionDetailsWithNumberOfTokensConsumed(targetTokens));
-            var numberOfTokensConsumedInStatement =
-                /* The keyword token(s) */ (includesCallKeyword ? 2 : 1) +
-                /* The individual target expressions tokens */ targetDetails.Sum(tokenSet => tokenSet.Item2) +
-                /* Any argument separaters between target expressions */ (targetExpressionsTokenSets.Count - 1) +
-                /* Any extra brackets we removed due to CALL being present */ (includesCallKeyword ? 2 : 0);
+            else
+            {
+                var targetExpressionsTokenSets = base.getEntryList(tokens, offset: numberOfKeywordTokens, endMarker: new EndOfStatementNewLineToken(tokens.First().LineIndex));
+                if (includesCallKeyword)
+                {
+                    if (targetExpressionsTokenSets.Count != 1)
+                        throw new Exception("Expected only a single argument token set to have been extracted when CALL is present, since brackets should have wrapped all argument(s) in valid VBScript");
+                    var argumentTokens = targetExpressionsTokenSets[0];
+                    var terminator = new EndOfStatementNewLineToken(argumentTokens.Last().LineIndex);
+                    targetExpressionsTokenSets = base.getEntryList(
+                        argumentTokens.Skip(1).Take(argumentTokens.Count - 2).Concat(new[] { terminator }),
+                        0,
+                        terminator
+                    );
+                }
+                targetDetails = targetExpressionsTokenSets.Select(targetTokens => GetTargetExpressionDetailsWithNumberOfTokensConsumed(targetTokens));
+                numberOfTokensConsumedInStatement =
+                    /* The keyword token(s) */ numberOfKeywordTokens +
+                    /* The individual target expressions tokens */ targetDetails.Sum(tokenSet => tokenSet.Item2) +
+                    /* Any argument separaters between target expressions */ (targetExpressionsTokenSets.Count - 1) +
+                    /* Any extra brackets we removed due to CALL being present */ (includesCallKeyword ? 2 : 0);
+            }
+            var keywordLineIndex = tokens[0].LineIndex;
             tokens.RemoveRange(0, numberOfTokensConsumedInStatement);
             if (tokens.Any())
             {

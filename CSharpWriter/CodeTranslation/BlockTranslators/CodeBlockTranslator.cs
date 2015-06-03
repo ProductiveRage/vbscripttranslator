@@ -300,15 +300,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             else
             {
                 var eraseTargetToValidate = eraseStatement.Targets.Single();
-                if ((eraseTargetToValidate.ArgumentsIfAny != null) && !eraseTargetToValidate.ArgumentsIfAny.Any())
-                {
-                    // "Erase a()" is invalid, brackets may only be present if "a" is an array and indexes are required to specify the element to erase (which also must be an array)
-                    exceptionStatementIfTargetConfigurationIsInvalid = string.Format(
-                        "throw new SubscriptOutOfRangeException(\"'Erase' (line {0})\");",
-                        eraseStatement.KeywordLineIndex + 1
-                    );
-                }
-                else if ((eraseTargetToValidate.WrappedInBraces) || (eraseTargetToValidate.Target.Tokens.Count() > 1) || !(eraseTargetToValidate.Target.Tokens.Single() is NameToken))
+                if ((eraseTargetToValidate.WrappedInBraces) || (eraseTargetToValidate.Target.Tokens.Count() > 1) || !(eraseTargetToValidate.Target.Tokens.Single() is NameToken))
                 {
                     // "Erase (a)" is invalid, it would result in "a" being passed by-val, which would be senseless when trying to erase a dynamic array
                     // "Erase a.Roles" is invalid, the target must be a direct reference (again, since an indirect reference like this would not be passed by-ref)
@@ -318,7 +310,22 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     );
                 }
                 else
-                    exceptionStatementIfTargetConfigurationIsInvalid = null;
+                {
+                    // Ensure that the single NameToken in the single erase target is a variable (a function call will result in a "Type mismatch" error)
+                    var singleTargetNameToken = (NameToken)eraseTargetToValidate.Target.Tokens.Single();
+                    var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(_nameRewriter.GetMemberAccessTokenName(singleTargetNameToken), _nameRewriter);
+                    if ((targetReferenceDetails != null) && (targetReferenceDetails.ReferenceType != ReferenceTypeOptions.Variable))
+                    {
+                        // Note: If the variable has not been declared then targetReferenceDetails will be null, but that means that it will become an undeclared variable later on,
+                        // it means that it's definitely not a function
+                        exceptionStatementIfTargetConfigurationIsInvalid = string.Format(
+                            "throw new TypeMismatchException(\"'Erase' (line {0})\");",
+                            eraseStatement.KeywordLineIndex + 1
+                        );
+                    }
+                    else
+                        exceptionStatementIfTargetConfigurationIsInvalid = null;
+                }
             }
             if (exceptionStatementIfTargetConfigurationIsInvalid != null)
             {
@@ -354,9 +361,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         indentationDepth
                     ));
                     translationResult = translationResult.AddUndeclaredVariables(undeclaredVariablesReferencedByTarget);
-                    translationResult = translationResult.Add(new TranslatedStatement(exceptionStatementIfTargetConfigurationIsInvalid, indentationDepth));
-                    return translationResult;
                 }
+                translationResult = translationResult.Add(new TranslatedStatement(exceptionStatementIfTargetConfigurationIsInvalid, indentationDepth));
+                return translationResult;
             }
 
             // If there are no target arguments then we use the ERASE signature that takes only the target (by-ref). Otherwise call the signature that tries to map the
@@ -386,6 +393,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             else
             {
+                // Note: "Erase a()" is a runtime error condition - either "a" is an array, in which case it will be a "Subscript out of range" or "a" is a variable that
+                // is not an array, in which case it will be a "Type mismatch" (we verified earlier that "a" is in fact a variable - and not a function, for example).
+                // We have no choice but to let the ERASE function work this out at runtime (which the non-by-ref-argument signature will do).
                 var translatedArguments = singleEraseTarget.ArgumentsIfAny
                     .Select(argument => _statementTranslator.Translate(
                         argument,
@@ -396,9 +406,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     .ToArray(); // Going to evaluate everything twice, might as well ToArray it
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format(
-                        "{0}.ERASE({1}, {2});",
+                        "{0}.ERASE({1}{2}{3});",
                         _supportRefName.Name,
                         translatedSingleEraseTarget.TranslatedContent,
+                        translatedArguments.Any() ? ", " : "",
                         string.Join(", ", translatedArguments.Select(a => a.TranslatedContent))
                     ),
                     indentationDepth
