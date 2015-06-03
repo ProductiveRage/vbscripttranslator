@@ -90,9 +90,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             if (indentationDepth < 0)
                 throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-            // TODO: Going to need to incorporate On Error Resume Next / Goto 0 handling outside of the rest of the process, requiring additional data
-            // in the scopeAccessInformation type?
-
             var translationResult = TranslationResult.Empty;
             foreach (var block in blocks)
             {
