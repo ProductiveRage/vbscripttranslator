@@ -381,9 +381,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             {
                 translationResult = translationResult.Add(new TranslatedStatement(
                     string.Format(
-                        "{0}.ERASE(ref {1});",
+                        "{0}.ERASE({1}, {2} => {{ {1} = {2}; }});",
                         _supportRefName.Name,
-                        translatedSingleEraseTarget.TranslatedContent
+                        translatedSingleEraseTarget.TranslatedContent,
+                        _tempNameGenerator(new CSharpName("v"), scopeAccessInformation).Name
                     ),
                     indentationDepth
                 ));

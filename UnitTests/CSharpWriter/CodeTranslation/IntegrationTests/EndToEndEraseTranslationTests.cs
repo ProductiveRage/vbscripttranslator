@@ -18,8 +18,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 yield return new object[] { "Empty ERASE is a runtime error", "ERASE", new[] { "throw new Exception(\"Wrong number of arguments: 'Erase' (line 1)\");" } };
                 yield return new object[] { "Empty ERASE is a runtime error (with CALL keyword)", "CALL ERASE", new[] { "throw new Exception(\"Wrong number of arguments: 'Erase' (line 1)\");" } };
 
-                yield return new object[] { "Simplest case: ERASE a", "ERASE a", new[] { "_.ERASE(ref _env.a);" } };
-                yield return new object[] { "Simplest case: ERASE a (with CALL keyword)", "CALL ERASE(a)", new[] { "_.ERASE(ref _env.a);" } };
+                yield return new object[] { "Simplest case: ERASE a", "ERASE a", new[] { "_.ERASE(_env.a, v1 => { _env.a = v1; });" } };
+                yield return new object[] { "Simplest case: ERASE a (with CALL keyword)", "CALL ERASE(a)", new[] { "_.ERASE(_env.a, v1 => { _env.a = v1; });" } };
 
                 // If the target is specified with arguments, then it must be an array where the arguments are indices. The non-by-ref ERASE method signature is used and validation of the
                 // target (whether it's an array and whether the indices are valid) is handled at runtime.

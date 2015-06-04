@@ -16,16 +16,16 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 public void ArrayTargetShouldBeReplacedWithEmptyArray()
                 {
                     object target = new object[] { 123 };
-                    DefaultRuntimeSupportClassFactory.Get().ERASE(ref target);
+                    DefaultRuntimeSupportClassFactory.Get().ERASE(target, erasedTarget => { target = erasedTarget; });
                     Assert.Equal(new object[0], target);
                 }
 
                 [Theory, MemberData("TypeMismatchData")]
-                public void TypeMismatchCases(string description, object value)
+                public void TypeMismatchCases(string description, object target)
                 {
                     Assert.Throws<TypeMismatchException>(() =>
                     {
-                        DefaultRuntimeSupportClassFactory.Get().ERASE(ref value);
+                        DefaultRuntimeSupportClassFactory.Get().ERASE(target, erasedTarget => { target = erasedTarget; });
                     });
                 }
 

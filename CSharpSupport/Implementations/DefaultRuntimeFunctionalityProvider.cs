@@ -980,15 +980,17 @@ namespace CSharpSupport.Implementations
                 throw new ArgumentNullException("values");
             return values;
         }
-        public void ERASE(ref object target)
+        public void ERASE(object target, Action<object> targetSetter)
         {
             // ERASE is more like a keyword in VBScript than a function - none of the builtin VBScript functions take arguments by-ref and nearly all of them apply a lot of
             // similar handling to inputs such as raising invalid-use-of-null errors where VBScript Null is not expected and considering parameter-less default properties
             // and function when expected a value type and receiving an object reference. ERASE does not do that; if the target is not an array then it's a type mismatch,
             // doesn't matter whether it's Empty, Null, Nothing, a number, a string, a date, an object reference with a default parameterless property; it's type mismatch!
+            // - Note: A "targetSetter" is required to update the array, rather than just taking the target argument as by-ref, since it would be common for translated
+            //   code to call "_.ERASE(ref outer.names)", which would be invalid C# code since "ref" cannot be used with property accessors
             if ((target == null) || !target.GetType().IsArray)
                 throw new TypeMismatchException("'Erase'");
-            target = new object[0];
+            targetSetter(new object[0]);
         }
         public void ERASE(object target, params object[] arguments)
         {
