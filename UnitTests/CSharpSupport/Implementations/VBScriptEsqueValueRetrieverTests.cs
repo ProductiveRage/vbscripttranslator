@@ -368,6 +368,18 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             );
         }
 
+        /// <summary>
+        /// In C#, it's fine to access an index within a string since a string is an array of characters. But in VBScript, it's not.
+        /// </summary>
+        [Fact]
+        public void ItIsNotValidToAccessStringValueWithArguments()
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Throws<TypeMismatchException>(
+                () => _.CALL("abc", new string[0], _.ARGS.Val(0).GetArgs())
+            );
+        }
+
         [Theory, MemberData("ZeroArgumentBracketSuccessData")]
         public void ZeroArgumentBracketSuccessCases(string description, object target, string[] memberAccessors, bool useBracketsWhereZeroArguments, object expectedResult)
         {

@@ -526,6 +526,27 @@ namespace CSharpSupport.Implementations
             if (memberAccessorsArray.Any(m => string.IsNullOrWhiteSpace(m)))
                 throw new ArgumentException("Null/blank value in members set");
 
+            // If the target is a value type then neither member accessors nor arguments are valid (eg. "#1 1#()" or "Null.ToString()"), so check
+            // for those immediately. If we don't check then then might actually be allowed since C# treats everything as an object and everything
+            // has a ToString method. Note that some value types are compile errors (eg. "123.ToString()") and so those should have been caught by
+            // the translation process. VBScript considers arrays to be value types (ie. when returning an array from a function, you don't have
+            // to call SET), so we need to exclude that case since clearly arguments CAN be used with arrays.
+            var isArray = target.GetType().IsArray;
+            if (!isArray && IsVBScriptValueType(target))
+            {
+                string targetDescription;
+                if (target == null)
+                    targetDescription = "[undefined]"; // This is what VBScript shows for "Empty.ToString()"
+                else if (target == DBNull.Value)
+                    targetDescription = "Null";
+                else
+                    targetDescription = STR(target);
+                if (memberAccessorsArray.Any())
+                    throw new ObjectRequiredException("'" + targetDescription + "'");
+                if (arguments.Any() || useBracketsWhereZeroArguments)
+                    throw new TypeMismatchException("'" + targetDescription + "'");
+            }
+
             // Deal with special case of a delegate first (as of May 2015, there should't be any way for one of these to sneak in here, but if
             // GetRef gets implemented in the future then that may change). It's not valid for there to be any member accessors, the delegate
             // must either be a direct reference, meaning its being passed around as a function pointer or sorts, or it must be an execution
@@ -553,7 +574,7 @@ namespace CSharpSupport.Implementations
             else if (noMemberAccessorsOrArguments && useBracketsWhereZeroArguments && (target != null))
             {
                 // If "a" is an array then "a()" will always throw a "Subscript out of range" exception
-                if (target.GetType().IsArray)
+                if (isArray)
                     throw new SubscriptOutOfRangeException();
                 throw new TypeMismatchException(); // It's not an array and it's not a function, must be a type mismatch
             }
