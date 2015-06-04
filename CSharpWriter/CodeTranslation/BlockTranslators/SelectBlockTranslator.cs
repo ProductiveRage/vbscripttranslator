@@ -321,7 +321,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     string.Format(
                         "{0}if ({1})",
                         openAsElseIf ? "else " : "",
-                        string.Join(") || (", wrappedConditionSegments.Select(segment => segment))
+                        string.Join(" || ", wrappedConditionSegments.Select(segment => segment))
                     ),
                     indentationDepth
                 ));
