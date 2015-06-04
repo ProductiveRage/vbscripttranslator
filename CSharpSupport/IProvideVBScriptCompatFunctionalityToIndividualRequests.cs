@@ -129,6 +129,7 @@ namespace CSharpSupport
         string CHR(object value);
         object CHRB(object value);
         object CHRW(object value);
+        object ESCAPE(object value);
         object FORMATCURRENCY(object value);
         object FORMATDATETIME(object value);
         object FORMATNUMBER(object value); // TODO: See http://blogs.msdn.com/b/ericlippert/archive/2003/09/26/53112.aspx
@@ -163,6 +164,7 @@ namespace CSharpSupport
         object LTRIM(object value);
         object RTRIM(object value);
         object LCASE(object value);
+        object UNESCAPE(object value);
         object UCASE(object value);
         // - Type comparisons
         bool ISARRAY(object value);

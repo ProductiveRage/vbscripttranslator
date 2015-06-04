@@ -826,6 +826,8 @@ namespace CSharpSupport.Implementations
                 return DBNull.Value;
             return value.ToString().ToUpper();
         }
+        public object ESCAPE(object value) { throw new NotImplementedException(); } // TODO
+        public object UNESCAPE(object value) { throw new NotImplementedException(); } // TODO
         // - Type comparisons
         public bool ISARRAY(object value)
         {
