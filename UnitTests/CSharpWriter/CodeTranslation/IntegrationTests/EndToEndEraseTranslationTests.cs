@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
@@ -85,6 +87,31 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     }
                 };
             }
+        }
+
+        [Fact]
+        public void SingleTokenEraseTargetsRequireByRefAliasingIfTheTargetIsByRefArgumentOfTheContainingFunction()
+        {
+            var source = @"
+                Function F1(a)
+                    ERASE a
+                End Function";
+            var expected = @"
+                public object f1(ref object a)
+                {
+                    object retVal1 = null;
+                    object byrefalias2 = a;
+                    try
+                    {
+                        _.ERASE(byrefalias2, v3 => { byrefalias2 = v3; });
+                    }
+                    finally { a = byrefalias2; }
+                    return retVal1;
+                }";
+            Assert.Equal(
+                expected.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Skip(1).Select(v => v.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
         }
     }
 }
