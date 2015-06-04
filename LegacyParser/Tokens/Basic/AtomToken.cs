@@ -114,6 +114,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 return new OpenBrace(lineIndex);
             if (isCloseBrace(content))
                 return new CloseBrace(lineIndex);
+            if (isTargetCurrentClassToken(content))
+                return new TargetCurrentClassToken(lineIndex);
 
             double numericValue;
             if (double.TryParse(content, out numericValue))
@@ -216,7 +218,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             );
         }
 
-        protected static bool isArgumentSeparator(string atomContent)
+        private static bool isArgumentSeparator(string atomContent)
         {
             return isType(
                 atomContent,
@@ -224,7 +226,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             );
         }
 
-        protected static bool isOpenBrace(string atomContent)
+        private static bool isOpenBrace(string atomContent)
         {
             return isType(
                 atomContent,
@@ -232,11 +234,19 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
             );
         }
 
-        protected static bool isCloseBrace(string atomContent)
+        private static bool isCloseBrace(string atomContent)
         {
             return isType(
                 atomContent,
                 new string[] { ")" }
+            );
+        }
+
+        private static bool isTargetCurrentClassToken(string atomContent)
+        {
+            return isType(
+                atomContent,
+                new string[] { "me" }
             );
         }
 

@@ -244,6 +244,26 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// It doesn't matter if we're within a VBScript class on in the outermost scope, or within a function in the outermost scope, the "Me" reference may
+        /// always be mapped directly to "this" and it will be correct
+        /// </summary>
+        [Fact]
+        public void MeReferenceMapsDirectlyOnToThis()
+        {
+            var source = @"
+                WScript.Echo Me.Name
+            ";
+            var expected = new[]
+            {
+                "_.CALL(_env.wscript, \"Echo\", _.ARGS.Val(_.CALL(this, \"Name\")));"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         [Theory, MemberData("VariousBracketDeterminedRefValArgumentData")]
         public void VariousBracketDeterminedRefValArgumentCases(string source, string expectedResult)
         {

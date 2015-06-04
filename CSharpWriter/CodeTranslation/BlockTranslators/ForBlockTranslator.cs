@@ -240,10 +240,10 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
 
             var rewrittenLoopVariableName = _nameRewriter.GetMemberAccessTokenName(forBlock.LoopVar);
-            var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenLoopVariableName, _envRefName, _outerRefName, _nameRewriter);
+            var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(forBlock.LoopVar, _envRefName, _outerRefName, _nameRewriter);
             if (targetContainer != null)
                 rewrittenLoopVariableName = targetContainer.Name + "." + rewrittenLoopVariableName;
-            if (!scopeAccessInformation.IsDeclaredReference(rewrittenLoopVariableName, _nameRewriter))
+            if (!scopeAccessInformation.IsDeclaredReference(forBlock.LoopVar, _nameRewriter))
                 undeclaredVariableReferencesAccessedByLoopConstraints = undeclaredVariableReferencesAccessedByLoopConstraints.Add(forBlock.LoopVar);
             
             // Any dynamic loop constraints (ie. those that can be confirmed to be fixed numeric values at translation time) need to have variables

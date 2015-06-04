@@ -674,7 +674,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     // set of the return TranslationResult since they adding them to that set will result in them being declared as either
                     // local references or within the "Environment References", depending upon whether we're within a function / property
                     // or not - in other words, the exact same result.
-                    var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenVariableName, _envRefName, _outerRefName, _nameRewriter);
+                    var targetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(variable.Name, _envRefName, _outerRefName, _nameRewriter);
                     targetReference = (targetContainer == null)
                         ? rewrittenVariableName
                         : (targetContainer.Name + "." + rewrittenVariableName);
@@ -794,7 +794,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedStatementContentDetails = _statementTranslator.Translate(statementBlock, scopeAccessInformation, _logger.Warning);
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(v, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 
@@ -862,7 +862,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedValueSettingStatementContentDetails = _valueSettingStatementTranslator.Translate(valueSettingStatement, scopeAccessInformation);
             var undeclaredVariables = translatedValueSettingStatementContentDetails.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(v, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 

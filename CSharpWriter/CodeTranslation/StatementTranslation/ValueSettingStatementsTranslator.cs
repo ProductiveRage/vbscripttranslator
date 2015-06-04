@@ -116,7 +116,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
                 // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
-                var targetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(rewrittenFirstMemberAccessor, _envRefName, _outerRefName, _nameRewriter);
+                var targetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(singleTokenAsName, _envRefName, _outerRefName, _nameRewriter);
                 if (targetContainerIfRequired != null)
                     rewrittenFirstMemberAccessor = targetContainerIfRequired.Name + "." + rewrittenFirstMemberAccessor;
                 return new ValueSettingStatementAssigmentFormatDetails(

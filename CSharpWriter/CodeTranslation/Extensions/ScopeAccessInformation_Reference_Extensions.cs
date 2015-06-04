@@ -1,37 +1,46 @@
 ﻿using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace CSharpWriter.CodeTranslation.Extensions
 {
     public static class ScopeAccessInformation_Reference_Extensions
     {
-        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, string rewrittenTargetName, VBScriptNameRewriter nameRewriter)
+        public static bool IsDeclaredReference(this ScopeAccessInformation scopeInformation, NameToken target, VBScriptNameRewriter nameRewriter)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
-                throw new ArgumentException("Null/blank rewrittenTargetName specified");
+            if (target == null)
+                throw new ArgumentNullException("target");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
+            // TargetCurrentClassToken indicates a "Me" reference, which is always valid
+            if (target is TargetCurrentClassToken)
+                return true;
+
+            var rewrittenTargetName = nameRewriter.GetMemberAccessTokenName(target);
             return TryToGetDeclaredReferenceDetails(scopeInformation, rewrittenTargetName, nameRewriter) != null;
         }
 
         /// <summary>
-        /// TODO
+        /// Get the name of the containing reference where applicable. For outermost scope variable references, the target container will be the reference to the
+        /// outer most scope (aka. Global References) instance. For undeclared variables, it will be the Environment References instance when in the outermost scope
+        /// but undeclared variables within functions or properties are implicitly declared within that function or property, and so need no target container to be
+        /// specified. This will return null if no container is required to locate the specified target.
         /// </summary>
         public static CSharpName GetNameOfTargetContainerIfAnyRequired(
             this ScopeAccessInformation scopeAccessInformation,
-            string rewrittenTargetName,
+            NameToken target,
             CSharpName envRefName,
             CSharpName outerRefName,
             VBScriptNameRewriter nameRewriter)
         {
             if (scopeAccessInformation == null)
                 throw new ArgumentNullException("scopeAccessInformation");
-            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
-                throw new ArgumentException("Null/blank rewrittenTargetName specified");
+            if (target == null)
+                throw new ArgumentNullException("target");
             if (envRefName == null)
                 throw new ArgumentNullException("envRefName");
             if (outerRefName == null)
@@ -39,6 +48,12 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
+            // TargetCurrentClassToken indicates a "Me" reference, which never requires a target container - it is always valid where it is (even in the
+            // outermost scope, VBScript doesn't require that "Me" be used only within a VBScript class)
+            if (target is TargetCurrentClassToken)
+                return null;
+
+            var rewrittenTargetName = nameRewriter(target).Name;
             var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenTargetName, nameRewriter);
             if (targetReferenceDetailsIfAvailable == null)
             {

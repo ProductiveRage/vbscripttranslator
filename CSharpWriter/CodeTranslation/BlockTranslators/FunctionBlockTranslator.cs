@@ -174,7 +174,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 _logger.Warning
             );
             var undeclaredVariables = translatedStatementContentDetails.VariablesAccessed
-                .Where(v => !scopeAccessInformation.IsDeclaredReference(_nameRewriter.GetMemberAccessTokenName(v), _nameRewriter));
+                .Where(v => !scopeAccessInformation.IsDeclaredReference(v, _nameRewriter));
             foreach (var undeclaredVariable in undeclaredVariables)
                 _logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
 

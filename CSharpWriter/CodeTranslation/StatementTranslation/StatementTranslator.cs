@@ -580,7 +580,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     return TranslateAsDirectSupportFunctionCall(supportFunctionDetails, callExpressionSegment.Arguments, scopeAccessInformation);
 
                 return TranslateCallExpressionSegment(
-                    _supportRefName.Name,
+                    new DoNotRenameNameToken(_supportRefName.Name, firstMemberAccessToken.LineIndex),
                     rewrittenMemberAccessTokens,
                     callExpressionSegment.Arguments,
                     callExpressionSegment.ZeroArgumentBracketsPresence,
@@ -600,7 +600,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // then it may be mapped directly onto the support function (either 1, 2 or 3 arguments must be present). If a different number of arguments are present
             // then the target still needs rewriting from "Err.Raise" to "_.RAISEERROR", but it will have to go through the CALL function.
             TranslatedStatementContentDetailsWithContentType raiseErrorStatementIfApplicable;
-            string targetReference;
+            NameToken target;
             var memberAccessors = callExpressionSegment.MemberAccessTokens.Skip(1);
             if (targetIsErrReference)
             {
@@ -618,17 +618,19 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         raiseErrorStatementIfApplicable = null;
                         memberAccessors = new[] { raiseErrorFunctionToken };
                     }
-                    targetReference = _supportRefName.Name;
+                    target = new DoNotRenameNameToken(_supportRefName.Name, firstMemberAccessToken.LineIndex);
                 }
                 else
                 {
-                    targetReference = _supportRefName.Name + ".ERR";
+                    target = new DoNotRenameNameToken(_supportRefName.Name + ".ERR", firstMemberAccessToken.LineIndex);
                     raiseErrorStatementIfApplicable = null;
                 }
             }
             else
             {
-                targetReference = _nameRewriter.GetMemberAccessTokenName(firstMemberAccessToken);
+                // Since the CallExpressionSegment's MemberAccessTokens property is documented as only containing BuiltInFunctionToken, BuiltInValueToken, KeyWordToken and
+                // NameToken values, it's safe to assume that it is a NameToken in this case since the other possibilities should have been accounted for by this point.
+                target = (NameToken)firstMemberAccessToken;
                 raiseErrorStatementIfApplicable = null;
             }
             TranslatedStatementContentDetailsWithContentType result;
@@ -637,7 +639,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             else
             {
                 result = TranslateCallExpressionSegment(
-                    targetReference,
+                    target,
                     memberAccessors,
                     callExpressionSegment.Arguments,
                     callExpressionSegment.ZeroArgumentBracketsPresence,
@@ -693,7 +695,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
         }
 
         private TranslatedStatementContentDetailsWithContentType TranslateCallExpressionSegment(
-            string targetName,
+            NameToken target,
             IEnumerable<IToken> targetMemberAccessTokens,
             IEnumerable<Expression> arguments,
             CallSetItemExpressionSegment.ArgumentBracketPresenceOptions? zeroArgumentBracketsPresence,
@@ -701,8 +703,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             int indexInCallSet,
             bool targetIsKnownToBeBuiltInFunction)
         {
-            if (string.IsNullOrWhiteSpace(targetName))
-                throw new ArgumentException("Null/blank targetName specified");
+            if (target == null)
+                throw new ArgumentNullException("target");
             if (targetMemberAccessTokens == null)
                 throw new ArgumentNullException("targetMemberAccessTokens");
             if (arguments == null)
@@ -730,6 +732,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             else if (zeroArgumentBracketsPresence != null)
                 throw new ArgumentException("zeroArgumentBracketsPresence must be null if there are arguments present");
 
+            var targetName = _nameRewriter.GetMemberAccessTokenName(target);
+
             // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
             // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
             // to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to check for
@@ -745,7 +749,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             else
             {
                 targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
-                nameOfTargetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(targetName, _envRefName, _outerRefName, _nameRewriter);
+                nameOfTargetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(
+                    target,
+                    _envRefName,
+                    _outerRefName,
+                    _nameRewriter
+                );
             }
 
             // If there are no member access tokens then we have to consider whether this is a function call or property access, we can find this
@@ -1320,7 +1329,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 else
                 {
                     translatedContent = TranslateCallExpressionSegment(
-                        content,
+                        new DoNotRenameNameToken(content, ((IExpressionSegment)callSetExpressionSegment).AllTokens.First().LineIndex),
                         callSetItemExpression.MemberAccessTokens,
                         callSetItemExpression.Arguments,
                         callSetItemExpression.ZeroArgumentBracketsPresence,

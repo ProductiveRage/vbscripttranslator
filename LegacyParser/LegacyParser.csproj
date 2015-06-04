@@ -114,6 +114,7 @@
     <Compile Include="Tokens\Basic\InlineCommentToken.cs" />
     <Compile Include="Tokens\Basic\EscapedNameToken.cs" />
     <Compile Include="Tokens\Basic\LogicalOperatorToken.cs" />
+    <Compile Include="Tokens\Basic\TargetCurrentClassToken.cs" />
     <Compile Include="Tokens\Basic\NameToken.cs" />
     <Compile Include="Tokens\Basic\NumericValueToken.cs" />
     <Compile Include="Tokens\Basic\NumericValueToken_Extensions.cs" />
