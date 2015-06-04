@@ -57,7 +57,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
 
             output.Append(indenter.Indent);
             output.Append("WITH ");
-            output.AppendLine(Target.GenerateBaseSource(new NullIndenter()));
+            output.AppendLine(Target.GenerateBaseSource(NullIndenter.Instance));
 
             foreach (var statement in Content)
                 output.AppendLine(statement.GenerateBaseSource(indenter.Increase()));

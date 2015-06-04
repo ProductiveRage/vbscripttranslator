@@ -139,7 +139,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             var output = new StringBuilder();
             
             output.Append(indenter.Indent + "SELECT CASE ");
-            output.AppendLine(Expression.GenerateBaseSource(new NullIndenter()));
+            output.AppendLine(Expression.GenerateBaseSource(NullIndenter.Instance));
 
             if (_openingComments != null)
             {
@@ -160,7 +160,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     for (int indexValue = 0; indexValue < valuesArray.Length; indexValue++)
                     {
                         Expression statement = valuesArray[indexValue];
-                        output.Append(statement.GenerateBaseSource(new NullIndenter()));
+                        output.Append(statement.GenerateBaseSource(NullIndenter.Instance));
                         if (indexValue < (valuesArray.Length - 1))
                             output.Append(", ");
                     }

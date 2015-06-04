@@ -2,14 +2,18 @@
 {
     public class NullIndenter : ISourceIndentHandler
     {
+        public static NullIndenter _instance = new NullIndenter();
+        public static NullIndenter Instance { get { return _instance; } }
+        private NullIndenter() { }
+
         public ISourceIndentHandler Increase()
         {
-            return new NullIndenter();
+            return NullIndenter.Instance;
         }
 
         public ISourceIndentHandler Decrease()
         {
-            return new NullIndenter();
+            return NullIndenter.Instance;
         }
 
         public string Indent

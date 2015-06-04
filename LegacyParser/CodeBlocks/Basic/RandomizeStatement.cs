@@ -55,7 +55,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             if (this.seed != null)
             {
                 output.Append(" ");
-                output.Append(this.seed.GenerateBaseSource(new NullIndenter()));
+                output.Append(this.seed.GenerateBaseSource(NullIndenter.Instance));
             }
             return output.ToString();
         }

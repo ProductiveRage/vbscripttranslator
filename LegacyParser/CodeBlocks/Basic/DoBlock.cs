@@ -96,7 +96,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     output.Append("While ");
                 else
                     output.Append("Until ");
-                output.AppendLine(ConditionIfAny.GenerateBaseSource(new NullIndenter()));
+                output.AppendLine(ConditionIfAny.GenerateBaseSource(NullIndenter.Instance));
             }
             else
                 output.AppendLine();
@@ -114,7 +114,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     output.Append("While ");
                 else
                     output.Append("Until ");
-                output.Append(ConditionIfAny.GenerateBaseSource(new NullIndenter()));
+                output.Append(ConditionIfAny.GenerateBaseSource(NullIndenter.Instance));
             }
             return output.ToString();
         }

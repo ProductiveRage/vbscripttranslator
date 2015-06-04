@@ -101,7 +101,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     var numberOfDimensions = indexedVariable.Variable.Dimensions.Count();
                     foreach (var indexedDimension in indexedVariable.Variable.Dimensions.Select((d, i) => new { Dimension = d, Index = i }))
                     {
-                        output.Append(indexedDimension.Dimension.GenerateBaseSource(new NullIndenter()));
+                        output.Append(indexedDimension.Dimension.GenerateBaseSource(NullIndenter.Instance));
                         if (indexedDimension.Index < (numberOfDimensions - 1))
                             output.Append(", ");
                     }

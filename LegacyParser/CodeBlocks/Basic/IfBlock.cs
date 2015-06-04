@@ -154,7 +154,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     else
                         output.Append("ELSEIF ");
                     output.Append(
-                        ((IfBlockConditionSegment)segment).Condition.GenerateBaseSource(new NullIndenter())
+                        ((IfBlockConditionSegment)segment).Condition.GenerateBaseSource(NullIndenter.Instance)
                     );
                     output.AppendLine(" THEN");
                 }

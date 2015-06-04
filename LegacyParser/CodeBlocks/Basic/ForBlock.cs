@@ -102,13 +102,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             output.Append("For ");
             output.Append(this.loopVar.Content);
             output.Append(" = ");
-            output.Append(this.loopFrom.GenerateBaseSource(new NullIndenter()));
+            output.Append(this.loopFrom.GenerateBaseSource(NullIndenter.Instance));
             output.Append(" To ");
-            output.Append(this.loopTo.GenerateBaseSource(new NullIndenter()));
+            output.Append(this.loopTo.GenerateBaseSource(NullIndenter.Instance));
             if (this.loopStep != null)
             {
                 output.Append(" Step ");
-                output.Append(this.LoopStep.GenerateBaseSource(new NullIndenter()));
+                output.Append(this.LoopStep.GenerateBaseSource(NullIndenter.Instance));
             }
             output.AppendLine("");
 

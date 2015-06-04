@@ -79,7 +79,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             output.Append("For Each ");
             output.Append(this.loopVar.Content);
             output.Append(" In ");
-            output.AppendLine(this.loopSrc.GenerateBaseSource(new NullIndenter()));
+            output.AppendLine(this.loopSrc.GenerateBaseSource(NullIndenter.Instance));
 
             // Render inner content
             foreach (ICodeBlock statement in this.statements)

@@ -23,7 +23,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         public override string GenerateBaseSource(SourceRendering.ISourceIndentHandler indenter)
         {
             // Grab content from DimStatement..
-            string baseContent = base.GenerateBaseSource(new NullIndenter());
+            string baseContent = base.GenerateBaseSource(NullIndenter.Instance);
             if ((baseContent == null)
             || (baseContent.Length < 4)
             || (baseContent.Substring(0, 4).ToUpper() != "DIM "))

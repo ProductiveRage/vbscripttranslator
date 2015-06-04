@@ -73,7 +73,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                 if (indexedTarget.Value.WrappedInBraces)
                     output.Append("(");
 
-                output.Append(indexedTarget.Value.Target.GenerateBaseSource(new NullIndenter()));
+                output.Append(indexedTarget.Value.Target.GenerateBaseSource(NullIndenter.Instance));
                 if (indexedTarget.Value.ArgumentsIfAny != null)
                 {
                     output.Append("(");
@@ -81,7 +81,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
                     {
                         if (indexedArgument.Index > 0)
                             output.Append(", ");
-                        output.Append(indexedArgument.Value.GenerateBaseSource(new NullIndenter()));
+                        output.Append(indexedArgument.Value.GenerateBaseSource(NullIndenter.Instance));
                     }
                     output.Append(")");
                 }
