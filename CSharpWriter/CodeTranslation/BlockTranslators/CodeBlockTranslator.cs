@@ -977,16 +977,28 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             // Note: Any repeated variable declarations are ignored - this makes the ReDim translation process easier (where ReDim statements may target
             // already-declared variables or they may be considered to implicitly declare them) but it means that the Dim translation has to do some extra
-            // work to pick up on "Name redefined" scenarios.
+            // work to pick up on "Name redefined" scenarios. This duplicate removal process will prefer any times that a variable was declared as an array,
+            // over when not this is so that if the following was present:
+            //   DIM a()
+            //   REDIM a(12)
+            // Then it would definitely result in there only being a single explicit variable declaration - "object a = (object[])null;" - the variable
+            // declaration arising from the REDIM must be ignored.
+            var uniqueExplicitVariableDeclarations = translationResult.ExplicitVariableDeclarations
+                .Select((v, i) => new { Index = i, Variable = v })
+                .GroupBy(indexedVariable => indexedVariable.Variable.Name.Content)
+                .Select(group => group.OrderBy(v => (v.Variable.ConstantDimensionsIfAny == null) ? 1 : 0))
+                .Select(group => group.First())
+                .OrderBy(indexedVariable => indexedVariable.Index)
+                .Select(indexedVariable => indexedVariable.Variable)
+                .ToNonNullImmutableList();
+
             var variableDeclarationStatements = new NonNullImmutableList<TranslatedStatement>();
-            foreach (var explicitVariableDeclaration in translationResult.ExplicitVariableDeclarations)
+            foreach (var explicitVariableDeclaration in uniqueExplicitVariableDeclarations)
             {
-                var variableDeclarationStatement = new TranslatedStatement(
+                variableDeclarationStatements = variableDeclarationStatements.Add(new TranslatedStatement(
                     TranslateVariableInitialisation(explicitVariableDeclaration, ScopeLocationOptions.WithinFunctionOrPropertyOrWith),
                     indentationDepthForExplicitVariableDeclarations
-                );
-                if (!variableDeclarationStatements.Any(s => s.Content == variableDeclarationStatement.Content))
-                    variableDeclarationStatements = variableDeclarationStatements.Add(variableDeclarationStatement);
+                ));
             }
             return new TranslationResult(
                 variableDeclarationStatements.AddRange(translationResult.TranslatedStatements),

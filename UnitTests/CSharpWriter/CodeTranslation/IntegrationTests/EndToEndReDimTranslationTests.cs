@@ -302,6 +302,32 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 );
             }
 
+            /// <summary>
+            /// A "Dim a()" will result in an explicit array-type variable declaration while a subsequent "ReDim a(0)" will result in an explicit non-array-type
+            /// variable declaration (followed by an array initialisation targetting that variable). The non-array-type variable declaration from the ReDim must
+            /// be ignored, the array-type declaration from the Dim must take precedence.
+            /// </summary>
+            [Fact]
+            public void ReDimFollowingNonDimensionalArrayDimInFunction()
+            {
+                var source = @"
+                    Function F1()
+                        Dim a()
+                        ReDim a(0)
+                    End Function";
+                var expected = @"
+                    public object f1()
+                    {
+                      object retVal1 = null;
+                      object a = (object[])null;
+                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      return retVal1;
+                   }";
+                Assert.Equal(
+                    SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                    WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+                );
+            }
         }
 
         /// <summary>
