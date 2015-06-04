@@ -633,6 +633,26 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 target = (NameToken)firstMemberAccessToken;
                 raiseErrorStatementIfApplicable = null;
             }
+
+            // If the target is a function then we can't have that as the target reference in the generated CALL statement, the owner of that function must be the target and
+            // the function name must become one of the member accessors (eg. GetSomething().Name can not be represented by _.CALL(GetSomething, "Name") since that is not
+            // valid C#, however it CAN be represented by _.CALL(_outer, "GetSomething", "Name") or _.CALL(this, "GetSomething", "Name"), depending upon where the function
+            // is defined).
+            var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(_nameRewriter(target).Name, _nameRewriter);
+            if (targetReferenceDetails != null)
+            {
+                if (targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Class)
+                    throw new ArgumentException("Invalid CallExpressionSegment, target is a Class (\"" + target.Content + "\") - not an instance of a class but the class itself");
+                if ((targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Function) || (targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Property))
+                {
+                    memberAccessors = new[] { target }.Concat(memberAccessors);
+                    if (targetReferenceDetails.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
+                        target = new DoNotRenameNameToken(_outerRefName.Name, target.LineIndex);
+                    else
+                        target = new DoNotRenameNameToken("this", target.LineIndex);
+                }
+            }
+
             TranslatedStatementContentDetailsWithContentType result;
             if (raiseErrorStatementIfApplicable != null)
                 result = raiseErrorStatementIfApplicable;

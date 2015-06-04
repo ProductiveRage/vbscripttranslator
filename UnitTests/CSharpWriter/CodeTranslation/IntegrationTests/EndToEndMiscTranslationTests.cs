@@ -264,6 +264,85 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// If a CALL expression has a function as its target then it needs to be rewritten so that that the owner of the function (or property) is the target
+        /// and the function and one of the member accessors (since it's not valid C# to provide a delegate for an object argument)
+        /// </summary>
+        [Fact]
+        public void OutermostScopeFunctionMayNotBeTargetOfCallExpression()
+        {
+            var source = @"
+                Set a = GetSomething.Name
+                Function GetSomething()
+                End Function
+            ";
+            var expected = new[]
+            {
+                "_env.a = _.OBJ(_.CALL(_env._outer, \"GetSomething\", \"Name\"));",
+                "public object getsomething()",
+                "{",
+                "    return null;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// Very similar to OutermostScopeFunctionMayNotBeTargetOfCallExpression except that the function is within a class rather than in the outermost scope
+        /// </summary>
+        [Fact]
+        public void ClassContainedFunctionMayNotBeTargetOfCallExpression()
+        {
+            var source = @"
+                Class C1
+                    Function Go()
+                        Set a = GetSomething.Name
+                    End Function
+                    Function GetSomething()
+                    End Function
+                End Class";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+
+                    public object go()
+                    {
+                        object retVal1 = null;
+                        object a = null; /* Undeclared in source */
+                        a = _.OBJ(_.CALL(this, ""GetSomething"", ""Name""));
+                        return retVal1;
+                    }
+                    public object getsomething()
+                    {
+                        return null;
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         [Theory, MemberData("VariousBracketDeterminedRefValArgumentData")]
         public void VariousBracketDeterminedRefValArgumentCases(string source, string expectedResult)
         {
