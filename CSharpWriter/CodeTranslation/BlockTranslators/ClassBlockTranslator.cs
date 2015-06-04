@@ -191,7 +191,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     ),
                     new TranslatedStatement("catch(Exception e)", indentationDepth + 2),
                     new TranslatedStatement("{", indentationDepth + 2),
-                    new TranslatedStatement(_envRefName.Name + ".SETERROR(e);", indentationDepth + 3),
+                    new TranslatedStatement(_supportRefName.Name + ".SETERROR(e);", indentationDepth + 3),
                     new TranslatedStatement("}", indentationDepth + 2)
                 };
             }
@@ -229,7 +229,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("try { " + disposeMethodName.Name + "(false); }", indentationDepth + 2),
                     new TranslatedStatement("catch(Exception e)", indentationDepth + 2),
                     new TranslatedStatement("{", indentationDepth + 2),
-                    new TranslatedStatement("try { " + _envRefName.Name + ".SETERROR(e); } catch { }", indentationDepth + 3),
+                    new TranslatedStatement("try { " + _supportRefName.Name + ".SETERROR(e); } catch { }", indentationDepth + 3),
                     new TranslatedStatement("}", indentationDepth + 2),
                     new TranslatedStatement("}", indentationDepth + 1),
                     new TranslatedStatement("", indentationDepth + 1),

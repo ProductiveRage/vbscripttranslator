@@ -95,7 +95,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         try { Dispose2(false); }
                         catch(Exception e)
                         {
-                            try { _env.SETERROR(e); } catch { }
+                            try { _.SETERROR(e); } catch { }
                         }
                     }
 
@@ -162,7 +162,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         try { class_initialize(); }
                         catch(Exception e)
                         {
-                            _env.SETERROR(e);
+                            _.SETERROR(e);
                         }
                     }
 
