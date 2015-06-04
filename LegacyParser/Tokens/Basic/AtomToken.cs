@@ -272,7 +272,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "SELECT", "CASE", 
                     "FOR", "EACH", "NEXT", "TO",
                     "DO", "WHILE", "UNTIL", "LOOP", "WEND",
-                    "ESCAPE", "UNESCAPE",
                     "RANDOMIZE",
                     "REM",
                     "GET",
@@ -404,7 +403,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "EVAL", "EXECUTE", "EXECUTEGLOBAL",
                     "FORMATCURRENCY", "FORMATDATETIME", "FORMATNUMBER", "FORMATPERCENT",
                     "FILTER", "GETLOCALE", "GETREF", "INPUTBOX", "LOADPICTURE", "MID", "MSGBOX", "RGB", "SETLOCALE", "SGN", "STRREVERSE", 
-                    "SCRIPTENGINE"
+                    "SCRIPTENGINE",
+                    "ESCAPE", "UNESCAPE"
                 }
             );
         }
