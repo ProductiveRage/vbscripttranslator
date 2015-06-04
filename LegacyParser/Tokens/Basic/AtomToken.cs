@@ -262,6 +262,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                     "SELECT", "CASE", 
                     "FOR", "EACH", "NEXT", "TO",
                     "DO", "WHILE", "UNTIL", "LOOP", "WEND",
+                    "ESCAPE", "UNESCAPE",
                     "RANDOMIZE",
                     "REM",
                     "GET",
