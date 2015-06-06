@@ -583,8 +583,8 @@ namespace CSharpSupport.Implementations
 
             // If the startIndex would go past the end of valueToSearch then return zero
             // - Since startIndex is one-based, we need to subtract one from it to perform this test
-            var valueToSearchString = valueToSearch.ToString();
-            var valueToSearchForString = valueToSearchFor.ToString();
+            var valueToSearchString = STR(valueToSearch);
+            var valueToSearchForString = STR(valueToSearchFor);
             if (valueToSearchForString.Length + (startIndexInt - 1) > valueToSearchString.Length)
                 return 0;
 
@@ -608,7 +608,7 @@ namespace CSharpSupport.Implementations
             if ((valueToSearch == null) || (valueToSearch == DBNull.Value))
                 startIndex = 1;
             else
-                startIndex = Math.Max(1, valueToSearch.ToString().Length);
+                startIndex = Math.Max(1, STR(valueToSearch).Length);
             return INSTRREV(valueToSearch, valueToSearchFor, startIndex);
         }
         public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex) { return INSTRREV(valueToSearch, valueToSearchFor, startIndex, 0); }
@@ -643,8 +643,8 @@ namespace CSharpSupport.Implementations
             // different substring matching logic to apply.
             // - If the startIndex goes beyond the end of the valueToSearch then no match is allowed, similarly if the startIndex indicates a point in
             //   the valueToSearch where there is insufficient content to match valueToSearchFor
-            var valueToSearchString = valueToSearch.ToString();
-            var valueToSearchForString = valueToSearchFor.ToString();
+            var valueToSearchString = STR(valueToSearch);
+            var valueToSearchForString = STR(valueToSearchFor);
             if ((startIndexInt > valueToSearchString.Length) || (valueToSearchForString.Length > startIndexInt))
                 return 0;
             
@@ -665,7 +665,7 @@ namespace CSharpSupport.Implementations
                 return 0;
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().Length;
+            return STR(value).Length;
         }
         public object LENB(object value) { throw new NotImplementedException(); }
         public object LEFT(object value, object maxLength)
@@ -685,7 +685,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 return DBNull.Value;
 
-            var valueString = value.ToString();
+            var valueString = STR(value);
             maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
             return valueString.Substring(0, maxLengthInt);
         }
@@ -708,7 +708,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 return DBNull.Value;
 
-            var valueString = value.ToString();
+            var valueString = STR(value);
             maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
             return valueString.Substring(valueString.Length - maxLengthInt);
         }
@@ -788,7 +788,7 @@ namespace CSharpSupport.Implementations
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().Trim(' ');
+            return STR(value).Trim(' ');
         }
         public object LTRIM(object value)
         {
@@ -797,7 +797,7 @@ namespace CSharpSupport.Implementations
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().TrimStart(' ');
+            return STR(value).TrimStart(' ');
         }
         public object RTRIM(object value)
         {
@@ -806,7 +806,7 @@ namespace CSharpSupport.Implementations
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().TrimEnd(' ');
+            return STR(value).TrimEnd(' ');
         }
         public object LCASE(object value)
         {
@@ -815,7 +815,7 @@ namespace CSharpSupport.Implementations
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().ToLower();
+            return STR(value).ToLower();
         }
         public object UCASE(object value)
         {
@@ -824,7 +824,7 @@ namespace CSharpSupport.Implementations
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return value.ToString().ToUpper();
+            return STR(value).ToUpper();
         }
         public object ESCAPE(object value) { throw new NotImplementedException(); } // TODO
         public object UNESCAPE(object value) { throw new NotImplementedException(); } // TODO
@@ -1047,7 +1047,7 @@ namespace CSharpSupport.Implementations
             else if (arrayRank > 1)
                 throw new TypeMismatchException("'Join'");
             return string.Join(
-                (delimiter == null) ? "" : delimiter.ToString(),
+                (delimiter == null) ? "" : STR(delimiter),
                 ((Array)value)
                     .Cast<object>()
                     .Select(element =>
@@ -1055,7 +1055,7 @@ namespace CSharpSupport.Implementations
                         element = VAL(element, "'Join'");
                         if (element == DBNull.Value)
                             throw new TypeMismatchException("'Join'");
-                        return (element == null) ? "" : element.ToString();
+                        return (element == null) ? "" : STR(element);
                     })
             );
         }
