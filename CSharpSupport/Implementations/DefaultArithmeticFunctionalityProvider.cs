@@ -9,6 +9,10 @@ namespace CSharpSupport.Implementations
     /// </summary>
     public class DefaultArithmeticFunctionalityProvider
     {
+        // These are going to be used repeatedly so let's calculate them once and reuse them
+        private readonly static double MIN_DATE_VALUE_AS_DOUBLE = VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays;
+        private readonly static double MAX_DATE_VALUE_AS_DOUBLE = VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays;
+
         private readonly IAccessValuesUsingVBScriptRules _valueRetriever;
         public DefaultArithmeticFunctionalityProvider(IAccessValuesUsingVBScriptRules valueRetriever)
         {
@@ -48,14 +52,12 @@ namespace CSharpSupport.Implementations
             var rCurrency = TryToCoerceInto<decimal>(r);
             var lDate = TryToCoerceInto<DateTime>(l);
             var rDate = TryToCoerceInto<DateTime>(r);
-            var minDateValueAsDouble = VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays;
-            var maxDateValueAsDouble = VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays;
             if (((lCurrency != null) && (rDate != null)) || ((rCurrency != null) && (lDate != null)))
             {
                 var currencyValue = lCurrency ?? rCurrency.Value;
                 var dateValue = lDate ?? rDate.Value;
                 var result = (double)currencyValue + dateValue.Subtract(VBScriptConstants.ZeroDate).TotalDays;
-                if ((result >= minDateValueAsDouble) && (result <= maxDateValueAsDouble))
+                if ((result >= MIN_DATE_VALUE_AS_DOUBLE) && (result <= MAX_DATE_VALUE_AS_DOUBLE))
                     return VBScriptConstants.ZeroDate.AddDays(result);
                 return result;
             }
@@ -103,7 +105,7 @@ namespace CSharpSupport.Implementations
                 var firstDoubleValue = (lDate != null) ? lDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays : AsDouble(l);
                 var secondDoubleValue = (rDate != null) ? rDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays : AsDouble(r);
                 var result = firstDoubleValue + secondDoubleValue;
-                if ((result >= minDateValueAsDouble) && (result <= maxDateValueAsDouble))
+                if ((result >= MIN_DATE_VALUE_AS_DOUBLE) && (result <= MAX_DATE_VALUE_AS_DOUBLE))
                     return VBScriptConstants.ZeroDate.AddDays(result);
                 return result;
             }
@@ -193,9 +195,67 @@ namespace CSharpSupport.Implementations
             return AsDouble(l) + AsDouble(r);
         }
 
-        public object SUBT(object o)
+        public object SUBT(object value)
         {
-            throw new NotImplementedException(); // TODO
+            value = _valueRetriever.VAL(value);
+            if (value == null)
+                return (Int16)0;
+            else if (value == DBNull.Value)
+                return DBNull.Value;
+
+            // Booleans are not supported here ("-true" results in a "Type mismatch" error in VBScript)
+            if (value is bool)
+                throw new TypeMismatchException();
+
+            // Force the value into a number (this will ensure that strings are parsed if they are numeric, but not if they're string representations of booleans
+            // or dates, which aren't valid for this operation)
+            value = _valueRetriever.NUM(value);
+
+            // Bytes are easy - they're either zero, which is a no-op, or they need negating and returning as an Integer (Int16)
+            var valueByte = TryToCoerceInto<byte>(value);
+            if (valueByte != null)
+            {
+                if (valueByte.Value == 0)
+                    return valueByte.Value;
+                return (Int16)(-valueByte.Value);
+            }
+
+            // VBScript Integers (ie. Int16) are fairly simple - they are negated unless they are the one value that would overflow (-32768), in which case it will
+            // become a Long (Int32)
+            var valueInteger = TryToCoerceInto<Int16>(value);
+            if (valueInteger != null)
+            {
+                if (valueInteger == Int16.MinValue)
+                    return -valueInteger; // The minus operator will change the type to Int32 here (which is what we want)
+                return (Int16)(-valueInteger);
+            }
+
+            // VBScript Longs (Int32) are basically the same as Integers
+            var valueLong = TryToCoerceInto<Int32>(value);
+            if (valueLong != null)
+            {
+                if (valueLong == Int32.MinValue)
+                    return -((double)valueLong); // The minus operator will keep the type as Int32, which will overflow back to where we came from if we negate it - so cast to double first
+                return (Int32)(-valueLong);
+            }
+
+            // Same sort of deal applies to Dates..
+            var valueDate = TryToCoerceInto<DateTime>(value);
+            if (valueDate != null)
+            {
+                var valueAsDouble = -valueDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays;
+                if ((valueAsDouble < MIN_DATE_VALUE_AS_DOUBLE) || (valueAsDouble > MAX_DATE_VALUE_AS_DOUBLE))
+                    return valueAsDouble;
+                return VBScriptConstants.ZeroDate.AddDays(valueAsDouble);
+            }
+
+            // Currency has no edge cases issues since the min Currency value = -(max Currency value)
+            var valueCurrency = TryToCoerceInto<Decimal>(value);
+            if (valueCurrency != null)
+                return -valueCurrency.Value;
+
+            // Fall back to a Double if all else fails
+            return -AsDouble(value);
         }
 
         public object SUBT(object l, object r)
@@ -228,15 +288,18 @@ namespace CSharpSupport.Implementations
             throw new NotImplementedException(); // TODO
         }
 
-
-
         private double AsDouble(object value)
         {
             // The rules that the NUM function must abide by are the same as the ones we want applied here - try to interpret a value as a string by ensuring it is
             // a value type (requiring a default parameterless member if not a value type, otherwise an exception will be raised) and then checking for the already-
             // numeric-esque types (Boolean, Integer, Date, etc..) and allowing some flexibility (strings are allowed if they are numeric, but not if they are string
             // representations of boolean or date values). Null is not acceptable but Empty is.
-            return Convert.ToDouble(_valueRetriever.NUM(value));
+            if (value is double)
+                return (double)value;
+            var numericValue = _valueRetriever.NUM(value);
+            if (numericValue is double)
+                return (double)numericValue;
+            return Convert.ToDouble(numericValue);
         }
 
         private T? TryToCoerceInto<T>(object value) where T : struct
