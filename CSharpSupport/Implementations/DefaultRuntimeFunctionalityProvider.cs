@@ -427,7 +427,13 @@ namespace CSharpSupport.Implementations
         private byte CBYTE(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<byte>(value, exceptionMessageForInvalidContent, Convert.ToByte); }
         public bool CBOOL(object value) { return _valueRetriever.BOOL(value, "'CBool'"); }
         public decimal CCUR(object value) { return CCUR(value, "'CCur'"); }
-        private decimal CCUR(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<decimal>(value, exceptionMessageForInvalidContent, Convert.ToDecimal); }
+        private decimal CCUR(object value, string exceptionMessageForInvalidContent)
+        {
+            var currencyValue = GetAsNumber<decimal>(value, exceptionMessageForInvalidContent, Convert.ToDecimal);
+            if ((currencyValue < VBScriptConstants.MinCurrencyValue) || (currencyValue > VBScriptConstants.MaxCurrencyValue))
+                throw new VBScriptOverflowException("'CCur' (" + currencyValue.ToString() + ")");
+            return currencyValue;
+        }
         public double CDBL(object value)
         {
             // When working with CDBL / CDATE, it seemed like some precision was getting lost when values are passed back and forth through them - eg. if 40000.01

@@ -146,7 +146,7 @@ namespace CSharpSupport
         /// </summary>
         public static DateTime LatestPossibleDate { get { return new DateTime(9999, 12, 31, 23, 59, 59); } }
 
-        public static Decimal MinCurrencyValue { get { return -922337203685477.5808m; } }
-        public static Decimal MaxCurrencyValue { get { return 922337203685477.5807m; } }
+        public static Decimal MinCurrencyValue { get { return -922337203685477.5625099999999m; } }
+        public static Decimal MaxCurrencyValue { get { return 922337203685477.5625099999999m; } }
     }
 }
