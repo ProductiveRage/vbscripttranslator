@@ -112,10 +112,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CDate(1) + CDbl(1)", VBScriptConstants.ZeroDate.AddDays(1), 1d, VBScriptConstants.ZeroDate.AddDays(2) };
                     yield return new object[] { "CDate(1) + Empty", VBScriptConstants.ZeroDate.AddDays(1), null, VBScriptConstants.ZeroDate.AddDays(1) };
                     yield return new object[] { "CDate(1) + Null", VBScriptConstants.ZeroDate.AddDays(1), DBNull.Value, DBNull.Value };
+                    yield return new object[] { "CDate(max-date-value) + 1", VBScriptConstants.LatestPossibleDate, 1, VBScriptConstants.LatestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays + 1 };
+                    yield return new object[] { "CDate(min-date-value) + (-1)", VBScriptConstants.EarliestPossibleDate, -1, VBScriptConstants.EarliestPossibleDate.Subtract(VBScriptConstants.ZeroDate).TotalDays - 1 };
 
                     // Integer is straight-forward; it will move up a type if the other value is of a large size and will move up to a Long if it would otherwise overflow
                     yield return new object[] { "CInt(1) + CInt(1)", (Int16)1, (Int16)1, (Int16)2 };
                     yield return new object[] { "CInt(32767) + CInt(1)", (Int16)32767, (Int16)1, 32768 }; // Overflows into a VBScript Long (C# Int32)
+                    yield return new object[] { "CInt(-32768) + CInt(-1)", (Int16)(-32768), (Int16)(-1), -32769 }; // Overflows into a VBScript Long (C# Int32)
                     yield return new object[] { "CInt(1) + Empty", (Int16)1, null, (Int16)1 }; // Empty is treated as Integer (Int16) zero
                     yield return new object[] { "CInt(1) + Null", (Int16)1, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CInt(1) + CLng(1)", (Int16)1, 1, 2 };
@@ -126,6 +129,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     // Long is very similar to Integer
                     yield return new object[] { "CLng(1) + CLng(1)", 1, 1, 2 };
                     yield return new object[] { "CLng(2147483647) + CLng(1)", 2147483647, 1, 2147483648d }; // Overflows into a Double
+                    yield return new object[] { "CLng(-2147483648) + CLng(-1)", -2147483648, -1, -2147483649d }; // Overflows into a Double
                     yield return new object[] { "CLng(1) + Empty", 1, null, 1 }; // Empty is treated as Integer (Int16) zero
                     yield return new object[] { "CLng(1) + Null", 1, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CLng(1) + CDbl(1)", 1, 1d, 2d };
@@ -182,6 +186,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 get
                 {
                     yield return new object[] { "VBScript.MaxCurrency + 1", VBScriptConstants.MaxCurrencyValue, 1 };
+                    yield return new object[] { "VBScript.MinCurrency + (-1)", VBScriptConstants.MinCurrencyValue, -1 };
                 }
             }
 
