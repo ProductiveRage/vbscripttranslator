@@ -25,15 +25,14 @@ namespace CSharpSupport.Implementations
             // See the test suite for further details.
             
             // Address simplest cases first - ensure both values are non-object references (or may be coerced into value types), then check for double-Empty (Integer zero),
-            // one-or-both-Null (Null), both-strings (concatenate) or one-string-with-Empty (return string).
+            // one-or-both-Null (Null), both-strings (concatenate) or one-string-with-Empty (return string). Note that single-Empty is not a simple case - for most values
+            // it is (CInt(1) + Empty = CInt(1), for example) but when Empty is added to a Boolean then the type changes to an Integer.
             l = _valueRetriever.VAL(l);
             r = _valueRetriever.VAL(r);
             if ((l == DBNull.Value) || (r == DBNull.Value))
                 return DBNull.Value;
             if ((l == null) && (r == null))
                 return (Int16)0;
-            else if ((l == null) || (r == null))
-                return l ?? r;
             var lString = l as string;
             var rString = r as string;
             if ((lString != null) && (rString != null))
@@ -127,15 +126,15 @@ namespace CSharpSupport.Implementations
             var rByte = TryToCoerceInto<byte>(r);
             if ((lByte != null) && (rByte != null))
             {
-                var overflowSafeResult = (Int16)lByte.Value + (Int16)rByte.Value;
+                var overflowSafeResult = (Int16)((Int16)lByte.Value + (Int16)rByte.Value);
                 if ((overflowSafeResult >= byte.MinValue) && (overflowSafeResult <= byte.MaxValue))
                     return (byte)overflowSafeResult;
                 return overflowSafeResult;
             }
             else if ((lByte != null) && (rBoolean != null))
-                return (Int16)lByte.Value + (rBoolean.Value ? (Int16)(-1) : (Int16)0);
+                return (Int16)(lByte.Value + (rBoolean.Value ? -1 : 0));
             else if ((rByte != null) && (lBoolean != null))
-                return (Int16)rByte.Value + (lBoolean.Value ? (Int16)(-1) : (Int16)0);
+                return (Int16)(rByte.Value + (lBoolean.Value ? -1 : 0));
             else if ((lByte != null) && (r == null))
                 return lByte.Value;
             else if ((rByte != null) && (l == null))
@@ -151,14 +150,14 @@ namespace CSharpSupport.Implementations
             if (lInteger == null)
             {
                 if (lBoolean != null)
-                    lInteger = lBoolean.Value ? (Int16)0 : (Int16)(-1);
+                    lInteger = lBoolean.Value ? (Int16)(-1) : (Int16)0;
                 else if (lByte != null)
                     lInteger = (Int16)lByte.Value;
             }
             if (rInteger == null)
             {
                 if (rBoolean != null)
-                    rInteger = rBoolean.Value ? (Int16)0 : (Int16)(-1);
+                    rInteger = rBoolean.Value ? (Int16)(-1) : (Int16)0;
                 else if (rByte != null)
                     rInteger = (Int16)rByte.Value;
             }
@@ -169,6 +168,8 @@ namespace CSharpSupport.Implementations
                     return (Int16)result;
                 return result;
             }
+            else if (((lInteger != null) && (r == null)) || ((rInteger != null) && (l == null)))
+                return lInteger ?? rInteger.Value;
 
             // Long (aka Int32) is handled in the same manner similar as Integer (Int16), it will overflow into Double if required
             var lLong = TryToCoerceInto<Int32>(l);

@@ -77,16 +77,16 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CByte(0) + CByte(0)", (byte)0, (byte)0, (byte)0 };
                     yield return new object[] { "CByte(0) + CByte(1)", (byte)0, (byte)1, (byte)1 };
                     yield return new object[] { "CByte(1) + CByte(0)", (byte)1, (byte)0, (byte)1 };
-                    yield return new object[] { "CByte(0) + Empty", (byte)0, null, (byte)0 };
+                    yield return new object[] { "CByte(0) + Empty", (byte)0, null, (byte)0 }; // I'm surprised that this isn't an Integer return, since Empty is (Int16)0 when added to a Boolean.. but the result here IS supposed to be of type Byte
                     yield return new object[] { "CByte(1) + Empty", (byte)1, null, (byte)1 };
                     yield return new object[] { "Empty + CByte(1)", null, (byte)1, (byte)1 };
                     yield return new object[] { "CByte(1) + Null", (byte)1, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CByte(255) + CByte(1)", (byte)255, (byte)1, (Int16)256 }; // Overflows into an Int16
-                    yield return new object[] { "CByte(1) + CInt(3)", true, (Int16)3, (Int16)4 };
-                    yield return new object[] { "CByte(1) + CLng(3)", true, 3, 4 };
-                    yield return new object[] { "CByte(1) + CDbl(3)", true, 3d, 4d };
-                    yield return new object[] { "CByte(1) + CCur(3)", true, 3m, 4m };
-                    yield return new object[] { "CByte(1) + CDate(3)", true, VBScriptConstants.ZeroDate.AddDays(3), VBScriptConstants.ZeroDate.AddDays(4) };
+                    yield return new object[] { "CByte(1) + CInt(3)", (byte)1, (Int16)3, (Int16)4 };
+                    yield return new object[] { "CByte(1) + CLng(3)", (byte)1, 3, 4 };
+                    yield return new object[] { "CByte(1) + CDbl(3)", (byte)1, 3d, 4d };
+                    yield return new object[] { "CByte(1) + CCur(3)", (byte)1, 3m, 4m };
+                    yield return new object[] { "CByte(1) + CDate(3)", (byte)1, VBScriptConstants.ZeroDate.AddDays(3), VBScriptConstants.ZeroDate.AddDays(4) };
 
                     // Currency is more resistant to changing type that other numbers, it will not change type to avoid an overflow. The return value will be Currency unless
                     // the other value is Null or if it is a Date (note that if it IS a date then it WILL overflow, if required, into a Double)
