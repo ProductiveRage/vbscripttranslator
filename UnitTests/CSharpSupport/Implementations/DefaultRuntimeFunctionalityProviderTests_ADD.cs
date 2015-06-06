@@ -47,9 +47,6 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
-                    // Requiring that that the valueToAdd (aka "r") be a non-negative value??
-                    // - If not, then negative overflow tests will be required
-
                     // Empty is treated as an Integer (Int16) zero
                     yield return new object[] { "Empty + Empty", null, null, (Int16)0 };
 
