@@ -18,8 +18,8 @@ namespace CSharpSupport
         int INTDIV(object l, object r);
         double MOD(object l, object r);
         object ADD(object l, object r);
-        double SUBT(object o);
-        double SUBT(object l, object r);
+        object SUBT(object o);
+        object SUBT(object l, object r);
 
         // String concatenation
         object CONCAT(object l, object r);
