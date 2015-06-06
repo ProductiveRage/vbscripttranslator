@@ -98,7 +98,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CCur(1) + CInt(1)", 1m, (int)1, 2m };
                     yield return new object[] { "CCur(1) + CLng(1)", 1m, 1, 2m };
                     yield return new object[] { "CCur(1) + CDbl(1)", 1m, 1d, 2m };
-                    yield return new object[] { "CCur(1) + CDate(1)", 1m, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(1) }; // Type changes to date
+                    yield return new object[] { "CCur(1) + CDate(1)", 1m, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(2) }; // Type changes to date
                     yield return new object[] { "CCur(value-bigger-than-date-can-describe) + CDate(1)", 10000000m, VBScriptConstants.ZeroDate.AddDays(1), 10000001d }; // Type would change to date but overflows to double
 
                     // Operations on Date values also want to return Date results, but (unlike Currency) they overflow into Double if required
