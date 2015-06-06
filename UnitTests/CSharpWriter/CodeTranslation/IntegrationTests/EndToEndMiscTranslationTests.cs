@@ -47,7 +47,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"test1\");",
+                "_.CALL(_outer, \"Test1\");",
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
@@ -78,7 +78,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"test1\");",
+                "_.CALL(_outer, \"Test1\");",
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
@@ -109,7 +109,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_.CALL(_outer, \"test1\");",
+                "_.CALL(_outer, \"Test1\");",
                 "public object test1()",
                 "{",
                 "    object retVal1 = null;",
@@ -278,7 +278,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "_env.a = _.OBJ(_.CALL(_env._outer, \"GetSomething\", \"Name\"));",
+                "_env.a = _.OBJ(_.CALL(_outer, \"GetSomething\", \"Name\"));",
                 "public object getsomething()",
                 "{",
                 "    return null;",

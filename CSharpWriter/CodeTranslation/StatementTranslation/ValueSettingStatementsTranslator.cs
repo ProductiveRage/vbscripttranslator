@@ -191,13 +191,14 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // Now we either have a single segment in the set that has no more than two member accessors (lending itself to easy extraction of a
             // target and optional member accessor) or we have multiple segments where all but the last one define the target and the last entry
             // has the optional member accessor and any arguments.
-            string targetAccessor;
+            string targetAccessorName;
             string optionalMemberAccessor;
             IEnumerable<StageTwoParser.Expression> arguments;
             if (callExpressionSegments.Count == 1)
             {
                 // The single CallExpressionSegment may have one or two member accessors
-                targetAccessor = _nameRewriter.GetMemberAccessTokenName(callExpressionSegments[0].MemberAccessTokens.First());
+                var targetAccessor = callExpressionSegments[0].MemberAccessTokens.First();
+                targetAccessorName = _nameRewriter.GetMemberAccessTokenName(targetAccessor);
                 if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
                     optionalMemberAccessor = null;
                 else
@@ -208,14 +209,15 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 }
                 arguments = callExpressionSegments[0].Arguments;
 
-                var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessor, _nameRewriter);
+                var targetAccessorNameToken = targetAccessor as NameToken;
+                var targetReferenceDetailsIfAvailable = (targetAccessorNameToken == null) ? null : scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessorNameToken, _nameRewriter);
                 if (targetReferenceDetailsIfAvailable == null)
                 {
                     // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
                     // to the current scope, so the targetAccessor does not require a prefix in this case (this means that the UndeclaredVariables data
                     // returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
                     if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
-                        targetAccessor = _envRefName.Name + "." + targetAccessor;
+                        targetAccessorName = _envRefName.Name + "." + targetAccessorName;
                 }
                 else
                 {
@@ -225,10 +227,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     // the replacement (in order to be consistent with VBScript's runtime behaviour)
                     var isSingleTokenSettingParentScopeReturnValue = (
                         (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
-                        targetAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
+                        targetAccessorName == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
                     );
                     if (isSingleTokenSettingParentScopeReturnValue)
-                        targetAccessor = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                        targetAccessorName = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
                     else
                     {
                         if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
@@ -247,7 +249,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                                     CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
                                 )
                             };
-                            targetAccessor =
+                            targetAccessorName =
                                 _statementTranslator.Translate(
                                     new StageTwoParser.Expression(targetAccessCallExpressionSegments),
                                     scopeAccessInformation,
@@ -255,9 +257,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                                 ).TranslatedContent;
                         }
                         else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
-                            targetAccessor = _envRefName.Name + "." + targetAccessor;
+                            targetAccessorName = _envRefName.Name + "." + targetAccessorName;
                         else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
-                            targetAccessor = _outerRefName.Name + "." + targetAccessor;
+                            targetAccessorName = _outerRefName.Name + "." + targetAccessorName;
                     }
                 }
             }
@@ -267,7 +269,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var targetAccessExpressionSegments = (targetAccessCallExpressionSegments.Count() > 1)
                     ? new IExpressionSegment[] { new CallSetExpressionSegment(targetAccessCallExpressionSegments) }
                     : new IExpressionSegment[] { targetAccessCallExpressionSegments.Single() };
-                targetAccessor =
+                targetAccessorName =
                     _statementTranslator.Translate(
                         new StageTwoParser.Expression(targetAccessExpressionSegments),
                         scopeAccessInformation,
@@ -330,7 +332,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     "{0}.SET({1}, {2}, {3}, {4})",
                     _supportRefName.Name,
                     translatedExpression,
-                    targetAccessor,
+                    targetAccessorName,
                     (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
                     argumentsContent.TranslatedContent
                 ),

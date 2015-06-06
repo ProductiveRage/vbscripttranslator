@@ -16,12 +16,11 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
-            // TargetCurrentClassToken indicates a "Me" reference, which is always valid
+            // TargetCurrentClassToken indicates a "Me" reference, which is always valid - TODO: Move this into TryToGetDeclaredReferenceDetails?
             if (target is TargetCurrentClassToken)
                 return true;
 
-            var rewrittenTargetName = nameRewriter.GetMemberAccessTokenName(target);
-            return TryToGetDeclaredReferenceDetails(scopeInformation, rewrittenTargetName, nameRewriter) != null;
+            return TryToGetDeclaredReferenceDetails(scopeInformation, target, nameRewriter) != null;
         }
 
         /// <summary>
@@ -53,8 +52,13 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (target is TargetCurrentClassToken)
                 return null;
 
+            // Similarly, if the target is a NameToken that comes from content that was partially processed and then rewritten then we can assume that
+            // it does not need any target-container logic re-applying
+            if (target is ProcessedNameToken)
+                return null;
+
             var rewrittenTargetName = nameRewriter(target).Name;
-            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenTargetName, nameRewriter);
+            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(target, nameRewriter);
             if (targetReferenceDetailsIfAvailable == null)
             {
                 if (scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
@@ -80,20 +84,21 @@ namespace CSharpWriter.CodeTranslation.Extensions
         }
 
         /// <summary>
-        /// Try to retrieve information about a name token (that has been passed through the specified nameRewriter). If there is nothing matching it in the
-        /// current scope then null will be returned.
+        /// Try to retrieve information about a name token. If there is nothing matching it in the current scope then null will be returned.
         /// </summary>
         public static DeclaredReferenceDetails TryToGetDeclaredReferenceDetails(
             this ScopeAccessInformation scopeInformation,
-            string rewrittenTargetName,
+            NameToken target,
             VBScriptNameRewriter nameRewriter)
         {
             if (scopeInformation == null)
                 throw new ArgumentNullException("scopeInformation");
-            if (string.IsNullOrWhiteSpace(rewrittenTargetName))
-                throw new ArgumentException("Null/blank rewrittenTargetName specified");
+            if (target == null)
+                throw new ArgumentNullException("target");
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+
+            var rewrittenTargetName = nameRewriter(target).Name; // TODO: Anything?
 
             // If the target corresponds to the containing "WITH" reference (if any) then use that ("WITH a: .Go: END WITH" is translated
             // approximately into "var w123 = a; w123.Go();" where the "w123" is the DirectedWithReferenceIfAny and so we don't need to

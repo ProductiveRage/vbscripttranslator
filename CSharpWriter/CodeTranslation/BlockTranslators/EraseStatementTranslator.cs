@@ -141,7 +141,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 {
                     // Ensure that the single NameToken in the single erase target is a variable (a function call will result in a "Type mismatch" error)
                     var singleTargetNameToken = (NameToken)eraseTargetToValidate.Target.Tokens.Single();
-                    var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(_nameRewriter.GetMemberAccessTokenName(singleTargetNameToken), _nameRewriter);
+                    var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(singleTargetNameToken, _nameRewriter);
                     if ((targetReferenceDetails != null) && (targetReferenceDetails.ReferenceType != ReferenceTypeOptions.Variable))
                     {
                         // Note: If the variable has not been declared then targetReferenceDetails will be null, but that means that it will become an undeclared variable later on,

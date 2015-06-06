@@ -107,7 +107,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 var errOn1 = _.GETERRORTRAPPINGTOKEN();
                 _.STARTERRORTRAPPINGANDCLEARANYERROR(errOn1);
                 _.HANDLEERROR(errOn1, () => {
-                    _.CALL(_outer, ""func1"");
+                    _.CALL(_outer, ""Func1"");
                 });
                 _.RELEASEERRORTRAPPINGTOKEN(errOn1);
                 public object func1()
@@ -134,7 +134,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 End Function
             ";
             var expected = @"
-                _.CALL(_outer, ""func1"");
+                _.CALL(_outer, ""Func1"");
                 _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""Test2""));
                 public object func1()
                 {
