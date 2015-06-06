@@ -64,16 +64,16 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CBool(0) * CBool(0)", false, false, (Int16)0 };
                     yield return new object[] { "CBool(0) * CBool(1)", false, true, (Int16)0 };
                     yield return new object[] { "CBool(1) * CBool(0)", true, false, (Int16)0 };
-                    yield return new object[] { "CBool(1) * CBool(1)", true, true, (Int16)(-1) };
+                    yield return new object[] { "CBool(1) * CBool(1)", true, true, (Int16)1 }; // CBool(1) will be treated as (Int16)(-1), so the result is -1 x -1 = 1
                     yield return new object[] { "CBool(0) * CBool(0)", false, false, (Int16)0 };
                     yield return new object[] { "CBool(0) * Empty", false, null, (Int16)0 };
                     yield return new object[] { "CBool(1) * Empty", true, null, (Int16)0 };
                     yield return new object[] { "CBool(0) * Null", false, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CBool(0) * CByte(0)", false, (byte)0, (Int16)0 };
                     yield return new object[] { "CBool(0) * CInt(0)", false, (Int16)0, (Int16)0 };
-                    yield return new object[] { "CBool(0) * CInt(-32768)", false, (Int16)(-32768), 32768 }; // The only Boolean / Integer multiplication that results in a Long instead of an Integer
+                    yield return new object[] { "CBool(1) * CInt(-32768)", true, (Int16)(-32768), 32768 }; // The only Boolean / Integer multiplication that results in a Long instead of an Integer
                     yield return new object[] { "CBool(0) * CLng(0)", false, (Int32)0, (Int32)0 };
-                    yield return new object[] { "CBool(0) * CLng(-2147483648)", false, -2147483647, 2147483648d }; // The only Boolean / Long multiplication that results in a Double instead of a Long
+                    yield return new object[] { "CBool(1) * CLng(-2147483648)", true, -2147483648, 2147483648d }; // The only Boolean / Long multiplication that results in a Double instead of a Long
                     yield return new object[] { "CBool(0) * CDbl(0)", false, 0d, 0d };
                     yield return new object[] { "CBool(0) * CCur(0)", false, 0m, 0m };
                     yield return new object[] { "CBool(0) * CDate(0)", false, VBScriptConstants.ZeroDate, 0d };
@@ -105,7 +105,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     // Same with Long..
                     yield return new object[] { "CLng(0) * CLng(0)", 0, 0, 0 };
                     yield return new object[] { "CLng(2) * CLng(2)", 2, 2, 4 };
-                    yield return new object[] { "CLng(50000) * CLng(50000)", 16, 16, 2500000000d }; // Overflow into a Double
+                    yield return new object[] { "CLng(50000) * CLng(50000)", 50000, 50000, 2500000000d }; // Overflow into a Double
                     yield return new object[] { "CLng(16) * Empty", 16, null, 0 };
                     yield return new object[] { "CLng(16) * Null", 16, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CLng(16) * CDbl(1)", 16, 1d, 16d };
@@ -116,7 +116,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     // rather than moving up to the Double type
                     yield return new object[] { "CCur(0) * CCur(0)", 0m, 0m, 0m };
                     yield return new object[] { "CCur(2) * CCur(2)", 2m, 2m, 4m };
-                    yield return new object[] { "CCur(16) * Empty", 16m, null, 0 };
+                    yield return new object[] { "CCur(16) * Empty", 16m, null, 0m };
                     yield return new object[] { "CCur(16) * Null", 16m, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CCur(16) * CDbl(1)", 16m, 1d, 16d };
                     yield return new object[] { "CCur(16) * CDate(1)", 16m, VBScriptConstants.ZeroDate.AddDays(1), 16d };
@@ -139,7 +139,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "\"2\" * CDbl(1)", "2", 1d, 2d };
                     yield return new object[] { "\"-2\" * CDbl(1)", "-2", 1d, -2d };
                     yield return new object[] { "\"0.2\" * CDbl(1)", "0.2", 1d, 0.2d };
-                    yield return new object[] { "\"2\" * Empty", "2", null, 2d };
+                    yield return new object[] { "\"2\" * Empty", "2", null, 0d };
                     yield return new object[] { "\"2\" * Null", "2", DBNull.Value, DBNull.Value };
 
                     // The standard if-object-then-try-to-access-default-parameterless-function-or-property logic applies

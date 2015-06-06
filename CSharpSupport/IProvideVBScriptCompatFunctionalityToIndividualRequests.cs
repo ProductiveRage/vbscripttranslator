@@ -14,7 +14,7 @@ namespace CSharpSupport
         // Arithemetic operators
         double POW(object l, object r);
         double DIV(object l, object r);
-        double MULT(object l, object r);
+        object MULT(object l, object r);
         int INTDIV(object l, object r);
         double MOD(object l, object r);
         object ADD(object l, object r);

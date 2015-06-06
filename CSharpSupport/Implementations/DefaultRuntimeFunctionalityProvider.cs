@@ -80,7 +80,7 @@ namespace CSharpSupport.Implementations
         public object ADD(object l, object r) { return _arithmeticHandler.ADD(l, r); }
         public object SUBT(object o) { return _arithmeticHandler.SUBT(o); }
         public object SUBT(object l, object r) { return _arithmeticHandler.SUBT(l, r); }
-        public double MULT(object l, object r) { return _arithmeticHandler.MULT(l, r); }
+        public object MULT(object l, object r) { return _arithmeticHandler.MULT(l, r); }
         public double DIV(object l, object r) { return _arithmeticHandler.DIV(l, r); }
         public int INTDIV(object l, object r) { return _arithmeticHandler.INTDIV(l, r); }
         public double POW(object l, object r) { return _arithmeticHandler.POW(l, r); }

@@ -71,7 +71,7 @@ namespace CSharpSupport.Implementations
                 }
                 else
                 {
-                    // We know that one (and only one) of the values if a Currency and that the other is not a Date. We can retrieve the other value as a Double and
+                    // We know that one (and only one) of the values is a Currency and that the other is not a Date. We can retrieve the other value as a Double and
                     // then perform the translation (there is no way that precision can be lost since only Currency has different precision rules from Double and we
                     // know that the "other value" is not a Currency).
                     firstCurrencyValue = lCurrency ?? rCurrency.Value;
@@ -263,9 +263,122 @@ namespace CSharpSupport.Implementations
             return ADD(l, SUBT(r));
         }
 
-        public double MULT(object l, object r)
+        public object MULT(object l, object r)
         {
-            throw new NotImplementedException(); // TODO
+            // Address simplest cases first - ensure both values are non-object references (or may be coerced into value types), then check for double-Empty (Integer zero),
+            // one-or-both-Null (Null), both-strings (concatenate) or one-string-with-Empty (return string). Note that single-Empty is not a simple case - for most values
+            // it is (CInt(1) + Empty = CInt(1), for example) but when Empty is added to a Boolean then the type changes to an Integer.
+            l = _valueRetriever.VAL(l);
+            r = _valueRetriever.VAL(r);
+            if ((l == DBNull.Value) || (r == DBNull.Value))
+                return DBNull.Value;
+            if ((l == null) && (r == null))
+                return (Int16)0;
+
+            // Multiplying two Booleans always returns an Integer, so the smallest type is the Byte - a Byte is only returned if BOTH values are Bytes or if one is a Byte
+            // and the other is Empty (in which case a zero of type Byte will be returned)
+            // by Empty will be an Integer zero.
+            var lByte = TryToCoerceInto<byte>(l);
+            var rByte = TryToCoerceInto<byte>(r);
+            if ((lByte != null) && (rByte != null))
+            {
+                var overflowSafeResult = (Int16)(lByte.Value * rByte.Value);
+                if ((overflowSafeResult >= byte.MinValue) && (overflowSafeResult <= byte.MaxValue))
+                    return (byte)overflowSafeResult;
+                return overflowSafeResult;
+            }
+            if (((lByte != null) && (r == null)) || ((rByte != null) && (l == null)))
+                return (byte)0;
+
+            // Since multiplying Integers or Integers with Booleans or Integers with Bytes or Bytes with Booleans all result in an Integer being returned (unless an
+            // overflow into a Long is required), we'll treat any Byte or Boolean values here as Integer. An Integer or Byte or Boolean multipled by Empty results
+            // in an Integer zero.
+            var lInteger = (lByte != null) ? ((Int16)lByte.Value) : TryToCoerceInto<Int16>(l);
+            if (lInteger == null)
+            {
+                var lBoolean = TryToCoerceInto<bool>(l);
+                if (lBoolean != null)
+                    lInteger = lBoolean.Value ? (Int16)(-1) : (Int16)0;
+            }
+            var rInteger = (rByte != null) ? ((Int16)rByte.Value) : TryToCoerceInto<Int16>(r);
+            if (rInteger == null)
+            {
+                var rBoolean = TryToCoerceInto<bool>(r);
+                if (rBoolean != null)
+                    rInteger = rBoolean.Value ? (Int16)(-1) : (Int16)0;
+            }
+            if ((lInteger != null) && (rInteger != null))
+            {
+                var overflowSafeResult = lInteger.Value * rInteger.Value;
+                if ((overflowSafeResult >= Int16.MinValue) && (overflowSafeResult <= Int16.MaxValue))
+                    return (Int16)overflowSafeResult;
+                return overflowSafeResult;
+            }
+            if (((lInteger != null) && (r == null)) || ((rInteger != null) && (l == null)))
+                return (Int16)0;
+
+            // Long (aka Int32) is similar to Integer (Int16) - if both values are Longs or if one is Long and the other is a smaller type (Boolean, Byte, Integer) then
+            // then Long, unless an overflow into Double is required
+            var lLong = TryToCoerceInto<Int32>(l);
+            var rLong = TryToCoerceInto<Int32>(r);
+            if ((lLong == null) && (lInteger != null))
+                lLong = (Int32)lInteger; // This will already have considered Boolean and Byte values where applicable (see above)
+            if ((rLong == null) && (rInteger != null))
+                rLong = (Int32)rInteger; // This will already have considered Boolean and Byte values where applicable (see above)
+            if ((lLong != null) && (rLong != null))
+            {
+                var result = (Double)lLong.Value * (Double)rLong.Value;
+                if ((result >= Int32.MinValue) && (result <= Int32.MaxValue))
+                    return (Int32)result;
+                return result;
+            }
+            if (((lLong != null) && (r == null)) || ((rLong != null) && (l == null)))
+                return 0;
+
+            // Two Currency value multiplied will result in a Currency. If the result is an overflow then an error is raised, rather than moving up to a Double. A Currency
+            // multiplied by a Date or Double results in a Double, but any other type results in a Currency.
+            var lCurrency = TryToCoerceInto<Decimal>(l);
+            var rCurrency = TryToCoerceInto<Decimal>(r);
+            if ((lCurrency != null) || (rCurrency != null))
+            {
+                Tuple<Decimal, Decimal> currencyValuesToMultiplyIfAvailable;
+                if ((lCurrency != null) && (rCurrency != null))
+                    currencyValuesToMultiplyIfAvailable = Tuple.Create(lCurrency.Value, rCurrency.Value);
+                else if ((lCurrency != null) && (rLong != null))
+                    currencyValuesToMultiplyIfAvailable = Tuple.Create(lCurrency.Value, (Decimal)rLong.Value);
+                else if ((rCurrency != null) && (lLong != null))
+                    currencyValuesToMultiplyIfAvailable = Tuple.Create(rCurrency.Value, (Decimal)lLong.Value);
+                else if ((l == null) || (r == null))
+                {
+                    // We know that one of the value is a Currency so if either of the values is null then we're combining a Currency with null (Empty in VBScript)
+                    return 0m;
+                }
+                else
+                    currencyValuesToMultiplyIfAvailable = null;
+                if (currencyValuesToMultiplyIfAvailable != null)
+                {
+                    Decimal result;
+                    try
+                    {
+                        result = currencyValuesToMultiplyIfAvailable.Item1 * currencyValuesToMultiplyIfAvailable.Item2;
+                    }
+                    catch (OverflowException e)
+                    {
+                        throw new VBScriptOverflowException(e);
+                    }
+                    if ((result < VBScriptConstants.MinCurrencyValue) || (result > VBScriptConstants.MaxCurrencyValue))
+                        throw new VBScriptOverflowException();
+                    return result;
+                }
+            }
+
+            // Multiplying Dates or multiplying anything BY a Date will result in a Double. Might as well wrap this into a final treat-as-Double if nothing else matched
+            // fallback (this covers numeric string cases too)
+            var lDate = TryToCoerceInto<DateTime>(l);
+            var rDate = TryToCoerceInto<DateTime>(r);
+            var lDouble = (lDate != null) ? lDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays : AsDouble(l);
+            var rDouble = (rDate != null) ? rDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays : AsDouble(r);
+            return lDouble * rDouble;
         }
 
         public double DIV(object l, object r)
