@@ -21,7 +21,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<TypeMismatchException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().AND(l, r);
+                    DefaultRuntimeSupportClassFactory.Get().ADD(l, r);
                 });
             }
 
@@ -30,7 +30,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<VBScriptOverflowException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().AND(l, r);
+                    DefaultRuntimeSupportClassFactory.Get().ADD(l, r);
                 });
             }
 
@@ -39,7 +39,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 Assert.Throws<ObjectVariableNotSetException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().AND(l, r);
+                    DefaultRuntimeSupportClassFactory.Get().ADD(l, r);
                 });
             }
 
