@@ -16,7 +16,7 @@ namespace CSharpSupport
         double DIV(object l, object r);
         object MULT(object l, object r);
         int INTDIV(object l, object r);
-        double MOD(object l, object r);
+        object MOD(object l, object r);
         object ADD(object l, object r);
         object SUBT(object o);
         object SUBT(object l, object r);

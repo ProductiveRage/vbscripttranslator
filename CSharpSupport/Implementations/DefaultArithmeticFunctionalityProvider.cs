@@ -396,9 +396,89 @@ namespace CSharpSupport.Implementations
             throw new NotImplementedException(); // TODO
         }
 
-        public double MOD(object l, object r)
+        public object MOD(object l, object r)
         {
-            throw new NotImplementedException(); // TODO
+            // Note: Null values trump division-by zero (so check them first) but overflow trumps division-by-zero, so we can't throw as soon as we find that "r" is zero,
+            // we need to continue until we confirm that "l" does not overflow. With the exception of double-Empty; there's no chance of an overflow then, it's definitely
+            // safe to division-by-zero it!
+            l = _valueRetriever.VAL(l);
+            r = _valueRetriever.VAL(r);
+            if ((l == DBNull.Value) || (r == DBNull.Value))
+                return DBNull.Value;
+            if ((l == null) && (r == null))
+                throw new VBScriptDivisionByZeroException();
+
+            var rByte = TryToCoerceInto<byte>(r);
+            if ((l == null) && (rByte != null))
+                return (Int16)0; // Empty gets treated as an Integer, so the combined result is an Integer
+            var lByte = TryToCoerceInto<byte>(l);
+            if ((lByte != null) && (rByte != null))
+            {
+                if (rByte == 0)
+                    throw new VBScriptDivisionByZeroException();
+                return (byte)(lByte % rByte);
+            }
+
+            var rInteger = (rByte != null) ? (Int16?)rByte.Value : TryToCoerceInto<Int16>(r);
+            if ((rInteger == null) && (r != null))
+            {
+                var rBoolean = TryToCoerceInto<bool>(r);
+                if (rBoolean != null)
+                    rInteger = rBoolean.Value ? (Int16)(-1) : (Int16)0;
+            }
+            if ((l == null) && (rInteger != null))
+                return (Int16)0;
+            var lInteger = (lByte != null) ? (Int16?)lByte.Value : TryToCoerceInto<Int16>(l);
+            if ((lInteger == null) && (l != null))
+            {
+                var lBoolean = TryToCoerceInto<bool>(l);
+                if (lBoolean != null)
+                    lInteger = lBoolean.Value ? (Int16)(-1) : (Int16)0;
+            }
+            if ((lInteger != null) && (rInteger != null))
+            {
+                if (rInteger == 0)
+                    throw new VBScriptDivisionByZeroException();
+                return (Int16)(lInteger.Value % rInteger.Value);
+            }
+
+            var rLong = (rInteger != null) ? (int?)rInteger.Value : TryToCoerceInto<Int32>(r);
+            if ((rLong == null) && (r != null))
+            {
+                try
+                {
+                    var rDate = TryToCoerceInto<DateTime>(r);
+                    if (rDate != null)
+                        rLong = Convert.ToInt32(rDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays);
+                    else
+                        rLong = Convert.ToInt32(AsDouble(r));
+                }
+                catch (OverflowException e)
+                {
+                    throw new VBScriptOverflowException(e);
+                }
+            }
+            if ((l == null) && (rLong != null))
+                return (Int32)0;
+            var lLong = (lInteger != null) ? (int?)lInteger.Value : TryToCoerceInto<Int32>(l);
+            if ((lLong == null) && (l != null))
+            {
+                try
+                {
+                    var lDate = TryToCoerceInto<DateTime>(l);
+                    if (lDate != null)
+                        lLong = Convert.ToInt32(lDate.Value.Subtract(VBScriptConstants.ZeroDate).TotalDays);
+                    else
+                        lLong = Convert.ToInt32(AsDouble(l));
+                }
+                catch (OverflowException e)
+                {
+                    throw new VBScriptOverflowException(e);
+                }
+            }
+            if ((r == null) || (rLong == 0))
+                throw new VBScriptDivisionByZeroException();
+            return lLong % rLong;
         }
 
         private double AsDouble(object value)

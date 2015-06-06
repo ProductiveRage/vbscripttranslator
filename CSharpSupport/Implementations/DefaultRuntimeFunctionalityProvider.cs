@@ -84,7 +84,7 @@ namespace CSharpSupport.Implementations
         public double DIV(object l, object r) { return _arithmeticHandler.DIV(l, r); }
         public int INTDIV(object l, object r) { return _arithmeticHandler.INTDIV(l, r); }
         public double POW(object l, object r) { return _arithmeticHandler.POW(l, r); }
-        public double MOD(object l, object r) { return _arithmeticHandler.MOD(l, r); }
+        public object MOD(object l, object r) { return _arithmeticHandler.MOD(l, r); }
 
         // String concatenation
         public object CONCAT(object l, object r)

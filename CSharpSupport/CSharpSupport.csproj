@@ -49,6 +49,7 @@
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="Exceptions\SyntaxError.cs" />
     <Compile Include="Exceptions\SubscriptOutOfRangeException.cs" />
+    <Compile Include="Exceptions\VBScriptDivisionByZeroException.cs" />
     <Compile Include="Exceptions\VBScriptOverflowException.cs" />
     <Compile Include="Exceptions\SpecificVBScriptException.cs" />
     <Compile Include="Exceptions\InvalidUseOfNullException.cs" />
