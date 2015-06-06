@@ -187,6 +187,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Fact]
+            public void StringRepresentationsOfBooleanValuesAreNotParsed()
+            {
+                Assert.Throws<TypeMismatchException>(() =>
+                {
+                    DefaultRuntimeSupportClassFactory.Get().NUM("True");
+                });
+            }
+
+            [Fact]
             public void DecimalIsEvenBiggerThanDouble()
             {
                 // Although the double type can contain a greater range of values than decimal, VBScript prefers decimal if both are present

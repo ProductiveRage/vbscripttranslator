@@ -47,7 +47,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
-                    // TODO: Requiring that that the valueToAdd (aka "r") be a non-negative value??
+                    // Requiring that that the valueToAdd (aka "r") be a non-negative value??
                     // - If not, then negative overflow tests will be required
 
                     // Empty is treated as an Integer (Int16) zero
@@ -69,7 +69,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CBool(1) + Empty", true, null, (Int16)(-1) };
                     yield return new object[] { "CBool(1) + Null", true, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CBool(1) + CByte(3)", true, (byte)3, (Int16)2 }; // Byte can not contain all values of Boolean (0 and -1) so the next type up for them both is Integer (Int16)
-                    yield return new object[] { "CBool(0) + CByte(3)", true, (byte)3, (Int16)2 }; // Similar to above data but to prove Bool + Byte => Integer is based on types and not values
+                    yield return new object[] { "CBool(0) + CByte(3)", false, (byte)3, (Int16)3 }; // Similar to above data but to prove Bool + Byte => Integer is based on types and not values
                     yield return new object[] { "CBool(1) + CInt(3)", true, (Int16)3, (Int16)2 }; // CBool(1) becomes (Int16)(-1) for this operation so the result is (Int16)2
                     yield return new object[] { "CBool(1) + CLng(3)", true, 3, 2 };
                     yield return new object[] { "CBool(1) + CDbl(3)", true, 3d, 2d };
@@ -95,7 +95,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     // the other value is Null or if it is a Date (note that if it IS a date then it WILL overflow, if required, into a Double)
                     yield return new object[] { "CCur(1) + CCur(1)", 1m, 1m, 2m };
                     yield return new object[] { "CCur(1) + Empty", 1m, null, 1m };
-                    yield return new object[] { "CCur(1) + Null", 1m, null, 1m };
+                    yield return new object[] { "CCur(1) + Null", 1m, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CCur(1) + CBool(1)", 1m, true, 0m }; // CBool(1) becomes -1, so the total is zero (type remains Currency)
                     yield return new object[] { "CCur(1) + CByte(1)", 1m, (byte)1, 2m };
                     yield return new object[] { "CCur(1) + CInt(1)", 1m, (int)1, 2m };
@@ -104,6 +104,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CCur(1) + CDate(1)", 1m, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(1) }; // Type changes to date
                     yield return new object[] { "CCur(value-bigger-than-date-can-describe) + CDate(1)", 10000000m, VBScriptConstants.ZeroDate.AddDays(1), 10000001d }; // Type would change to date but overflows to double
 
+                    // Operations on Date values also want to return Date results, but (unlike Currency) they overflow into Double if required
+                    yield return new object[] { "CDate(1) + CDate(1)", VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(2) };
+                    yield return new object[] { "CDate(1) + CBool(1)", VBScriptConstants.ZeroDate.AddDays(1), true, VBScriptConstants.ZeroDate }; // CBool(1) is treated as -1
+                    yield return new object[] { "CDate(1) + CInt(1)", VBScriptConstants.ZeroDate.AddDays(1), (Int16)1, VBScriptConstants.ZeroDate.AddDays(2) };
+                    yield return new object[] { "CDate(1) + CLng(1)", VBScriptConstants.ZeroDate.AddDays(1), 1, VBScriptConstants.ZeroDate.AddDays(2) };
+                    yield return new object[] { "CDate(1) + CDbl(1)", VBScriptConstants.ZeroDate.AddDays(1), 1d, VBScriptConstants.ZeroDate.AddDays(2) };
+                    yield return new object[] { "CDate(1) + Empty", VBScriptConstants.ZeroDate.AddDays(1), null, VBScriptConstants.ZeroDate.AddDays(1) };
+                    yield return new object[] { "CDate(1) + Null", VBScriptConstants.ZeroDate.AddDays(1), DBNull.Value, DBNull.Value };
+
                     // Integer is straight-forward; it will move up a type if the other value is of a large size and will move up to a Long if it would otherwise overflow
                     yield return new object[] { "CInt(1) + CInt(1)", (Int16)1, (Int16)1, (Int16)2 };
                     yield return new object[] { "CInt(32767) + CInt(1)", (Int16)32767, (Int16)1, 32768 }; // Overflows into a VBScript Long (C# Int32)
@@ -111,7 +120,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CInt(1) + Null", (Int16)1, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CInt(1) + CLng(1)", (Int16)1, 1, 2 };
                     yield return new object[] { "CInt(1) + CDbl(1)", (Int16)1, 1d, 2d };
-                    yield return new object[] { "CInt(1) + CDate(1)", (Int16)1, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(1) };
+                    yield return new object[] { "CInt(1) + CDate(1)", (Int16)1, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(2) };
                     yield return new object[] { "CInt(1) + CCur(1)", (Int16)1, 1m, 2m };
 
                     // Long is very similar to Integer
@@ -120,7 +129,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "CLng(1) + Empty", 1, null, 1 }; // Empty is treated as Integer (Int16) zero
                     yield return new object[] { "CLng(1) + Null", 1, DBNull.Value, DBNull.Value };
                     yield return new object[] { "CLng(1) + CDbl(1)", 1, 1d, 2d };
-                    yield return new object[] { "CLng(1) + CDate(1)", 1, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(1) };
+                    yield return new object[] { "CLng(1) + CDate(1)", 1, VBScriptConstants.ZeroDate.AddDays(1), VBScriptConstants.ZeroDate.AddDays(2) };
                     yield return new object[] { "CLng(1) + CCur(1)", 1, 1m, 2m };
 
                     // Most of the Double cases have been handled above..
@@ -139,10 +148,10 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "\"1\" + Null", "1", DBNull.Value, DBNull.Value };
                     yield return new object[] { "Null + \"1\"", DBNull.Value, "1", DBNull.Value };
                     yield return new object[] { "CInt(1) + \"1\"", (Int16)1, "1", 2d };
-                    yield return new object[] { "CBool(1) + \"3\"", true, "3", 1d }; // CBool(1) / true => (Int16)(-1), "3" => 3d, so the result is 2d
+                    yield return new object[] { "CBool(1) + \"3\"", true, "3", 2d }; // CBool(1) / true => (Int16)(-1), "3" => 3d, so the result is 2d
 
                     // The standard if-object-then-try-to-access-default-parameterless-function-or-property logic applies
-                    yield return new object[] { "Object-with-default-property-with-value-Integer-1 + CInt(2)", new exampledefaultpropertytype { result = (Int16)1 }, (Int16)2 };
+                    yield return new object[] { "Object-with-default-property-with-value-Integer-1 + CInt(2)", new exampledefaultpropertytype { result = (Int16)1 }, (Int16)2, (Int16)3 };
                 }
             }
 
@@ -158,6 +167,9 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     // String representations of boolean values are not considered valid for addition
                     yield return new object[] { "CInt(1) + \"True\"", (Int16)1, "True" };
                     yield return new object[] { "CInt(1) + \"true\"", (Int16)1, "true" };
+                    
+                    // String representations of dates values are not considered valid for addition
+                    yield return new object[] { "CInt(1) + \"2015-03-02\"", (Int16)1, "2015-03-02" };
 
                     // No wrangling to arrays is supported (not even "if it's one-dimensional and has only a single element then use that")
                     yield return new object[] { "CInt(1) + Array()", (Int16)1, new object[0] };
