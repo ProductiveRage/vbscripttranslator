@@ -260,7 +260,7 @@ namespace CSharpSupport.Implementations
 
         public object SUBT(object l, object r)
         {
-            throw new NotImplementedException(); // TODO
+            return ADD(l, SUBT(r));
         }
 
         public double MULT(object l, object r)
