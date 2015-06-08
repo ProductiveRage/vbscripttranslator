@@ -531,7 +531,7 @@ namespace CSharpSupport.Implementations
             // has a ToString method. Note that some value types are compile errors (eg. "123.ToString()") and so those should have been caught by
             // the translation process. VBScript considers arrays to be value types (ie. when returning an array from a function, you don't have
             // to call SET), so we need to exclude that case since clearly arguments CAN be used with arrays.
-            var isArray = target.GetType().IsArray;
+            var isArray = (target != null) && target.GetType().IsArray;
             if (!isArray && IsVBScriptValueType(target))
             {
                 string targetDescription;
