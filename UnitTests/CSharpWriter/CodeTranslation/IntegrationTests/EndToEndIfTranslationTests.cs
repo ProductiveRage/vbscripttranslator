@@ -20,7 +20,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "if (_.IF(VBScriptConstants.True))",
+                "if (_.IF(true))",
                 "{",
                 "  //Else",
                 "}",
@@ -46,7 +46,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "if (_.IF(VBScriptConstants.True)) //Comment",
+                "if (_.IF(true)) //Comment",
                 "{",
                 "}",
             };
@@ -69,7 +69,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "if (_.IF(VBScriptConstants.True))",
+                "if (_.IF(true))",
                 "{",
                 "}"
             };
@@ -194,7 +194,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_.NullableNUM(VBScriptConstants.False), (Int16)1)))",
+                    "if (_.IF(_.EQ(_.NullableNUM(false), (Int16)1)))",
                     "{",
                     "}"
                 };
@@ -438,7 +438,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(\"True\", _.NullableSTR(VBScriptConstants.True))))",
+                    "if (_.IF(_.EQ(\"True\", _.NullableSTR(true))))",
                     "{",
                     "}"
                 };
@@ -463,7 +463,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 ";
                 var expected = new[]
                 {
-                    "if (_.IF(_.EQ(_env.i, VBScriptConstants.True)))",
+                    "if (_.IF(_.EQ(_env.i, true)))",
                     "{",
                     "}"
                 };
@@ -489,9 +489,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = new[]
             {
-                "if (_.IF(VBScriptConstants.True))",
+                "if (_.IF(true))",
                 "{",
-                "  if (_.IF(VBScriptConstants.True))",
+                "  if (_.IF(true))",
                 "  {",
                 "  }",
                 "}",

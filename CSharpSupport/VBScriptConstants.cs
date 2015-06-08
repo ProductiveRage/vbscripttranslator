@@ -5,16 +5,6 @@ namespace CSharpSupport
 {
     public static class VBScriptConstants
 	{
-        /// <summary>
-        /// For consistency with VBScript, true and false are ints rather than booleans
-        /// </summary>
-        public static int True { get { return -1; } }
-
-        /// <summary>
-        /// For consistency with VBScript, true and false are ints rather than booleans
-        /// </summary>
-        public static int False { get { return 0; } }
-
         public static object Empty { get { return null; } }
 
         /// <summary>

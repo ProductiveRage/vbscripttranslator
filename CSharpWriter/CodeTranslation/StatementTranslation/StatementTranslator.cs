@@ -472,7 +472,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             // Handle constants special cases
-            if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.InvariantCultureIgnoreCase))
+            if (builtInValueExpressionSegment.Token.Content.Equals("nothing", StringComparison.OrdinalIgnoreCase))
             {
                 return new TranslatedStatementContentDetailsWithContentType(
                     string.Format(
@@ -480,6 +480,28 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         _supportRefName.Name
                     ),
                     ExpressionReturnTypeOptions.Reference,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
+            else if (builtInValueExpressionSegment.Token.Content.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
+                        "true",
+                        _supportRefName.Name
+                    ),
+                    ExpressionReturnTypeOptions.Boolean,
+                    new NonNullImmutableList<NameToken>()
+                );
+            }
+            else if (builtInValueExpressionSegment.Token.Content.Equals("false", StringComparison.OrdinalIgnoreCase))
+            {
+                return new TranslatedStatementContentDetailsWithContentType(
+                    string.Format(
+                        "false",
+                        _supportRefName.Name
+                    ),
+                    ExpressionReturnTypeOptions.Boolean,
                     new NonNullImmutableList<NameToken>()
                 );
             }
@@ -501,6 +523,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 new NonNullImmutableList<NameToken>()
             );
         }
+
+        public static HashSet<string> BuiltInFunctionsAccessed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// This may only be called when a CallExpressionSegment is encountered as one of the segments in the Expression passed into the public Translate method
@@ -549,6 +573,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
             if (targetBuiltInFunction != null)
             {
+                BuiltInFunctionsAccessed.Add(targetBuiltInFunction.Content);
+
                 var supportFunctionDetails = GetDetailsOfBuiltInFunction(targetBuiltInFunction, callExpressionSegment.Arguments.Count());
                 var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.SupportFunctionName, targetBuiltInFunction.LineIndex) }
                     .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
@@ -638,7 +664,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // the function name must become one of the member accessors (eg. GetSomething().Name can not be represented by _.CALL(GetSomething, "Name") since that is not
             // valid C#, however it CAN be represented by _.CALL(_outer, "GetSomething", "Name") or _.CALL(this, "GetSomething", "Name"), depending upon where the function
             // is defined).
-            var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(_nameRewriter(target).Name, _nameRewriter);
+            var targetReferenceDetails = scopeAccessInformation.TryToGetDeclaredReferenceDetails(target, _nameRewriter);
             if (targetReferenceDetails != null)
             {
                 if (targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Class)
@@ -647,9 +673,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 {
                     memberAccessors = new[] { target }.Concat(memberAccessors);
                     if (targetReferenceDetails.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
-                        target = new DoNotRenameNameToken(_outerRefName.Name, target.LineIndex);
+                        target = new ProcessedNameToken(_outerRefName.Name, target.LineIndex);
                     else
-                        target = new DoNotRenameNameToken("this", target.LineIndex);
+                        target = new ProcessedNameToken("this", target.LineIndex);
                 }
             }
 
@@ -752,13 +778,12 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             else if (zeroArgumentBracketsPresence != null)
                 throw new ArgumentException("zeroArgumentBracketsPresence must be null if there are arguments present");
 
-            var targetName = _nameRewriter.GetMemberAccessTokenName(target);
-
             // If this is part of a CallSetExpression and is not the first item then there is no point trying to analyse the origin of the targetName (check
             // its scope, etc..) since this should be something of the form "_.CALL(_outer, "F", _.ARGS.Val(0))" - there is nothing to be gained from trying
             // to guess whether it's a function or what variables were accessed since this has already been done. (It's still important to check for
             // undeclared variables referenced in the arguments but that is all handled later on). The same applies if the target is known to be
             // a built-in function (such as CDate).
+            var targetName = _nameRewriter.GetMemberAccessTokenName(target);
             DeclaredReferenceDetails targetReferenceDetailsIfAvailable;
             CSharpName nameOfTargetContainerIfRequired;
             if (targetIsKnownToBeBuiltInFunction || (indexInCallSet > 0))
@@ -768,7 +793,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
             else
             {
-                targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetName, _nameRewriter);
+                targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(target, _nameRewriter);
                 nameOfTargetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(
                     target,
                     _envRefName,
@@ -1297,8 +1322,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 else
                 {
                     // .. then check for a known function
-                    var rewrittenName = _nameRewriter.GetMemberAccessTokenName(initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First());
-                    var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+                    var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(
+                        (NameToken)initialCallSetItemExpressionSegmentToCheckIfAny.MemberAccessTokens.First(), // TODO: Are we sure this is always going to be a NameToken??
+                        _nameRewriter
+                    );
                     if (targetReferenceDetailsIfAvailable == null)
                     {
                         // If this is an undeclared reference then it will be implicitly declared later as a variable and so will be elligible
@@ -1436,6 +1463,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (operatorToken == null)
                 throw new ArgumentNullException("operatorToken");
 
+            BuiltInFunctionsAccessed.Add("op_" + operatorToken.Content);
             switch (operatorToken.Content.ToUpper())
             {
                 // Arithmetic operators
@@ -1578,7 +1606,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             // If this is a function of property then we can't consider it for this shortcut
             var rewrittenName = _nameRewriter.GetMemberAccessTokenName(onlyMemberAccessTokenAsName);
-            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(rewrittenName, _nameRewriter);
+            var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(onlyMemberAccessTokenAsName, _nameRewriter);
             if ((targetReferenceDetailsIfAvailable == null) || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency))
                 rewrittenName = _envRefName.Name + "." + rewrittenName;
             else if (targetReferenceDetailsIfAvailable != null)
