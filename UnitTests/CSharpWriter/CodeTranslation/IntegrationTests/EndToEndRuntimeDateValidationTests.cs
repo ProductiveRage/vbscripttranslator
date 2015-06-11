@@ -36,11 +36,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             _ = compatLayer;
                         }
 
-                        public void Go()
+                        public GlobalReferences Go()
                         {
-                            Go(new EnvironmentReferences());
+                            return Go(new EnvironmentReferences());
                         }
-                        public void Go(EnvironmentReferences env)
+                        public GlobalReferences Go(EnvironmentReferences env)
                         {
                             if (env == null)
                                 throw new ArgumentNullException(""env"");
@@ -52,6 +52,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             if (_.IF(_.EQ(_.NullableDATE(_env.a), _.DateLiteralParser.Parse(""29 May 2015""))))
                             {
                             }
+
+                            return _outer;
                         }
 
                         private static class RuntimeDateLiteralValidator
@@ -138,11 +140,11 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             _ = compatLayer;
                         }
 
-                        public void Go()
+                        public GlobalReferences Go()
                         {
-                            Go(new EnvironmentReferences());
+                            return Go(new EnvironmentReferences());
                         }
-                        public void Go(EnvironmentReferences env)
+                        public GlobalReferences Go(EnvironmentReferences env)
                         {
                             if (env == null)
                                 throw new ArgumentNullException(""env"");
@@ -153,6 +155,8 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             if (_.IF(_.EQ(_.NullableDATE(_env.a), _.DateLiteralParser.Parse(""29 5 2015""))))
                             {
                             }
+
+                            return _outer;
                         }
 
                         public class GlobalReferences

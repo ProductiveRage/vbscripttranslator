@@ -240,7 +240,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("", 0),
                     new TranslatedStatement(
                         string.Format(
-                            "public void {0}()",
+                            "public {0} {1}()",
+                            _outerClassName.Name,
                             _startMethodName.Name
                         ),
                         2
@@ -248,7 +249,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("{", 2),
                     new TranslatedStatement(
                         string.Format(
-                            "{0}(new {1}());",
+                            "return {0}(new {1}());",
                             _startMethodName.Name,
                             _envClassName.Name
                         ),
@@ -257,7 +258,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("}", 2),
                     new TranslatedStatement(
                         string.Format(
-                            "public void {0}({1} env)",
+                            "public {0} {1}({2} env)",
+                            _outerClassName.Name,
                             _startMethodName.Name,
                             _envClassName.Name
                         ),
@@ -329,6 +331,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 // Executable so that just the real meat of the source code is generated)
                 translatedStatements = translatedStatements.AddRange(new[]
                 {
+                    new TranslatedStatement(string.Format("return {0};", _outerRefName.Name), 3),
                     new TranslatedStatement("}", 2),
                     new TranslatedStatement("", 0)
                 });
