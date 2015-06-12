@@ -1392,7 +1392,7 @@ namespace CSharpSupport.Implementations
             if (_availableErrorTokens.Any())
                 token = _availableErrorTokens.Dequeue();
             else
-                token = _availableErrorTokens.Count + _availableErrorTokens.Count;
+                token = _availableErrorTokens.Count + _activeErrorTokens.Count + 1;
             _activeErrorTokens.Add(token, ErrorTokenState.OnErrorGoto0);
             return token;
         }
