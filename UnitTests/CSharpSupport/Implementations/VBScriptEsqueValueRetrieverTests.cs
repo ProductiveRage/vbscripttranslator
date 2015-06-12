@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using CSharpSupport;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
@@ -84,6 +85,84 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL("Test")
             );
         }
+
+        [Fact]
+        public void VALFailsOnTranslatedClassWithNoDefaultMember()
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
+        }
+
+        [SourceClassName("TranslatedClassWithNoDefaultMember")]
+        private class translatedclasswithnodefaultmember { }
+
+        [Fact]
+        public void VALFailsOnComObjectWithNoParameterlessDefaultMember()
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            var dictionary = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
+        }
+
+        [Fact]
+        public void VALFailsOnNonComVisibleNonTranslatedClasses()
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
+            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
+        }
+
+        private class NonComVisibleNonTranslatedClass { }
+
+        [Fact]
+        public void VALSupportsIsDefaultAttributeOnTranslatedClasses()
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            Assert.Equal("name!", DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithdefaultmember()));
+            Assert.Equal("name!", DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithdefaultmember()));
+        }
+
+        [SourceClassName("TranslatedClassWithNoDefaultMember")]
+        private class translatedclasswithdefaultmember
+        {
+            [IsDefault]
+            public string name() { return "name!"; }
+        }
+
+        [Fact]
+        public void VALSupportsDefaultMemberAttributeOnComVisibleNonTranslatedClasses() // TODO
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            Assert.Equal("name!", DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new ComVisibleNonTranslatedClassWithDefaultMember()));
+            Assert.Equal("name!", DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new ComVisibleNonTranslatedClassWithDefaultMember()));
+        }
+
+        [ComVisible(true)]
+        [DefaultMember("Name")]
+        private class ComVisibleNonTranslatedClassWithDefaultMember
+        {
+            public string Name { get { return "name!"; } }
+        }
+
+        [Fact]
+        public void VALSupportsToStringOnComVisibleNonTranslatedClasses() // TODO
+        {
+            // Execute twice to ensure that the TryVAL caching does not affect the result
+            var target = new ComVisibleNonTranslatedClassWithDefaultMember();
+            Assert.Equal(
+                "VBScriptTranslator.UnitTests.CSharpSupport.Implementations.VBScriptEsqueValueRetrieverTests+ComVisibleNonTranslatedClassWithNoDefaultMember",
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new ComVisibleNonTranslatedClassWithNoDefaultMember())
+            );
+            Assert.Equal(
+                "VBScriptTranslator.UnitTests.CSharpSupport.Implementations.VBScriptEsqueValueRetrieverTests+ComVisibleNonTranslatedClassWithNoDefaultMember",
+                DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new ComVisibleNonTranslatedClassWithNoDefaultMember())
+            );
+        }
+
+        [ComVisible(true)]
+        private class ComVisibleNonTranslatedClassWithNoDefaultMember { }
 
         [Fact]
         public void IFOfNullIsFalse()
