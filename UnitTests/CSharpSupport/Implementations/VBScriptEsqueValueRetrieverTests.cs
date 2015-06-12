@@ -132,7 +132,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         }
 
         [Fact]
-        public void VALSupportsDefaultMemberAttributeOnComVisibleNonTranslatedClasses() // TODO
+        public void VALSupportsDefaultMemberAttributeOnComVisibleNonTranslatedClasses()
         {
             // Execute twice to ensure that the TryVAL caching does not affect the result
             Assert.Equal("name!", DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new ComVisibleNonTranslatedClassWithDefaultMember()));
@@ -147,7 +147,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         }
 
         [Fact]
-        public void VALSupportsToStringOnComVisibleNonTranslatedClasses() // TODO
+        public void VALSupportsToStringOnComVisibleNonTranslatedClasses()
         {
             // Execute twice to ensure that the TryVAL caching does not affect the result
             var target = new ComVisibleNonTranslatedClassWithDefaultMember();
