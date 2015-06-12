@@ -4,6 +4,7 @@ using System.Reflection;
 using CSharpSupport;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
+using CSharpSupport.Implementations;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
@@ -427,7 +428,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 yield return new object[] { "String with zero-argument brackets", "123", new string[0], true, typeof(TypeMismatchException) };
                 yield return new object[] { "Array with zero-argument brackets", new object[] { 123 }, new string[0], true, typeof(SubscriptOutOfRangeException) };
-                yield return new object[] { "COM component property with brackets", Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary")), new[] { "Count" }, true, typeof(ArgumentException) };
+                yield return new object[] { "COM component property with brackets", Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary")), new[] { "Count" }, true, typeof(IDispatchAccess.IDispatchAccessException) };
                 yield return new object[] { "Delegate with a member accessors", (Func<object>)(() => "delegate result"), new[] { "Name" }, false, typeof(ArgumentException) };
             }
         }

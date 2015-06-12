@@ -2,12 +2,14 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using CSharpSupport.Attributes;
 using CSharpSupport.Exceptions;
 
@@ -25,16 +27,72 @@ namespace CSharpSupport.Implementations
         // are followed and then for it to essentially become full. The ConcurrentDictionary allows lock-free reading and so doesn't introduce any costs
         // once this situation is reached.
         private readonly Func<string, string> _nameRewriter;
+        private readonly AbsentDefaultMemberOnComObjectCacheOptions _absentDefaultMemberOnComObjectCacheOptions;
         private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _getInvokerCache;
         private readonly ConcurrentDictionary<InvokerCacheKey, SetInvoker> _setInvokerCache;
-        public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter)
+        private readonly ConcurrentDictionary<string, bool> _absentDefaultMemberCache;
+        public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter, AbsentDefaultMemberOnComObjectCacheOptions absentDefaultMemberOnComObjectCacheOptions)
         {
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
+            if ((absentDefaultMemberOnComObjectCacheOptions != AbsentDefaultMemberOnComObjectCacheOptions.CacheByTypeDescriptorClassName)
+            && (absentDefaultMemberOnComObjectCacheOptions != AbsentDefaultMemberOnComObjectCacheOptions.DoNotCache))
+                throw new ArgumentOutOfRangeException("absentDefaultMemberOnComObjectCacheOptions");
 
             _nameRewriter = nameRewriter;
+            _absentDefaultMemberOnComObjectCacheOptions = absentDefaultMemberOnComObjectCacheOptions;
             _getInvokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
             _setInvokerCache = new ConcurrentDictionary<InvokerCacheKey, SetInvoker>();
+            _absentDefaultMemberCache = new ConcurrentDictionary<string, bool>();
+        }
+
+        public enum AbsentDefaultMemberOnComObjectCacheOptions
+        {
+            CacheByTypeDescriptorClassName,
+            DoNotCache
+        }
+
+        /// <summary>
+        /// Try to reduce a reference down to a value type, applying VBScript defaults logic - return true if this is possible, setting the out
+        /// valueType argument to the manipulated value (if manipulation was required), returns false if it is not possible (leaving the valueType
+        /// argument undefined) and throwing an exception if one was raised while a default member was being evaluated (where applicable).
+        /// </summary>
+        public bool TryVAL(object o, out object asValueType)
+        {
+            if (IsVBScriptValueType(o))
+            {
+                asValueType = o;
+                return true;
+            }
+
+            if (IsVBScriptNothing(o))
+            {
+                asValueType = null;
+                return false;
+            }
+
+            var defaultMemberPresenceSummary = GetDefaultMemberPresenceSummary(o);
+            if (defaultMemberPresenceSummary.IsDefaultMemberPresent)
+            {
+                // If the default value had to be evaluated in order to determine that a default member was present, and an exception occurred
+                // during this evaluation, then the exception must be re-thrown (but the fact that it occurred DURING evaluation of the default
+                // member meant that the default member was identified)
+                if (defaultMemberPresenceSummary.ExceptionEncounteredWhileEvaluatingDefaultMemberIfAny != null)
+                    throw defaultMemberPresenceSummary.ExceptionEncounteredWhileEvaluatingDefaultMemberIfAny;
+
+                // Note: We don't recursively try defaults, so if this default is still not a value type then we're out of luck
+                var defaultValueFromObject = defaultMemberPresenceSummary.WasDefaultMemberRetrieved
+                    ? defaultMemberPresenceSummary.DefaultMemberValueIfRetrieved
+                    : GetDefaultValueFromObject(o);
+                if (IsVBScriptValueType(defaultValueFromObject))
+                {
+                    asValueType = defaultValueFromObject;
+                    return true;
+                }
+            }
+
+            asValueType = null;
+            return false;
         }
 
         /// <summary>
@@ -43,18 +101,100 @@ namespace CSharpSupport.Implementations
         /// </summary>
         public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {
-            if (IsVBScriptValueType(o))
+            if (TryVAL(o, out o))
                 return o;
 
-            if (IsVBScriptNothing(o))
-                throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
+            throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
+        }
 
-            var defaultValueFromObject = InvokeGetter(o, null, new object[0], onlyConsiderMethods: false);
-            if (IsVBScriptValueType(defaultValueFromObject))
-                return defaultValueFromObject;
+        /// <summary>
+        /// This will try to return information about the absence or presence of a parameter-less default member on the type of the specified reference.
+        /// It might be necessary to try to retrieve the value of the default member to do so - and if so, an exception may be raised in the attempt.
+        /// All of this information will be included in the returned DefaultMemberDetails instance (which will never be null). This will only allow
+        /// an exception to be raised from the function itself for a null argument, which is invalid. The information will be cached, associated
+        /// with the target type - for types where it was necessary to try to call the default member, this will prevent subsequent queries from
+        /// having to do so, which can make them much quicker (particularly if the access throws an exception).
+        /// </summary>
+        private DefaultMemberDetails GetDefaultMemberPresenceSummary(object o)
+        {
+            if (o == null)
+                throw new ArgumentNullException("o");
 
-            // We don't recursively try defaults, so if this default is still not a value type then we're out of luck
-            throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent + " Object expected (default method/property of object also returned non-value type data)");
+            string cacheKeyIfApplicable;
+            var oType = o.GetType();
+            if (oType.IsCOMObject)
+            {
+                if (_absentDefaultMemberOnComObjectCacheOptions == AbsentDefaultMemberOnComObjectCacheOptions.DoNotCache)
+                    cacheKeyIfApplicable = null;
+                else
+                {
+                    cacheKeyIfApplicable = TypeDescriptor.GetClassName(o);
+                    cacheKeyIfApplicable = string.IsNullOrWhiteSpace(cacheKeyIfApplicable) ? null : "COM:" + cacheKeyIfApplicable;
+                }
+            }
+            else
+                cacheKeyIfApplicable = o.GetType().FullName;
+
+            // Check the cache first..
+            bool cachedValueForHasTargetTypeGotDefaultMember;
+            if ((cacheKeyIfApplicable != null) && _absentDefaultMemberCache.TryGetValue(cacheKeyIfApplicable, out cachedValueForHasTargetTypeGotDefaultMember))
+                return cachedValueForHasTargetTypeGotDefaultMember ? DefaultMemberDetails.KnownToHaveDefault() : DefaultMemberDetails.KnownToNotHaveDefault();
+
+            try
+            {
+                // .. then try to retrieve the default value for the target - if this succeeds, then we know we have a default member (add that information to the cache and
+                // return the retrieved value in the "yes, this object has a default member" response)
+                var defaultValue = GetDefaultValueFromObject(o);
+                if (cacheKeyIfApplicable != null)
+                    _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, true);
+                return DefaultMemberDetails.RetrievedResult(defaultValue);
+            }
+            catch (IDispatchAccess.IDispatchAccessException e)
+            {
+                // An IDispatch error for DispId zero for the target we're operating on implies that the target type has no default member
+                if ((e.DispIdIfKnown == 0) && (e.Target == o))
+                {
+                    if (cacheKeyIfApplicable != null)
+                        _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, false);
+                    return DefaultMemberDetails.KnownToNotHaveDefault();
+                }
+
+                // An IDispatch error for anything else presumably occured while the default member was being executed - so we know we have one. We need to include this
+                // exception in the response data, since the caller may want to re-throw it.
+                if (cacheKeyIfApplicable != null)
+                    _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, true);
+                return DefaultMemberDetails.ExceptionWhileEvaluatingDefault(e);
+            }
+            catch (MissingMemberException e)
+            {
+                // A missing member exception that matches the target type for a default member access implies that the target type has no default member
+                if (e.RelatesTo(oType, memberNameIfAny: null))
+                {
+                    if (cacheKeyIfApplicable != null)
+                        _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, false);
+                    return DefaultMemberDetails.KnownToNotHaveDefault();
+                }
+                
+                // A missing member exception for anything else presumably occured while the default member was being executed - so we know we have one
+                if (cacheKeyIfApplicable != null)
+                    _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, true);
+                return DefaultMemberDetails.ExceptionWhileEvaluatingDefault(e);
+            }
+            catch (Exception e)
+            {
+                // Any other exception should indicate that a failure occured while the default member access was being executed - implying that one is present
+                if (cacheKeyIfApplicable != null)
+                    _absentDefaultMemberCache.TryAdd(cacheKeyIfApplicable, true);
+                return DefaultMemberDetails.ExceptionWhileEvaluatingDefault(e);
+            }
+        }
+
+        private object GetDefaultValueFromObject(object o)
+        {
+            if (o == null)
+                throw new ArgumentNullException("o");
+
+            return InvokeGetter(o, null, new object[0], onlyConsiderMethods: false);
         }
 
         /// <summary>
@@ -445,9 +585,11 @@ namespace CSharpSupport.Implementations
                 {
                     enumerator = IDispatchAccess.Invoke<object>(o, IDispatchAccess.InvokeFlags.DISPATCH_METHOD, -4);
                 }
-                catch (MissingMemberException)
+                catch (IDispatchAccess.IDispatchAccessException e)
                 {
-                    throw new ArgumentException("IDispatch reference does not have a method with DispId -4");
+                    if (e.ErrorType == IDispatchAccess.CommonErrors.DISP_E_MEMBERNOTFOUND)
+                    	throw new ArgumentException("IDispatch reference does not have a method with DispId -4");
+                    throw;
                 }
                 var enumeratorAsEnumVariant = enumerator as IEnumVariant;
                 if (enumeratorAsEnumVariant == null)
@@ -686,7 +828,7 @@ namespace CSharpSupport.Implementations
                                 Expression.Convert(arrayTargetParameter, targetType),
                                 Enumerable.Range(0, argumentsArray.Length).Select(index =>
                                     GetVBScriptStyleArrayIndexParsingExpression(
-								        Expression.ArrayAccess(indexesParameter, Expression.Constant(index))
+                                        Expression.ArrayAccess(indexesParameter, Expression.Constant(index))
                                     )
                                 )
                             ),
@@ -711,14 +853,6 @@ namespace CSharpSupport.Implementations
                 ).Compile();
             }
 
-            var errorMessageMemberDescription = (optionalName == null) ? "default member" : ("member \"" + optionalName + "\"");
-            if (onlyConsiderMethods)
-                errorMessageMemberDescription += " (allowing methods only)";
-            if (argumentsArray.Length == 0)
-                errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
-            else
-                errorMessageMemberDescription += " that will accept " + argumentsArray.Length + " argument(s)";
-
             if (IDispatchAccess.ImplementsIDispatch(target))
             {
                 int dispId;
@@ -726,47 +860,59 @@ namespace CSharpSupport.Implementations
                     dispId = 0;
                 else
                 {
-                    try
-                    {
-                        // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
-                        // VBScript source that we may have rewritten
-                        dispId = IDispatchAccess.GetDispId(target, optionalName);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ObjectVariableNotSetException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
-                    }
+                    // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+                    // VBScript source that we may have rewritten (don't try to catch exceptions here - it may be important to the caller
+                    // if there was an IDispatchAccessException with particular values)
+                    dispId = IDispatchAccess.GetDispId(target, optionalName);
                 }
                 return (invokeTarget, invokeArguments) =>
                 {
-                    try
-                    {
-                        return IDispatchAccess.Invoke<object>(
-                            invokeTarget,
-                            onlyConsiderMethods
-                                ? IDispatchAccess.InvokeFlags.DISPATCH_METHOD 
-                                : IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
-                            dispId,
-                            invokeArguments.ToArray()
-                        );
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
-                    }
+                    // As above, don't try to wrap any errors here
+                    return IDispatchAccess.Invoke<object>(
+                        invokeTarget,
+                        onlyConsiderMethods
+                            ? IDispatchAccess.InvokeFlags.DISPATCH_METHOD
+                            : IDispatchAccess.InvokeFlags.DISPATCH_METHOD | IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYGET,
+                        dispId,
+                        invokeArguments.ToArray()
+                    );
                 };
             }
 
-            var possibleMethods = (optionalName == null)
-                ? GetDefaultGetMethods(targetType, argumentsArray.Length)
-                : GetNamedGetMethods(targetType, optionalName, argumentsArray.Length);
-            if (!possibleMethods.Any())
-                throw new ObjectVariableNotSetException("Unable to identify " + errorMessageMemberDescription);
+            if (target is IReflect)
+            {
+                var ireflectInvokeMember = typeof(IReflect).GetMethod("InvokeMember");
+                return (invokeTarget, invokeArguments) =>
+                {
+                    // Note: An InvalidCastException will be raised if the arguments are not of appropriate types, so there's a temptation
+                    // to wrap that up into a "Type mismatch" error. But it's possible that the member was called with correctly-typed
+                    // arguments and the InvalidCastException originated from an operation inside it. There's no way to know so it's
+                    // better to err on the side of caution and not try to wrap up that error.
+                    return ((IReflect)invokeTarget).InvokeMember(
+                        optionalName ?? "[DISPID=0]",
+                        BindingFlags.InvokeMethod | BindingFlags.GetProperty | BindingFlags.OptionalParamBinding,
+                        binder: null,
+                        target: invokeTarget,
+                        args: invokeArguments,
+                        modifiers: null,
+                        culture: Thread.CurrentThread.CurrentUICulture,
+                        namedParameters: null
+                    );
+                };
+            }
 
-            var method = possibleMethods.First();
             var targetParameter = Expression.Parameter(typeof(object), "target");
+            var targetValue = Expression.Convert(targetParameter, targetType);
+
+            MethodInfo method;
+            if (optionalName == null)
+                method = GetDefaultGetMethods(targetType, argumentsArray.Length).FirstOrDefault();
+            else
+                method = GetNamedGetMethods(targetType, optionalName, argumentsArray.Length).FirstOrDefault();
+            if (method == null)
+                throw new MissingMemberException(targetType.FullName, optionalName);
+
             var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
-            var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
 
             // If there are any ByRef arguments then we need local variables that are of ByRef types. These will be populated with values from the
             // arguments array before the method call, then used AS arguments in the method call, then their values copied back into the slots in
@@ -789,44 +935,68 @@ namespace CSharpSupport.Implementations
             else
             {
                 var argParameters = methodParameters.Select((p, index) => new { Parameter = p, Index = index });
-                argExpressions = argParameters.Select(a =>
-                    a.Parameter.ParameterType.IsByRef
-                        ? (Expression)Expression.Variable(
-                            GetNonByRefType(a.Parameter.ParameterType),
-                            a.Parameter.Name
-                        )
-                        : Expression.Convert(
-                            Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                var changeTypeMethod = typeof(Convert).GetMethod("ChangeType", new[] { typeof(object), typeof(Type) });
+                argExpressions = argParameters
+                    .Select(a =>
+                    {
+                        if (a.Parameter.ParameterType.IsByRef)
+                        {
+                            return (Expression)Expression.Variable(
+                                GetNonByRefType(a.Parameter.ParameterType),
+                                a.Parameter.Name
+                            );
+                        }
+                        var argumentParameterInArray = Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index));
+                        return Expression.Convert(
+                            Expression.Condition(
+                                Expression.TypeIs(argumentParameterInArray, a.Parameter.ParameterType),
+                                argumentParameterInArray,
+                                Expression.Call(
+                                    changeTypeMethod,
+                                    argumentParameterInArray,
+                                    Expression.Constant(a.Parameter.ParameterType)
+                                )
+                            ),
                             a.Parameter.ParameterType
-                        )
-                    )
+                        );
+                    })
                     .ToArray();
                 byRefArgAssignmentsForMethodCall = argExpressions
                     .Select((a, index) => new { Parameter = a, Index = index })
                     .Where(a => a.Parameter is ParameterExpression)
                     .Select(a =>
-                        Expression.Assign(
+                    {
+                        var argumentParameterInArray = Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index));
+                        return (Expression)Expression.Assign(
                             a.Parameter,
                             Expression.Convert(
-                                Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
+                                Expression.Condition(
+                                    Expression.TypeIs(argumentParameterInArray, a.Parameter.Type),
+                                    argumentParameterInArray,
+                                    Expression.Call(
+                                        changeTypeMethod,
+                                        argumentParameterInArray,
+                                        Expression.Constant(a.Parameter.Type)
+                                    )
+                                ),
                                 a.Parameter.Type
                             )
-                        )
-                    );
+                        );
+                    });
                 byRefArgAssignmentsForReturn = argExpressions
                     .Select((a, index) => new { Parameter = a, Index = index })
                     .Where(a => a.Parameter is ParameterExpression)
                     .Select(a =>
                         Expression.Assign(
                             Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index)),
-                            a.Parameter
+                            a.Parameter.Type.IsValueType ? Expression.Convert(a.Parameter, typeof(object)) : a.Parameter // Value types need to be boxed when pushed back into the arguments array
                         )
                     );
                 variablesToDeclareForHandlingOfArguments = argExpressions.OfType<ParameterExpression>();
             }
 
             var methodCall = Expression.Call(
-                Expression.Convert(targetParameter, targetType),
+                targetValue,
                 method,
                 argExpressions
             );
@@ -861,32 +1031,18 @@ namespace CSharpSupport.Implementations
 
             // Note: The Throw expression will require a return type to be specified since the Try block has a return type
             // - without this a runtime "Body of catch must have the same type as body of try" exception will be raised
-            Expression executionException = Expression.Throw(
-                GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter),
-                typeof(object)
+            Expression methodCallResultAssignmentsAndResultSettingExpression = Expression.Block(
+                methodCallAndAndResultAssignments.Concat(new[] { resultVariable })
             );
-            Expression exceptionHandlingMethodCallExpression;
             if (byRefArgAssignmentsForReturn.Any())
             {
                 // If there are ByRef arguments that need setting then this must be done in a finally block, since they must
                 // be set even if the target method throws an exception at some point. If there are no ByRef arguments then
-                // don't generate a try..catch..finall block at all since there will be an exception thrown about a block
+                // don't generate a try..finally block at all since there will be an exception thrown about a block
                 // for the finally that is an empty expression collection.
-                exceptionHandlingMethodCallExpression = Expression.TryCatchFinally(
-                    Expression.Block(
-                        methodCallAndAndResultAssignments.Concat(new[] { resultVariable })
-                    ),
-                    Expression.Block(byRefArgAssignmentsForReturn), // Finally block (always set any ByRef arguments, even if an exception is thrown)
-                    Expression.Catch(exceptionParameter, executionException)
-                );
-            }
-            else
-            {
-                exceptionHandlingMethodCallExpression = Expression.TryCatch(
-                    Expression.Block(
-                        methodCallAndAndResultAssignments.Concat(new[] { resultVariable })
-                    ),
-                    Expression.Catch(exceptionParameter, executionException)
+                methodCallResultAssignmentsAndResultSettingExpression = Expression.TryFinally(
+                    methodCallResultAssignmentsAndResultSettingExpression,
+                    Expression.Block(byRefArgAssignmentsForReturn) // Finally block (always set any ByRef arguments, even if an exception is thrown)
                 );
             }
             var variablesToDeclare = variablesToDeclareForHandlingOfArguments.Concat(new[] { resultVariable });
@@ -894,7 +1050,7 @@ namespace CSharpSupport.Implementations
                 Expression.Block(
                     variablesToDeclare,
                     Expression.Block(
-                        byRefArgAssignmentsForMethodCall.Cast<Expression>().Concat(new[] { exceptionHandlingMethodCallExpression })
+                        byRefArgAssignmentsForMethodCall.Cast<Expression>().Concat(new[] { methodCallResultAssignmentsAndResultSettingExpression })
                     )
                 ),
                 targetParameter,
@@ -962,12 +1118,6 @@ namespace CSharpSupport.Implementations
                 ).Compile();
             }
 
-            var errorMessageMemberDescription = (optionalMemberAccessor == null) ? "default member" : ("member \"" + optionalMemberAccessor + "\"");
-            if (argumentsArray.Length == 0)
-                errorMessageMemberDescription = "parameter-less " + errorMessageMemberDescription;
-            else
-                errorMessageMemberDescription += " that will accept " + argumentsArray.Length + " argument(s)";
-
             if (IDispatchAccess.ImplementsIDispatch(target))
             {
                 int dispId;
@@ -975,32 +1125,18 @@ namespace CSharpSupport.Implementations
                     dispId = 0;
                 else
                 {
-                    try
-                    {
-                        // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
-                        // VBScript source that we may have rewritten
-                        dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ArgumentException("Unable to identify " + errorMessageMemberDescription + " (target implements IDispatch)", e);
-                    }
+                    // We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+                    // VBScript source that we may have rewritten
+                    dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
                 }
                 return (invokeTarget, invokeArguments, value) =>
                 {
-                    try
-                    {
-                        IDispatchAccess.Invoke<object>(
-                            target,
-                            IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
-                            dispId,
-                            argumentsArray.Concat(new[] { value }).ToArray()
-                        );
-                    }
-                    catch (Exception e)
-                    {
-                        throw new ArgumentException("Error executing " + errorMessageMemberDescription + " (target implements IDispatch): " + e.GetBaseException(), e);
-                    }
+                    IDispatchAccess.Invoke<object>(
+                        target,
+                        IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
+                        dispId,
+                        argumentsArray.Concat(new[] { value }).ToArray()
+                    );
                 };
             }
 
@@ -1018,38 +1154,35 @@ namespace CSharpSupport.Implementations
                 method = GetDefaultSetMethods(targetType, argumentsArray.Length).FirstOrDefault();
             }
             if (method == null)
-                throw new ArgumentException("Unable to identify " + errorMessageMemberDescription);
+                throw new MissingMemberException(targetType.FullName, optionalMemberAccessor);
 
             var targetParameter = Expression.Parameter(typeof(object), "target");
             var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
-            var exceptionParameter = Expression.Parameter(typeof(Exception), "e");
             var valueParameter = Expression.Parameter(typeof(object), "value");
             return Expression.Lambda<SetInvoker>(
-
-                Expression.TryCatch(
-
-                    Expression.Call(
-                        Expression.Convert(targetParameter, targetType),
-                        method,
-                        method.GetParameters().Select((arg, index) =>
-                        {
-                            // The method will have one more parameter than there are arguments since the last parameter is the value to set to
-                            return Expression.Convert(
-                                (index == argumentsArray.Length)
-                                    ? (Expression)valueParameter
-                                    : Expression.ArrayAccess(argumentsParameter, Expression.Constant(index)),
-                                arg.ParameterType
-                            );
-                        })
-                    ),
-
-                    Expression.Catch(
-                        exceptionParameter,
-                        Expression.Throw(
-                            GetNewArgumentException("Error executing " + errorMessageMemberDescription, exceptionParameter)
-                        )
-                    )
-
+                Expression.Call(
+                    Expression.Convert(targetParameter, targetType),
+                    method,
+                    method.GetParameters().Select((arg, index) =>
+                    {
+                        // The method will have one more parameter than there are arguments since the last parameter is the value to set to
+                        var argumentExpression = (index == argumentsArray.Length)
+                                ? (Expression)valueParameter
+                                : Expression.ArrayAccess(argumentsParameter, Expression.Constant(index));
+                        var changeTypeMethod = typeof(Convert).GetMethod("ChangeType", new[] { typeof(object), typeof(Type) });
+                        return Expression.Convert(
+                            Expression.Condition(
+                                Expression.TypeIs(argumentExpression, arg.ParameterType),
+                                argumentExpression,
+                                Expression.Call(
+                                    changeTypeMethod,
+                                    argumentExpression,
+                                    Expression.Constant(arg.ParameterType)
+                                )
+                            ),
+                            arg.ParameterType
+                        );
+                    })
                 ),
                 new[]
 				{
@@ -1322,7 +1455,7 @@ namespace CSharpSupport.Implementations
                     .Where(m =>
                         (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
                         (m.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
-                        (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(m))
+                        (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && (MemberHasDispIdZero(m) || IsDefaultMember(m)))
                     )
                     .Where(m => matchesArgumentCount(m));
             var readableProperties = type.GetProperties().Where(p => p.CanRead);
@@ -1331,7 +1464,7 @@ namespace CSharpSupport.Implementations
                 .Where(p =>
                     (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
                     (p.GetCustomAttributes(typeof(IsDefault), true).Any()) ||
-                    (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && MemberHasDispIdZero(p))
+                    (!typeWasTranslatedFromVBScript && typeIsComVisible && !typeHasAmbiguousDispIdZeroMember && (MemberHasDispIdZero(p) || IsDefaultMember(p)))
                 )
                 .Select(p => p.GetGetMethod())
                 .Where(m => matchesArgumentCount(m));
@@ -1384,6 +1517,7 @@ namespace CSharpSupport.Implementations
                     .Where(m => m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is TranslatedProperty))
                     .Where(m =>
                         (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
+                        IsDefaultMember(m) ||
                         (m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
                     )
                 .Concat(
@@ -1393,6 +1527,7 @@ namespace CSharpSupport.Implementations
                         .Where(p => p.GetIndexParameters().Length == numberOfArguments)
                         .Where(p =>
                             (defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
+                            IsDefaultMember(p) ||
                             (p.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is IsDefault))
                         )
                         .Select(p => p.GetSetMethod())
@@ -1494,6 +1629,15 @@ namespace CSharpSupport.Implementations
             return memberInfo.GetCustomAttributes(typeof(DispIdAttribute), inherit: true)
                 .Cast<DispIdAttribute>()
                 .Any(attribute => attribute.Value == 0);
+        }
+
+        private bool IsDefaultMember(MemberInfo memberInfo)
+        {
+            if (memberInfo == null)
+                throw new ArgumentNullException("memberInfo");
+
+            var defaultMemberAttributeForContainingType = memberInfo.DeclaringType.GetCustomAttribute<DefaultMemberAttribute>(inherit: true);
+            return (defaultMemberAttributeForContainingType != null) && (defaultMemberAttributeForContainingType.MemberName == memberInfo.Name);
         }
 
         private bool AnyDispIdZeroMemberExists(Type type)

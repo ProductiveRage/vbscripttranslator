@@ -785,15 +785,15 @@ namespace CSharpSupport.Implementations
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (!IsVBScriptValueType(value))
             {
-                try
-                {
+            try
+            {
                     value = VAL(value, "'IsArray'");
-                }
-                catch (ObjectVariableNotSetException)
-                {
-                    return false;
-                }
             }
+                catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+        }
             return (value != null) && value.GetType().IsArray;
         }
         public bool ISDATE(object value)
@@ -801,8 +801,8 @@ namespace CSharpSupport.Implementations
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (!IsVBScriptValueType(value))
             {
-                try
-                {
+            try
+            {
                     value = VAL(value, "'IsDate'");
                 }
                 catch (ObjectVariableNotSetException)
@@ -810,27 +810,27 @@ namespace CSharpSupport.Implementations
                     return false;
                 }
             }
-            if (value == null)
-                return false;
-            if (value is DateTime)
-                return true;
-            DateTime parsedValue;
+                if (value == null)
+                    return false;
+                if (value is DateTime)
+                    return true;
+                DateTime parsedValue;
             return DateTime.TryParse(value.ToString(), out parsedValue);
-        }
+            }
         public bool ISEMPTY(object value)
-        {
+            {
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (!IsVBScriptValueType(value))
+        {
+            try
             {
-                try
-                {
                     value = VAL(value, "'IsEmpty'");
-                }
-                catch (ObjectVariableNotSetException)
-                {
-                    return false;
-                }
             }
+                catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+        }
             return value == null;
         }
         public bool ISNULL(object value)
@@ -838,15 +838,15 @@ namespace CSharpSupport.Implementations
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (!IsVBScriptValueType(value))
             {
-                try
-                {
+            try
+            {
                     value = VAL(value, "'IsNull'");
-                }
-                catch (ObjectVariableNotSetException)
-                {
-                    return false;
-                }
             }
+                catch (ObjectVariableNotSetException)
+            {
+                return false;
+            }
+        }
             return value == DBNull.Value;
         }
         private static Regex SpaceFollowingMinusSignRemover = new Regex(@"-\s+", RegexOptions.Compiled);
@@ -855,8 +855,8 @@ namespace CSharpSupport.Implementations
             // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
             if (!IsVBScriptValueType(value))
             {
-                try
-                {
+            try
+            {
                     value = VAL(value, "'IsNumeric'");
                 }
                 catch (ObjectVariableNotSetException)
@@ -864,13 +864,13 @@ namespace CSharpSupport.Implementations
                     return false;
                 }
             }
-            if (value == null)
-                return true; // Empty is identified as numeric in VBScript
-            // double.TryParse seems to match VBScript's pretty well (see the test cases for more details) with one exception; VBScript will tolerate whitespace between
-            // a negative sign and the start of the content, so we need to do consider replacements (any "-" followed by whitespace should become just "-")
-            double numericValue;
-            return double.TryParse(SpaceFollowingMinusSignRemover.Replace(value.ToString(), "-"), out numericValue);
-        }
+                if (value == null)
+                    return true; // Empty is identified as numeric in VBScript
+                // double.TryParse seems to match VBScript's pretty well (see the test cases for more details) with one exception; VBScript will tolerate whitespace between
+                // a negative sign and the start of the content, so we need to do consider replacements (any "-" followed by whitespace should become just "-")
+                double numericValue;
+                return double.TryParse(SpaceFollowingMinusSignRemover.Replace(value.ToString(), "-"), out numericValue);
+            }
         public bool ISOBJECT(object value)
         {
             return !IsVBScriptValueType(value);
@@ -1637,6 +1637,10 @@ namespace CSharpSupport.Implementations
         public bool IsVBScriptValueType(object o)
         {
             return _valueRetriever.IsVBScriptValueType(o);
+        }
+        public bool TryVAL(object o, out object asValueType)
+        {
+            return _valueRetriever.TryVAL(o, out asValueType);
         }
         public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {

@@ -1,8 +1,8 @@
-﻿using CSharpSupport.Implementations;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
+using CSharpSupport.Implementations;
 
 namespace CSharpSupport
 {
@@ -15,7 +15,16 @@ namespace CSharpSupport
             _multipleUnderscoreCondenser = new Regex("_{2,}", RegexOptions.Compiled);
             _caseInsensitiveCSharpKeywordMatcher = GetCSharpKeywords(StringComparer.OrdinalIgnoreCase);
             DefaultNameRewriter = RewriteName;
-            DefaultVBScriptValueRetriever = new VBScriptEsqueValueRetriever(DefaultNameRewriter);
+
+            // The VBScriptEsqueValueRetriever will cache meta data about what types do and don't have default members, which makes subsequent lookups much
+            // faster (which will make calls to methods such as IsEmpty and IsNull, which will consider default members on object references, faster). It
+            // can do the same for COM components, based upon the ClassName reported by the TypeDescription - these are not guaranteed to be unique, so
+            // it's possible that there are some scenarios where this behaviour could cause inconsistencies, but in most cases it shouldn't and so it's
+            // worth enabling by default for the performance gains.
+            DefaultVBScriptValueRetriever = new VBScriptEsqueValueRetriever(
+                DefaultNameRewriter,
+                VBScriptEsqueValueRetriever.AbsentDefaultMemberOnComObjectCacheOptions.CacheByTypeDescriptorClassName
+            );
         }
 
         /// <summary>

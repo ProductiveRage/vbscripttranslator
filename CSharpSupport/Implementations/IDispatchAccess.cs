@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using ComTypes = System.Runtime.InteropServices.ComTypes;
 
 namespace CSharpSupport.Implementations
@@ -147,7 +148,7 @@ namespace CSharpSupport.Implementations
                 var errorType = GetErrorMessageForHResult(hrRet);
                 if (errorType != CommonErrors.Unknown)
                     message += " [" + errorType.ToString() + "]";
-                throw new ArgumentException(message);
+                throw new IDispatchAccessException(message, source, memberNameIfSpecified: name, dispIdIfKnown: null, errorType: errorType);
             }
             return rgDispId[0];
         }
@@ -247,7 +248,7 @@ namespace CSharpSupport.Implementations
                 {
                     var errorType = GetErrorMessageForHResult(hrRet);
                     if (errorType == CommonErrors.DISP_E_MEMBERNOTFOUND)
-                        throw new MissingMemberException();
+                        throw new IDispatchAccessException("Member not found", source, memberNameIfSpecified: null, dispIdIfKnown: dispId, errorType: errorType);
                     var message = "Failing attempting to invoke method with DispId " + dispId + ": ";
                     if ((excepInfo.bstrDescription ?? "").Trim() == "")
                         message += "Unspecified error";
@@ -267,7 +268,7 @@ namespace CSharpSupport.Implementations
                             message += " - this may be due to the \"Prefer 32-bit\" option not being enabled in Visual Studio";
                         }
                     }
-                    throw new ArgumentException(message);
+                    throw new IDispatchAccessException(message, source, memberNameIfSpecified: null, dispIdIfKnown: dispId,  errorType: errorType);
                 }
                 return (T)varResult;
             }
@@ -365,6 +366,49 @@ namespace CSharpSupport.Implementations
                 ref ComTypes.EXCEPINFO pExcepInfo,
                 out UInt32 pArgErr
             );
+        }
+        
+        public class IDispatchAccessException : Exception
+        {
+            public IDispatchAccessException(string message, object target, string memberNameIfSpecified, int? dispIdIfKnown, CommonErrors errorType, Exception innerException = null)
+                : base(message, innerException)
+            {
+                if (target == null)
+                    throw new ArgumentNullException("target");
+                if (string.IsNullOrWhiteSpace(memberNameIfSpecified) && (dispIdIfKnown == null))
+                    throw new ArgumentException("At least one of memberNameIfSpecified and dispIdIfKnown must be specified");
+                if (!Enum.IsDefined(typeof(CommonErrors), errorType))
+                    ErrorType = errorType;
+
+                Target = target;
+                MemberNameIfSpecified = memberNameIfSpecified;
+                DispIdIfKnown = dispIdIfKnown;
+                ErrorType = errorType;
+            }
+
+            protected IDispatchAccessException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+
+            /// <summary>
+            /// This will never be null
+            /// </summary>
+            public object Target { get; private set; }
+
+            /// <summary>
+            /// At least one of MemberNameIfSpecified and DispIdIfKnown will have a value
+            /// </summary>
+            public string MemberNameIfSpecified { get; private set; }
+
+            /// <summary>
+            /// At least one of MemberNameIfSpecified and DispIdIfKnown will have a value
+            /// </summary>
+            public int? DispIdIfKnown { get; private set; }
+
+            public CommonErrors ErrorType { get; private set; }
+
+            public override void GetObjectData(SerializationInfo info, StreamingContext context)
+            {
+                base.GetObjectData(info, context);
+            }
         }
     }
 }

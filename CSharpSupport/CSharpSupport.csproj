@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CSharpSupport</RootNamespace>
     <AssemblyName>CSharpSupport</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
@@ -40,6 +43,7 @@
     <Compile Include="Compat\BasicIReflectImplementation.cs" />
     <Compile Include="Attributes\SourceClassName.cs" />
     <Compile Include="Attributes\TranslatedProperty.cs" />
+    <Compile Include="DefaultMemberDetails.cs" />
     <Compile Include="ErrorDetails.cs" />
     <Compile Include="DateParser.cs" />
     <Compile Include="DefaultRuntimeSupportClassFactory.cs" />
@@ -60,6 +64,7 @@
     <Compile Include="Implementations\DefaultCallArgumentProvider.cs" />
     <Compile Include="Implementations\DefaultArithmeticFunctionalityProvider.cs" />
     <Compile Include="Implementations\DefaultRuntimeFunctionalityProvider.cs" />
+    <Compile Include="Implementations\MissingMemberException_Extensions.cs" />
     <Compile Include="Implementations\IDispatchAccess.cs" />
     <Compile Include="Implementations\VBScriptEsqueValueRetriever.cs" />
     <Compile Include="IAccessValuesUsingVBScriptRules_Extensions.cs" />
