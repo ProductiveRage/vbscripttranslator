@@ -624,32 +624,43 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             // If the target reference IS "Err", then there is a special case of "Err.Raise" to consider. If Err.Raise is called with the correct number of arguments
             // then it may be mapped directly onto the support function (either 1, 2 or 3 arguments must be present). If a different number of arguments are present
-            // then the target still needs rewriting from "Err.Raise" to "_.RAISEERROR", but it will have to go through the CALL function.
-            TranslatedStatementContentDetailsWithContentType raiseErrorStatementIfApplicable;
+            // then the target still needs rewriting from "Err.Raise" to "_.RAISEERROR", but it will have to go through the CALL function. Same goes for "Err.Clear".
+            TranslatedStatementContentDetailsWithContentType specialErrorHandlingFunctionStatementIfApplicable;
             NameToken target;
             var memberAccessors = callExpressionSegment.MemberAccessTokens.Skip(1);
             if (targetIsErrReference)
             {
-                if ((memberAccessors.Count() == 1) && (memberAccessors.Single() is NameToken) && (memberAccessors.Single().Content.Equals("RAISE", StringComparison.OrdinalIgnoreCase)))
+                string specialErrorHandlingFunctionNameIfApplicable;
+                if ((memberAccessors.Count() == 1) && (memberAccessors.Single() is NameToken))
                 {
-                    var raiseErrorFunctionName = "RAISEERROR";
-                    var raiseErrorFunctionToken = new NameToken(raiseErrorFunctionName, memberAccessors.Single().LineIndex);
-                    var raiseErrorSupportFunction = GetDetailsOfBuiltInFunction(raiseErrorFunctionToken, callExpressionSegment.Arguments.Count());
-                    if (raiseErrorSupportFunction.DesiredNumberOfArgumentsMatchedAgainst != null)
-                        raiseErrorStatementIfApplicable = TranslateAsDirectSupportFunctionCall(raiseErrorSupportFunction, callExpressionSegment.Arguments, scopeAccessInformation);
+                    if (memberAccessors.Single().Content.Equals("RAISE", StringComparison.OrdinalIgnoreCase))
+                        specialErrorHandlingFunctionNameIfApplicable = "RAISEERROR";
+                    else if (memberAccessors.Single().Content.Equals("CLEAR", StringComparison.OrdinalIgnoreCase))
+                        specialErrorHandlingFunctionNameIfApplicable = "CLEARANYERROR";
+                    else
+                        specialErrorHandlingFunctionNameIfApplicable = null;
+                }
+                else
+                    specialErrorHandlingFunctionNameIfApplicable = null;
+                if (specialErrorHandlingFunctionNameIfApplicable != null)
+                {
+                    var specialErrorHandlingFunctionToken = new NameToken(specialErrorHandlingFunctionNameIfApplicable, memberAccessors.Single().LineIndex);
+                    var errorSupportFunction = GetDetailsOfBuiltInFunction(specialErrorHandlingFunctionToken, callExpressionSegment.Arguments.Count());
+                    if (errorSupportFunction.DesiredNumberOfArgumentsMatchedAgainst != null)
+                        specialErrorHandlingFunctionStatementIfApplicable = TranslateAsDirectSupportFunctionCall(errorSupportFunction, callExpressionSegment.Arguments, scopeAccessInformation);
                     else
                     {
-                        // Can't call RAISEERROR directly (argument mismatch that will cause a compile error - so we need to use CALL, which will push the error down
-                        // to runtime) but we still need to rewrite the request from "Err.Raise" to "_.RAISEERROR"
-                        raiseErrorStatementIfApplicable = null;
-                        memberAccessors = new[] { raiseErrorFunctionToken };
+                        // Can't call the function directly (argument mismatch that will cause a compile error - so we need to use CALL, which will push the error
+                        // down to runtime) but we still need to rewrite the request from "Err.Raise" to "_.RAISEERROR" or "Err.Clear" to "_.CLEARERROR"
+                        specialErrorHandlingFunctionStatementIfApplicable = null;
+                        memberAccessors = new[] { specialErrorHandlingFunctionToken };
                     }
                     target = new DoNotRenameNameToken(_supportRefName.Name, firstMemberAccessToken.LineIndex);
                 }
                 else
                 {
                     target = new DoNotRenameNameToken(_supportRefName.Name + ".ERR", firstMemberAccessToken.LineIndex);
-                    raiseErrorStatementIfApplicable = null;
+                    specialErrorHandlingFunctionStatementIfApplicable = null;
                 }
             }
             else
@@ -657,7 +668,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // Since the CallExpressionSegment's MemberAccessTokens property is documented as only containing BuiltInFunctionToken, BuiltInValueToken, KeyWordToken and
                 // NameToken values, it's safe to assume that it is a NameToken in this case since the other possibilities should have been accounted for by this point.
                 target = (NameToken)firstMemberAccessToken;
-                raiseErrorStatementIfApplicable = null;
+                specialErrorHandlingFunctionStatementIfApplicable = null;
             }
 
             // If the target is a function then we can't have that as the target reference in the generated CALL statement, the owner of that function must be the target and
@@ -680,8 +691,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             }
 
             TranslatedStatementContentDetailsWithContentType result;
-            if (raiseErrorStatementIfApplicable != null)
-                result = raiseErrorStatementIfApplicable;
+            if (specialErrorHandlingFunctionStatementIfApplicable != null)
+                result = specialErrorHandlingFunctionStatementIfApplicable;
             else
             {
                 result = TranslateCallExpressionSegment(

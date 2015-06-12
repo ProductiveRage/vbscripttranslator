@@ -153,6 +153,37 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             );
         }
 
+        /// <summary>
+        /// The "Raise" and "Clear" methods on the VBScript "Err" reference need to be remapped onto the support class functions RAISEERROR and CLEARANYERROR.
+        /// This may be done directly if supported numbers of arguments are present - if not then the support function will have to be called through the CALL
+        /// method so that the invalid argument count results in a runtime error rather than a compile failure (the C# will not compile if the functions are
+        /// specified as being called directly but with incorrect argument counts), in order to be consistent with VBScript.
+        /// </summary>
+        [Fact]
+        public void TranslateErrRaiseIntoAppropriateSupportFunction()
+        {
+            var source = @"
+                Err.Raise vbObjectError
+                Err.Raise vbObjectError, ""Source""
+                Err.Raise vbObjectError, ""Source"", ""Test""
+                Err.Clear
+                Err.Clear()
+                Err.Clear ""Bonus Argument""
+            ";
+            var expected = @"
+                _.RAISEERROR(VBScriptConstants.vbObjectError);
+                _.RAISEERROR(VBScriptConstants.vbObjectError, ""Source"");
+                _.RAISEERROR(VBScriptConstants.vbObjectError, ""Source"", ""Test"");
+                _.CALL(_, ""RAISEERROR"", _.ARGS.Val(VBScriptConstants.vbObjectError).Val(""Source"").Val(""Test"").Val(""Bonus Argument""));
+                _.CLEARANYERROR();
+                _.CLEARANYERROR();
+                _.CALL(_, ""CLEARANYERROR"", _.ARGS.Val(""Bonus Argument""));";
+            Assert.Equal(
+                SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         private static IEnumerable<string> SplitOnNewLinesSkipFirstLineAndTrimAll(string value)
         {
             if (value == null)
