@@ -782,34 +782,26 @@ namespace CSharpSupport.Implementations
         // - Type comparisons
         public bool ISARRAY(object value)
         {
-            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
-            {
+            // Use the same approach as for ISEMPTY..
             try
             {
-                    value = VAL(value, "'IsArray'");
+                if (!TryVAL(value, out value))
+                    return false;
+                return (value != null) && value.GetType().IsArray;
             }
-                catch (ObjectVariableNotSetException)
+            catch (Exception e)
             {
+                SETERROR(e);
                 return false;
             }
         }
-            return (value != null) && value.GetType().IsArray;
-        }
         public bool ISDATE(object value)
         {
-            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
-            {
+            // Use the same basic approach as for ISEMPTY..
             try
             {
-                    value = VAL(value, "'IsDate'");
-                }
-                catch (ObjectVariableNotSetException)
-                {
+                if (!TryVAL(value, out value))
                     return false;
-                }
-            }
                 if (value == null)
                     return false;
                 if (value is DateTime)
@@ -817,53 +809,55 @@ namespace CSharpSupport.Implementations
                 DateTime parsedValue;
             return DateTime.TryParse(value.ToString(), out parsedValue);
             }
-        public bool ISEMPTY(object value)
+            catch (Exception e)
             {
-            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
-        {
-            try
-            {
-                    value = VAL(value, "'IsEmpty'");
-            }
-                catch (ObjectVariableNotSetException)
-            {
+                SETERROR(e);
                 return false;
             }
         }
-            return value == null;
+        public bool ISEMPTY(object value)
+        {
+            try
+            {
+                // If this can not be coerced into a value type then it can't be Empty, so return false
+                if (!TryVAL(value, out value))
+                    return false;
+
+                // If it IS a value type, or was manipulated into one, then check for null (aka VBScript's Empty)
+                return value == null;
+            }
+            catch (Exception e)
+            {
+                // If an exception was raised while evaluating a default member (meaning "value" was not a value but it had a default member that could
+                // be investigated.. but an exception was raised within the evaluation of that member) then record the error and return false (as is
+                // consistent with VBScript's behaviour)
+                SETERROR(e);
+                return false;
+            }
         }
         public bool ISNULL(object value)
         {
-            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
-            {
+            // Use the same approach as for ISEMPTY..
             try
             {
-                    value = VAL(value, "'IsNull'");
+                if (!TryVAL(value, out value))
+                    return false;
+                return value == DBNull.Value;
             }
-                catch (ObjectVariableNotSetException)
+            catch (Exception e)
             {
+                SETERROR(e);
                 return false;
             }
-        }
-            return value == DBNull.Value;
         }
         private static Regex SpaceFollowingMinusSignRemover = new Regex(@"-\s+", RegexOptions.Compiled);
         public bool ISNUMERIC(object value)
         {
-            // If this is an object reference then it will try to extract a value-type reference from it, returning false (not raising an error) if not
-            if (!IsVBScriptValueType(value))
-            {
+            // Use the same basic approach as for ISEMPTY..
             try
             {
-                    value = VAL(value, "'IsNumeric'");
-                }
-                catch (ObjectVariableNotSetException)
-                {
+                if (!TryVAL(value, out value))
                     return false;
-                }
-            }
                 if (value == null)
                     return true; // Empty is identified as numeric in VBScript
                 // double.TryParse seems to match VBScript's pretty well (see the test cases for more details) with one exception; VBScript will tolerate whitespace between
@@ -871,6 +865,12 @@ namespace CSharpSupport.Implementations
                 double numericValue;
                 return double.TryParse(SpaceFollowingMinusSignRemover.Replace(value.ToString(), "-"), out numericValue);
             }
+            catch (Exception e)
+            {
+                SETERROR(e);
+                return false;
+            }
+        }
         public bool ISOBJECT(object value)
         {
             return !IsVBScriptValueType(value);
