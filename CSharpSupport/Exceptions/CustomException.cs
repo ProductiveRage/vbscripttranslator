@@ -10,11 +10,11 @@ namespace CSharpSupport.Exceptions
     [Serializable]
     public class CustomException : SpecificVBScriptException
     {
-        private const string DEFAULT_SOURCE = null;
-        private const string DEFAULT_DESCRIPTION = "Unknown error";
+        private const string DEFAULT_SOURCE = "(null)";
+        private const string DEFAULT_DESCRIPTION = "Unknown runtime error";
 
         private readonly int _errorNumber;
-        public CustomException(int number, string source, string description) : base(GetMessage(source, description), null, null)
+        public CustomException(int number, string source, string description) : base(GetMessage(source, description), additionalInformationIfAny: null)
         {
             if (number == 0)
                 throw new ArgumentOutOfRangeException("number");
