@@ -610,6 +610,12 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // do NOT add it to the explicit variable declaration data).
             // - Note: It seems strange that a REDIM should be treated as explicitly declaring a variable, since its purpose is to change the
             //   dimensions of an existing array variable, but VBScript treats it as so (when Option Explicit) is enabled, so we will here too
+            // - Note: ONLY add them to the scope if they are not already declared, if the ReDim is in a function and the target variable has
+            //   been declared in an outer scope (either within a class or in the outer most scope) then the variable must not then redeclared
+            //   within the current function. This must apply even if the variable has only been implicitly declared in the outer scope
+            //   (meaning that a variable was accessed in the outer most scope within being explicitly declared first; this can't
+            //   happen within a class since statements can only appear in classes within functions or properties). Such
+            //   "implicitly declared" variables should be in the ScopeAccessInformation already.
             var explicitVariableDeclarationsToRecord = reDimStatement.Variables
                 .Select(v => new
                 {
@@ -620,6 +626,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                         null
                     )
                 })
+                .Where(newVariable => !scopeAccessInformation.IsDeclaredReference(newVariable.SourceName, _nameRewriter))
                 .Where(newVariable =>
                     (scopeAccessInformation.ScopeDefiningParent == null) ||
                     !scopeAccessInformation.ScopeDefiningParent.Name.Content.Equals(newVariable.SourceName.Content, StringComparison.OrdinalIgnoreCase)

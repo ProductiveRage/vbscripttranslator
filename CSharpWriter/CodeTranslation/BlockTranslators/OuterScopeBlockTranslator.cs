@@ -195,14 +195,6 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 outerExecutableBlocksTranslationResult.UndeclaredVariablesAccessed
             );
 
-            var classBlocksTranslationResult = Translate(
-                TrimTrailingBlankLines(
-                    annotatedClasses.SelectMany(c => c.LeadingComments.Cast<ICodeBlock>().Concat(new[] { c.CodeBlock })).ToNonNullImmutableList()
-                ),
-                scopeAccessInformation,
-                2 // indentationDepth
-            );
-
             var translatedStatements = new NonNullImmutableList<TranslatedStatement>();
             if (_outputType == OutputTypeOptions.Executable)
             {
@@ -450,15 +442,27 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             }
             foreach (var annotatedFunctionBlock in annotatedFunctions)
             {
+                // Note that any variables that were accessed by code in the outermost scope, but that were not explicitly declared, are considered to be IMPLICITLY declared.
+                // So, if they are referenced within any of the functions, they must share the same reference unless explicit declared within those functions (so if "a" is
+                // set in the outermost scope and then a function has a statement "ReDim a(2)", that "a" reference should be that one in the outermost scope). To achieve
+                // this, the "implicitly declared" outermost scope variables are added to the ExternalDependencies set in the ScopeAccessInformation instance provided
+                // to the function block translator. The same must be done for class block translation (see below).
                 translatedStatements = translatedStatements.Add(new TranslatedStatement("", 1));
                 translatedStatements = translatedStatements.AddRange(
                     Translate(
                         annotatedFunctionBlock.LeadingComments.Cast<ICodeBlock>().Concat(new[] { annotatedFunctionBlock.CodeBlock }).ToNonNullImmutableList(),
-                        scopeAccessInformation,
+                        scopeAccessInformation.ExtendExternalDependencies(outerExecutableBlocksTranslationResult.UndeclaredVariablesAccessed),
                         3 // indentationDepth
                     ).TranslatedStatements
                 );
             }
+            var classBlocksTranslationResult = Translate(
+                TrimTrailingBlankLines(
+                    annotatedClasses.SelectMany(c => c.LeadingComments.Cast<ICodeBlock>().Concat(new[] { c.CodeBlock })).ToNonNullImmutableList()
+                ),
+                scopeAccessInformation.ExtendExternalDependencies(outerExecutableBlocksTranslationResult.UndeclaredVariablesAccessed), // See comment above relating to ExternalDependencies for function blocks
+                2 // indentationDepth
+            );
             if (_outputType == OutputTypeOptions.Executable)
             {
                 translatedStatements = translatedStatements.AddRange(new[]
@@ -467,8 +471,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("", 0)
                 });
 
-                // This has to be generated after all of the Translate calls to ensure that the UndeclaredVariablesAccessed data for all
-                // of the TranslationResults is available
+                // This has to be generated after all of the Translate calls to ensure that the UndeclaredVariablesAccessed data for all of the TranslationResults is available
                 var allEnvironmentVariablesAccessed =
                     scopeAccessInformation.ExternalDependencies
                     .AddRange(

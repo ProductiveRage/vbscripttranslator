@@ -412,6 +412,72 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             }
         }
 
+        /// <summary>
+        /// While a REDIM statement may be interpreted as explicitly declaring a variable when its target variable has not been declared already in any accessible scope, if there IS
+        /// a variable that it might be referencing in a parent scope then the REDIM should NOT be interpreted as explicitly declaring a new variable (even if the variable in the
+        /// parent scope was only IMPLICITLY declared - ie. accessed but never DIM'd)
+        /// </summary>
+        [Fact]
+        public void ReDimsWithinFunctionCanPointToImplicitlyDeclaredOuterMostScopeVariables()
+        {
+            var source = @"
+                a = 1
+                Function F1()
+                    ReDim a(2) ' This refers to the implicitly-declared variable ""a"" in the outermost scope
+                End Function
+                Class C1
+                    Private c
+                    Function CF1()
+                        ReDim a(3) ' This refers to the implicitly-declared variable ""a"" in the outermost scope
+                        ReDim b(3) ' There is no reference for this to relate to, so it acts as new explicit variable declaration
+                        ReDim c(3) ' This refers to the explicitly-declared variable ""c"" in the containing class
+                    End Function
+                End Class";
+            var expected = @"
+                _env.a = (Int16)1;
+                public object f1()
+                {
+                    object retVal1 = null;
+                    _.NEWARRAY(new object[] { (Int16)2 }, value2 => { _env.a = value2; }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
+                    return retVal1;
+                }
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                        c = null;
+                    }
+                    private object c { get; set; }
+                    public object cf1()
+                    {
+                        object retVal3 = null;
+                        object b = null;
+                        _.NEWARRAY(new object[] { (Int16)3 }, value4 => { _env.a = value4; }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
+                        _.NEWARRAY(new object[] { (Int16)3 }, value5 => { b = value5; }); // There is no reference for this to relate to, so it acts as new explicit variable declaration
+                        _.NEWARRAY(new object[] { (Int16)3 }, value6 => { c = value6; }); // This refers to the explicitly-declared variable ""c"" in the containing class
+                        return retVal3;
+                    }
+                }";
+            Assert.Equal(
+                SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
         private static IEnumerable<string> SplitOnNewLinesSkipFirstLineAndTrimAll(string value)
         {
             if (value == null)
