@@ -166,6 +166,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 Err.Raise vbObjectError
                 Err.Raise vbObjectError, ""Source""
                 Err.Raise vbObjectError, ""Source"", ""Test""
+                Err.Raise vbObjectError, ""Source"", ""Test"", ""Bonus Argument""
                 Err.Clear
                 Err.Clear()
                 Err.Clear ""Bonus Argument""
