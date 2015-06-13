@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CSharpSupport;
-using CSharpSupport.Attributes;
+using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {
     public static partial class DefaultRuntimeFunctionalityProviderTests
     {
-        public class ISDATE
+        public class ISDATE : CultureOverridingTests
         {
+            public ISDATE() : base(new CultureInfo("en-GB")) { }
+
             [Theory, MemberData("TrueData")]
             public void TrueCases(string description, object value)
             {
@@ -32,6 +35,9 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "A 'yyyy-M-d' string", "2015-5-11" };
                     yield return new object[] { "A 'yyyy-MM-dd HH:mm:ss' string", "2015-05-11 20:12:44" };
                     yield return new object[] { "Object with default property which is a 'yyyy-MM-dd HH:mm:ss' string", new exampledefaultpropertytype { result = "2015-05-11 20:12:44" } };
+
+                    yield return new object[] { "String 'M d yyyy' while using en-GB culture", "1 13 2015" };
+                    yield return new object[] { "String 'M yy' while using en-GB culture", "1 0" };
                 }
             }
 

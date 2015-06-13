@@ -806,8 +806,8 @@ namespace CSharpSupport.Implementations
                     return false;
                 if (value is DateTime)
                     return true;
-                DateTime parsedValue;
-            return DateTime.TryParse(value.ToString(), out parsedValue);
+                DateParser.Default.Parse(value.ToString()); // If this doesn't throw an exception then it must be a valid-for-VBScript date string
+                return true;
             }
             catch (Exception e)
             {
