@@ -736,6 +736,42 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
         }
 
         /// <summary>
+        /// This exercises a fix for the translation of "NOT NOT a", which was bracketing the two NOTs together instead of (NOT(NOT(a))
+        /// </summary>
+        [Fact]
+        public void AdjacentLogicalInversionsShouldBracketWithOtherTermsAndNotEachOther()
+        {
+            // a AND NOT NOT b
+            Assert.Equal(new[]
+                {
+                    EXP(
+                        CALL(new NameToken("a", 0)),
+                        OP(new LogicalOperatorToken("AND", 0)),
+                        BR(
+                            OP(new LogicalOperatorToken("NOT", 0)),
+                            BR(
+                                OP(new LogicalOperatorToken("NOT", 0)),
+                                CALL(new NameToken("b", 0))
+                            )
+                        )
+                    )
+                },
+                ExpressionGenerator.Generate(
+                    new IToken[] {
+                        new NameToken("a", 0),
+                        new LogicalOperatorToken("AND", 0),
+                        new LogicalOperatorToken("NOT", 0),
+                        new LogicalOperatorToken("NOT", 0),
+                        new NameToken("b", 0)
+                    },
+                    directedWithReferenceIfAny: null,
+                    warningLogger: warning => { }
+                ),
+                new ExpressionSetComparer()
+            );
+        }
+
+        /// <summary>
         /// This indicates different precedence that is applied to a NOT operation depending upon content, as compared to the test
         /// LogicalInversionsTermsShouldBeBracketed
         /// </summary>

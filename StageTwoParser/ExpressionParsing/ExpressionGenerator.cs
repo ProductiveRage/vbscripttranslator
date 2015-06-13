@@ -282,15 +282,18 @@ namespace VBScriptTranslator.StageTwoParser.ExpressionParsing
             //   the NOT operation, this is dealt with further down)
             if (operatorSegments.All(s => s.Item1.Token is LogicalOperatorToken))
             {
-                var firstLogicalInversion = operatorSegments.FirstOrDefault(s =>
+                // Note: Group on the LAST operator, rather than the first, to ensure that expressions such as "NOT NOT a" get the "NOT" grouped
+                // with the value. If the first NOT was grouped with the subsequent terms then "NOT NOT a" would become "(NOT NOT) a" instead of
+                // "NOT(NOT(a))".
+                var lastLogicalInversion = operatorSegments.LastOrDefault(s =>
                     s.Item1.Token.Content.Equals("NOT", StringComparison.InvariantCultureIgnoreCase)
                 );
-                if (firstLogicalInversion != null)
+                if (lastLogicalInversion != null)
                 {
-                    if (firstLogicalInversion.Item2 == (segmentsArray.Length - 1))
+                    if (lastLogicalInversion.Item2 == (segmentsArray.Length - 1))
                         throw new ArgumentException("Encountered NOT operator at end of expression segment content - invalid");
                     return GetExpression(
-                        BracketOffTerms(segmentsArray, firstLogicalInversion.Item2, 2)
+                        BracketOffTerms(segmentsArray, lastLogicalInversion.Item2, 2)
                     );
                 }
             }
