@@ -94,8 +94,8 @@ namespace CSharpSupport.Implementations
             //   WScript.Echo "#" & Chr(0) & "#" ' Return "#" (null terminator stops the string, has length 3)
 
             // See https://msdn.microsoft.com/en-us/library/sx97884w(v=vs.84).aspx
-            l = VAL(l);
-            r = VAL(r);
+            l = _valueRetriever.VAL(l);
+            r = _valueRetriever.VAL(r);
             if ((l == DBNull.Value) && (r == DBNull.Value))
                 return DBNull.Value;
             var combinedValue = ((l == null) ? "" : l.ToString()) + ((r == null) ? "" : r.ToString());
@@ -184,8 +184,8 @@ namespace CSharpSupport.Implementations
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
             // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
-            l = VAL(l);
-            r = VAL(r);
+            l = _valueRetriever.VAL(l);
+            r = _valueRetriever.VAL(r);
             
             // Let's get the outliers out of the way; VBScript Null and Empty..
             if ((l == DBNull.Value) || (r == DBNull.Value))
@@ -275,8 +275,8 @@ namespace CSharpSupport.Implementations
         {
             // Both sides of the comparison must be simple VBScript values (ie. not object references) - pushing both values through VAL will handle
             // that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
-            l = VAL(l);
-            r = VAL(r);
+            l = _valueRetriever.VAL(l);
+            r = _valueRetriever.VAL(r);
 
             // If one or both sides of the comparison as VBScript Null then that is what is returned
             if ((l == DBNull.Value) || (r == DBNull.Value))
@@ -360,7 +360,7 @@ namespace CSharpSupport.Implementations
         {
             if (IsVBScriptNothing(l) && IsVBScriptNothing(r))
                 return true;
-            return OBJ(l, "'Is'") == OBJ(r, "'Is'");
+            return  _valueRetriever.OBJ(l, "'Is'") ==  _valueRetriever.OBJ(r, "'Is'");
         }
         public object EQV(object l, object r) { throw new NotImplementedException(); }
         public object IMP(object l, object r) { throw new NotImplementedException(); }
@@ -422,8 +422,8 @@ namespace CSharpSupport.Implementations
         public string INT(object value) { throw new NotImplementedException(); }
         public string STRING(object numberOfTimesToRepeat, object character)
         {
-            character = VAL(character, "'String'");
-            numberOfTimesToRepeat = VAL(numberOfTimesToRepeat, "'String'");
+            character = _valueRetriever.VAL(character, "'String'");
+            numberOfTimesToRepeat = _valueRetriever.VAL(numberOfTimesToRepeat, "'String'");
             if ((numberOfTimesToRepeat == DBNull.Value) || (character == DBNull.Value))
                 throw new InvalidUseOfNullException("'String'");
             int numberOfTimesToRepeatNumber;
@@ -509,10 +509,10 @@ namespace CSharpSupport.Implementations
         public object INSTR(object startIndex, object valueToSearch, object valueToSearchFor, object compareMode)
         {
             // Validate input
-            startIndex = VAL(startIndex, "'InStr'");
-            valueToSearch = VAL(valueToSearch, "'InStr'");
-            valueToSearchFor = VAL(valueToSearchFor, "'InStr'");
-            compareMode = VAL(compareMode, "'InStr'");
+            startIndex = _valueRetriever.VAL(startIndex, "'InStr'");
+            valueToSearch = _valueRetriever.VAL(valueToSearch, "'InStr'");
+            valueToSearchFor = _valueRetriever.VAL(valueToSearchFor, "'InStr'");
+            compareMode = _valueRetriever.VAL(compareMode, "'InStr'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("startIndex may not be null");
             var startIndexInt = CLNG(startIndex, "'InStr'");
@@ -534,8 +534,8 @@ namespace CSharpSupport.Implementations
 
             // If the startIndex would go past the end of valueToSearch then return zero
             // - Since startIndex is one-based, we need to subtract one from it to perform this test
-            var valueToSearchString = STR(valueToSearch);
-            var valueToSearchForString = STR(valueToSearchFor);
+            var valueToSearchString =  _valueRetriever.STR(valueToSearch);
+            var valueToSearchForString =  _valueRetriever.STR(valueToSearchFor);
             if (valueToSearchForString.Length + (startIndexInt - 1) > valueToSearchString.Length)
                 return 0;
 
@@ -554,22 +554,22 @@ namespace CSharpSupport.Implementations
             // valueToSearch, if that can be transformed into a non-blank string (if it can not be transformed into a non-object reference at all then
             // throw an exception, and if it is considered to be the equivalent of blank string then default to a startIndex of one, since it's not
             // valid to have a startIndex of zero)
-            valueToSearch = VAL(valueToSearch, "'InStrRev'");
+            valueToSearch = _valueRetriever.VAL(valueToSearch, "'InStrRev'");
             int startIndex;
             if ((valueToSearch == null) || (valueToSearch == DBNull.Value))
                 startIndex = 1;
             else
-                startIndex = Math.Max(1, STR(valueToSearch).Length);
+                startIndex = Math.Max(1,  _valueRetriever.STR(valueToSearch).Length);
             return INSTRREV(valueToSearch, valueToSearchFor, startIndex);
         }
         public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex) { return INSTRREV(valueToSearch, valueToSearchFor, startIndex, 0); }
         public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex, object compareMode)
         {
             // Validate input
-            startIndex = VAL(startIndex, "'InStrRev'");
-            valueToSearch = VAL(valueToSearch, "'InStrRev'");
-            valueToSearchFor = VAL(valueToSearchFor, "'InStrRev'");
-            compareMode = VAL(compareMode, "'InStrRev'");
+            startIndex = _valueRetriever.VAL(startIndex, "'InStrRev'");
+            valueToSearch = _valueRetriever.VAL(valueToSearch, "'InStrRev'");
+            valueToSearchFor = _valueRetriever.VAL(valueToSearchFor, "'InStrRev'");
+            compareMode = _valueRetriever.VAL(compareMode, "'InStrRev'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("startIndex may not be null");
             var startIndexInt = CLNG(startIndex, "'InStrRev'");
@@ -594,8 +594,8 @@ namespace CSharpSupport.Implementations
             // different substring matching logic to apply.
             // - If the startIndex goes beyond the end of the valueToSearch then no match is allowed, similarly if the startIndex indicates a point in
             //   the valueToSearch where there is insufficient content to match valueToSearchFor
-            var valueToSearchString = STR(valueToSearch);
-            var valueToSearchForString = STR(valueToSearchFor);
+            var valueToSearchString =  _valueRetriever.STR(valueToSearch);
+            var valueToSearchForString =  _valueRetriever.STR(valueToSearchFor);
             if ((startIndexInt > valueToSearchString.Length) || (valueToSearchForString.Length > startIndexInt))
                 return 0;
             
@@ -611,19 +611,19 @@ namespace CSharpSupport.Implementations
         public object MID(object value) { throw new NotImplementedException(); }
         public object LEN(object value)
         {
-            value = VAL(value, "'Len'");
+            value = _valueRetriever.VAL(value, "'Len'");
             if (value == null)
                 return 0;
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).Length;
+            return  _valueRetriever.STR(value).Length;
         }
         public object LENB(object value) { throw new NotImplementedException(); }
         public object LEFT(object value, object maxLength)
         {
             // Validate inputs first
-            value = VAL(value, "'Left'");
-            maxLength = VAL(maxLength, "'Left'");
+            value = _valueRetriever.VAL(value, "'Left'");
+            maxLength = _valueRetriever.VAL(maxLength, "'Left'");
             if (maxLength == DBNull.Value)
                 throw new InvalidUseOfNullException();
             var maxLengthInt = CLNG(maxLength, "'Left'");
@@ -636,7 +636,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 return DBNull.Value;
 
-            var valueString = STR(value);
+            var valueString =  _valueRetriever.STR(value);
             maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
             return valueString.Substring(0, maxLengthInt);
         }
@@ -645,8 +645,8 @@ namespace CSharpSupport.Implementations
         public object RIGHT(object value, object maxLength)
         {
             // Validate inputs first
-            value = VAL(value, "'Right'");
-            maxLength = VAL(maxLength, "'Right'");
+            value = _valueRetriever.VAL(value, "'Right'");
+            maxLength = _valueRetriever.VAL(maxLength, "'Right'");
             if (maxLength == DBNull.Value)
                 throw new InvalidUseOfNullException();
             var maxLengthInt = CLNG(maxLength, "'Right'");
@@ -659,7 +659,7 @@ namespace CSharpSupport.Implementations
             if (value == DBNull.Value)
                 return DBNull.Value;
 
-            var valueString = STR(value);
+            var valueString =  _valueRetriever.STR(value);
             maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
             return valueString.Substring(valueString.Length - maxLengthInt);
         }
@@ -670,19 +670,19 @@ namespace CSharpSupport.Implementations
         public string REPLACE(object value, object toSearchFor, object toReplaceWith, object startIndex, object maxNumberOfReplacements, object compareMode)
         {
             // Input validation / type-enforcing
-            compareMode = VAL(compareMode, "'Replace'");
+            compareMode = _valueRetriever.VAL(compareMode, "'Replace'");
             if (compareMode == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var compareModeNumber = CLNG(compareMode, "'Replace'");
             if ((compareModeNumber != 0) && (compareModeNumber != 1))
                 throw new InvalidProcedureCallOrArgumentException("'Replace'");
-            maxNumberOfReplacements = VAL(maxNumberOfReplacements, "'Replace'");
+            maxNumberOfReplacements = _valueRetriever.VAL(maxNumberOfReplacements, "'Replace'");
             if (maxNumberOfReplacements == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var maxNumberOfReplacementsNumber = CLNG(maxNumberOfReplacements);
             if (maxNumberOfReplacementsNumber < -1)
                 throw new InvalidProcedureCallOrArgumentException("'Replace'");
-            startIndex = VAL(startIndex, "'Replace'");
+            startIndex = _valueRetriever.VAL(startIndex, "'Replace'");
             if (startIndex == DBNull.Value)
                 throw new InvalidUseOfNullException("'Replace'");
             var startIndexNumber = CLNG(startIndex);
@@ -715,10 +715,10 @@ namespace CSharpSupport.Implementations
         public object[] SPLIT(object value, object delimiter)
         {
             // Basic input validation
-            delimiter = VAL(delimiter, "'Split'");
+            delimiter = _valueRetriever.VAL(delimiter, "'Split'");
             if (delimiter == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
-            value = VAL(value, "'Split'");
+            value = _valueRetriever.VAL(value, "'Split'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'Split'");
 
@@ -734,48 +734,48 @@ namespace CSharpSupport.Implementations
         public object STRREVERSE(object value) { throw new NotImplementedException(); }
         public object TRIM(object value)
         {
-            value = VAL(value, "'Trim'");
+            value = _valueRetriever.VAL(value, "'Trim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).Trim(' ');
+            return  _valueRetriever.STR(value).Trim(' ');
         }
         public object LTRIM(object value)
         {
-            value = VAL(value, "'LTrim'");
+            value = _valueRetriever.VAL(value, "'LTrim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).TrimStart(' ');
+            return  _valueRetriever.STR(value).TrimStart(' ');
         }
         public object RTRIM(object value)
         {
-            value = VAL(value, "'RTrim'");
+            value = _valueRetriever.VAL(value, "'RTrim'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).TrimEnd(' ');
+            return  _valueRetriever.STR(value).TrimEnd(' ');
         }
         public object LCASE(object value)
         {
-            value = VAL(value, "'LCase'");
+            value = _valueRetriever.VAL(value, "'LCase'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).ToLower();
+            return  _valueRetriever.STR(value).ToLower();
         }
         public object UCASE(object value)
         {
-            value = VAL(value, "'UCase'");
+            value = _valueRetriever.VAL(value, "'UCase'");
             if (value == null)
                 return "";
             else if (value == DBNull.Value)
                 return DBNull.Value;
-            return STR(value).ToUpper();
+            return  _valueRetriever.STR(value).ToUpper();
         }
         public object ESCAPE(object value) { throw new NotImplementedException(); } // TODO
         public object UNESCAPE(object value) { throw new NotImplementedException(); } // TODO
@@ -785,7 +785,7 @@ namespace CSharpSupport.Implementations
             // Use the same approach as for ISEMPTY..
             try
             {
-                if (!TryVAL(value, out value))
+                if (!_valueRetriever.TryVAL(value, out value))
                     return false;
                 return (value != null) && value.GetType().IsArray;
             }
@@ -800,7 +800,7 @@ namespace CSharpSupport.Implementations
             // Use the same basic approach as for ISEMPTY..
             try
             {
-                if (!TryVAL(value, out value))
+                if (!_valueRetriever.TryVAL(value, out value))
                     return false;
                 if (value == null)
                     return false;
@@ -820,7 +820,7 @@ namespace CSharpSupport.Implementations
             try
             {
                 // If this can not be coerced into a value type then it can't be Empty, so return false
-                if (!TryVAL(value, out value))
+                if (!_valueRetriever.TryVAL(value, out value))
                     return false;
 
                 // If it IS a value type, or was manipulated into one, then check for null (aka VBScript's Empty)
@@ -840,7 +840,7 @@ namespace CSharpSupport.Implementations
             // Use the same approach as for ISEMPTY..
             try
             {
-                if (!TryVAL(value, out value))
+                if (!_valueRetriever.TryVAL(value, out value))
                     return false;
                 return value == DBNull.Value;
             }
@@ -856,7 +856,7 @@ namespace CSharpSupport.Implementations
             // Use the same basic approach as for ISEMPTY..
             try
             {
-                if (!TryVAL(value, out value))
+                if (!_valueRetriever.TryVAL(value, out value))
                     return false;
                 if (value == null)
                     return true; // Empty is identified as numeric in VBScript
@@ -873,7 +873,7 @@ namespace CSharpSupport.Implementations
         }
         public bool ISOBJECT(object value)
         {
-            return !IsVBScriptValueType(value);
+            return !_valueRetriever.IsVBScriptValueType(value);
         }
         public string TYPENAME(object value)
         {
@@ -887,7 +887,7 @@ namespace CSharpSupport.Implementations
             var type = value.GetType();
             if (type.IsArray && (type.GetElementType() == typeof(Object)))
                 return "Variant()";
-            if (IsVBScriptValueType(value))
+            if (_valueRetriever.IsVBScriptValueType(value))
             {
                 if (type == typeof(bool))
                     return "Boolean";
@@ -979,10 +979,10 @@ namespace CSharpSupport.Implementations
         public string JOIN(object value) { return JOIN(value, " "); }
         public string JOIN(object value, object delimiter)
         {
-            delimiter = VAL(delimiter, "'Join'");
+            delimiter = _valueRetriever.VAL(delimiter, "'Join'");
             if (value == DBNull.Value)
                 throw new InvalidUseOfNullException("'Join'");
-            value = VAL(value, "'Join'");
+            value = _valueRetriever.VAL(value, "'Join'");
             if (delimiter == DBNull.Value)
                 throw new InvalidUseOfNullException("'Join'");
             if (value == null)
@@ -998,15 +998,15 @@ namespace CSharpSupport.Implementations
             else if (arrayRank > 1)
                 throw new TypeMismatchException("'Join'");
             return string.Join(
-                (delimiter == null) ? "" : STR(delimiter),
+                (delimiter == null) ? "" :  _valueRetriever.STR(delimiter),
                 ((Array)value)
                     .Cast<object>()
                     .Select(element =>
                     {
-                        element = VAL(element, "'Join'");
+                        element = _valueRetriever.VAL(element, "'Join'");
                         if (element == DBNull.Value)
                             throw new TypeMismatchException("'Join'");
-                        return (element == null) ? "" : STR(element);
+                        return (element == null) ? "" :  _valueRetriever.STR(element);
                     })
             );
         }
@@ -1015,7 +1015,7 @@ namespace CSharpSupport.Implementations
         {
             // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
             var dimensionInt = CLNG(dimension, "'LBound'");
-            var array = VAL(value, "'LBound'") as Array;
+            var array = _valueRetriever.VAL(value, "'LBound'") as Array;
             if (array == null)
                 throw new TypeMismatchException("'LBound'");
             if ((dimensionInt < 1) || (dimensionInt > array.Rank))
@@ -1027,7 +1027,7 @@ namespace CSharpSupport.Implementations
         {
             // If both the value and dimension are invalid values, the dimension errors should be raised first (so try to process that value first)
             var dimensionInt = CLNG(dimension, "'UBound'");
-            var array = VAL(value, "'UBound'") as Array;
+            var array = _valueRetriever.VAL(value, "'UBound'") as Array;
             if (array == null)
                 throw new TypeMismatchException("'UBound'");
             if ((dimensionInt < 1) || (dimensionInt > array.Rank))
@@ -1044,7 +1044,7 @@ namespace CSharpSupport.Implementations
             // It's also unusual in that it won't overflow for enormous numeric values, it always falls back to an invalid-procedure-call-or-argument error (if the number
             // would result in an unrepresentable date). On top of this, it doesn't validate all of its arguments before considering any work - DateAdd("x", "y", Null)
             // returns Null, despite the fact that the "interval" and "number" arguments are nonsense; DateAdd("x", "y", Now()) would result in a type-mismatch error.
-            value = VAL(value, "'DateAdd'");
+            value = _valueRetriever.VAL(value, "'DateAdd'");
             if (value == DBNull.Value)
                 return DBNull.Value; // Don't even check the other arguments if we got a Null value argument
             var dateValue = CDATE(value, "'DateAdd'");
@@ -1063,7 +1063,7 @@ namespace CSharpSupport.Implementations
                 intNumber = int.MinValue;
             else
                 intNumber = (int)doubleNumber;
-            interval = VAL(interval, "'DateAdd'");
+            interval = _valueRetriever.VAL(interval, "'DateAdd'");
             if (interval == DBNull.Value)
                 throw new InvalidUseOfNullException("'DateAdd'");
             var intervalString = interval as string;
@@ -1125,7 +1125,7 @@ namespace CSharpSupport.Implementations
             //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
             //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
             // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
-            value = VAL(value, "'DateValue'");
+            value = _valueRetriever.VAL(value, "'DateValue'");
             if (value == null)
                 throw new TypeMismatchException("'DateValue'");
             if (value == DBNull.Value)
@@ -1153,7 +1153,7 @@ namespace CSharpSupport.Implementations
             //   "The reasons for using DateValue and TimeValue to convert a string instead of CDate may not be immediately obvious. Consider the example above. CDate is creating a Date value for the entire supplied
             //    string.  DateValue and TimeValue will allow you to create Date values containing only the specified portion of the string while ignoring the rest."
             // - http://www.aspfree.com/c/a/windows-scripting/working-with-dates-and-times-in-vbscript/
-            value = VAL(value, "'TimeValue'");
+            value = _valueRetriever.VAL(value, "'TimeValue'");
             if (value == null)
                 throw new TypeMismatchException("'TimeValue'");
             if (value == DBNull.Value)
@@ -1177,14 +1177,14 @@ namespace CSharpSupport.Implementations
         }
         public object DAY(object value)
         {
-            value = VAL(value, "'Day'");
+            value = _valueRetriever.VAL(value, "'Day'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Day'")).Day;
         }
         public object MONTH(object value)
         {
-            value = VAL(value, "'Month'");
+            value = _valueRetriever.VAL(value, "'Month'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Month'")).Month;
@@ -1192,7 +1192,7 @@ namespace CSharpSupport.Implementations
         public object MONTHNAME(object value) { throw new NotImplementedException(); }
         public object YEAR(object value)
         {
-            value = VAL(value, "'Year'");
+            value = _valueRetriever.VAL(value, "'Year'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Year'")).Year;
@@ -1201,21 +1201,21 @@ namespace CSharpSupport.Implementations
         public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
         public object HOUR(object value)
         {
-            value = VAL(value, "'Hour'");
+            value = _valueRetriever.VAL(value, "'Hour'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Hour'")).Hour;
         }
         public object MINUTE(object value)
         {
-            value = VAL(value, "'Minute'");
+            value = _valueRetriever.VAL(value, "'Minute'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Minute'")).Minute;
         }
         public object SECOND(object value)
         {
-            value = VAL(value, "'Second'");
+            value = _valueRetriever.VAL(value, "'Second'");
             if (value == DBNull.Value)
                 return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
             return ToClosestSecond(CDATE(value, "'Second'")).Second;
@@ -1343,8 +1343,8 @@ namespace CSharpSupport.Implementations
             string sourceString, descriptionString;
             try
             {
-                sourceString = STR(source);
-                descriptionString = STR(description);
+                sourceString =  _valueRetriever.STR(source);
+                descriptionString =  _valueRetriever.STR(description);
             }
             catch(Exception e)
             {
@@ -1489,7 +1489,7 @@ namespace CSharpSupport.Implementations
             if (converter == null)
                 throw new ArgumentNullException("nonSpecialCaseProcessor");
 
-            value = VAL(value, optionalExceptionMessageForInvalidContent);
+            value = _valueRetriever.VAL(value, optionalExceptionMessageForInvalidContent);
             value = _valueRetriever.NUM(value);
             if (value is DateTime)
                 value = DateToDouble((DateTime)value);
@@ -1531,7 +1531,7 @@ namespace CSharpSupport.Implementations
 
             // 1. Ensure that all values are of acceptable types (note that Empty will be parsed as a number, becoming an Int32 since it has no explicit type)
             //    and DBNull.Value will remain as DBNull.Value
-            values = values.Select(v => VAL(v, exceptionMessageForInvalidContent)).ToArray();
+            values = values.Select(v => _valueRetriever.VAL(v, exceptionMessageForInvalidContent)).ToArray();
             
             // 2. Determine the return type based upon all of the values types and generate a lambda that will transform an Int32 into this type
             //    - It seems that VBScript does not do anything as simple as choosing the smallest data type (boolean, byte, Int16, Int32).. while in MOST cases it does
