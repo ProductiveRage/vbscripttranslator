@@ -18,7 +18,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim a(0)
                 ";
                 var expected = new[] {
-                    "_.NEWARRAY(new object[] { (Int16)0 }, value1 => { _outer.a = value1; });"
+                    "_outer.a = _.NEWARRAY(new object[] { (Int16)0 });"
                 };
                 Assert.Equal(
                     expected,
@@ -33,7 +33,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_.RESIZEARRAY(_outer.a, new object[] { (Int16)0 }, value1 => { _outer.a = value1; });"
+                    "_outer.a = _.RESIZEARRAY(_outer.a, new object[] { (Int16)0 });"
                 };
                 Assert.Equal(
                     expected,
@@ -53,7 +53,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      a = _.NEWARRAY(new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -74,7 +74,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.RESIZEARRAY(a, new object[] { (Int16)0 }, value2 => { a = value2; });
+                      a = _.RESIZEARRAY(a, new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -94,7 +94,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public object f1()
                     {
                       object retVal1 = null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { retVal1 = value2; });
+                      retVal1 = _.NEWARRAY(new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -114,7 +114,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public object f1()
                     {
                       object retVal1 = null;
-                      _.RESIZEARRAY(retVal1, new object[] { (Int16)0 }, value2 => { retVal1 = value2; });
+                      retVal1 = _.RESIZEARRAY(retVal1, new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -161,9 +161,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
-                      _.NEWARRAY(new object[] { (Int16)1 }, value3 => { a = value3; });
-                      _.NEWARRAY(new object[] { (Int16)2 }, value4 => { a = value4; });
+                      a = _.NEWARRAY(new object[] { (Int16)0 });
+                      a = _.NEWARRAY(new object[] { (Int16)1 });
+                      a = _.NEWARRAY(new object[] { (Int16)2 });
                       return retVal1;
                    }";
                 Assert.Equal(
@@ -183,7 +183,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim a(0)
                 ";
                 var expected = new[] {
-                    "_.NEWARRAY(new object[] { (Int16)0 }, value1 => { _outer.a = value1; });"
+                    "_outer.a = _.NEWARRAY(new object[] { (Int16)0 });"
                 };
                 Assert.Equal(
                     expected,
@@ -199,7 +199,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                 ";
                 var expected = new[] {
-                    "_.RESIZEARRAY(_outer.a, new object[] { (Int16)0 }, value1 => { _outer.a = value1; });"
+                    "_outer.a = _.RESIZEARRAY(_outer.a, new object[] { (Int16)0 });"
                 };
                 Assert.Equal(
                     expected,
@@ -220,7 +220,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      a = _.NEWARRAY(new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -242,7 +242,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.RESIZEARRAY(a, new object[] { (Int16)0 }, value2 => { a = value2; });
+                      a = _.RESIZEARRAY(a, new object[] { (Int16)0 });
                       return retVal1;
                     }";
                 Assert.Equal(
@@ -291,9 +291,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
-                      _.NEWARRAY(new object[] { (Int16)1 }, value3 => { a = value3; });
-                      _.NEWARRAY(new object[] { (Int16)2 }, value4 => { a = value4; });
+                      a = _.NEWARRAY(new object[] { (Int16)0 });
+                      a = _.NEWARRAY(new object[] { (Int16)1 });
+                      a = _.NEWARRAY(new object[] { (Int16)2 });
                       return retVal1;
                    }";
                 Assert.Equal(
@@ -320,7 +320,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     {
                       object retVal1 = null;
                       object a = (object[])null;
-                      _.NEWARRAY(new object[] { (Int16)0 }, value2 => { a = value2; });
+                      a = _.NEWARRAY(new object[] { (Int16)0 });
                       return retVal1;
                    }";
                 Assert.Equal(
@@ -438,7 +438,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 public object f1()
                 {
                     object retVal1 = null;
-                    _.NEWARRAY(new object[] { (Int16)2 }, value2 => { _env.a = value2; }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
+                    _env.a = _.NEWARRAY(new object[] { (Int16)2 }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
                     return retVal1;
                 }
                 [ComVisible(true)]
@@ -464,12 +464,12 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     private object c { get; set; }
                     public object cf1()
                     {
-                        object retVal3 = null;
+                        object retVal2 = null;
                         object b = null;
-                        _.NEWARRAY(new object[] { (Int16)3 }, value4 => { _env.a = value4; }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
-                        _.NEWARRAY(new object[] { (Int16)3 }, value5 => { b = value5; }); // There is no reference for this to relate to, so it acts as new explicit variable declaration
-                        _.NEWARRAY(new object[] { (Int16)3 }, value6 => { c = value6; }); // This refers to the explicitly-declared variable ""c"" in the containing class
-                        return retVal3;
+                        _env.a = _.NEWARRAY(new object[] { (Int16)3 }); // This refers to the implicitly-declared variable ""a"" in the outermost scope
+                        b = _.NEWARRAY(new object[] { (Int16)3 }); // There is no reference for this to relate to, so it acts as new explicit variable declaration
+                        c = _.NEWARRAY(new object[] { (Int16)3 }); // This refers to the explicitly-declared variable ""c"" in the containing class
+                        return retVal2;
                     }
                 }";
             Assert.Equal(

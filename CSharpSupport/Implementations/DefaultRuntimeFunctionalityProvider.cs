@@ -1264,12 +1264,12 @@ namespace CSharpSupport.Implementations
         }
 
         // Array definitions
-        public void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter)
+        public object NEWARRAY(IEnumerable<object> dimensions)
         {
             throw new NotImplementedException(); // TODO
         }
 
-        public void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter)
+        public object RESIZEARRAY(object array, IEnumerable<object> dimensions)
         {
             throw new NotImplementedException(); // TODO
         }

@@ -651,8 +651,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 
             var translatedReDimStatements = new NonNullImmutableList<TranslatedStatement>();
             var translatedContentFormat = reDimStatement.Preserve
-                ? "{0}.RESIZEARRAY({1}, new object[] {{ {2} }}, {3} => {{ {1} = {3}; }});"
-                : "{0}.NEWARRAY(new object[] {{ {2} }}, {3} => {{ {1} = {3}; }});";
+                ? "{0} = {1}.RESIZEARRAY({0}, new object[] {{ {2} }});"
+                : "{0} = {1}.NEWARRAY(new object[] {{ {2} }});";
             foreach (var variable in reDimStatement.Variables)
             {
                 var rewrittenVariableName = _nameRewriter.GetMemberAccessTokenName(variable.Name);
@@ -717,10 +717,9 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement(
                         string.Format(
                             translatedContentFormat,
-                            _supportRefName.Name,
                             targetReference,
-                            string.Join(", ", translatedArguments),
-                            _tempNameGenerator(new CSharpName("value"), scopeAccessInformation).Name
+                            _supportRefName.Name,
+                            string.Join(", ", translatedArguments)
                         ),
                         indentationDepth + (mayRequireErrorWrapping ? 1 : 0)
                     )

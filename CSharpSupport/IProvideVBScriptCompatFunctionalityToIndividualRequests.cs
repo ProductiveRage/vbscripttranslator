@@ -82,16 +82,15 @@ namespace CSharpSupport
         /// </summary>
         object NEW(object value);
 
-        // Array definitions - TODO: Note that dimensions may be an empty set for NEWARRAY (such that "Dim a()" creates an empty array), though
-        // it is not permissible for RESIZEARRAY (since "ReDim b()" is not valid, nor is "ReDim b", there must be at least one dimension). If
-        // an empty set of dimensions is specified, the returned reference should be (object[])null, not an empty array such as new object[0].
-        // -1 is a valid dimension size, meaning there should be zero elements in that dimension (but the returned returned should be null).
-        // Some error conditions will result in the target being set to null as well as an error being raised - eg. if a non-numeric string
-        // value is passed as one of the dimensions. Some error conditions will not result in the target being changed - eg. if RESIZEARRAY
-        // is requested to change the array to give it different dimensions, from (1, 1) to (1, 1, 1), for example. This is to be consistent
-        // with VBScript's behaviour.
-        void NEWARRAY(IEnumerable<object> dimensions, Action<object> targetSetter);
-        void RESIZEARRAY(object array, IEnumerable<object> dimensions, Action<object> targetSetter);
+        // Note that dimensions may be an empty set for NEWARRAY (such that "Dim a()" creates an empty array), though it is not permissible for
+        // RESIZEARRAY (since "ReDim b()" is not valid, nor is "ReDim b", there must be at least one dimension). If an empty set of dimensions
+        // is specified, the returned reference should be (object[])null, not an empty array such as new object[0]. -1 is a valid dimension size,
+        // meaning there should be zero elements in that dimension (but the returned returned should be null). Some error conditions will result
+        // in the target being set to null as well as an error being raised - eg. if a non-numeric string value is passed as one of the dimensions.
+        // Some error conditions will not result in the target being changed - eg. if RESIZEARRAY is requested to change the array to give it
+        // different dimensions, from (1, 1) to (1, 1, 1), for example. This is to be consistent with VBScript's behaviour.
+        object NEWARRAY(IEnumerable<object> dimensions);
+        object RESIZEARRAY(object array, IEnumerable<object> dimensions);
 
         // Builtin functions - TODO: These are not fully specified yet (eg. LEFT requires more than one parameter and INSTR requires multiple
         // parameters and overloads to deal with optional parameters)
