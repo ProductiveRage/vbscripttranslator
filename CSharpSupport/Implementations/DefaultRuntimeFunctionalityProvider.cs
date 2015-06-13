@@ -1266,12 +1266,117 @@ namespace CSharpSupport.Implementations
         // Array definitions
         public object NEWARRAY(IEnumerable<object> dimensions)
         {
-            throw new NotImplementedException(); // TODO
+            if (dimensions == null)
+                throw new ArgumentNullException("dimensions");
+
+            // Note that VBScript specifies upper bounds for arrays, rather than the size - so ReDim a(2) means that the array "a" needs three
+            // elements (0, 1 and 2) and so must be declared in C# as object[3]. In VBScript, if negative ranges are specified below -1 (since
+            // -1 means zero in C#, which is not an unreasonable request - eg. object[0]) then an out-of-memory error is raised. It shouldn't
+            // be possible for this to be called without any dimensions from translated code since that would be a syntax error (and so may
+            // be an ArgumentException rather than a specialise VBScript exception).
+            var dimensionSizes = dimensions.Select(d => CLNG(d, "'NewArray'") + 1).ToArray();
+            if (!dimensionSizes.Any())
+                throw new ArgumentException("No dimensions specified for NEWARRAY");
+            if (dimensionSizes.Any(d => d < 0))
+                throw new OutOfMemoryException("Invalid negative dimensions used for NEWARRAY call");
+            return Array.CreateInstance(typeof(object), dimensionSizes);
         }
 
         public object RESIZEARRAY(object array, IEnumerable<object> dimensions)
         {
-            throw new NotImplementedException(); // TODO
+            if (array == null)
+                throw new ArgumentNullException("array");
+            if (dimensions == null)
+                throw new ArgumentNullException("dimensions");
+
+            var arrayTyped = array as Array;
+            if (arrayTyped == null)
+                throw new TypeMismatchException("'ResizeArray' target not an array");
+
+            // Note that VBScript specifies upper bounds for arrays, rather than the size - so ReDim a(2) means that the array "a" needs three
+            // elements (0, 1 and 2) and so must be declared in C# as object[3]. In VBScript, if negative ranges are specified below -1 (since
+            // -1 means zero in C#, which is not an unreasonable request - eg. object[0]) then an out-of-memory error is raised. It shouldn't
+            // be possible for this to be called without any dimensions from translated code since that would be a syntax error (and so may
+            // be an ArgumentException rather than a specialise VBScript exception).
+            var dimensionSizes = dimensions.Select(d => CLNG(d, "'ResizeArray'") + 1).ToArray();
+            if (!dimensionSizes.Any())
+                throw new ArgumentException("No dimensions specified for RESIZEARRAY");
+            if (dimensionSizes.Length != arrayTyped.Rank)
+                throw new SubscriptOutOfRangeException("Inconsistent number of dimensions specified for RESIZEARRAY");
+            if (dimensionSizes.Any(d => d < 0))
+                throw new OutOfMemoryException("Invalid negative dimensions used for RESIZEARRAY call");
+
+            for (var dimension = 0; dimension < arrayTyped.Rank - 1; dimension++)
+            {
+                if (arrayTyped.GetLength(dimension) != dimensionSizes[dimension])
+                    throw new SubscriptOutOfRangeException("Invalid dimensions specified for RESIZEARRAY - only the last dimension may vary in size");
+            }
+
+            if (dimensionSizes.Length == 1)
+            {
+                // Copying a 1D array is easy..
+                var newArray = new object[dimensionSizes[0]];
+                Array.Copy(arrayTyped, newArray, Math.Min(arrayTyped.Length, dimensionSizes[0]));
+                return newArray;
+            }
+            else if (dimensionSizes.Length == 2)
+            {
+                // Copying a 2D array can be done column-by-column, so there's only one loop and an Array.Copy per iteration..
+                var newArray = new object[dimensionSizes[0], dimensionSizes[1]];
+                var numberOfElementsToCopyEachTime = Math.Min(arrayTyped.GetLength(1), dimensionSizes[1]);
+                if (numberOfElementsToCopyEachTime > 0)
+                {
+                    for (var i = 0; i < dimensionSizes[0]; i++)
+                    {
+                        Array.Copy(
+                            arrayTyped,
+                            i * arrayTyped.GetLength(1),
+                            newArray,
+                            i * dimensionSizes[1],
+                            numberOfElementsToCopyEachTime
+                        );
+                    }
+                }
+                return newArray;
+            }
+            else
+            {
+                // Copying an array with more dimensions is more awkward.. the only way I can think of is to go through every element of the
+                // new array and copy each value from the old array, so long as the element exists in the old array. This is MUCH less
+                // efficient than the process for the 1D or 2D arrays.
+                var newArray = Array.CreateInstance(typeof(object), dimensionSizes);
+                var totalNumberOfElements = dimensionSizes.Aggregate(1, (acc, value) => acc * value);
+                var indicesOfElementToCopy = new int[dimensionSizes.Length];
+                for (var i = 0; i < totalNumberOfElements; i++)
+                {
+                    if (i > 0)
+                    {
+                        var indexToIncrementNext = 0;
+                        while (true)
+                        {
+                            if (indicesOfElementToCopy[indexToIncrementNext] < (dimensionSizes[indexToIncrementNext] - 1))
+                            {
+                                indicesOfElementToCopy[indexToIncrementNext]++;
+                                break;
+                            }
+                            indicesOfElementToCopy[indexToIncrementNext] = 0;
+                            indexToIncrementNext++;
+                        }
+                    }
+                    var elementDoesNotExistInSource = false;
+                    for (var j = 0; j < indicesOfElementToCopy.Length; j++)
+                    {
+                        if (arrayTyped.GetLength(j) <= indicesOfElementToCopy[j])
+                        {
+                            elementDoesNotExistInSource = true;
+                            break;
+                        }
+                    }
+                    if (!elementDoesNotExistInSource)
+                        newArray.SetValue(arrayTyped.GetValue(indicesOfElementToCopy), indicesOfElementToCopy);
+                }
+                return newArray;
+            }
         }
 
         private IEnumerable<int> GetDimensions(IEnumerable<object> dimensions)
