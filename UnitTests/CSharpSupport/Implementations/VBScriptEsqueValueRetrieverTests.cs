@@ -543,7 +543,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void UnacceptableEnumerableValueCases(string description, object value)
         {
             var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
-            Assert.Throws<ArgumentException>(() => _.ENUMERABLE(value));
+            Assert.Throws<ObjectNotCollectionException>(() => _.ENUMERABLE(value));
         }
 
         public static IEnumerable<object[]> AcceptableEnumerableValueData

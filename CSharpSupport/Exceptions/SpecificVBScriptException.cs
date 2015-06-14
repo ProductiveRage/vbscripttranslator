@@ -13,11 +13,6 @@ namespace CSharpSupport.Exceptions
 
         public abstract int ErrorNumber { get; }
         
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-        }
-
         private static string GetMessage(string basicErrorDescription, string additionalInformationIfAny)
         {
             if (basicErrorDescription == null)

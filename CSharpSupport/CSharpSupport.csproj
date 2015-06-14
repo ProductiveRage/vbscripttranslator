@@ -47,6 +47,7 @@
     <Compile Include="ErrorDetails.cs" />
     <Compile Include="DateParser.cs" />
     <Compile Include="DefaultRuntimeSupportClassFactory.cs" />
+    <Compile Include="Exceptions\ObjectNotCollectionException.cs" />
     <Compile Include="Exceptions\InvalidProcedureCallOrArgumentException.cs" />
     <Compile Include="Exceptions\ObjectRequiredException.cs" />
     <Compile Include="Exceptions\OutOfStringSpaceException.cs" />

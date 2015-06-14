@@ -28,10 +28,6 @@ namespace CSharpSupport.Exceptions
         public override int ErrorNumber { get { return _errorNumber; } }
 
         protected CustomException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-        }
 
         private static string GetMessage(string source, string description)
         {

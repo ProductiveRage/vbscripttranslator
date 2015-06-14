@@ -18,9 +18,5 @@ namespace CSharpSupport.Exceptions
         public override int ErrorNumber { get { return 13; } } // From http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbs241.htm
 
         protected TypeMismatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-        }
     }
 }

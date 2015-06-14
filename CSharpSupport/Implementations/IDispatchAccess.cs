@@ -404,11 +404,6 @@ namespace CSharpSupport.Implementations
             public int? DispIdIfKnown { get; private set; }
 
             public CommonErrors ErrorType { get; private set; }
-
-            public override void GetObjectData(SerializationInfo info, StreamingContext context)
-            {
-                base.GetObjectData(info, context);
-            }
         }
     }
 }

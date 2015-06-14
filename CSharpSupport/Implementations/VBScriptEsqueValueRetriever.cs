@@ -564,12 +564,12 @@ namespace CSharpSupport.Implementations
         public IEnumerable ENUMERABLE(object o)
         {
             if (o == null)
-                throw new ArgumentNullException("o");
+                throw new ObjectNotCollectionException("o");
 
             // VBScript will only consider object references to be enumerable (unlike C#, which will consider a string to be an enumerable set
             // characters, for example)
             if (IsVBScriptValueType(o) && !o.GetType().IsArray)
-                throw new ArgumentException("Object not a collection");
+                throw new ObjectNotCollectionException("Object not a collection");
 
             // Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object
             var enumerable = o as IEnumerable;
@@ -588,17 +588,17 @@ namespace CSharpSupport.Implementations
                 catch (IDispatchAccess.IDispatchAccessException e)
                 {
                     if (e.ErrorType == IDispatchAccess.CommonErrors.DISP_E_MEMBERNOTFOUND)
-                    	throw new ArgumentException("IDispatch reference does not have a method with DispId -4");
+                        throw new ObjectNotCollectionException("IDispatch reference does not have a method with DispId -4");
                     throw;
                 }
                 var enumeratorAsEnumVariant = enumerator as IEnumVariant;
                 if (enumeratorAsEnumVariant == null)
-                    throw new ArgumentException("IDispatch reference has a DispId -4 return value that does not implement IEnumVariant");
+                    throw new ObjectNotCollectionException("IDispatch reference has a DispId -4 return value that does not implement IEnumVariant");
                 return new ManagedEnumeratorWrapper(new IDispatchEnumeratorWrapper(enumeratorAsEnumVariant));
             }
 
             // Give up and throw the VBScript error message
-            throw new ArgumentException("Object not a collection");
+            throw new ObjectNotCollectionException("Object not a collection");
         }
 
         /// <summary>
