@@ -688,9 +688,9 @@ namespace CSharpSupport.Implementations
             var startIndexNumber = CLNG(startIndex);
             if ((startIndexNumber < 1) || (startIndexNumber > MAX_VBSCRIPT_STRING_LENGTH))
                 throw new InvalidProcedureCallOrArgumentException("'Replace'");
-            var toReplaceWithString = CSTR(toReplaceWith, "'Replace'");
-            var toSearchForString = CSTR(toSearchFor, "'Replace'");
-            var valueString = CSTR(value, "'Replace'");
+            var toReplaceWithString = _valueRetriever.STR(toReplaceWith, "'Replace'");
+            var toSearchForString = _valueRetriever.STR(toSearchFor, "'Replace'");
+            var valueString = _valueRetriever.STR(value, "'Replace'");
             if ((maxNumberOfReplacementsNumber == 0) || (valueString == "") || (toSearchForString == "") || (startIndexNumber > valueString.Length)) // Note: VBScript's startIndex is one-based while C#'s is zero-based
                 return valueString;
 
@@ -723,7 +723,13 @@ namespace CSharpSupport.Implementations
                 throw new InvalidUseOfNullException("'Split'");
 
             // Should be fine to translate both values into strings using the standard mechanism (no exception should arise)
-            return CSTR(value, "'Split'").Split(new[] { CSTR(delimiter, "'Split'") }, StringSplitOptions.None).Cast<object>().ToArray();
+            // Note that Empty and blank string are special cases; always return an empty array, NOT an array with a single element (which would seem more logical)
+            // - eg. Split(" ", ",") returns an array with a single element " " while Split("", ",") returns an empty array
+            var valueString = _valueRetriever.STR(value, "'Split'");
+            var delimiterString = _valueRetriever.STR(delimiter, "'Split'");
+            if (string.IsNullOrEmpty(valueString))
+                return new object[0];
+            return valueString.Split(new[] { delimiterString }, StringSplitOptions.None).Cast<object>().ToArray();
         }
         public object STRCOMP(object string1, object string2) { return STRCOMP(string1, string2, 0); }
         public object STRCOMP(object string1, object string2, object compare) { return ToVBScriptNullable<int>(STRCOMP_Internal(string1, string2, compare)); }

@@ -51,8 +51,10 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             {
                 get
                 {
-                    yield return new object[] { "Empty value with ' ' delimiter", null, " ", new object[] { "" } };
-                    yield return new object[] { "Blank string value with ' ' delimiter", "", " ", new object[] { "" } };
+                    // Empty and blank string get special treatment - rather than returning an array with a single value (or Empty of blank string, resp) VBScript actually returns an array with zero elements
+                    yield return new object[] { "Empty value with ' ' delimiter", null, " ", new object[0] };
+                    yield return new object[] { "Blank string value with ' ' delimiter", "", " ", new object[0] };
+
                     yield return new object[] { "Non-blank string value (\"abc\") with ' ' delimiter", "abc", " ", new object[] { "abc" } };
                     yield return new object[] { "Integer value (1) with ' ' delimiter", 1, " ", new object[] { "1" } };
                     yield return new object[] { "Floating point value (1.23) with ' ' delimiter", 1.23, " ", new object[] { "1.23" } };
