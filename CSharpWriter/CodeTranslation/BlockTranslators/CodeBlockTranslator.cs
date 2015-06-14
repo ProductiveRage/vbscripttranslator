@@ -343,7 +343,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                             _supportRefName.Name,
                             scopeAccessInformation.ErrorRegistrationTokenIfAny.Name
                         ),
-                        indentationDepth + 1
+                        indentationDepth
                     ));
                 }
                 return translationResult.Add(
