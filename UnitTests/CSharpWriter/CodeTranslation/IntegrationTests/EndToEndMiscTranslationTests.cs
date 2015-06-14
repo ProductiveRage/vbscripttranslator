@@ -245,6 +245,26 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         }
 
         /// <summary>
+        /// Similar to MemberAccessorsInCallStatementsShouldNotBeRenamedAtTranslationTime, the ValueSettingStatementsTranslator has been corrected so that it
+        /// won't rewrite member accessors that string arguments in a SET call
+        /// </summary>
+        [Fact]
+        public void MemberAccessorsInValueSettingsStatementsShouldNotBeRenamedAtTranslationTime()
+        {
+            var source = @"
+                a.Name.Length = 1
+            ";
+            var expected = new[]
+            {
+                "_.SET((Int16)1, _.CALL(_env.a, \"Name\"), \"Length\");"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
         /// It doesn't matter if we're within a VBScript class on in the outermost scope, or within a function in the outermost scope, the "Me" reference may
         /// always be mapped directly to "this" and it will be correct
         /// </summary>

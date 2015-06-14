@@ -106,8 +106,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
                 // replacement so that the return value reference is updated.
-                // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-                // the replacement (in order to be consistent with VBScript's runtime behaviour)
+                    // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+                    // the replacement (in order to be consistent with VBScript's runtime behaviour)
                 var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
                 var isSingleTokenSettingParentScopeReturnValue = (
                     (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
@@ -202,11 +202,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if (callExpressionSegments[0].MemberAccessTokens.Count() == 1)
                     optionalMemberAccessor = null;
                 else
-                {
-                    optionalMemberAccessor = _nameRewriter.GetMemberAccessTokenName(
-                        callExpressionSegments[0].MemberAccessTokens.Skip(1).Single()
-                    );
-                }
+                    optionalMemberAccessor = callExpressionSegments[0].MemberAccessTokens.Skip(1).Single().Content;
                 arguments = callExpressionSegments[0].Arguments;
 
                 var targetAccessorNameToken = targetAccessor as NameToken;
@@ -223,8 +219,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 {
                     // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
                     // replacement so that the return value reference is updated.
-                    // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-                    // the replacement (in order to be consistent with VBScript's runtime behaviour)
+                        // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
+                        // the replacement (in order to be consistent with VBScript's runtime behaviour)
                     var isSingleTokenSettingParentScopeReturnValue = (
                         (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
                         targetAccessorName == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
@@ -279,9 +275,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 // The last CallExpressionSegment may only have one member accessor
                 // - Note: it may have zero member accessors if the assignment target was of the form "a(0, 1)(2)"
                 var lastCallExpressionSegment = callExpressionSegments.Last();
-                optionalMemberAccessor = lastCallExpressionSegment.MemberAccessTokens.Any()
-                    ? _nameRewriter.GetMemberAccessTokenName(lastCallExpressionSegment.MemberAccessTokens.Single())
-                    : null;
+                optionalMemberAccessor = lastCallExpressionSegment.MemberAccessTokens.Any() ? lastCallExpressionSegment.MemberAccessTokens.Single().Content : null;
                 arguments = lastCallExpressionSegment.Arguments;
 
                 // Note: In this case, we don't have to apply any special logic to make "return value replacements" for assignment targets
