@@ -524,8 +524,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             );
         }
 
-        public static HashSet<string> BuiltInFunctionsAccessed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         /// <summary>
         /// This may only be called when a CallExpressionSegment is encountered as one of the segments in the Expression passed into the public Translate method
         /// or if it is the first segment in a CallSetExpressionSegment, subsequent segments in a CallSetExpressionSegment should be passed direct into the 
@@ -573,8 +571,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
             if (targetBuiltInFunction != null)
             {
-                BuiltInFunctionsAccessed.Add(targetBuiltInFunction.Content);
-
                 var supportFunctionDetails = GetDetailsOfBuiltInFunction(targetBuiltInFunction, callExpressionSegment.Arguments.Count());
                 var rewrittenMemberAccessTokens = new[] { new DoNotRenameNameToken(supportFunctionDetails.SupportFunctionName, targetBuiltInFunction.LineIndex) }
                     .Concat(callExpressionSegment.MemberAccessTokens.Skip(1));
@@ -1474,7 +1470,6 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (operatorToken == null)
                 throw new ArgumentNullException("operatorToken");
 
-            BuiltInFunctionsAccessed.Add("op_" + operatorToken.Content);
             switch (operatorToken.Content.ToUpper())
             {
                 // Arithmetic operators
