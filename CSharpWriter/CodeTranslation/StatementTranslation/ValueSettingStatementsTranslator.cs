@@ -324,17 +324,27 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     .VariablesAccessed;
             }
 
-            // Note: The translatedExpression will already account for whether the statement is of type LET or SET
-            var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation, forceAllArgumentsToBeByVal: false);
-            variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
+            // Note: The translatedExpression will already account for whether the statement is of type LET or SET. The valueToSetTo comes
+            // first in this method signature since it needs to be evaluated before the target or any arguments in case any errors occur -
+            // eg. in "a(b()) = c()", if "c()" raise an error then no effort to evaluate "b()" should be made.
+            // Recall that 
+            string argumentsInitialisation;
+            if (arguments.Any())
+            {
+                var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation, forceAllArgumentsToBeByVal: false);
+                variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
+                argumentsInitialisation= argumentsContent.TranslatedContent;
+            }
+            else
+                argumentsInitialisation = "";
             return new ValueSettingStatementAssigmentFormatDetails(
                 translatedExpression => string.Format(
-                    "{0}.SET({1}, {2}, {3}, {4})",
+                    "{0}.SET({1}, {2}, {3}{4})",
                     _supportRefName.Name,
                     translatedExpression,
                     targetAccessorName,
                     (optionalMemberAccessor == null) ? "null" : optionalMemberAccessor.ToLiteral(),
-                    argumentsContent.TranslatedContent
+                    (argumentsInitialisation == "") ? "" : (", " + argumentsInitialisation)
                 ),
                 variablesAccessed.ToNonNullImmutableList()
             );

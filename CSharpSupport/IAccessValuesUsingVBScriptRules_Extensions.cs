@@ -28,6 +28,17 @@ namespace CSharpSupport
             source.SET(valueToSetTo, target, optionalMemberAccessor, argumentProviderBuilder.GetArgs());
         }
 
+        // This one allows for the arguments to not be mentioned at all if they're not required for a SET (unlike CALL, there is no concept of "forced brackets"
+        // when there are zero arguments since a SET is always part of a value-setting statement, which means that the brackets are an essential part of the
+        // statement and not optional tokens that may or may not be present)
+        public static void SET(this IAccessValuesUsingVBScriptRules source, object valueToSetTo, object target, string optionalMemberAccessor)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            source.SET(valueToSetTo, target, optionalMemberAccessor, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
+        }
+
         // Convenience methods for when there are no arguments (supporting up to MaxNumberOfMemberAccessorBeforeArraysRequired members accessors, just as the
         // extension methods further down do which look after the with-arguments signatures)
         public static object CALL(this IAccessValuesUsingVBScriptRules source, object target)

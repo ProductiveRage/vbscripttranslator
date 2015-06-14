@@ -41,6 +41,35 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
         }
 
         [Fact]
+        public void IfThereAreZeroArgumentsThenSpecifyingArgumentProviderIsNotRequired()
+        {
+            var expressionToSet = new Expression(new IToken[]
+			{
+                new NameToken("a", 0),
+                new MemberAccessorOrDecimalPointToken(".", 0),
+                new NameToken("b", 0)
+			});
+            var expressionToSetTo = new Expression(new[]
+			{
+                new NumericValueToken("1", 0)
+			});
+            var expected = new TranslatedStatementContentDetails(
+                "_.SET((Int16)1, _env.a, \"b\")",
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
+            );
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
+            var actual = GetDefaultValueSettingStatementTranslator().Translate(
+                new ValueSettingStatement(
+                    expressionToSet,
+                    expressionToSetTo,
+                    ValueSettingStatement.ValueSetTypeOptions.Let
+                ),
+                scopeAccessInformation
+            );
+            Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
+        [Fact]
         public void OutermostScopeDeclaredSimpleValueTypeUpdate()
         {
             var expressionToSet = new Expression(new IToken[]
