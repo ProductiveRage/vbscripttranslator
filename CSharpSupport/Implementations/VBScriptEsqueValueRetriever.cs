@@ -568,7 +568,7 @@ namespace CSharpSupport.Implementations
 
             // VBScript will only consider object references to be enumerable (unlike C#, which will consider a string to be an enumerable set
             // characters, for example)
-            if (IsVBScriptValueType(o))
+            if (IsVBScriptValueType(o) && !o.GetType().IsArray)
                 throw new ArgumentException("Object not a collection");
 
             // Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object

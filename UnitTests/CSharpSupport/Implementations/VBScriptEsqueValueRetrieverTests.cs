@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using CSharpSupport;
@@ -529,6 +530,43 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             /// keyword in C# and so may not appear in C# without some manipulation)
             /// </summary>
             public object rewritten_params { get { return "Success!"; } }
+        }
+
+        [Theory, MemberData("AcceptableEnumerableValueData")]
+        public void AcceptableEnumerableValueCases(string description, object value, IEnumerable<object> expectedResults)
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Equal(_.ENUMERABLE(value).Cast<Object>(), expectedResults); // Cast to Object because we care about testing the contents, not the element type
+        }
+
+        [Theory, MemberData("UnacceptableEnumerableValueData")]
+        public void UnacceptableEnumerableValueCases(string description, object value)
+        {
+            var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+            Assert.Throws<ArgumentException>(() => _.ENUMERABLE(value));
+        }
+
+        public static IEnumerable<object[]> AcceptableEnumerableValueData
+        {
+            get
+            {
+                yield return new object[] { "An object array", new object[] { 1, 2 }, new object[] { 1, 2} };
+
+                dynamic dictionary = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+                dictionary.Add("key1", "value1");
+                dictionary.Add("key2", "value2");
+                yield return new object[] { "Scripting Dictionary COM component", dictionary, new object[] { "key1", "key2" } };
+            }
+        }
+
+        public static IEnumerable<object[]> UnacceptableEnumerableValueData
+        {
+            get
+            {
+                yield return new object[] { "Empty", null };
+                yield return new object[] { "Null", DBNull.Value };
+                yield return new object[] { "A string", "abc" }; // String ARE enumerable in C# but must not be treated so when mimicking VBScript
+            }
         }
 
         private class ADOFieldObjectComparer : IEqualityComparer<object>
