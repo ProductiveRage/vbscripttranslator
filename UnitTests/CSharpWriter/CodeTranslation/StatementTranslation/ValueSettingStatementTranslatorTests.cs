@@ -40,6 +40,36 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
             Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
         }
 
+        /// <summary>
+        /// There used to be an unnecessary VAL function call wrapped around boolean literals for LET ValueSettingStatements, this test proves the fix
+        /// </summary>
+        [Fact]
+        public void UndeclaredSimpleValueTypeUpdateToBoolean()
+        {
+            var expressionToSet = new Expression(new IToken[]
+			{
+                new NameToken("a", 0)
+			});
+            var expressionToSetTo = new Expression(new[]
+			{
+                new BuiltInValueToken("true", 0)
+			});
+            var expected = new TranslatedStatementContentDetails(
+                "_env.a = true",
+                new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
+            );
+            var scopeAccessInformation = GetEmptyScopeAccessInformation();
+            var actual = GetDefaultValueSettingStatementTranslator().Translate(
+                new ValueSettingStatement(
+                    expressionToSet,
+                    expressionToSetTo,
+                    ValueSettingStatement.ValueSetTypeOptions.Let
+                ),
+                scopeAccessInformation
+            );
+            Assert.Equal(expected, actual, new TranslatedStatementContentDetailsComparer());
+        }
+
         [Fact]
         public void IfThereAreZeroArgumentsThenSpecifyingArgumentProviderIsNotRequired()
         {
