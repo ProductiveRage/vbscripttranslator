@@ -95,8 +95,11 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             for (var index = 0; index < initialTokens.Count; index++)
             {
                 var token = initialTokens[index];
-                if ((token is ComparisonOperatorToken) & (token.Content == "=") && (bracketCount == 0))
+                if ((token is ComparisonOperatorToken) & (token.Content == "=") && (bracketCount == 0) && !inExpressionContent)
                 {
+                    // Taken an equals sign to indicate the break between a value-to-set and expression-to-set in a value-setting-
+                    // statement (eg. "a = 1") unless this has already been done, in which case it is a comparison operator (eg.
+                    // the second equals sign in "a = b = c", meaning compare "b" to "c" and set "a" to be the result of that)
                     inExpressionContent = true;
                     continue;
                 }

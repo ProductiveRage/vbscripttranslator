@@ -121,6 +121,7 @@
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\WithoutScaffoldingTranslator.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\ValueSettingStatementTranslatorTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\StatementTranslation\StatementTranslatorTests.cs" />
+    <Compile Include="LegacyParser\StatementHandlerTests.cs" />
     <Compile Include="LegacyParser\ExitHandlerTests.cs" />
     <Compile Include="LegacyParser\DimHandlerTests.cs" />
     <Compile Include="LegacyParser\TokenBreakerTests.cs" />
