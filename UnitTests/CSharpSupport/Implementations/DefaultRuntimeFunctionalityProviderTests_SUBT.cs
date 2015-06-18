@@ -36,6 +36,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     });
                 }
 
+                [Theory, MemberData("ObjectDoesNotSupportPropertyOrMemberData")]
+                public void ObjectDoesNotSupportPropertyOrMemberCases(string description, object value)
+                {
+                    Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() =>
+                    {
+                        DefaultRuntimeSupportClassFactory.Get().SUBT(value);
+                    });
+                }
+
                 public static IEnumerable<object[]> SuccessData
                 {
                     get
@@ -83,6 +92,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     get
                     {
                         yield return new object[] { "Nothing", VBScriptConstants.Nothing };
+                    }
+                }
+
+                public static IEnumerable<object[]> ObjectDoesNotSupportPropertyOrMemberData
+                {
+                    get
+                    {
                         yield return new object[] { "Object without default member", new Object() };
                     }
                 }

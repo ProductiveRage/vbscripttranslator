@@ -89,19 +89,34 @@ namespace CSharpSupport.Implementations
         // String concatenation
         public object CONCAT(object l, object r)
         {
-            // TODO: Confirm that the following work as expected:
-            //   WScript.Echo "#" & Empty & "#"  ' Returns "##" (has length 2)
-            //   WScript.Echo "#" & Chr(0) & "#" ' Return "#" (null terminator stops the string, has length 3)
-
-            // See https://msdn.microsoft.com/en-us/library/sx97884w(v=vs.84).aspx
-            l = _valueRetriever.VAL(l);
-            r = _valueRetriever.VAL(r);
+            // Try to get both values as value types - if either is Nothing or an object without a default parameterless member, then it's an ObjectVariableNotSetException
+            // or ObjectDoesNotSupportPropertyOrMemberException, resp. If one is an object WITH a default parameterless member, but the value of that member is not a value
+            // type, then it's a TypeMismatchException. (If the values are value types to begin with, or are objects with default parameterless member that has a value
+            // type, then there's nothing to worry about).
+            bool parameterLessDefaultMemberWasAvailable;
+            if (!TryVAL(l, out parameterLessDefaultMemberWasAvailable, out l))
+            {
+                if (parameterLessDefaultMemberWasAvailable)
+                    throw new TypeMismatchException();
+                if (IsVBScriptNothing(l))
+                    throw new ObjectVariableNotSetException();
+                throw new ObjectDoesNotSupportPropertyOrMemberException();
+            }
+            if (!TryVAL(r, out parameterLessDefaultMemberWasAvailable, out r))
+            {
+                if (parameterLessDefaultMemberWasAvailable)
+                    throw new TypeMismatchException();
+                if (IsVBScriptNothing(r))
+                    throw new ObjectVariableNotSetException();
+                throw new ObjectDoesNotSupportPropertyOrMemberException();
+            }
             if ((l == DBNull.Value) && (r == DBNull.Value))
                 return DBNull.Value;
-            var combinedValue = ((l == null) ? "" : l.ToString()) + ((r == null) ? "" : r.ToString());
-            if (combinedValue.Length > MAX_VBSCRIPT_STRING_LENGTH)
+            var lString = (l == DBNull.Value) ? "" : _valueRetriever.STR(l);
+            var rString = (r == DBNull.Value) ? "" : _valueRetriever.STR(r);
+            if ((lString.Length + rString.Length) > MAX_VBSCRIPT_STRING_LENGTH)
                 throw new OutOfStringSpaceException();
-            return combinedValue;
+            return lString + rString;
         }
         
         /// <summary>
@@ -791,7 +806,8 @@ namespace CSharpSupport.Implementations
             // Use the same approach as for ISEMPTY..
             try
             {
-                if (!_valueRetriever.TryVAL(value, out value))
+                bool parameterLessDefaultMemberWasAvailable;
+                if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
                     return false;
                 return (value != null) && value.GetType().IsArray;
             }
@@ -806,7 +822,8 @@ namespace CSharpSupport.Implementations
             // Use the same basic approach as for ISEMPTY..
             try
             {
-                if (!_valueRetriever.TryVAL(value, out value))
+                bool parameterLessDefaultMemberWasAvailable;
+                if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
                     return false;
                 if (value == null)
                     return false;
@@ -826,7 +843,8 @@ namespace CSharpSupport.Implementations
             try
             {
                 // If this can not be coerced into a value type then it can't be Empty, so return false
-                if (!_valueRetriever.TryVAL(value, out value))
+                bool parameterLessDefaultMemberWasAvailable;
+                if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
                     return false;
 
                 // If it IS a value type, or was manipulated into one, then check for null (aka VBScript's Empty)
@@ -846,7 +864,8 @@ namespace CSharpSupport.Implementations
             // Use the same approach as for ISEMPTY..
             try
             {
-                if (!_valueRetriever.TryVAL(value, out value))
+                bool parameterLessDefaultMemberWasAvailable;
+                if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
                     return false;
                 return value == DBNull.Value;
             }
@@ -862,7 +881,8 @@ namespace CSharpSupport.Implementations
             // Use the same basic approach as for ISEMPTY..
             try
             {
-                if (!_valueRetriever.TryVAL(value, out value))
+                bool parameterLessDefaultMemberWasAvailable;
+                if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
                     return false;
                 if (value == null)
                     return true; // Empty is identified as numeric in VBScript
@@ -1749,9 +1769,9 @@ namespace CSharpSupport.Implementations
         {
             return _valueRetriever.IsVBScriptValueType(o);
         }
-        public bool TryVAL(object o, out object asValueType)
+        public bool TryVAL(object o, out bool parameterLessDefaultMemberWasAvailable, out object asValueType)
         {
-            return _valueRetriever.TryVAL(o, out asValueType);
+            return _valueRetriever.TryVAL(o, out parameterLessDefaultMemberWasAvailable, out asValueType);
         }
         public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {

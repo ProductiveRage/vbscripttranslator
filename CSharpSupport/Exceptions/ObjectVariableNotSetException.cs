@@ -4,8 +4,7 @@ using System.Runtime.Serialization;
 namespace CSharpSupport.Exceptions
 {
     /// <summary>
-    /// This occurs when Nothing is passed in where a VBScript-value-type reference is expected or any object-reference type that does not have a
-    /// default function or property that can be retrieved without any arguments
+    /// This occurs when Nothing is passed in where a VBScript-value-type reference is expected
     /// </summary>
     [Serializable]
     public class ObjectVariableNotSetException : SpecificVBScriptException

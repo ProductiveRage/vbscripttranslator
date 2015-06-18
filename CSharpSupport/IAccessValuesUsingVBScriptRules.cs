@@ -36,11 +36,14 @@ namespace CSharpSupport
         bool IsVBScriptValueType(object o);
 
         /// <summary>
-        /// Try to reduce a reference down to a value type, applying VBScript defaults logic - return true if this is possible, setting the out
-        /// valueType argument to the manipulated value (if manipulation was required), returns false if it is not possible (leaving the valueType
-        /// argument undefined) and throwing an exception if one was raised while a default member was being evaluated (where applicable).
+        /// Try to reduce a reference down to a value type, applying VBScript defaults logic - returns true if this is possible, returns false if it
+        /// is not possible and throws an exception if one was raised while a default member was being evaluated (where applicable). Ift rue is
+        /// returned then the out asValueType argument will be the manipulated value. If false is returned but the target reference had a default
+        /// parameterless member, then the out asValueType argument will be given the value of this member (even though it was determined that
+        /// this reference was not a value type. If false is returned and the target reference did not have a parameterless default member,
+        /// then the out asValueType argument will be a reference to the target (set to the same reference that the "o" argument has).
         /// </summary>
-        bool TryVAL(object o, out object asValueType);
+        bool TryVAL(object o, out bool parameterLessDefaultMemberWasAvailable, out object asValueType);
 
         /// <summary>
         /// Reduce a reference down to a value type, applying VBScript defaults logic - thrown an exception if this is not possible (null is

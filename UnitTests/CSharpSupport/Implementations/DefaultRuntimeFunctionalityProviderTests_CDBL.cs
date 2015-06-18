@@ -114,7 +114,7 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             [Fact]
             public void ObjectWithoutDefaultProperty()
             {
-                Assert.Throws<ObjectVariableNotSetException>(() =>
+                Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() =>
                 {
                     DefaultRuntimeSupportClassFactory.Get().CDBL(new object());
                 });

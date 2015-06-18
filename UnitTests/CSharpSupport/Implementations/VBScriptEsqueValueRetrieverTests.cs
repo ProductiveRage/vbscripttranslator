@@ -91,8 +91,8 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         public void VALFailsOnTranslatedClassWithNoDefaultMember()
         {
             // Execute twice to ensure that the TryVAL caching does not affect the result
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new translatedclasswithnodefaultmember()));
         }
 
         [SourceClassName("TranslatedClassWithNoDefaultMember")]
@@ -103,16 +103,16 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
         {
             // Execute twice to ensure that the TryVAL caching does not affect the result
             var dictionary = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
         }
 
         [Fact]
         public void VALFailsOnNonComVisibleNonTranslatedClasses()
         {
             // Execute twice to ensure that the TryVAL caching does not affect the result
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
-            Assert.Throws<ObjectVariableNotSetException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
+            Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(new NonComVisibleNonTranslatedClass()));
         }
 
         private class NonComVisibleNonTranslatedClass { }

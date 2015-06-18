@@ -43,6 +43,15 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                 });
             }
 
+            [Theory, MemberData("ObjectDoesNotSupportPropertyOrMemberData")]
+            public void ObjectDoesNotSupportPropertyOrMemberCases(string description, object value)
+            {
+                Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() =>
+                {
+                    DefaultRuntimeSupportClassFactory.Get().SUBT(value);
+                });
+            }
+
             public static IEnumerable<object[]> SuccessData
             {
                 get
@@ -188,7 +197,13 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
                     yield return new object[] { "Null * Nothing", VBScriptConstants.Nothing, DBNull.Value };
 
                     yield return new object[] { "Nothing * 1", VBScriptConstants.Nothing, 1 };
+                }
+            }
 
+            public static IEnumerable<object[]> ObjectDoesNotSupportPropertyOrMemberData
+            {
+                get
+                {
                     yield return new object[] { "Object-without-default-member * 1", new Object(), 1 };
                 }
             }

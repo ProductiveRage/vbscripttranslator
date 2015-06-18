@@ -53,21 +53,26 @@ namespace CSharpSupport.Implementations
         }
 
         /// <summary>
-        /// Try to reduce a reference down to a value type, applying VBScript defaults logic - return true if this is possible, setting the out
-        /// valueType argument to the manipulated value (if manipulation was required), returns false if it is not possible (leaving the valueType
-        /// argument undefined) and throwing an exception if one was raised while a default member was being evaluated (where applicable).
+        /// Try to reduce a reference down to a value type, applying VBScript defaults logic - returns true if this is possible, returns false if it
+        /// is not possible and throws an exception if one was raised while a default member was being evaluated (where applicable). Ift rue is
+        /// returned then the out asValueType argument will be the manipulated value. If false is returned but the target reference had a default
+        /// parameterless member, then the out asValueType argument will be given the value of this member (even though it was determined that
+        /// this reference was not a value type. If false is returned and the target reference did not have a parameterless default member,
+        /// then the out asValueType argument will be a reference to the target (set to the same reference that the "o" argument has).
         /// </summary>
-        public bool TryVAL(object o, out object asValueType)
+        public bool TryVAL(object o, out bool parameterLessDefaultMemberWasAvailable, out object asValueType)
         {
             if (IsVBScriptValueType(o))
             {
                 asValueType = o;
+                parameterLessDefaultMemberWasAvailable = false;
                 return true;
             }
 
             if (IsVBScriptNothing(o))
             {
-                asValueType = null;
+                asValueType = o;
+                parameterLessDefaultMemberWasAvailable = false;
                 return false;
             }
 
@@ -84,14 +89,13 @@ namespace CSharpSupport.Implementations
                 var defaultValueFromObject = defaultMemberPresenceSummary.WasDefaultMemberRetrieved
                     ? defaultMemberPresenceSummary.DefaultMemberValueIfRetrieved
                     : GetDefaultValueFromObject(o);
-                if (IsVBScriptValueType(defaultValueFromObject))
-                {
-                    asValueType = defaultValueFromObject;
-                    return true;
-                }
+                asValueType = defaultValueFromObject;
+                parameterLessDefaultMemberWasAvailable = true;
+                return IsVBScriptValueType(defaultValueFromObject);
             }
 
-            asValueType = null;
+            asValueType = o;
+            parameterLessDefaultMemberWasAvailable = false;
             return false;
         }
 
@@ -101,10 +105,13 @@ namespace CSharpSupport.Implementations
         /// </summary>
         public object VAL(object o, string optionalExceptionMessageForInvalidContent = null)
         {
-            if (TryVAL(o, out o))
+            bool parameterLessDefaultMemberWasAvailable;
+            if (TryVAL(o, out parameterLessDefaultMemberWasAvailable, out o))
                 return o;
 
-            throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
+            if (IsVBScriptNothing(o))
+                throw new ObjectVariableNotSetException(optionalExceptionMessageForInvalidContent);
+            throw new ObjectDoesNotSupportPropertyOrMemberException(optionalExceptionMessageForInvalidContent);
         }
 
         /// <summary>
