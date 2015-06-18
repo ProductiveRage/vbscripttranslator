@@ -44,11 +44,11 @@ namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
             }
 
             [Theory, MemberData("ObjectDoesNotSupportPropertyOrMemberData")]
-            public void ObjectDoesNotSupportPropertyOrMemberCases(string description, object value)
+            public void ObjectDoesNotSupportPropertyOrMemberCases(string description, object l, object r)
             {
                 Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() =>
                 {
-                    DefaultRuntimeSupportClassFactory.Get().SUBT(value);
+                    DefaultRuntimeSupportClassFactory.Get().MULT(l, r);
                 });
             }
 
