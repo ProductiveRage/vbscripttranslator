@@ -112,5 +112,31 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        /// <summary>
+        /// It doesn't make sense for a CONST value to ever be passed as a function argument by-ref since it can't be changed - the easiest way to
+        /// deal with this is for the translation process to always pass CONST value by-val
+        /// </summary>
+        [Fact]
+        public void ConstValuesShouldAlwaysBePassedToFunctionsByVal()
+        {
+            var source = @"
+                Const a = 1
+                F1 a
+                Function F1(a)
+                End Function
+            ";
+            var expected = @"
+                _outer.a = 1;
+                _.CALL(_outer, ""F1"", _.ARGS.Val(_outer.a));
+                public object f1(ref object a)
+                {
+                    return null;
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }
