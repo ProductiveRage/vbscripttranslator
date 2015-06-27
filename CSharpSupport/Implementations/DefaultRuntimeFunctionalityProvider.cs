@@ -1310,23 +1310,23 @@ namespace CSharpSupport.Implementations
 
         public object RESIZEARRAY(object array, IEnumerable<object> dimensions)
         {
-            if (array == null)
-                throw new ArgumentNullException("array");
+            // Note: Don't even check "array" for null until the dimensions have been evaluated
             if (dimensions == null)
                 throw new ArgumentNullException("dimensions");
-
-            var arrayTyped = array as Array;
-            if (arrayTyped == null)
-                throw new TypeMismatchException("'ResizeArray' target not an array");
 
             // Note that VBScript specifies upper bounds for arrays, rather than the size - so ReDim a(2) means that the array "a" needs three
             // elements (0, 1 and 2) and so must be declared in C# as object[3]. In VBScript, if negative ranges are specified below -1 (since
             // -1 means zero in C#, which is not an unreasonable request - eg. object[0]) then an out-of-memory error is raised. It shouldn't
             // be possible for this to be called without any dimensions from translated code since that would be a syntax error (and so may
             // be an ArgumentException rather than a specialise VBScript exception).
+            // - The dimensions are evaulated before the target array is validated (before it is even checked for null, even) in order to
+            //   be consistent with VBScript's runtime behaviour
             var dimensionSizes = dimensions.Select(d => CLNG(d, "'ResizeArray'") + 1).ToArray();
             if (!dimensionSizes.Any())
                 throw new ArgumentException("No dimensions specified for RESIZEARRAY");
+            var arrayTyped = array as Array;
+            if (arrayTyped == null)
+                throw new TypeMismatchException("'ResizeArray' target not an array");
             if (dimensionSizes.Length != arrayTyped.Rank)
                 throw new SubscriptOutOfRangeException("Inconsistent number of dimensions specified for RESIZEARRAY");
             if (dimensionSizes.Any(d => d < 0))
