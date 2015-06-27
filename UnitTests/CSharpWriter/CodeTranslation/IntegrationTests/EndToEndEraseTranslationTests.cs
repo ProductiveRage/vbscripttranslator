@@ -10,7 +10,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
         [Theory, MemberData("SuccessData")]
         public void SuccessCases(string description, string source, string[] expected)
         {
-            var actual = WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies); // TODO: Remove
             Assert.Equal(expected, WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies));
         }
 
