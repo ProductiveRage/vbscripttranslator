@@ -3,6 +3,7 @@
     public enum ReferenceTypeOptions
     {
         Class,
+        Constant,
         ExternalDependency,
         Function,
         Property,

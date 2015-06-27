@@ -98,11 +98,10 @@ namespace CSharpWriter.CodeTranslation.Extensions
             if (nameRewriter == null)
                 throw new ArgumentNullException("nameRewriter");
 
-            var rewrittenTargetName = nameRewriter(target).Name; // TODO: Anything?
-
             // If the target corresponds to the containing "WITH" reference (if any) then use that ("WITH a: .Go: END WITH" is translated
             // approximately into "var w123 = a; w123.Go();" where the "w123" is the DirectedWithReferenceIfAny and so we don't need to
             // check for other variables or functions that may apply, it's the local variable WITH construct target.
+            var rewrittenTargetName = nameRewriter(target).Name;
             if (scopeInformation.DirectedWithReferenceIfAny != null)
             {
                 // Note that WithinFunctionOrPropertyOrWith is always specified here for the scope location since the WITH target should
@@ -131,6 +130,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes.Select(t => Tuple.Create(t, ReferenceTypeOptions.Class))
                 .Concat(scopeInformation.Functions.Select(t => Tuple.Create(t, ReferenceTypeOptions.Function)))
                 .Concat(scopeInformation.Properties.Select(t => Tuple.Create(t, ReferenceTypeOptions.Property)))
+                .Concat(scopeInformation.Constants.Select(t => Tuple.Create(t, ReferenceTypeOptions.Constant)))
                 .Concat(scopeInformation.Variables.Select(t => Tuple.Create(t, ReferenceTypeOptions.Variable)));
 
             // There could be references matching the requested name in multiple scopes, start from the closest and work outwards

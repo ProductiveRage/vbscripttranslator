@@ -19,6 +19,7 @@ namespace CSharpWriter.CodeTranslation
             NonNullImmutableList<ScopedNameToken> classes,
             NonNullImmutableList<ScopedNameToken> functions,
             NonNullImmutableList<ScopedNameToken> properties,
+            NonNullImmutableList<ScopedNameToken> constants,
             NonNullImmutableList<ScopedNameToken> variables,
             NonNullImmutableList<ExitableNonScopeDefiningConstructDetails> structureExitPoints)
         {
@@ -34,6 +35,8 @@ namespace CSharpWriter.CodeTranslation
                 throw new ArgumentNullException("functions");
             if (properties == null)
                 throw new ArgumentNullException("properties");
+            if (constants == null)
+                throw new ArgumentNullException("constants");
             if (variables == null)
                 throw new ArgumentNullException("variables");
             if (structureExitPoints == null)
@@ -48,6 +51,7 @@ namespace CSharpWriter.CodeTranslation
             Classes = classes;
             Functions = functions;
             Properties = properties;
+            Constants = constants;
             Variables = variables;
             StructureExitPoints = structureExitPoints;
         }
@@ -76,6 +80,7 @@ namespace CSharpWriter.CodeTranslation
                 new NonNullImmutableList<ScopedNameToken>(), // classes
                 new NonNullImmutableList<ScopedNameToken>(), // functions,
                 new NonNullImmutableList<ScopedNameToken>(), // properties,
+                new NonNullImmutableList<ScopedNameToken>(), // constants
                 new NonNullImmutableList<ScopedNameToken>(), // variables
                 new NonNullImmutableList<ExitableNonScopeDefiningConstructDetails>()
             );
@@ -140,6 +145,11 @@ namespace CSharpWriter.CodeTranslation
         /// This will never be null
         /// </summary>
         public NonNullImmutableList<ScopedNameToken> Properties { get; private set; }
+
+        /// <summary>
+        /// This will never be null
+        /// </summary>
+        public NonNullImmutableList<ScopedNameToken> Constants { get; private set; }
 
         /// <summary>
         /// This will never be null

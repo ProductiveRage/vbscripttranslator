@@ -85,7 +85,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // properties if required
             scopeAccessInformation = scopeAccessInformation.SetErrorRegistrationToken(null);
 
-            var classContentTranslationResult = Translate(
+            var classContentTranslationResult = TranslateForClass(
                 classBlock.Statements.ToNonNullImmutableList(),
                 scopeAccessInformation.Extend(classBlock, classBlock.Statements.ToNonNullImmutableList()),
                 indentationDepth + 1
@@ -125,7 +125,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			    );
 		}
 
-		private TranslationResult Translate(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		private TranslationResult TranslateForClass(NonNullImmutableList<ICodeBlock> blocks, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
 			if (blocks == null)
 				throw new ArgumentNullException("block");
@@ -134,7 +134,8 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
-			return base.TranslateCommon(
+            // Note: DIM statements are allowed between in the space inside a CLASS but outside of any FUNCTION or PROPERTY within that CLASS, but CONST is not
+            return base.TranslateCommon(
 				new BlockTranslationAttempter[]
 				{
 					base.TryToTranslateBlankLine,

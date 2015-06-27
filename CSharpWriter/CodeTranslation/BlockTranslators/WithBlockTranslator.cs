@@ -66,6 +66,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     scopeAccessInformation.Classes,
                     scopeAccessInformation.Functions,
                     scopeAccessInformation.Properties,
+                    scopeAccessInformation.Constants,
                     scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
                 ),

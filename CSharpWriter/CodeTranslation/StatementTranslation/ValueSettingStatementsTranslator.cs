@@ -106,29 +106,52 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
                 // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
                 // replacement so that the return value reference is updated.
-                    // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-                    // the replacement (in order to be consistent with VBScript's runtime behaviour)
                 var rewrittenFirstMemberAccessor = _nameRewriter.GetMemberAccessTokenName(singleTokenAsName);
                 var isSingleTokenSettingParentScopeReturnValue = (
                     (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
                     rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
                 );
 
-                // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
-                // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
-                var targetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(singleTokenAsName, _envRefName, _outerRefName, _nameRewriter);
-                if (targetContainerIfRequired != null)
-                    rewrittenFirstMemberAccessor = targetContainerIfRequired.Name + "." + rewrittenFirstMemberAccessor;
-                return new ValueSettingStatementAssigmentFormatDetails(
-                    translatedExpression => string.Format(
-                        "{0} = {1}",
-                        isSingleTokenSettingParentScopeReturnValue
-                            ? scopeAccessInformation.ParentReturnValueNameIfAny.Name
-                            : rewrittenFirstMemberAccessor,
-                        translatedExpression
-                    ),
-                    new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
-                );
+                // If the target token is not a variable or property then a runtime exception will need to be thrown, and so this "short cut" simple assignment
+                // route may not be followed. Note that any "ExternalDependency" is treated as a variable and if the target reference is the Function that we're
+                // inside (if any) then that also should be treated as a variable setting (since it is setting the value to return).
+                var targetReferenceDetailsIfAvailable = scopeAccessInformation.TryToGetDeclaredReferenceDetails(singleTokenAsName, _nameRewriter);
+                if ((targetReferenceDetailsIfAvailable == null)
+                || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
+                || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
+                || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Variable)
+                || ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) && isSingleTokenSettingParentScopeReturnValue))
+                {
+                    // If callExpressionSegment.ZeroArgumentBracketsPresence == Present then, in most cases, we'll need to throw a runtime "Type mismatch"
+                    // exception rather than make the replacement (in order to be consistent with VBScript's runtime behaviour) - this applies to functions
+                    // (can't see those), variables (whether declared or not; it's not valid to try to access them with brackets when there are no arguments),
+                    // constants (can never set those). Properties ARE allowed to be set in this manner. 
+                    bool invalidZeroArgumentBracketsArePresent;
+                    if (callExpressionSegment.ZeroArgumentBracketsPresence != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present)
+                        invalidZeroArgumentBracketsArePresent = false;
+                    else if ((targetReferenceDetailsIfAvailable != null) && (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property))
+                        invalidZeroArgumentBracketsArePresent = false;
+                    else
+                        invalidZeroArgumentBracketsArePresent = true;
+                    if (!invalidZeroArgumentBracketsArePresent)
+                    {
+                        // If the "targetAccessor" is an undeclared variable then it must be accessed through the envRefName (this is a reference that should
+                        // be passed into the containing class' constructor since C# doesn't support the concept of abritrary unintialised references)
+                        var targetContainerIfRequired = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(singleTokenAsName, _envRefName, _outerRefName, _nameRewriter);
+                        if (targetContainerIfRequired != null)
+                            rewrittenFirstMemberAccessor = targetContainerIfRequired.Name + "." + rewrittenFirstMemberAccessor;
+                        return new ValueSettingStatementAssigmentFormatDetails(
+                            translatedExpression => string.Format(
+                                "{0} = {1}",
+                                isSingleTokenSettingParentScopeReturnValue
+                                    ? scopeAccessInformation.ParentReturnValueNameIfAny.Name
+                                    : rewrittenFirstMemberAccessor,
+                                translatedExpression
+                            ),
+                            new NonNullImmutableList<NameToken>(new[] { singleTokenAsName })
+                        );
+                    }
+                }
             }
 
             // If this is a more complicated case then the single assignment case covered above then we need to break it down into a target reference,
@@ -209,53 +232,80 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 var targetReferenceDetailsIfAvailable = (targetAccessorNameToken == null) ? null : scopeAccessInformation.TryToGetDeclaredReferenceDetails(targetAccessorNameToken, _nameRewriter);
                 if (targetReferenceDetailsIfAvailable == null)
                 {
-                    // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
-                    // to the current scope, so the targetAccessor does not require a prefix in this case (this means that the UndeclaredVariables data
-                    // returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
-                    if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
+                    if (callExpressionSegment.ZeroArgumentBracketsPresence == CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present)
+                    {
+                        // If an undeclared variable is accessed like a function - eg. "a() = 1" - then it's a type mismatch
+                        targetAccessorName = TranslateIntoErrorRaise("TypeMismatchException", targetAccessor);
+                    }
+                    else if (scopeAccessInformation.ScopeDefiningParent.Scope != ScopeLocationOptions.WithinFunctionOrPropertyOrWith)
+                    {
+                        // If an undeclared variable is accessed within a function (or property) then it is treated as if it was declared to be restricted
+                        // to the current scope, so the targetAccessor does not require a prefix in this case (this means that the UndeclaredVariables data
+                        // returned from this process should be translated into locally-scoped DIM statements at the top of the function / property).
                         targetAccessorName = _envRefName.Name + "." + targetAccessorName;
+                    }
                 }
                 else
                 {
-                    // If this single token is the function name (if we're in a function or property) then we need to make the ParentReturnValueNameIfAny
-                    // replacement so that the return value reference is updated.
-                        // TODO: If callExpressionSegment.ZeroArgumentBracketsPresence == Present then throw a "Type mismatch" exception rather than make
-                        // the replacement (in order to be consistent with VBScript's runtime behaviour)
+                    // If anything other than a property is accessed like a function - eg. "a() = 1" then it's a type mismatch. This includes functions since
+                    // what we're considering is the target of a value-setting statement and it's not valid to try to set a function to something! (Settable)
+                    // properties are an exception, they are a weird hybrid of a function and a settable reference and VBScript allows them - "p() = 1" is
+                    // acceptable within a class where "p" is a settable property.
+                    bool invalidZeroArgumentBracketsArePresent;
+                    if (callExpressionSegment.ZeroArgumentBracketsPresence != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present)
+                        invalidZeroArgumentBracketsArePresent = false;
+                    else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
+                        invalidZeroArgumentBracketsArePresent = false;
+                    else
+                        invalidZeroArgumentBracketsArePresent = true;
                     var isSingleTokenSettingParentScopeReturnValue = (
                         (scopeAccessInformation.ParentReturnValueNameIfAny != null) &&
                         targetAccessorName == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name)
                     );
-                    if (isSingleTokenSettingParentScopeReturnValue)
-                        targetAccessorName = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                    if (invalidZeroArgumentBracketsArePresent)
+                        targetAccessorName = TranslateIntoErrorRaise("TypeMismatchException", targetAccessor);
+                    else if ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Constant)
+                    || ((targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) && !isSingleTokenSettingParentScopeReturnValue))
+                    {
+                        // If the target is a constant or function then it's an illegal assignment error (note that the "type mismatch" zero-argument bracket
+                        // error checked for above takes precedence, so "a() = 1" will result in a "Type mismatch" if "a" is a constant, while "a = 1" will
+                        // result in an "Illegal assignment")
+                        targetAccessorName = TranslateIntoErrorRaise("IllegalAssignmentException", targetAccessor);
+                    }
                     else
                     {
-                        if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
+                        if (isSingleTokenSettingParentScopeReturnValue)
+                            targetAccessorName = scopeAccessInformation.ParentReturnValueNameIfAny.Name;
+                        else
                         {
-                            // 2014-07-03 DWR: This is the special case talked about above - eg. "a(0) = 1" where "a" is a function. It can not be
-                            // translated into "_.SET(1, a, null, _.ARGS.Val(0))" since the first argument of "SET" requires an obect and "a" is a
-                            // function. Instead it must be translated into "_.SET(1, _outer, "a", _.ARGS.Val(0))". This is only a problem where
-                            // there is a single "callExpressionSegments" entry since this is the only case where the first named target is extracted
-                            // from its arguments - eg. "a(0).Name = 1" is represented by two callExpressionSegments ("a(0)" and ".Name") which will
-                            // be translated into "_.SET(1, _.CALL(_outer, "a"), "Name", _.ARGS.Val(0))" and not require any special messing around.
-                            var targetAccessCallExpressionSegments = new IExpressionSegment[]
+                            if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function)
                             {
-                                new CallExpressionSegment(
-                                    callExpressionSegments.Single().MemberAccessTokens.Take(1),
-                                    new StageTwoParser.Expression[0],
-                                    CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
-                                )
-                            };
-                            targetAccessorName =
-                                _statementTranslator.Translate(
-                                    new StageTwoParser.Expression(targetAccessCallExpressionSegments),
-                                    scopeAccessInformation,
-                                    ExpressionReturnTypeOptions.NotSpecified
-                                ).TranslatedContent;
+                                // 2014-07-03 DWR: This is the special case talked about above - eg. "a(0) = 1" where "a" is a function. It can not be
+                                // translated into "_.SET(1, a, null, _.ARGS.Val(0))" since the first argument of "SET" requires an obect and "a" is a
+                                // function. Instead it must be translated into "_.SET(1, _outer, "a", _.ARGS.Val(0))". This is only a problem where
+                                // there is a single "callExpressionSegments" entry since this is the only case where the first named target is extracted
+                                // from its arguments - eg. "a(0).Name = 1" is represented by two callExpressionSegments ("a(0)" and ".Name") which will
+                                // be translated into "_.SET(1, _.CALL(_outer, "a"), "Name", _.ARGS.Val(0))" and not require any special messing around.
+                                var targetAccessCallExpressionSegments = new IExpressionSegment[]
+                                {
+                                    new CallExpressionSegment(
+                                        callExpressionSegments.Single().MemberAccessTokens.Take(1),
+                                        new StageTwoParser.Expression[0],
+                                        CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
+                                    )
+                                };
+                                targetAccessorName =
+                                    _statementTranslator.Translate(
+                                        new StageTwoParser.Expression(targetAccessCallExpressionSegments),
+                                        scopeAccessInformation,
+                                        ExpressionReturnTypeOptions.NotSpecified
+                                    ).TranslatedContent;
+                            }
+                            else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
+                                targetAccessorName = _envRefName.Name + "." + targetAccessorName;
+                            else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
+                                targetAccessorName = _outerRefName.Name + "." + targetAccessorName;
                         }
-                        else if (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.ExternalDependency)
-                            targetAccessorName = _envRefName.Name + "." + targetAccessorName;
-                        else if (targetReferenceDetailsIfAvailable.ScopeLocation == ScopeLocationOptions.OutermostScope)
-                            targetAccessorName = _outerRefName.Name + "." + targetAccessorName;
                     }
                 }
             }
@@ -327,10 +377,25 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             {
                 var argumentsContent = _statementTranslator.TranslateAsArgumentProvider(arguments, scopeAccessInformation, forceAllArgumentsToBeByVal: false);
                 variablesAccessed = variablesAccessed.Concat(argumentsContent.VariablesAccessed);
-                argumentsInitialisation= argumentsContent.TranslatedContent;
+                argumentsInitialisation = argumentsContent.TranslatedContent;
             }
             else
                 argumentsInitialisation = "";
+            if ((argumentsInitialisation == "") && (optionalMemberAccessor == null))
+            {
+                // If there are are no member accessors and no arguments on the target then use the abbreviated SET method signature (this
+                // should only be the case where the assignment is an invalid and a runtime exception is going to be raised, otherwise
+                // this could have been a simple assignment that didn't even need a SET cal)l
+                return new ValueSettingStatementAssigmentFormatDetails(
+                    translatedExpression => string.Format(
+                        "{0}.SET({1}, {2})",
+                        _supportRefName.Name,
+                        translatedExpression,
+                        targetAccessorName
+                    ),
+                    variablesAccessed.ToNonNullImmutableList()
+                );
+            }
             return new ValueSettingStatementAssigmentFormatDetails(
                 translatedExpression => string.Format(
                     "{0}.SET({1}, {2}, {3}{4})",
@@ -341,6 +406,23 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     (argumentsInitialisation == "") ? "" : (", " + argumentsInitialisation)
                 ),
                 variablesAccessed.ToNonNullImmutableList()
+            );
+        }
+
+        private string TranslateIntoErrorRaise(string exceptionClassName, IToken target)
+        {
+            if (string.IsNullOrWhiteSpace(exceptionClassName))
+                throw new ArgumentException("Null/blank exceptionClassName specified");
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (target.Content == null)
+                throw new ArgumentException("Null target.Content value");
+
+            return string.Format(
+                "{0}.RAISEERROR(new {1}({2}))",
+                _supportRefName.Name,
+                exceptionClassName,
+                ("'" + target.Content + "'").ToLiteral()
             );
         }
 

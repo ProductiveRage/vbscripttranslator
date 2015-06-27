@@ -290,6 +290,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                     VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
                 )),
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
             );
@@ -314,6 +315,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables.Add(new ScopedNameToken(
                     name,
                     lineIndex,

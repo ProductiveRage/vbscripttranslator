@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeBlocks\Basic\AbstractFunctionBlock.cs" />
+    <Compile Include="CodeBlocks\Basic\ConstStatement.cs" />
     <Compile Include="CodeBlocks\Basic\BlankLine.cs" />
     <Compile Include="CodeBlocks\Basic\ClassBlock.cs" />
     <Compile Include="CodeBlocks\Basic\BaseDimStatement.cs" />

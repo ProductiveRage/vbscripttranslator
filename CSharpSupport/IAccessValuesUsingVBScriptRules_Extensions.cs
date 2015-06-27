@@ -38,6 +38,17 @@ namespace CSharpSupport
 
             source.SET(valueToSetTo, target, optionalMemberAccessor, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
         }
+        // This one allows for no arguments OR member accessors to be mentioned - this should only be used for errors cases (since, otherwise, a simple assignment
+        // would be more appropriate, no SET call would be required at all). This may be used for the representation of "a = 1" where "a" is a function or a
+        // constant, the translated output would be call to this function where the target to would actually be a call to RAISEERROR so that the valueToSet
+        // may be evaluated and then a can-not-set-this error raised (consistent with how VBScript would handle it).
+        public static void SET(this IAccessValuesUsingVBScriptRules source, object valueToSetTo, object target)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            source.SET(valueToSetTo, target, null, ZeroArgumentArgumentProvider.WithoutEnforcedArgumentBrackets);
+        }
 
         // Convenience methods for when there are no arguments (supporting up to MaxNumberOfMemberAccessorBeforeArraysRequired members accessors, just as the
         // extension methods further down do which look after the with-arguments signatures)

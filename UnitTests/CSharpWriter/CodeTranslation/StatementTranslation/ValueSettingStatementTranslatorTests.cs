@@ -218,7 +218,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _.CALL(_outer, \"a\"), null, _.ARGS.Val((Int16)1))",
+                "_.SET((Int16)1, _.RAISEERROR(new IllegalAssignmentException(\"'a'\")), null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(
@@ -350,6 +350,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions.Add(new ScopedNameToken("F1", 0, ScopeLocationOptions.WithinFunctionOrPropertyOrWith)),
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
             );
@@ -412,6 +413,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                     VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope
                 )),
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
             );
@@ -436,6 +438,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables.Add(new ScopedNameToken(
                     name,
                     lineIndex,

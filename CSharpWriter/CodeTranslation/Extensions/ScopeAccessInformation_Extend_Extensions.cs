@@ -31,8 +31,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
             blocks = FlattenAllAccessibleBlockLevelCodeBlocks(blocks);
             var variables = scopeInformation.Variables.AddRange(
                 blocks
-                    .Where(b => b is DimStatement) // This covers DIM, REDIM, PRIVATE and PUBLIC (they may all be considered the same for these purposes)
-                    .Cast<DimStatement>()
+                    .OfType<DimStatement>() // This covers DIM, REDIM, PRIVATE and PUBLIC (they may all be considered the same for these purposes)
                     .SelectMany(d => d.Variables.Select(v => new ScopedNameToken(
                         v.Name.Content,
                         v.Name.LineIndex,
@@ -51,6 +50,15 @@ namespace CSharpWriter.CodeTranslation.Extensions
                     )
                 );
             }
+            var constants = scopeInformation.Constants.AddRange(
+                blocks
+                    .OfType<ConstStatement>()
+                    .SelectMany(c => c.Values.Select(v => new ScopedNameToken(
+                        v.Name.Content,
+                        v.Name.LineIndex,
+                        blocksScopeLocation
+                    )))
+            );
 
             return new ScopeAccessInformation(
                 parent,
@@ -77,6 +85,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                         .Cast<PropertyBlock>()
                         .Select(p => new ScopedNameToken(p.Name.Content, p.Name.LineIndex, ScopeLocationOptions.WithinClass)) // These are always WithinClass
                 ),
+                constants,
                 variables,
                 scopeInformation.StructureExitPoints
             );
@@ -151,6 +160,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
+                scopeInformation.Constants,
                 scopeInformation.Variables,
                 scopeInformation.StructureExitPoints
             );
@@ -173,6 +183,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
+                scopeInformation.Constants,
                 scopeInformation.Variables.AddRange(variables),
                 scopeInformation.StructureExitPoints
             );
@@ -217,6 +228,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
+                scopeInformation.Constants,
                 scopeInformation.Variables,
                 scopeInformation.StructureExitPoints
                     .Add(new ScopeAccessInformation.ExitableNonScopeDefiningConstructDetails(
@@ -248,6 +260,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeInformation.Classes,
                 scopeInformation.Functions,
                 scopeInformation.Properties,
+                scopeInformation.Constants,
                 scopeInformation.Variables,
                 scopeInformation.StructureExitPoints
             );

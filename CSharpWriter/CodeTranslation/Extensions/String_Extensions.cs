@@ -6,7 +6,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
     public static class String_Extensions
     {
         /// <summary>
-        /// Although VBScript only supports escaping of quotes, we need to run the full gambit when considering generating C# string literals since ANY
+        /// Although VBScript only supports escaping of quotes, we need to run the full gamut when considering generating C# string literals since ANY
         /// content may be returned from a VBScriptNameRewriter or TempValueNameGenerator call
         /// </summary>
         public static string ToLiteral(this string input)
@@ -20,7 +20,6 @@ namespace CSharpWriter.CodeTranslation.Extensions
             {
                 switch (c)
                 {
-                    case '\'': literal.Append(@"\'"); break;
                     case '\"': literal.Append("\\\""); break;
                     case '\\': literal.Append(@"\\"); break;
                     case '\0': literal.Append(@"\0"); break;

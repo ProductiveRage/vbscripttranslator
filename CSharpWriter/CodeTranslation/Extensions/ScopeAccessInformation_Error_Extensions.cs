@@ -22,6 +22,7 @@ namespace CSharpWriter.CodeTranslation.Extensions
                 scopeAccessInformation.Classes,
                 scopeAccessInformation.Functions,
                 scopeAccessInformation.Properties,
+                scopeAccessInformation.Constants,
                 scopeAccessInformation.Variables,
                 scopeAccessInformation.StructureExitPoints
             );

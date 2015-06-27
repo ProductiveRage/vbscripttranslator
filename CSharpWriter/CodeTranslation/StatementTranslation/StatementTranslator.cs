@@ -1134,7 +1134,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
 
             // If we've got this far then then argumentValue expression has only a single segment. If it is a CallExpressionSegment or a CallSetExpression
             // then there won't be any nested member accessors (such as "a.Name" or "a(0).Name" since they would have been caught as a ByVal situation
-            // above). On the other hand, there shouldn't be any other time of expression segment that could get this far either! (Access of a variable
+            // above). On the other hand, there shouldn't be any other type of expression segment that could get this far either! (Access of a variable
             // "a" is represented by a CallExpressionSegment with a single member accessor token and zero arguments). The only easy out we have at this
             // point is if we do indeed have a CallExpressionSegment with a single member accessor token and zero arguments since that will definitely
             // be passed ByRef. Otherwise there are arguments to consider which may be arguments on default functions or properties (in which case it
@@ -1342,6 +1342,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     else
                     {
                         isConfirmedToBeByVal = (
+                            (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Constant) ||
                             (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Function) ||
                             (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
                         );

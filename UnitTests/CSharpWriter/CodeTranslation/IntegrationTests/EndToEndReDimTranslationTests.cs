@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpWriter;
+using CSharpWriter.CodeTranslation;
 using CSharpWriter.CodeTranslation.BlockTranslators;
 using Xunit;
 
@@ -343,7 +344,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim a(0)
                     Dim a
                 ";
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<NameRedefinedException>(() =>
                 {
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
                 });
@@ -356,7 +357,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     ReDim Preserve a(0)
                     Dim a
                 ";
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<NameRedefinedException>(() =>
                 {
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
                 });
@@ -370,7 +371,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim a(0)
                         Dim a
                     End Function";
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<NameRedefinedException>(() =>
                 {
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
                 });
@@ -384,7 +385,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         ReDim Preserve a(0)
                         Dim a
                     End Function";
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<NameRedefinedException>(() =>
                 {
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
                 });
@@ -405,7 +406,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                             Dim a
                         End If
                     End Function";
-                Assert.Throws<ArgumentException>(() =>
+                Assert.Throws<NameRedefinedException>(() =>
                 {
                     WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies);
                 });

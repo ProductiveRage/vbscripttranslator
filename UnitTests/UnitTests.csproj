@@ -108,6 +108,7 @@
     <Compile Include="CSharpSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_EQ.cs" />
     <Compile Include="CSharpSupport\Implementations\exampledefaultpropertytype.cs" />
     <Compile Include="CSharpSupport\Implementations\VBScriptEsqueValueRetrieverTests.cs" />
+    <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndConstTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndEraseTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndRuntimeDateValidationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndForEachTranslationTests.cs" />
