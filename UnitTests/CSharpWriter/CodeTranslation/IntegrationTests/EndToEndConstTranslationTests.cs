@@ -7,11 +7,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 {
     public class EndToEndConstTranslationTests
     {
-        // No Name Redefined: CONST then REDIM (will be an illegal assignment at runtime, not a compile / translation error)
-        //  ' Illegal assignment (runtime error)
-        //  Const cn998 = 1
-        //  ReDim cn998(12)
-
         [Fact]
         public void RepeatedConstNameInSameScopeResultsInNameRedefinedError()
         {
