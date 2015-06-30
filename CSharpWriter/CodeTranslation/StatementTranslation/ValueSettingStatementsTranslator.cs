@@ -312,7 +312,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         {
                             // If the target is a property then it must be on the current "this" reference (otherwise the "target" would have to be
                             // that other instance and the property name would be a member accessor against that target)
-                            optionalMemberAccessor = targetAccessorName;
+                            // - Note: Moving the target name down into being a member accessor means that we can revert to using the non-rewritten
+                            //   NameToken Content value (the targetAccessorName will have been through the nameRewriter, which is not necessary
+                            //   now that it will appear as a string in a SET call - and less name-rewriting in the output is better)
+                            optionalMemberAccessor = targetAccessor.Content;
                             targetAccessorName = "this";
                         }
                     }

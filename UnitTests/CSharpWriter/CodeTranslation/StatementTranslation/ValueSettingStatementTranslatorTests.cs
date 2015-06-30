@@ -441,7 +441,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, this, \"name\")",
+                "_.SET((Int16)1, this, \"Name\")",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("Name", 0) })
             );
             var scopeAccessInformation = AddPropertyToScope(GetEmptyScopeAccessInformation(), "Name", 0);
