@@ -925,7 +925,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             return translationResult.AddUndeclaredVariables(undeclaredVariables);
         }
 
-        private TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+        protected TranslationResult TryToTranslateValueSettingStatement(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
         {
             var valueSettingStatement = block as ValueSettingStatement;
             if (valueSettingStatement == null)

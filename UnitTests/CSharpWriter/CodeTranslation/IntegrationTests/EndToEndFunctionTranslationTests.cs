@@ -428,5 +428,34 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        /// <summary>
+        /// If what looks like a function-return-value-setting statement has brackets after the function name then it's a type mismatch (and even
+        /// even if it's only a single line, it won't be considered a simple short cut case since the analysis to determine whether that is the
+        /// case or not is very basic; if the target is not a single NameToken that corresponds to the function name then the short cut is
+        /// not applied)
+        /// </summary>
+        [Fact]
+        public void IncludingBracketsWhenSettingTheReturnValueIsTypeMismatch()
+        {
+            var source = @"
+                PUBLIC FUNCTION F1()
+                    F1() = Null
+                END FUNCTION
+            ";
+            var expected = new[]
+            {
+                "public object f1()",
+                "{",
+                "    object retVal1 = null;",
+                "    _.SET(VBScriptConstants.Null, _.RAISEERROR(new TypeMismatchException(\"'F1'\")));",
+                "    return retVal1;",
+                "}"
+            };
+            Assert.Equal(
+                expected.Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }

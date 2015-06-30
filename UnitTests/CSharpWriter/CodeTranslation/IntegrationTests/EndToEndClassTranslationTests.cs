@@ -176,5 +176,233 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+        /// <summary>
+        /// If a GET property just returns a value then there's no need to define a return value, set it, then return that temporary reference (this is the
+        /// same as for FUNCTION but not SUB, since SUB does not return a value)
+        /// </summary>
+        [Fact]
+        public void PropertyGetterThatHasSingleLineReturnsIsTranslatedIntoSingleLineReturn()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY GET Name
+                        Name = ""C1""
+                    END PROPERTY
+                END CLASS";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+                    public object name()
+                    {
+                        return ""C1"";
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// If a GET property is NOT just a single return-value-setting-statement then a temporary return reference is declared which is set (potentially
+        /// multiple times, depending upon the getter's implementation) and returned at the end. The logic to determine whether a no-temporary-reference
+        /// short cut may be applied is very simplistic and only applies to the simplest cases.
+        /// </summary>
+        [Fact]
+        public void PropertyGetterThatHasMultipleLinesFollowsStandardFormat()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY GET Name
+                        WScript.Echo ""get_Name""
+                        Name = ""C1""
+                    END PROPERTY
+                END CLASS";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+                    public object name()
+                    {
+                        object retVal1 = null;
+                        _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""get_Name""));
+                        retVal1 = ""C1"";
+                        return retVal1;
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// LET or SET properties would seem like they should error if they try to return a value (the same as a SUB would), but for some reason VBScript just
+        /// ignores the sort-of-return-value setting (it evaluates the right-hand side of the statement but doesn't return anything and doesn't error)
+        /// </summary>
+        [Fact]
+        public void NonGetPropertyIgnoresAnyReturnValueSetting()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY LET Name(value)
+                        Name = ""C1""
+                    END PROPERTY
+                END CLASS";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+                    public object name(ref object value)
+                    {
+                        _.VAL(this, ""name"")
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This is similar to NonGetPropertyIgnoresAnyReturnValueSetting, where a LET property accessor includes a value-setting statement which appears to
+        /// target the current property, but that value-setting statement specifies a SET. This means that the right-hand side of the statement must be of
+        /// an object reference type. This is nothing to with whether the property accessor is a LET or SET, it is solely down to whether the value-setting
+        /// statement begins with "SET" or not.
+        /// </summary>
+        [Fact]
+        public void NonGetPropertyIgnoresAnyReturnValueSettingButSetSemanticsAreRespectedWhereSpecified()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY LET Name(value)
+                        SET Name = ""C1""
+                    END PROPERTY
+                END CLASS";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+                    public object name(ref object value)
+                    {
+                        _.OBJ(this, ""name"")
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// This is similar to the NonGetPropertyIgnoresAnyReturnValueSetting test except that if the left-hand side of a value-setting statement within a LET
+        /// or SET property specifies the name of that property WITH brackets, then it will try to call itself (potentially infinite-looping, depending upon
+        /// implementation)
+        /// </summary>
+        [Fact]
+        public void NonGetPropertyCallsSelfIfBracketsAreSpecifiedAroundRecursivePropertyUpdate()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY LET Name(value)
+                        Name() = ""C1""
+                    END PROPERTY
+                END CLASS";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+                    public object name(ref object value)
+                    {
+                        _.SET(""C1"", this, ""name"")
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
     }
 }

@@ -1,12 +1,12 @@
-﻿using CSharpSupport.Attributes;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using CSharpSupport.Attributes;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
 using CSharpWriter.Lists;
 using CSharpWriter.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -283,6 +283,11 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 return false;
 
             if (_nameRewriter.GetMemberAccessTokenName(valueToSetTokenAsNameToken) != _nameRewriter.GetMemberAccessTokenName(functionBlock.Name))
+                return false;
+
+            // If there is no return value (ie. it's a SUB or a LET/SET PROPERTY accessor) then this can't apply (not only can this simple single-line
+            // return format not be used but a runtime error is required if the value-setting statement targets the name of a SUB)
+            if (!functionBlock.HasReturnValue)
                 return false;
 
             // If any values need aliasing in order to perform this "one liner" then it won't be possible to represent it a simple one-line return, it will
