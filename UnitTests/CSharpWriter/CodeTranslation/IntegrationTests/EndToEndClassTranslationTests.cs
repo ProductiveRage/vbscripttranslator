@@ -394,9 +394,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _env = env;
                         _outer = outer;
                     }
-                    public object name(ref object value)
+                    public void name(ref object value)
                     {
-                        _.SET(""C1"", this, ""name"")
+                        _.SET(""C1"", this, ""Name"");
                     }
                 }";
             Assert.Equal(
