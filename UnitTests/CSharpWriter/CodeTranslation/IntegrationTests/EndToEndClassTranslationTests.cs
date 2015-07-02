@@ -303,9 +303,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _env = env;
                         _outer = outer;
                     }
-                    public object name(ref object value)
+                    public void name(ref object value)
                     {
-                        _.VAL(this, ""name"")
+                        _.VAL(""C1"");
                     }
                 }";
             Assert.Equal(
@@ -349,9 +349,9 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                         _env = env;
                         _outer = outer;
                     }
-                    public object name(ref object value)
+                    public void name(ref object value)
                     {
-                        _.OBJ(this, ""name"")
+                        _.OBJ(""C1"");
                     }
                 }";
             Assert.Equal(
@@ -397,6 +397,52 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     public void name(ref object value)
                     {
                         _.SET(""C1"", this, ""Name"");
+                    }
+                }";
+            Assert.Equal(
+                expected.Replace(Environment.NewLine, "\n").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+                WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+            );
+        }
+
+        /// <summary>
+        /// Indexed properties can not be directly represented in C# (well, one may be - the default indexed property - but it can't be explicitly named and things
+        /// will fall apart if there need to be multiple indexed properties if this is the only mechanism used) so some extra logic is layered on; the properties
+        /// are translated into functions and the parent class inherits TranslatedPropertyIReflectImplementation, which does some mapping work for calling code.
+        /// </summary>
+        [Fact]
+        public void IndexedPropertiesNeedSpecialLoveAndCare()
+        {
+            var source = @"
+                CLASS C1
+                    PUBLIC PROPERTY LET Blah(ByVal i, ByVal j, ByVal value)
+                    END PROPERTY
+                END CLASS
+            ";
+            var expected = @"
+                [ComVisible(true)]
+                [SourceClassName(""C1"")]
+                public sealed class c1 : TranslatedPropertyIReflectImplementation
+                {
+                    private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
+                    private readonly EnvironmentReferences _env;
+                    private readonly GlobalReferences _outer;
+                    public c1(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer, EnvironmentReferences env, GlobalReferences outer)
+                    {
+                        if (compatLayer == null)
+                            throw new ArgumentNullException(""compatLayer"");
+                        if (env == null)
+                            throw new ArgumentNullException(""env"");
+                        if (outer == null)
+                            throw new ArgumentNullException(""outer"");
+                        _ = compatLayer;
+                        _env = env;
+                        _outer = outer;
+                    }
+
+                    [TranslatedProperty(""Blah"")]
+                    public void blah(object i, object j, object value)
+                    {
                     }
                 }";
             Assert.Equal(

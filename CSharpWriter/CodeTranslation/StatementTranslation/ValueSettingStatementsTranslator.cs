@@ -154,6 +154,45 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         );
                     }
                 }
+
+                // This is a particularly fun special case to check for - if within a LET or SET property and there is a value-setting statement where the left-hand
+                // side is solely the name of the property then.. ignore it. Ignore the set-target, at least, the right-hand side of the statement should be evaluated
+                // and an error raised if it does not meet the LET / SET semantics (if it is not evaluated as an object reference when the statement specified SET, for
+                // example). But the left-hand side can not be used as a return value as LET / SET property functions do not return anything and VBScript decides not
+                // to interpret it as a recursive call to the property LET / SET itself. Note that this is unlike if the left-hand side is the property name with
+                // brackets, that WILL be interpreted as a recursive call - eg.
+                //
+                //   PROPERTY LET Name(ByVal value)
+                //     Name = value    ' Does basically nothing, throws an error if value is not a value type, but that's it
+                //     Name() = value  ' This creates an infinite loop
+                //   END PROPERTY
+                //
+                // We only need to check for the no-bracket special case, the with-brackets special case will be handled by not early-exiting here and lettting the
+                // normal processing continue.
+                if ((targetReferenceDetailsIfAvailable != null)
+                && (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property)
+                && (rewrittenFirstMemberAccessor == _nameRewriter.GetMemberAccessTokenName(scopeAccessInformation.ScopeDefiningParent.Name))
+                && (scopeAccessInformation.ParentReturnValueNameIfAny == null) // ParentReturnValueNameIfAny being null means this is a LET / SET property (not a GET)
+                && (callExpressionSegment.ZeroArgumentBracketsPresence != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present))
+                {
+                    // We need to wrap in either VAL or OBJ depending upon whether the value-setting statement specified SET or not. The "translatedExpression" content
+                    // should already have an OBJ wrapper if the value-setting statement specifies SET but we need to be sure. We don't want redundant OBJ wrapping,
+                    // though, so a simple StartsWith check is performed.
+                    string wrapperFunction;
+                    if (valueSettingStatement.ValueSetType == ValueSettingStatement.ValueSetTypeOptions.Let)
+                        wrapperFunction = _supportRefName.Name + ".VAL";
+                    else
+                        wrapperFunction = _supportRefName.Name + ".OBJ";
+                    return new ValueSettingStatementAssigmentFormatDetails(
+                        translatedExpression =>
+                        {
+                            if (translatedExpression.StartsWith(wrapperFunction + "("))
+                                return translatedExpression;
+                            return wrapperFunction + "(" + translatedExpression + ")";
+                        },
+                        new NonNullImmutableList<NameToken>()
+                    );
+                }
             }
 
             // If this is a more complicated case then the single assignment case covered above then we need to break it down into a target reference,

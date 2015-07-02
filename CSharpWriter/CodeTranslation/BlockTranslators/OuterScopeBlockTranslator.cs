@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpSupport;
 using CSharpSupport.Attributes;
+using CSharpSupport.Compat;
 using CSharpSupport.Exceptions;
 using CSharpWriter.CodeTranslation.Extensions;
 using CSharpWriter.CodeTranslation.StatementTranslation;
@@ -214,6 +215,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                     new TranslatedStatement("using " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Namespace + ";", 0),
                     new TranslatedStatement("using " + typeof(SourceClassName).Namespace + ";", 0),
                     new TranslatedStatement("using " + typeof(SpecificVBScriptException).Namespace + ";", 0),
+                    new TranslatedStatement("using " + typeof(TranslatedPropertyIReflectImplementation).Namespace + ";", 0),
                     new TranslatedStatement("", 0),
                     new TranslatedStatement("namespace " + _startClassName.Name, 0),
                     new TranslatedStatement("{", 0),

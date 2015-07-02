@@ -172,7 +172,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
             // TranslatedPropertyIReflectImplementation class
             string inheritanceChainIfAny;
             if (classBlock.Statements.Where(s => s is PropertyBlock).Cast<PropertyBlock>().Any(p => p.IsPublic && p.IsIndexedProperty()))
-                inheritanceChainIfAny = " : " + typeof(TranslatedPropertyIReflectImplementation).FullName;
+                inheritanceChainIfAny = " : " + typeof(TranslatedPropertyIReflectImplementation).Name; // Assume that the namespace is available for this attribute
             else
                 inheritanceChainIfAny = "";
 

@@ -226,7 +226,7 @@ namespace CSharpWriter.CodeTranslation.BlockTranslators
                 translatedStatements.Add(
                     new TranslatedStatement(
                         string.Format(
-                            "[" + typeof(TranslatedProperty).FullName + "({0})]",
+                            "[TranslatedProperty({0})]", // Note: Safe to assume that using statements are present for the namespace that contains TranslatedProperty
                             property.Name.Content.ToLiteral()
                         ),
                         indentationDepth
