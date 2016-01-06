@@ -1213,7 +1213,7 @@ namespace VBScriptTranslator.UnitTests.StageTwoParser
 			return CALL(memberAccessTokens, (IEnumerable<Expression>)arguments, null);
 		}
 
-		private static IExpressionSegment CAL2L(IEnumerable<IToken> memberAccessTokens)
+		private static IExpressionSegment CALL(IEnumerable<IToken> memberAccessTokens)
 		{
 			return CALL(memberAccessTokens, new Expression[0], null);
 		}
