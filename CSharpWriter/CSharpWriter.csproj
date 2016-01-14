@@ -38,6 +38,9 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\SharedAssemblyInfo.cs">
+      <Link>Properties\SharedAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="CodeTranslation\BlockTranslators\EraseStatementTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\ForEachBlockTranslator.cs" />
     <Compile Include="CodeTranslation\BlockTranslators\SelectBlockTranslator.cs" />
