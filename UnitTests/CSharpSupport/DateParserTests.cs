@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using CSharpSupport;
+using VBScriptTranslator.RuntimeSupport;
 using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     [Serializable]
     public abstract class SpecificVBScriptException : Exception

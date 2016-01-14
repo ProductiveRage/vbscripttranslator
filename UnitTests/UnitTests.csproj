@@ -156,9 +156,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
+    <ProjectReference Include="..\CSharpSupport\RuntimeSupport.csproj">
       <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
-      <Name>CSharpSupport</Name>
+      <Name>RuntimeSupport</Name>
     </ProjectReference>
     <ProjectReference Include="..\CSharpWriter\CSharpWriter.csproj">
       <Project>{5F5189EC-4856-4985-B954-CF86F3C6C2A0}</Project>

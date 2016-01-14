@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public class DefaultMemberDetails
     {

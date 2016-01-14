@@ -1,6 +1,6 @@
-﻿using CSharpSupport.Attributes;
+﻿using VBScriptTranslator.RuntimeSupport.Attributes;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public class ErrorDetails
     {

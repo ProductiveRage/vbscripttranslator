@@ -50,9 +50,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
+    <ProjectReference Include="..\CSharpSupport\RuntimeSupport.csproj">
       <Project>{3014DAB1-2182-4621-AFD0-1D1E86036661}</Project>
-      <Name>CSharpSupport</Name>
+      <Name>RuntimeSupport</Name>
     </ProjectReference>
     <ProjectReference Include="..\CSharpWriter\CSharpWriter.csproj">
       <Project>{5f5189ec-4856-4985-b954-cf86f3c6c2a0}</Project>

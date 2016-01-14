@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This occurs when VBScript Null is passed in where it isn't accepted (eg. to CDbl)

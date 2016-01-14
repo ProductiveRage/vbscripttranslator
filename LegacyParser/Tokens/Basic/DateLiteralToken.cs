@@ -1,5 +1,5 @@
 ﻿using System;
-using CSharpSupport;
+using VBScriptTranslator.RuntimeSupport;
 
 namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 {

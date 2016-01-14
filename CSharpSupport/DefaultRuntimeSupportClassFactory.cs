@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using CSharpSupport.Implementations;
+using VBScriptTranslator.RuntimeSupport.Implementations;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public class DefaultRuntimeSupportClassFactory
     {

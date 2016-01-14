@@ -72,9 +72,9 @@
     <Compile Include="Tokens\MemberAccessorToken.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpSupport\CSharpSupport.csproj">
+    <ProjectReference Include="..\CSharpSupport\RuntimeSupport.csproj">
       <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
-      <Name>CSharpSupport</Name>
+      <Name>RuntimeSupport</Name>
     </ProjectReference>
     <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">
       <Project>{a9d32e0b-f434-4b08-a883-a62c5be5131a}</Project>

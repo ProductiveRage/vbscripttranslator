@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpSupport.Attributes
+namespace VBScriptTranslator.RuntimeSupport.Attributes
 {
 	/// <summary>
 	/// In order to fully implement VBScript TypeName support, we will need the original names of classes before they were changed for C# generation (for cases

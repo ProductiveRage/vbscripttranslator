@@ -1,4 +1,4 @@
-﻿using CSharpSupport;
+﻿using VBScriptTranslator.RuntimeSupport;
 using System;
 using Xunit;
 

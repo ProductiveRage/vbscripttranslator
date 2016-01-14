@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This will rarely be used because a syntax error in VBScript will commonly be associated with a compile error, which would mean that the script could not

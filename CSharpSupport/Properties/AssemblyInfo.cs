@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("VBScriptTranslator.CSharpSupport")]
+[assembly: AssemblyProduct("VBScriptTranslator.RuntimeSupport")]
 [assembly: AssemblyCopyright("Copyright © ProductiveRage 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

@@ -1,7 +1,7 @@
 ﻿using System;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 
-namespace CSharpSupport.Implementations
+namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
     /// <summary>
     /// This handles a subset of IProvideVBScriptCompatFunctionalityToIndividualRequests - the arithmetic functions. In VBScript, these are no simple task due to the wide

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This occurs when a non-Object reference is provided where an Object reference is required (eg. with the "IS" comparison)

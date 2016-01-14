@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;

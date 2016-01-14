@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This occurs when Nothing is passed in where a VBScript-value-type reference is expected

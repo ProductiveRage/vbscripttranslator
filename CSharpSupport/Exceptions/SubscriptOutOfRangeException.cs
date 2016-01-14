@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This occurs when an invalid array index is requested (eg. if UBOUND(a, 2) is called with a is a one-dimensional array)

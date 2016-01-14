@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using CSharpSupport;
-using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
-using CSharpSupport.Implementations;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport.Implementations;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations

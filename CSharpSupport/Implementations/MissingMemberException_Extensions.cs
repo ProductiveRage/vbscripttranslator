@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace CSharpSupport.Implementations
+namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
     public static class MissingMemberException_Extensions
     {

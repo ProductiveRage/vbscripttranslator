@@ -8,8 +8,8 @@
     <ProjectGuid>{3014DAB1-2182-4621-AFD0-1D1E86036661}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CSharpSupport</RootNamespace>
-    <AssemblyName>CSharpSupport</AssemblyName>
+    <RootNamespace>VBScriptTranslator.RuntimeSupport</RootNamespace>
+    <AssemblyName>VBScriptTranslator.RuntimeSupport</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

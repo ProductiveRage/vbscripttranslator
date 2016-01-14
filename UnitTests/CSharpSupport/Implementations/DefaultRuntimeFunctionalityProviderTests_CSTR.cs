@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using CSharpSupport;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 

@@ -1,4 +1,4 @@
-﻿using CSharpSupport.Attributes;
+﻿using VBScriptTranslator.RuntimeSupport.Attributes;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations
 {

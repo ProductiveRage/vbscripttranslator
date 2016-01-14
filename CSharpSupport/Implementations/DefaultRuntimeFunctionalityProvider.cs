@@ -5,11 +5,11 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using Microsoft.VisualBasic;
 
-namespace CSharpSupport.Implementations
+namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
     /// <summary>
     /// Instances of this class should be used only by a single request and so is not written to be thread safe. This is partly because the SETERROR and

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using CSharpSupport;
+using VBScriptTranslator.RuntimeSupport;
 using Microsoft.VisualBasic;
 using Xunit;
 

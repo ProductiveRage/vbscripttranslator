@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using ComTypes = System.Runtime.InteropServices.ComTypes;
 
-namespace CSharpSupport.Implementations
+namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
     public static class IDispatchAccess
     {

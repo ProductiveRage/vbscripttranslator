@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpSupport;
-using CSharpSupport.Attributes;
-using CSharpSupport.Compat;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Compat;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using VBScriptTranslator.CSharpWriter.Lists;

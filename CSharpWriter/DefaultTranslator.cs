@@ -1,4 +1,4 @@
-﻿using CSharpSupport;
+﻿using VBScriptTranslator.RuntimeSupport;
 using VBScriptTranslator.CSharpWriter.CodeTranslation;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;

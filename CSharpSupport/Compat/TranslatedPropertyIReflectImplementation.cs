@@ -1,4 +1,4 @@
-﻿using CSharpSupport.Attributes;
+﻿using VBScriptTranslator.RuntimeSupport.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace CSharpSupport.Compat
+namespace VBScriptTranslator.RuntimeSupport.Compat
 {
     /// <summary>
     /// C# doesn't support named indexed-properties so indexed VBScript properties will be represented by separate getter and setter methods (unless the property

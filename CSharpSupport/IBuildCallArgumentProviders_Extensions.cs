@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
 	public static class IBuildCallArgumentProviders_Extensions
     {

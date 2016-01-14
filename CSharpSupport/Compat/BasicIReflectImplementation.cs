@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace CSharpSupport.Compat
+namespace VBScriptTranslator.RuntimeSupport.Compat
 {
     [ComVisible(true)]
     public class BasicIReflectImplementation : IReflect

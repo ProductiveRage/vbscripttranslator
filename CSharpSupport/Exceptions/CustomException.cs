@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Runtime.Serialization;
 
-namespace CSharpSupport.Exceptions
+namespace VBScriptTranslator.RuntimeSupport.Exceptions
 {
     /// <summary>
     /// This is used when the source code included Err.Raise - those errors are translated into exceptions of this type

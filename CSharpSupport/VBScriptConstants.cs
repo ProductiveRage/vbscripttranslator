@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public static class VBScriptConstants
 	{

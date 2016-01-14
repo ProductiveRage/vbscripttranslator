@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public class DateParser
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpSupport.Attributes
+namespace VBScriptTranslator.RuntimeSupport.Attributes
 {
 	/// <summary>
 	/// This indicates that a function or property was indicated as default in the source VBScript code

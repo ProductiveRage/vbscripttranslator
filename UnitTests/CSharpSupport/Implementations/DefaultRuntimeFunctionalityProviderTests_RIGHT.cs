@@ -1,5 +1,5 @@
-﻿using CSharpSupport;
-using CSharpSupport.Exceptions;
+﻿using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using System;
 using Xunit;
 

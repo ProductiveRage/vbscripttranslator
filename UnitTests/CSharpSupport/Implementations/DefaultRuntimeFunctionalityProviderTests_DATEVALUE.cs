@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using CSharpSupport;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations

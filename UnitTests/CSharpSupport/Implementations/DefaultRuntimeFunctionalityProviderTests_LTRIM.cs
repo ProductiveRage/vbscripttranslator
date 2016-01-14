@@ -1,5 +1,5 @@
 ﻿using System;
-using CSharpSupport;
+using VBScriptTranslator.RuntimeSupport;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpSupport.Implementations

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     /// <summary>
     /// Note that the SETERROR and CLEARANYERROR methods in this class have no explicit way to be associated with a specific request, so there

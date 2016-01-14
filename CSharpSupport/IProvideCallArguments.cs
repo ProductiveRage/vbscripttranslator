@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     /*
         Definitely ByVal

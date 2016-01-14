@@ -2,9 +2,9 @@
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
-using CSharpSupport;
-using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 
 namespace TranslatedProgram
 {

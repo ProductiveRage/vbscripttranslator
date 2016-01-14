@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpSupport.Attributes
+namespace VBScriptTranslator.RuntimeSupport.Attributes
 {
 	/// <summary>
     /// Since C# doesn't support named index properties, where these exist in VBScript source they are converted into methods for the get and set (depending

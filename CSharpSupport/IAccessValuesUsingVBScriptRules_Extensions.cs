@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CSharpSupport
+namespace VBScriptTranslator.RuntimeSupport
 {
     public static class IAccessValuesUsingVBScriptRules_Extensions
 	{

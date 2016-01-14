@@ -10,10 +10,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using CSharpSupport.Attributes;
-using CSharpSupport.Exceptions;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 
-namespace CSharpSupport.Implementations
+namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
     /// <summary>
     /// When this has to use reflection to inspect a target class to determine how to access a member function or property, it caches that lookup and so
