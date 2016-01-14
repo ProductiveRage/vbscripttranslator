@@ -33,3 +33,4 @@ _ReSharper*/
 *.resharper
 *.orig
 [Pp]ackages/
+BuildNuGetPackage/

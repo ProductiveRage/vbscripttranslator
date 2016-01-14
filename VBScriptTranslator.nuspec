@@ -1,0 +1,27 @@
+﻿<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>VBScriptTranslator</id>
+    <version>1.0.0.0</version>
+    <title>VBScript-to-C# Translator</title>
+    <authors>ProductiveRage</authors>
+    <owners>ProductiveRage</owners>
+    <licenseUrl>https://bitbucket.org/DanRoberts/vbscripttranslator/src/cb2f9d3334373d8359f4ab177232a1242c1d1ca4/LICENSE.txt</licenseUrl>
+    <projectUrl>https://bitbucket.org/DanRoberts/vbscripttranslator</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/6a1f781d4d5e2d50dcff04f8f049767a?s=200</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A way to translate VBScript into C# code that can be executed using the included RuntimeSupport library</description>
+    <copyright>Copyright 2015 ProductiveRage</copyright>
+    <tags>C# VBScript</tags>
+  </metadata>
+  <files>
+    <file src="VBScriptTranslator.CSharpWriter.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.CSharpWriter.xml" target="lib\net45" />
+    <file src="VBScriptTranslator.LegacyParser.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.LegacyParser.xml" target="lib\net45" />
+    <file src="VBScriptTranslator.StageTwoParser.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.StageTwoParser.xml" target="lib\net45" />
+    <file src="VBScriptTranslator.RuntimeSupport.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.RuntimeSupport.xml" target="lib\net45" />
+  </files>
+</package>
