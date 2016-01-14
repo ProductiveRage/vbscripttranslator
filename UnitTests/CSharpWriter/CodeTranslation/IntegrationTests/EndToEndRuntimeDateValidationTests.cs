@@ -20,10 +20,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 				using System.Collections;
 				using System.Collections.ObjectModel;
 				using System.Runtime.InteropServices;
-				using CSharpSupport;
-				using CSharpSupport.Attributes;
-				using CSharpSupport.Exceptions;
-				using CSharpSupport.Compat;
+				using RuntimeSupport;
+				using RuntimeSupport.Attributes;
+				using RuntimeSupport.Exceptions;
+				using RuntimeSupport.Compat;
 
 				namespace TranslatedProgram
 				{
@@ -125,10 +125,10 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 				using System;
 				using System.Collections;
 				using System.Runtime.InteropServices;
-				using CSharpSupport;
-				using CSharpSupport.Attributes;
-				using CSharpSupport.Exceptions;
-				using CSharpSupport.Compat;
+				using RuntimeSupport;
+				using RuntimeSupport.Attributes;
+				using RuntimeSupport.Exceptions;
+				using RuntimeSupport.Compat;
 
 				namespace TranslatedProgram
 				{
