@@ -1,10 +1,10 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
     public static class TranslatedStatementContentDetails_Extensions
     {

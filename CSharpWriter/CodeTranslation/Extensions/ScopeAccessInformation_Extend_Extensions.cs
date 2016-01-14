@@ -1,12 +1,12 @@
-﻿using CSharpWriter.CodeTranslation.BlockTranslators;
-using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
+using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class ScopeAccessInformation_Extend_Extensions
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     public class FuncByRefMapping
     {

@@ -5,15 +5,15 @@ using CSharpSupport;
 using CSharpSupport.Attributes;
 using CSharpSupport.Compat;
 using CSharpSupport.Exceptions;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.CodeTranslation.StatementTranslation;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.BlockTranslators
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
 	/// <summary>
 	/// The outer scope code blocks need significant rearranging to work with C# compared to how they may be structured in VBScript. In VBScript, any variable declared

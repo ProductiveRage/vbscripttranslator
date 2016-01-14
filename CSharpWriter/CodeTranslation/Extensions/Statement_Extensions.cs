@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class Statement_Extensions
     {

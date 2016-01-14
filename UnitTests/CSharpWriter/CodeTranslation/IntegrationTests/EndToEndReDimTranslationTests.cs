@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpWriter;
-using CSharpWriter.CodeTranslation;
-using CSharpWriter.CodeTranslation.BlockTranslators;
+using VBScriptTranslator.CSharpWriter;
+using VBScriptTranslator.CSharpWriter.CodeTranslation;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests

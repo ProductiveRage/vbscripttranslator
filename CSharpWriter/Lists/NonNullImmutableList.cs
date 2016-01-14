@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CSharpWriter.Lists
+namespace VBScriptTranslator.CSharpWriter.Lists
 {
     public class NonNullImmutableList<T> : ImmutableList<T> where T : class
     {

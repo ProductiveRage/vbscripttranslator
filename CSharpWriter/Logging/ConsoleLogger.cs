@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpWriter.Logging
+namespace VBScriptTranslator.CSharpWriter.Logging
 {
     public class ConsoleLogger : ILogInformation
     {

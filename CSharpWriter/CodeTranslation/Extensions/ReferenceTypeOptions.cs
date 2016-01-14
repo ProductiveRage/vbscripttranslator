@@ -1,4 +1,4 @@
-﻿namespace CSharpWriter.CodeTranslation.Extensions
+﻿namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public enum ReferenceTypeOptions
     {

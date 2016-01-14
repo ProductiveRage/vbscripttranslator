@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.BlockTranslators
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
     public static class IHaveNestedContent_Extensions
     {

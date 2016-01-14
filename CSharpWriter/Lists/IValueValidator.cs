@@ -1,4 +1,4 @@
-﻿namespace CSharpWriter.Lists
+﻿namespace VBScriptTranslator.CSharpWriter.Lists
 {
     public interface IValueValidator<T>
     {

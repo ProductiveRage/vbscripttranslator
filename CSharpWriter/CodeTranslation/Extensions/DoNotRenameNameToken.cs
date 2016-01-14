@@ -1,7 +1,7 @@
 ﻿using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
 	/// <summary>
 	/// This is a special derived class of NameToken, it will not be affected when passed through the GetMemberAccessTokenName extension method of a VBScriptNameRewriter

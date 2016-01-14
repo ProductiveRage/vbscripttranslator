@@ -1,9 +1,9 @@
-﻿using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using System.Collections.Generic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class TranslationResult_Extensions
     {

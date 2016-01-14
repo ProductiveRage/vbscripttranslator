@@ -1,7 +1,7 @@
-﻿using CSharpWriter.CodeTranslation;
-using CSharpWriter.CodeTranslation.StatementTranslation;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;

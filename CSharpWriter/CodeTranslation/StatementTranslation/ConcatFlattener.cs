@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     /// <summary>
     /// Runs of multiple string concatenations are a common occurrence in VBScript, so rather then making the translated code longer than it needs to be, by limiting

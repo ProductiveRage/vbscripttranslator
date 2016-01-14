@@ -1,8 +1,8 @@
-﻿using CSharpWriter.CodeTranslation.StatementTranslation;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class ITranslateIndividualStatements_Extensions
     {

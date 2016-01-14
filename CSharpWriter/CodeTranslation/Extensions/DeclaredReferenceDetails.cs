@@ -1,7 +1,7 @@
 ﻿using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public class DeclaredReferenceDetails
     {

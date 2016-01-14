@@ -1,5 +1,5 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,7 +8,7 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
     /// <summary>
     /// Since the ScopeAccessInformation requires a non-null ScopeDefiningParent, this class is required to wrap statements that are in the outer

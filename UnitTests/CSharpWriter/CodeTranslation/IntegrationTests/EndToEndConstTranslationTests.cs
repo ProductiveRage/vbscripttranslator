@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using CSharpWriter.CodeTranslation;
+using VBScriptTranslator.CSharpWriter.CodeTranslation;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests

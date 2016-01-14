@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace CSharpWriter.Lists
+namespace VBScriptTranslator.CSharpWriter.Lists
 {
     public static class IEnumerable_Extensions
     {

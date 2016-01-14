@@ -1,6 +1,6 @@
 ﻿using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
 	public interface ITranslateValueSettingsStatements
     {

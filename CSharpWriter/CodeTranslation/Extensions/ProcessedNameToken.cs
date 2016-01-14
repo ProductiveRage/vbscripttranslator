@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
 	/// <summary>
     /// Sometimes an expression needs to be rewritten after some of it has been processed such that, not only must it not be pushed through the name rewriter again, the scope

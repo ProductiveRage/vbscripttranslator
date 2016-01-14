@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
-using CSharpWriter;
-using CSharpWriter.CodeTranslation.BlockTranslators;
+using VBScriptTranslator.CSharpWriter;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests

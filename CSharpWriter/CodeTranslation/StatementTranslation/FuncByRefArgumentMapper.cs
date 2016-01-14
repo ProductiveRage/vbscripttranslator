@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     /// <summary>
     /// If a statement needs to pass as a by-ref argument to a function or property call a reference that is a by-ref argument of the function that the statement is within

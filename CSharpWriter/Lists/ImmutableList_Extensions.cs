@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpWriter.Lists
+namespace VBScriptTranslator.CSharpWriter.Lists
 {
     public static class ImmutableList_Extensions
     {

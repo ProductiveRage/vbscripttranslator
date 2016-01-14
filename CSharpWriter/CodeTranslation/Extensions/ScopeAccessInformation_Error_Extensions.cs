@@ -1,9 +1,9 @@
-﻿using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class ScopeAccessInformation_Error_Extensions
     {

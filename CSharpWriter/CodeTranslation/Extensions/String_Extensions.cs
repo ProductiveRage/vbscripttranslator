@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace CSharpWriter.CodeTranslation.Extensions
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions
 {
     public static class String_Extensions
     {

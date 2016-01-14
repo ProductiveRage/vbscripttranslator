@@ -1,11 +1,11 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
     public class ScopeAccessInformation
     {

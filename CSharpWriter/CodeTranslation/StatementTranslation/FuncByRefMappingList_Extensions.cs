@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     public static class FuncByRefMappingList_Extensions
     {

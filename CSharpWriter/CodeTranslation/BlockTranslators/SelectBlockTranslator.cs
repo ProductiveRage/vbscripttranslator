@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.CodeTranslation.StatementTranslation;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation.BlockTranslators
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
 	// TODO: Test..
 	//  1. Literal value cases enforce appropriate comparisons (strings, dates, numbers?)

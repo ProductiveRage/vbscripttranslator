@@ -1,6 +1,6 @@
-﻿using CSharpWriter;
-using CSharpWriter.CodeTranslation.BlockTranslators;
-using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
+using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using System.Linq;
 

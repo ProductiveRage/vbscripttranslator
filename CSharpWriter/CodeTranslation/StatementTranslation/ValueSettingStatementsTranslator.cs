@@ -1,6 +1,6 @@
-﻿using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+﻿using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,9 +8,8 @@ using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
-using StageTwoParser = VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     public class ValueSettingStatementsTranslator : ITranslateValueSettingsStatements
     {
@@ -239,7 +238,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 callExpressionSegments.Add(
                     new CallExpressionSegment(
                         lastCallExpressionSegments.MemberAccessTokens.Take(numberOfMemberAccessTokensInLastCallExpressionSegment - 1),
-                        new StageTwoParser.Expression[0],
+                        new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression[0],
                         CallExpressionSegment.ArgumentBracketPresenceOptions.Absent // Can't be any brackets as we're splitting a CallExpressionSegment in two
                     )
                 );
@@ -257,7 +256,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             // has the optional member accessor and any arguments.
             string targetAccessorName;
             string optionalMemberAccessor;
-            IEnumerable<StageTwoParser.Expression> arguments;
+			IEnumerable<VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression> arguments;
             if (callExpressionSegments.Count == 1)
             {
                 // The single CallExpressionSegment may have one or two member accessors
@@ -336,13 +335,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             {
                                 new CallExpressionSegment(
                                     callExpressionSegments.Single().MemberAccessTokens.Take(1),
-                                    new StageTwoParser.Expression[0],
+                                    new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression[0],
                                     CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent
                                 )
                             };
                             targetAccessorName =
                                 _statementTranslator.Translate(
-                                    new StageTwoParser.Expression(targetAccessCallExpressionSegments),
+									new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression(targetAccessCallExpressionSegments),
                                     scopeAccessInformation,
                                     ExpressionReturnTypeOptions.NotSpecified
                                 ).TranslatedContent;
@@ -368,7 +367,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                     : new IExpressionSegment[] { targetAccessCallExpressionSegments.Single() };
                 targetAccessorName =
                     _statementTranslator.Translate(
-                        new StageTwoParser.Expression(targetAccessExpressionSegments),
+						new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression(targetAccessExpressionSegments),
                         scopeAccessInformation,
                         ExpressionReturnTypeOptions.NotSpecified
                     ).TranslatedContent;
@@ -412,7 +411,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 else
                     expressionToAnalyseForVariablesAccessed = new CallSetExpressionSegment(callExpressionSegments);
                 variablesAccessed = _statementTranslator.Translate(
-                        new StageTwoParser.Expression(new[] { expressionToAnalyseForVariablesAccessed }),
+						new VBScriptTranslator.StageTwoParser.ExpressionParsing.Expression(new[] { expressionToAnalyseForVariablesAccessed }),
                         scopeAccessInformation,
                         ExpressionReturnTypeOptions.NotSpecified
                     )

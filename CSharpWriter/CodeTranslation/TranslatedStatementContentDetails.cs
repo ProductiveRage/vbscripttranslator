@@ -1,8 +1,8 @@
-﻿using CSharpWriter.Lists;
+﻿using VBScriptTranslator.CSharpWriter.Lists;
 using System;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
     public class TranslatedStatementContentDetails
     {

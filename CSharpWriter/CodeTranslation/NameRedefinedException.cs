@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
-namespace CSharpWriter.CodeTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
     public class NameRedefinedException : Exception
     {

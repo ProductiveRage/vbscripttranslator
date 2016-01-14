@@ -1,9 +1,9 @@
 ﻿using CSharpSupport;
-using CSharpWriter.CodeTranslation;
-using CSharpWriter.CodeTranslation.BlockTranslators;
-using CSharpWriter.CodeTranslation.StatementTranslation;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+using VBScriptTranslator.CSharpWriter.CodeTranslation;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.TokenCombining.NumberRebuilding;
 using VBScriptTranslator.StageTwoParser.TokenCombining.OperatorCombinations;
 
-namespace CSharpWriter
+namespace VBScriptTranslator.CSharpWriter
 {
     public class DefaultTranslator
     {

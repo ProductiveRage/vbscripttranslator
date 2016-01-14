@@ -1,4 +1,4 @@
-﻿namespace CSharpWriter.CodeTranslation
+﻿namespace VBScriptTranslator.CSharpWriter.CodeTranslation
 {
 	public enum ExpressionReturnTypeOptions
 	{

@@ -1,4 +1,4 @@
-﻿namespace CSharpWriter.Logging
+﻿namespace VBScriptTranslator.CSharpWriter.Logging
 {
     public class NullLogger : ILogInformation
     {

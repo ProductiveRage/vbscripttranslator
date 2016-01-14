@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     public interface ITranslateIndividualStatements
     {

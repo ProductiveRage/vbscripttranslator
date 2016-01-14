@@ -1,8 +1,8 @@
 ﻿using CSharpSupport;
 using CSharpSupport.Exceptions;
-using CSharpWriter.CodeTranslation.Extensions;
-using CSharpWriter.Lists;
-using CSharpWriter.Logging;
+using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
+using VBScriptTranslator.CSharpWriter.Lists;
+using VBScriptTranslator.CSharpWriter.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +11,8 @@ using System.Text;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
 using VBScriptTranslator.StageTwoParser.ExpressionParsing;
-using LegacyParser = VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
-namespace CSharpWriter.CodeTranslation.StatementTranslation
+namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 {
     public class StatementTranslator : ITranslateIndividualStatements
     {
@@ -679,7 +678,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 if ((targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Function) || (targetReferenceDetails.ReferenceType == ReferenceTypeOptions.Property))
                 {
                     memberAccessors = new[] { target }.Concat(memberAccessors);
-                    if (targetReferenceDetails.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
+					if (targetReferenceDetails.ScopeLocation == VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope)
                         target = new ProcessedNameToken(_outerRefName.Name, target.LineIndex);
                     else
                         target = new ProcessedNameToken("this", target.LineIndex);
@@ -1405,11 +1404,13 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             );
         }
 
-        private TranslatedStatementContentDetailsWithContentType Translate(NewInstanceExpressionSegment newInstanceExpressionSegment, LegacyParser.ScopeLocationOptions scopeLocation)
+        private TranslatedStatementContentDetailsWithContentType Translate(
+			NewInstanceExpressionSegment newInstanceExpressionSegment,
+			VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions scopeLocation)
         {
             if (newInstanceExpressionSegment == null)
                 throw new ArgumentNullException("newInstanceExpressionSegment");
-            if (!Enum.IsDefined(typeof(LegacyParser.ScopeLocationOptions), scopeLocation))
+            if (!Enum.IsDefined(typeof(VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions), scopeLocation))
                 throw new ArgumentOutOfRangeException("scopeLocation");
 
             // Deal with the special case of "new RegExp" - this is a built-in class and not a class that will be translated (it is the
@@ -1622,7 +1623,7 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                 || (targetReferenceDetailsIfAvailable.ReferenceType == ReferenceTypeOptions.Property))
                     return null;
 
-                if (targetReferenceDetailsIfAvailable.ScopeLocation == LegacyParser.ScopeLocationOptions.OutermostScope)
+				if (targetReferenceDetailsIfAvailable.ScopeLocation == VBScriptTranslator.LegacyParser.CodeBlocks.Basic.ScopeLocationOptions.OutermostScope)
                     rewrittenName = _outerRefName.Name + "." + rewrittenName;
             }
 
