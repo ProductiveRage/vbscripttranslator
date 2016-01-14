@@ -72,7 +72,7 @@
     <Compile Include="Tokens\MemberAccessorToken.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpSupport\RuntimeSupport.csproj">
+    <ProjectReference Include="..\RuntimeSupport\RuntimeSupport.csproj">
       <Project>{3014dab1-2182-4621-afd0-1d1e86036661}</Project>
       <Name>RuntimeSupport</Name>
     </ProjectReference>

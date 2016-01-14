@@ -97,7 +97,7 @@
     <Compile Include="CodeTranslation\VariableDeclarationScopeOptions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpSupport\RuntimeSupport.csproj">
+    <ProjectReference Include="..\RuntimeSupport\RuntimeSupport.csproj">
       <Project>{3014DAB1-2182-4621-AFD0-1D1E86036661}</Project>
       <Name>RuntimeSupport</Name>
     </ProjectReference>
