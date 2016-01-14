@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StageTwoParser", "StageTwoP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpWriter", "CSharpWriter\CSharpWriter.csproj", "{5F5189EC-4856-4985-B954-CF86F3C6C2A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeSupport", "CSharpSupport\RuntimeSupport.csproj", "{3014DAB1-2182-4621-AFD0-1D1E86036661}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeSupport", "RuntimeSupport\RuntimeSupport.csproj", "{3014DAB1-2182-4621-AFD0-1D1E86036661}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
