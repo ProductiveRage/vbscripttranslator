@@ -7,8 +7,8 @@
     <ProjectGuid>{5F5189EC-4856-4985-B954-CF86F3C6C2A0}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CSharpWriter</RootNamespace>
-    <AssemblyName>CSharpWriter</AssemblyName>
+    <RootNamespace>VBScriptTranslator.CSharpWriter</RootNamespace>
+    <AssemblyName>VBScriptTranslator.CSharpWriter</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
