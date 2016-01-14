@@ -8,16 +8,25 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        public ExitStatement(ExitableStatementType statementType)
-        {
+        public ExitStatement(ExitableStatementType statementType, int lineIndex)
+		{
             if (!Enum.IsDefined(typeof(ExitableStatementType), statementType))
 				throw new ArgumentException("Invalid statementType value specified [" + statementType.ToString() + "]");
-            StatementType = statementType;
-        }
+			if (lineIndex < 0)
+				throw new ArgumentOutOfRangeException("lineIndex");
 
-        public ExitableStatementType StatementType { get; private set; }
+			StatementType = statementType;
+			LineIndex = lineIndex;
+		}
 
-        public enum ExitableStatementType
+		public ExitableStatementType StatementType { get; private set; }
+
+		/// <summary>
+		/// This will always be zero or greater
+		/// </summary>
+		public int LineIndex { get; private set; }
+
+		public enum ExitableStatementType
         {
 			Do,
 			For,

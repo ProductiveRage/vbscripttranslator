@@ -122,8 +122,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
                 return new NumericValueToken(content, lineIndex);
 			if (content.StartsWith("&h", StringComparison.InvariantCultureIgnoreCase))
 			{
-				double numericHexValue;
-				if (double.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
+				int numericHexValue;
+				if (int.TryParse(content.Substring(2), NumberStyles.HexNumber, null, out numericHexValue))
 					return new NumericValueToken(numericHexValue.ToString(), lineIndex);
 			}
 

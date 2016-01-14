@@ -23,6 +23,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 string[] matchPattern = new string[] { "EXIT", exitType.ToString() };
                 if (base.checkAtomTokenPattern(tokens, matchPattern, false))
                 {
+					var lineIndexOfExit = tokens[0].LineIndex;
                     var requireAnEndOfStatementToken = (tokens.Count > matchPattern.Length);
                     if (requireAnEndOfStatementToken)
                     {
@@ -32,7 +33,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                     tokens.RemoveRange(0, matchPattern.Length);
                     if (requireAnEndOfStatementToken)
                         tokens.RemoveRange(0, 1);
-                    return new ExitStatement(exitType);
+                    return new ExitStatement(exitType, lineIndexOfExit);
                 }
             }
             return null;

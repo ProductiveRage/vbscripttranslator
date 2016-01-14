@@ -36,7 +36,8 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (!byRefArgumentsToRewrite.Any())
                 return new ByRefReplacementTranslationResultDetails(translationResult, 0);
 
-            translationResult = translationResult.Add(new TranslatedStatement(
+			var lineIndexForStartOfContent = byRefArgumentsToRewrite.Min(a => a.From.LineIndex);
+			translationResult = translationResult.Add(new TranslatedStatement(
                 string.Format(
                     "object {0};",
                     string.Join(
@@ -44,16 +45,17 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                         byRefArgumentsToRewrite.Select(r => r.To.Name + " = " + nameRewriter(r.From).Name)
                     )
                 ),
-                indentationDepth
-            ));
+                indentationDepth,
+				lineIndexForStartOfContent
+			));
 
             if (byRefArgumentsToRewrite.All(mapping => mapping.MappedValueIsReadOnly))
                 return new ByRefReplacementTranslationResultDetails(translationResult, distanceToIndentCodeWithMappedValues: 0);
 
             return new ByRefReplacementTranslationResultDetails(
                 translationResult
-                    .Add(new TranslatedStatement("try", indentationDepth))
-                    .Add(new TranslatedStatement("{", indentationDepth)),
+                    .Add(new TranslatedStatement("try", indentationDepth, lineIndexForStartOfContent))
+                    .Add(new TranslatedStatement("{", indentationDepth, lineIndexForStartOfContent)),
                 distanceToIndentCodeWithMappedValues: 1
             );
         }
@@ -141,8 +143,9 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
             if (byRefArgumentsToRewrite.All(mapping => mapping.MappedValueIsReadOnly))
                 return translationResult;
 
-            return translationResult
-                .Add(new TranslatedStatement("}", indentationDepth))
+			var lineIndexForEndOfContent = byRefArgumentsToRewrite.Max(a => a.From.LineIndex);
+			return translationResult
+                .Add(new TranslatedStatement("}", indentationDepth, lineIndexForEndOfContent))
                 .Add(new TranslatedStatement(
                     string.Format(
                         "finally {{ {0}; }}",
@@ -150,9 +153,10 @@ namespace CSharpWriter.CodeTranslation.StatementTranslation
                             "; ",
                             byRefArgumentsToRewrite.Select(r => nameRewriter(r.From).Name + " = " + r.To.Name)
                         )
-                    ),
-                    indentationDepth
-                ));
+					),
+                    indentationDepth,
+					lineIndexForEndOfContent
+				));
         }
 
         public class ByRefReplacementTranslationResultDetails

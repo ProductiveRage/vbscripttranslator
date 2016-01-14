@@ -5,7 +5,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndMiscTranslationTests
+	public class EndToEndMiscTranslationTests
     {
         // TODO: Test function call with numeric values (1 and 1.1), string values, built-in values and built-in functions (such as "Now") and ensure that
         // they all have the arguments specified as ByVal
@@ -362,6 +362,26 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
             );
         }
+
+		/// <summary>
+		/// This illustrated a bug that was identified with numeric literals of the form "&H001" - the trailing zeroes were causing an exception in the
+		/// parsing process
+		/// </summary>
+		[Fact]
+		public void EnsureThatHexValuesWithTrailingZeroesAreParsedCorrectly()
+		{
+			var source = @"
+                const SOME_CONSTANT = &H0001
+            ";
+			var expected = new[]
+            {
+                "_outer.some_constant = 1;"
+            };
+			Assert.Equal(
+				expected.Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
 
         [Theory, MemberData("VariousBracketDeterminedRefValArgumentData")]
         public void VariousBracketDeterminedRefValArgumentCases(string source, string expectedResult)
