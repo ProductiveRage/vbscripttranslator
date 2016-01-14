@@ -50,7 +50,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             {
                 IToken token = tokens[index];
                 if (token is CommentToken)
-                    openingComments.Add(new CommentStatement(token.Content));
+                    openingComments.Add(new CommentStatement(token.Content, token.LineIndex));
                 else if (token is AbstractEndOfStatementToken)
                 {
                     // Ignore blank lines

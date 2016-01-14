@@ -22,12 +22,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 if (token is InlineCommentToken)
                 {
                     tokens.RemoveAt(0);
-                    return new InlineCommentStatement(token.Content);
+                    return new InlineCommentStatement(token.Content, token.LineIndex);
                 }
                 if (token is CommentToken)
                 {
                     tokens.RemoveAt(0);
-                    return new CommentStatement(token.Content);
+                    return new CommentStatement(token.Content, token.LineIndex);
                 }
                 if (token is AbstractEndOfStatementToken)
                 {
