@@ -14,9 +14,9 @@ It's just classes, functions and if-blocks with some dynamic madness thrown in!
 
 ## Reality check
 
-Let me cut to the chase: This doesn't work. Yet. It parses nearly all VBScript structures into a format that it can then use to emit C#. And it does indeed emit compilable C# for many of the structures that it can parse.
+Let me cut to the chase: This is not perfect, the runtime library is not complete. Yet. However, it does parse all VBScript structures into a format that it can use to emit C#. And it *does* emit compilable C# for the structures that it's parsed. If your code needs SIN, FORMATCURRENCY, HEX or any other of the range of VBScript functions that I haven't yet re-implemented, then you'll be out of luck (or you'll find your code *so* close to working that you'll want to submit a pull request to me to help me finish the outstanding runtime library!). *Many* of the VBScript functions *are* ready and tested, though.
 
-The other thing is that it only tries to translate raw VBScript files - if it was going to translate ASP files (with mixed markup and script) then some sort of transformation would need to be applied first (something I intend to add in the future). If it was going to translate WSCs files (does anyone else even remember these??) then it would need to parse the extra meta data in those files and adjust the interface on the compiled class accordingly.
+The other thing to be aware of is that it only tries to translate raw VBScript files - if it was going to translate ASP files (with mixed markup and script) then some sort of transformation would need to be applied first (something I'm thinking about adding in the future). If it was going to translate WSC files (does anyone else even remember these??) then it would need to parse the extra meta data in those files, extract the VBScript content out of them and then adjust the interface on the compiled class accordingly (WSC files may contain functions that are not exposed as part of the public interface).
 
 But what it *does* do (rather heroically, thank you very much) is deal with VBScript's ideas around scoping (including scoping of undeclared variables), insanely "helpful" (ie. confusing) calling conventions and its error-handling. And it makes a sort of wild stab at approximating its deterministic garbage collection (with a real emphasis on *approximating*).
 
@@ -157,7 +157,7 @@ This code will declare a namespace "TranslatedProgram" that contains a class **R
     {
       response = new ResponseMock()
     };
-    using (var compatLayer = CSharpSupport.DefaultRuntimeSupportClassFactory.Get())
+    using (var compatLayer = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
     {
       new TranslatedProgram.Runner(compatLayer).Go(env);
     }
