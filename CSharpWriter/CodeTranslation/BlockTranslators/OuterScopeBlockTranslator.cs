@@ -32,11 +32,12 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 	/// </summary>
 	public class OuterScopeBlockTranslator : CodeBlockTranslator
 	{
-		private readonly CSharpName _startClassName, _startMethodName, _runtimeDateLiteralValidatorClassName;
+		private readonly CSharpName _startNamespace, _startClassName, _startMethodName, _runtimeDateLiteralValidatorClassName;
 		private readonly NonNullImmutableList<NameToken> _externalDependencies;
 		private readonly OutputTypeOptions _outputType;
 		private readonly ILogInformation _logger;
 		public OuterScopeBlockTranslator(
+			CSharpName startNamespace,
 			CSharpName startClassName,
 			CSharpName startMethodName,
 			CSharpName runtimeDateLiteralValidatorClassName,
@@ -54,6 +55,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			ILogInformation logger)
 			: base(supportRefName, envClassName, envRefName, outerClassName, outerRefName, nameRewriter, tempNameGenerator, statementTranslator, valueSettingStatementTranslator, logger)
 		{
+			if (startNamespace == null)
+				throw new ArgumentNullException("startNamespace");
 			if (startClassName == null)
 				throw new ArgumentNullException("startClassName");
 			if (startMethodName == null)
@@ -67,6 +70,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			if (logger == null)
 				throw new ArgumentNullException("logger");
 
+			_startNamespace = startNamespace;
 			_startClassName = startClassName;
 			_startMethodName = startMethodName;
 			_runtimeDateLiteralValidatorClassName = runtimeDateLiteralValidatorClassName;
@@ -217,12 +221,12 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					new TranslatedStatement("using " + typeof(SpecificVBScriptException).Namespace + ";", 0, 0),
 					new TranslatedStatement("using " + typeof(TranslatedPropertyIReflectImplementation).Namespace + ";", 0, 0),
 					new TranslatedStatement("", 0, 0),
-					new TranslatedStatement("namespace " + _startClassName.Name, 0, 0),
+					new TranslatedStatement("namespace " + _startNamespace.Name, 0, 0),
 					new TranslatedStatement("{", 0, 0),
-					new TranslatedStatement("public class Runner", 1, 0),
+					new TranslatedStatement("public class " + _startClassName.Name, 1, 0),
 					new TranslatedStatement("{", 1, 0),
 					new TranslatedStatement("private readonly " + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " " + _supportRefName.Name + ";", 2, 0),
-					new TranslatedStatement("public Runner(" + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " compatLayer)", 2, 0),
+					new TranslatedStatement("public " + _startClassName.Name + "(" + typeof(IProvideVBScriptCompatFunctionalityToIndividualRequests).Name + " compatLayer)", 2, 0),
 					new TranslatedStatement("{", 2, 0),
 					new TranslatedStatement("if (compatLayer == null)", 3, 0),
 					new TranslatedStatement("throw new ArgumentNullException(\"compatLayer\");", 4, 0),

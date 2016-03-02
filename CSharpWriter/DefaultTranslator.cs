@@ -93,7 +93,8 @@ namespace VBScriptTranslator.CSharpWriter
 			if (logger == null)
 				throw new ArgumentNullException(nameof(logger));
 
-			var startClassName = new CSharpName("TranslatedProgram");
+			var startNamespace = new CSharpName("TranslatedProgram");
+			var startClassName = new CSharpName("Runner");
 			var startMethodName = new CSharpName("Go");
 			var runtimeDateLiteralValidatorClassName = new CSharpName("RuntimeDateLiteralValidator");
 			var supportRefName = new CSharpName("_");
@@ -112,6 +113,7 @@ namespace VBScriptTranslator.CSharpWriter
 			};
 			var statementTranslator = new StatementTranslator(supportRefName, envRefName, outerRefName, nameRewriter, tempNameGenerator, logger);
 			var codeBlockTranslator = new OuterScopeBlockTranslator(
+				startNamespace,
 				startClassName,
 				startMethodName,
 				runtimeDateLiteralValidatorClassName,
