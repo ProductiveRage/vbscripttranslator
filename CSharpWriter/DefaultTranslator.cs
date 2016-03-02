@@ -67,7 +67,7 @@ namespace VBScriptTranslator.CSharpWriter
 			OuterScopeBlockTranslator.OutputTypeOptions outputType = OuterScopeBlockTranslator.OutputTypeOptions.Executable)
 		{
 			if (externalDependencies == null)
-				throw new ArgumentNullException(nameof(externalDependencies));
+				throw new ArgumentNullException("externalDependencies");
 			if (warningLogger == null)
 				throw new ArgumentNullException("warningLogger");
 
@@ -91,7 +91,7 @@ namespace VBScriptTranslator.CSharpWriter
 			if ((outputType != OuterScopeBlockTranslator.OutputTypeOptions.Executable) && (outputType != OuterScopeBlockTranslator.OutputTypeOptions.WithoutScaffolding))
 				throw new ArgumentOutOfRangeException("outputType");
 			if (logger == null)
-				throw new ArgumentNullException(nameof(logger));
+				throw new ArgumentNullException("logger");
 
 			var startNamespace = new CSharpName("TranslatedProgram");
 			var startClassName = new CSharpName("Runner");
@@ -197,7 +197,7 @@ namespace VBScriptTranslator.CSharpWriter
 			public DelegateWrappingWarningLogger(Action<string> warningLogger)
 			{
 				if (warningLogger == null)
-					throw new ArgumentNullException(nameof(warningLogger));
+					throw new ArgumentNullException("warningLogger");
 
 				_warningLogger = warningLogger;
 			}
