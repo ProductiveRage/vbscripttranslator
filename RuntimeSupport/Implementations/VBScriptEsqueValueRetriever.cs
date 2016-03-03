@@ -1660,7 +1660,47 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (type == null)
 				throw new ArgumentNullException("type");
 
-			return type.GetMembers().Count(m => MemberHasDispIdZero(m)) > 1;
+			// 2016-03-03 DWR: Used to just check whether there were multiple members with DispId zero, however this would result in a false positive for a property such as:
+			//
+			//   [DispId(0)]
+			//   public string this[int key]
+			//   {
+			//     [DispId(0)] get { return _data[key]; }
+			//   }
+			//
+			// While the double [DispId(0)] may not strictly be necessary, if those two occurrences are the only places where [DispId(0)] is present then it's not really
+			// an ambiguous match (both the property member and the property getter method member will be identified as having [DispId(0)], but they both refere to the
+			// same thing).
+
+			var allProperties = type.GetProperties();
+			var dispIdZeroProperties = allProperties.Where(m => MemberHasDispIdZero(m));
+
+			var methodsRelatingToDispIdZeroProperties = dispIdZeroProperties
+				.SelectMany(p =>
+				{
+					var relatedMethods = new List<MethodInfo>();
+					if (p.CanRead)
+						relatedMethods.Add(p.GetGetMethod());
+					if (p.CanWrite)
+						relatedMethods.Add(p.GetSetMethod());
+					return relatedMethods;
+				});
+
+			var allMethods = type.GetMethods();
+			var dispIdZeroMethodsThatAreNotRelatedToDispIdZeroProperties = allMethods
+				.Where(m => MemberHasDispIdZero(m))
+				.Except(methodsRelatingToDispIdZeroProperties);
+
+			var otherDispIdZeroMembers = type.GetMembers()
+				.Where(m => MemberHasDispIdZero(m))
+				.Except(allProperties)
+				.Except(allMethods);
+
+			return otherDispIdZeroMembers
+				.Cast<MemberInfo>()
+				.Concat(dispIdZeroProperties)
+				.Concat(dispIdZeroMethodsThatAreNotRelatedToDispIdZeroProperties)
+				.Count() > 1;
 		}
 
 		private sealed class InvokerCacheKey
