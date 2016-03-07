@@ -1413,7 +1413,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			throw new NotImplementedException(); // TODO
 		}
 
-        public object NEWREGEXP() { throw new NotImplementedException("NEWREGEXP not yet implemented"); } // TODO
+        public object NEWREGEXP()
+		{
+			// TODO: Ideally, the object returned here would be a managed implementation of "VBScript.RegExp" (which has a fairly simple interface), to reduce the
+			// number of dependencies. But this works and so will do for the time being.
+			return Activator.CreateInstance(Type.GetTypeFromProgID("VBScript.RegExp", throwOnError: true));
+		}
 
 		/// <summary>
 		/// This will never be null (if there is no error then an ErrorDetails with Number zero will be returned)
