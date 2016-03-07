@@ -538,7 +538,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
             // We may have to monkey about with the data here - if there are references to the return value of the current function (if we're in one) then these
             // need to be replaced with the scopeAccessInformation's parentReturnValueNameIfAny value (if there is one).
             var firstMemberAccessToken = callExpressionSegment.MemberAccessTokens.First();
-            if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
+			var firstMemberAccessTokenIsParentReturnValueName = false;
+			if (scopeAccessInformation.ParentReturnValueNameIfAny != null)
             {
                 // If the segment's first (or only) member accessor has no arguments and wasn't expressed in the source code as a function call (ie. it didn't
                 // have brackets after the member accessor) and the single member accessor matches the name of the ScopeDefiningParent then we need to make
@@ -564,7 +565,9 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
                         new Expression[0],
                         CallExpressionSegment.ArgumentBracketPresenceOptions.Absent
                     );
-                }
+					firstMemberAccessToken = parentReturnValueNameToken;
+					firstMemberAccessTokenIsParentReturnValueName = true;
+				}
             }
 
             var targetBuiltInFunction = firstMemberAccessToken as BuiltInFunctionToken;
@@ -701,9 +704,9 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
                 );
             }
             var targetNameToken = firstMemberAccessToken as NameToken;
-            if (targetNameToken != null)
-            {
-                result = new TranslatedStatementContentDetailsWithContentType(
+            if ((targetNameToken != null) && !firstMemberAccessTokenIsParentReturnValueName)
+			{
+				result = new TranslatedStatementContentDetailsWithContentType(
                     result.TranslatedContent,
                     result.ContentType,
                     result.VariablesAccessed.Add(targetNameToken)
