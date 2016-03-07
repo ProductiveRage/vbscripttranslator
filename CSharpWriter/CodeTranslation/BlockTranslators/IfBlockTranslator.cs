@@ -44,24 +44,58 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			if (indentationDepth < 0)
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
+			// These TranslatedContent values are the content that will ultimately be forced into a boolean and used to construct an "if" conditional, it it C# code. If there is no
+			// error -trapping to worry about then we just have to wrap this in an IF call (the "IF" method in the runtime support class) and be done with it. If error-trapping MAY
+			// be involved, though, then it's more complicated - we might be able to just use the IF extension method that takes an error registration token as an argument (this is
+			// the second least-complicated code path) but if we're within a function (or property) and the there any function or property calls within this translated content that
+			// take by-ref arguments and any of those arguments are by-ref arguments of the containing function, then it will have to be re-written since C# will not allow "ref"
+			// arguments to be manipulated in lambas (and that is how by-ref arguments are dealt with when calling nested functions or properties). This third arrangement is
+			// the most complicated code path.
+			var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
+			var conditionalClausesWithTranslatedConditions = ifBlock.ConditionalClauses
+				.Select((conditional, index) => new
+				{
+					Index = index,
+					Conditional = conditional,
+					TranslatedContent = _statementTranslator.Translate(
+						conditional.Condition,
+						scopeAccessInformation,
+						ExpressionReturnTypeOptions.NotSpecified,
+						_logger.Warning
+					),
+					ByRefArgumentsToRewriteInTranslatedContent = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
+						conditional.Condition.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
+						scopeAccessInformation,
+						new NonNullImmutableList<FuncByRefMapping>()
+					)
+				})
+				.ToArray();
+
 			var translationResult = TranslationResult.Empty;
 			var numberOfAdditionalBlocksInjectedForErrorTrapping = 0;
-			var previousBlockRequiredByRefArgumentRewriting = false;
-			foreach (var conditionalEntry in ifBlock.ConditionalClauses.Select((conditional, index) => new { Conditional = conditional, Index = index }))
+			foreach (var conditionalEntry in conditionalClausesWithTranslatedConditions)
 			{
-				// This is the content that will ultimately be forced into a boolean and used to construct an "if" conditional, it it C# code. If there is no error-trapping
-				// to worry about then we just have to wrap this in an IF call (the "IF" method in the runtime support class) and be done with it. If error-trapping MAY be
-				// involved, though, then it's more complicated - we might be able to just use the IF extension method that takes an error registration token as an argument
-				// (this is the second least-complicated code path) but if we're within a function (or property) and the there any function or property calls within this
-				// translated content that take by-ref arguments and any of those arguments are by-ref arguments of the containing function, then it will have to be re-
-				// written since C# will not allow "ref" arguments to be manipulated in lambas (and that is how by-ref arguments are dealt with when calling nested
-				// functions or properties). This third arrangement is the most complicated code path.
-				var conditionalContent = _statementTranslator.Translate(
-					conditionalEntry.Conditional.Condition,
-					scopeAccessInformation,
-					ExpressionReturnTypeOptions.NotSpecified,
-					_logger.Warning
-				);
+				var conditionalContent = conditionalEntry.TranslatedContent;
+				var previousConditionalEntry = (conditionalEntry.Index == 0) ? null : conditionalClausesWithTranslatedConditions[conditionalEntry.Index - 1];
+
+				// If we're dealing with multiple if (a).. elseif (b).. elseif (c).. [else] blocks then these would be most simply represented by if (a).. else if (b)..
+				// else if (c).. [else] blocks in C#. However, if error-trapping is involved then some of the conditions may have to be rewritten to deal with by-ref arguments
+				// and then (after the condition is evaluated) those rewritten arguments need to be pushed back on to the original references. In this case, each subsequent "if"
+				// condition must be within its own "else" block in order for the the rewritten condition to be evaluated when required (and not before). When this happens, there
+				// will be greater levels of nesting required. This nesting is injected here and tracked with the variable "numberOfAdditionalBlocksInjectedForErrorTrapping" (this
+				// will be used further down to ensure that any extra levels of nesting are closed off).
+				bool requiresNewScopeWithinElseBlock;
+				if (previousConditionalEntry == null)
+					requiresNewScopeWithinElseBlock = false;
+				else
+					requiresNewScopeWithinElseBlock = previousConditionalEntry.ByRefArgumentsToRewriteInTranslatedContent.Any() || conditionalEntry.ByRefArgumentsToRewriteInTranslatedContent.Any();
+				if (requiresNewScopeWithinElseBlock)
+				{
+					translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth, translationResult.TranslatedStatements.Last().LineIndexOfStatementStartInSource));
+					translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth, translationResult.TranslatedStatements.Last().LineIndexOfStatementStartInSource));
+					indentationDepth++;
+					numberOfAdditionalBlocksInjectedForErrorTrapping++;
+				}
 
 				// Check whether there are any "ref" arguments that need rewriting - this is only applicable if we're within a function or property that has ByRef arguments.
 				// If this is the case then we need to ensure that we do not emit code that tries to include those references within a lambda since that is not valid C#. One
@@ -69,12 +103,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				// will update the value after the call completes using a lambda). The other way is if error-trapping might be enabled at runtime - in this case, the evaluation
 				// of the condition is performed within a lambda so that any errors can be swallowed if necessary. If any such reference rewriting is required then the code that
 				// must be emitted is more complex.
-				var byRefArgumentIdentifier = new FuncByRefArgumentMapper(_nameRewriter, _tempNameGenerator, _logger);
-				var byRefArgumentsToRewrite = byRefArgumentIdentifier.GetByRefArgumentsThatNeedRewriting(
-					conditionalEntry.Conditional.Condition.ToStageTwoParserExpression(scopeAccessInformation, ExpressionReturnTypeOptions.NotSpecified, _logger.Warning),
-					scopeAccessInformation,
-					new NonNullImmutableList<FuncByRefMapping>()
-				);
+				var byRefArgumentsToRewrite = conditionalEntry.ByRefArgumentsToRewriteInTranslatedContent;
 				if (byRefArgumentsToRewrite.Any())
 				{
 					// If we're in a function or property and that function / property has by-ref arguments that we then need to pass into further function / property calls
@@ -158,13 +187,11 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				var conditionalInlineCommentIfAny = !innerStatements.Any() ? null : (innerStatements.First() as InlineCommentStatement);
 				if (conditionalInlineCommentIfAny != null)
 					innerStatements = innerStatements.RemoveAt(0);
-				// Note: For details on why previousBlockRequiredByRefArgumentRewriting is consulted in order to determine whether to render "if" or "else" if, see the notes further
-				// down, where the value of the previousBlockRequiredByRefArgumentRewriting flag is set
 				translationResult = translationResult.Add(
 					new TranslatedStatement(
 						string.Format(
 							"{0} ({1}){2}",
-							(conditionalEntry.Index == 0) || previousBlockRequiredByRefArgumentRewriting ? "if" : "else if",
+							(previousConditionalEntry == null) || requiresNewScopeWithinElseBlock ? "if" : "else if",
 							conditionalContent.TranslatedContent,
 							(conditionalInlineCommentIfAny == null) ? "" : (" //" + conditionalInlineCommentIfAny.Content)
 						),
@@ -181,30 +208,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					)
 				);
 				translationResult = translationResult.Add(new TranslatedStatement("}", indentationDepth, translationResult.TranslatedStatements.Last().LineIndexOfStatementStartInSource));
-
-				// If we're dealing with multiple if (a).. elseif (b).. elseif (c).. [else] blocks then these would be most simply represented by if (a).. else if (b)..
-				// else if (c).. [else] blocks in C#. However, if error-trapping is involved then some of the conditions may have to be rewritten to deal with by-ref arguments
-				// and then (after the condition is evaluated) those rewritten arguments need to be reflected on the original references (see the note further up for more
-				// details). In this case, each subsequent "if" condition must be within its own "else" block in order for the the rewritten condition to be evaluated when
-				// required (and not before). When this happens, there will be greater levels of nesting required. This nesting is injected here and tracked with the variable
-				// "numberOfAdditionalBlocksInjectedForErrorTrapping" (this will be used further down to ensure that any extra levels of nesting are closed off).
-				var isLastConditionalBlock = (conditionalEntry.Index == (ifBlock.ConditionalClauses.Count() - 1));
-				if (byRefArgumentsToRewrite.Any() && !isLastConditionalBlock)
-				{
-					translationResult = translationResult.Add(new TranslatedStatement("else", indentationDepth, translationResult.TranslatedStatements.Last().LineIndexOfStatementStartInSource));
-					translationResult = translationResult.Add(new TranslatedStatement("{", indentationDepth, translationResult.TranslatedStatements.Last().LineIndexOfStatementStartInSource));
-					indentationDepth++;
-					numberOfAdditionalBlocksInjectedForErrorTrapping++;
-				}
-				
-				// It's important to know whether the previous block (if any) required any "ref" arguments to be rewritten since this will change the format of the translated
-				// code. If there is no rewriting required then an "if (a).. elseif (b).. else.." structure can be translated into a very similar "if (a) { .. } else if (b)
-				// { .. } else { .. }" format, but if there are argument aliases that need creating and potentially updating after the condition is evaluated then each condition
-				// is no longer on a single line and will be translated into something more like "if (a) { .. } else { if (b) { .. } else { .. } }". This makes it harder to
-				// read the output but it required in order to perform the multiple steps required at each condition evaluation where rewriting is required (it is no longer
-				// "just evaluate the condition", instead it becomes "initialise any aliases, evaluate the condition using the aliases, update the original references if
-				// required").
-				previousBlockRequiredByRefArgumentRewriting = byRefArgumentsToRewrite.Any();
 			}
 
 			if (ifBlock.OptionalElseClause != null)
