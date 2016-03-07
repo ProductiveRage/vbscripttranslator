@@ -461,6 +461,37 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			);
 		}
 
+		/// <summary>
+		/// DispId(0) is only supported when the match is unambiguous - previously, DispId(0) being specified on a property and on the getter for
+		/// that property was considered an ambiguous match, but that shouldn't be the case since they both effectively refer to the same thing
+		/// </summary>
+		[Fact]
+		public void SupportDispIdoZeroBeingRepeatedOnPropertyAndOnPropertyGetterWhenDefaultMemberRequired()
+		{
+			var target = new DispIdZeroRepeatedOnPropertyAndItsGetter("test");
+			Assert.Equal(
+				"test",
+				DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(target)
+			);
+		}
+
+		[ComVisible(true)]
+		private class DispIdZeroRepeatedOnPropertyAndItsGetter
+		{
+			private readonly string _name;
+			public DispIdZeroRepeatedOnPropertyAndItsGetter(string name)
+			{
+				_name = name;
+			}
+
+			[DispId(0)]
+			public string Name
+			{
+				[DispId(0)]
+				get { return _name; }
+			}
+		}
+
 		[Theory, MemberData("ZeroArgumentBracketSuccessData")]
 		public void ZeroArgumentBracketSuccessCases(string description, object target, string[] memberAccessors, bool useBracketsWhereZeroArguments, object expectedResult)
 		{
