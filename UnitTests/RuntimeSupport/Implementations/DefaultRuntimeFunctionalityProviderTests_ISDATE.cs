@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Globalization;
 using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.UnitTests.Shared;
 using Xunit;
 
 namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 {
-    public static partial class DefaultRuntimeFunctionalityProviderTests
+	public static partial class DefaultRuntimeFunctionalityProviderTests
     {
         public class ISDATE : CultureOverridingTests
         {
@@ -19,13 +20,23 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
                 Assert.True(DefaultRuntimeSupportClassFactory.Get().ISDATE(value));
             }
 
-            [Theory, MemberData("FalseData")]
-            public void FalseCases(string description, object value)
-            {
-                Assert.False(DefaultRuntimeSupportClassFactory.Get().ISDATE(value));
-            }
+			[Theory, MemberData("FalseDataThatShouldNotResultInAnErrorBeingRecorded")]
+			public void FalseNonErroringCases(string description, object value)
+			{
+				var _ = DefaultRuntimeSupportClassFactory.Get();
+				Assert.False(_.ISDATE(value));
+				Assert.Equal(0, _.ERR.Number);
+			}
 
-            public static IEnumerable<object[]> TrueData
+			[Theory, MemberData("FalseDataThatShouldResultInAnErrorBeingRecorded")]
+			public void FalseAndErroringCases(string description, object value)
+			{
+				var _ = DefaultRuntimeSupportClassFactory.Get();
+				Assert.False(_.ISDATE(value));
+				Assert.NotEqual(0, _.ERR.Number);
+			}
+
+			public static IEnumerable<object[]> TrueData
             {
                 get
                 {
@@ -41,20 +52,42 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
                 }
             }
 
-            public static IEnumerable<object[]> FalseData
-            {
-                get
-                {
-                    yield return new object[] { "Empty", null };
-                    yield return new object[] { "Null", DBNull.Value };
-                    yield return new object[] { "Nothing", VBScriptConstants.Nothing };
-                    yield return new object[] { "Zero", 0 };
-                    yield return new object[] { "Date-esque number", 40000 }; // Although CDate(40000) returns a valid date (2009-07-06), IsDate will return false
-                    yield return new object[] { "Blank string", "" };
-                    yield return new object[] { "Unintialised array", new object[0] };
-                    yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype() };
-                }
-            }
-        }
-    }
+			public static IEnumerable<object[]> FalseDataThatShouldNotResultInAnErrorBeingRecorded
+			{
+				get
+				{
+					yield return new object[] { "Empty", null };
+					yield return new object[] { "Null", DBNull.Value };
+					yield return new object[] { "Nothing", VBScriptConstants.Nothing };
+					yield return new object[] { "Zero", 0 };
+					yield return new object[] { "Date-esque number", 40000 }; // Although CDate(40000) returns a valid date (2009-07-06), IsDate will return false
+					yield return new object[] { "Blank string", "" };
+					yield return new object[] { "Unintialised array", new object[0] };
+					yield return new object[] { "Object with default property which is Empty", new exampledefaultpropertytype() };
+				}
+			}
+
+			public static IEnumerable<object[]> FalseDataThatShouldResultInAnErrorBeingRecorded
+			{
+				get
+				{
+					yield return new object[] { "Object with default property which errors when requested", new exampleerrorraisingdefaultpropertytype() };
+				}
+			}
+
+			/// <summary>
+			/// This is an example of the type of class that may be emitted by the translation process, one with a parameter-less default member
+			/// </summary>
+			[SourceClassName("ExampleErrorRaisingDefaultPropertyType")]
+			private class exampleerrorraisingdefaultpropertytype
+			{
+				[IsDefault]
+				public object result
+				{
+					get { throw new Exception("This value may not be read!"); }
+					set { throw new Exception("This value may not be set!"); }
+				}
+			}
+		}
+	}
 }

@@ -820,11 +820,16 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public bool ISDATE(object value)
 		{
 			// Use the same basic approach as for ISEMPTY..
+			var swallowAnyError = false;
 			try
 			{
 				bool parameterLessDefaultMemberWasAvailable;
 				if (!_valueRetriever.TryVAL(value, out parameterLessDefaultMemberWasAvailable, out value))
 					return false;
+
+				// Any error encountered in evaluating the default member (if required to coerce value into a value type) should be recorded with
+				// SETERROR, but if the value is not a valid date and an exception is thrown by the DateParser, then that should NOT be recorded
+				swallowAnyError = true;
 				if (value == null)
 					return false;
 				if (value is DateTime)
@@ -834,7 +839,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			}
 			catch (Exception e)
 			{
-				SETERROR(e);
+				if (!swallowAnyError)
+					SETERROR(e);
 				return false;
 			}
 		}
@@ -1434,7 +1440,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return new ErrorDetails(
 					(currentErrorAsVBScriptSpecificError != null) ? currentErrorAsVBScriptSpecificError.ErrorNumber : 1, // TODO: Still need a better way to get error number for non-VBScript-specific errors
 					currentError.Source,
-					currentError.Message
+					currentError.Message,
+					originalExceptionIfKnown: currentError
 				);
 			}
 		}
