@@ -199,10 +199,16 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 		[Fact]
 		public void IfValueSettingStatementTargetIsByRefArgumentOfContainingFunctionThenAnyByRefMappingMustBeTwoWay()
 		{
+			// 2016-03-09 DWR: It's important that the ON ERROR RESUME NEXT comes after the value setting statement since the translation process is not
+			// currently clever enough to determine that this means that error-trapping could never apply to the value setting statement - the fact that
+			// there IS some error-handling within the function scope means that the translation process goes on the assumption that it's possible that
+			// the error-handling might impact the value-setting (this is something that could be improved in the future since it would result in more
+			// succinct code in places where there is error-handling within the same scope but which it can be proved can never apply to a particular
+			// statement).
 			var source = @"
 				Function F1(x)
-					On Error Resume Next
 					Set x = Nothing
+					On Error Resume Next
 				End Function
 			";
 			var expected = @"
@@ -210,16 +216,42 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 				{
 					object retVal1 = null;
 					var errOn2 = _.GETERRORTRAPPINGTOKEN();
-					_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
 					object byrefalias3 = x;
 					try
 					{
-						_.HANDLEERROR(errOn2, () => {
-							byrefalias3 = VBScriptConstants.Nothing;
-						});
+						byrefalias3 = VBScriptConstants.Nothing;
 					}
 					finally { x = byrefalias3; }
+					_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
 					_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+					return retVal1;
+				}";
+			Assert.Equal(
+				SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
+		/// When the by-ref argument aliasing logic was fixed such that the test
+		///   IfValueSettingStatementTargetIsByRefArgumentOfContainingFunctionThenAnyByRefMappingMustBeTwoWay
+		/// could be passed, value setting statement targets were getting aliased when they didn't need to. The particular case that was being addressed
+		/// was when the value setting statement existed within a scope that may require error-trapping. This test ensures that the over-aggressive
+		/// aliasing is no longer applied.
+		/// </summary>
+		[Fact]
+		public void ValueSettingTargetThatIsByRefFunctionArgumentShouldOnlyBeReadWriteAliasedIfWithinErrorHandling()
+		{
+			var source = @"
+				Function F1(x)
+					Set x = Nothing
+				End Function
+			";
+			var expected = @"
+				public object f1(ref object x)
+				{
+					object retVal1 = null;
+					x = VBScriptConstants.Nothing;
 					return retVal1;
 				}";
 			Assert.Equal(

@@ -90,21 +90,11 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 			// by-ref argument then it may be the left hand side of a value-setting statement and that will definitely need to be a read-write alias mapping
 			// (otherwise the alias value would be updated within the lambda, after the value-setting was executed, but it wouldn't be mapped back on to the
 			// by-ref argument, which would defeat the point of the value-setting statement).
-			if (expression.Segments.Count() == 1)
+			if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
 			{
-				var callExpressionSegment = expression.Segments.Single() as CallExpressionSegment;
-				if ((callExpressionSegment != null)
-				&& (callExpressionSegment.MemberAccessTokens.Count() == 1)
-				&& !callExpressionSegment.Arguments.Any()
-				&& (callExpressionSegment.ZeroArgumentBracketsPresence != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Present))
-				{
-					var nameTokenTarget = callExpressionSegment.MemberAccessTokens.Single() as NameToken;
-					if (nameTokenTarget != null)
-					{
-						if (byRefArguments.Any(a => a.Content.Equals(nameTokenTarget.Content, StringComparison.OrdinalIgnoreCase)))
-							expressionIsDirectArgumentValue = true;
-					}
-				}
+				var nameTokenTargetIfApplicable = TryToGetExpressionAsSingleNameToken(expression);
+				if ((nameTokenTargetIfApplicable != null) && byRefArguments.Any(a => a.Content.Equals(nameTokenTargetIfApplicable.Content, StringComparison.OrdinalIgnoreCase)))
+					expressionIsDirectArgumentValue = true;
 			}
 
 			return GetByRefArgumentsThatNeedRewriting(expression.Segments, byRefArguments, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue);
@@ -323,6 +313,24 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 			return mappings
 				.Where(mapping => _nameRewriter.GetMemberAccessTokenName(reference) == _nameRewriter.GetMemberAccessTokenName(mapping.From))
 				.ToNonNullImmutableList();
+		}
+
+		private static NameToken TryToGetExpressionAsSingleNameToken(Expression expression)
+		{
+			if (expression == null)
+				throw new ArgumentNullException("expression");
+
+			if (expression.Segments.Count() != 1)
+				return null;
+
+			var callExpressionSegment = expression.Segments.Single() as CallExpressionSegment;
+			if ((callExpressionSegment == null)
+			|| (callExpressionSegment.MemberAccessTokens.Count() != 1)
+			|| callExpressionSegment.Arguments.Any()
+			|| (callExpressionSegment.ZeroArgumentBracketsPresence != CallSetItemExpressionSegment.ArgumentBracketPresenceOptions.Absent))
+				return null;
+
+			return callExpressionSegment.MemberAccessTokens.Single() as NameToken;
 		}
 	}
 }
