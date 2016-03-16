@@ -1140,7 +1140,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				{
 					IDispatchAccess.Invoke<object>(
 						invokeTarget,
-						IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT,
+						IsVBScriptValueType(value) ? IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT : IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUTREF,
 						dispId,
 						argumentsArray.Concat(new[] { value }).ToArray()
 					);

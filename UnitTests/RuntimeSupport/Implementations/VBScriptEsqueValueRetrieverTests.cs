@@ -475,6 +475,30 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			);
 		}
 
+		[Fact]
+		public void DispIdZeroPropertySettingWorksWithValueTypes()
+		{
+			// This requires that the project be built in 32-bit mode (as much of the IDispatch support does)
+			var dict = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+			var valueTypeValueToRecord = 123;
+			using (var _ = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
+			{
+				_.SET(valueTypeValueToRecord, dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
+			}
+		}
+
+		[Fact]
+		public void DispIdZeroPropertySettingWorksWithReferenceTypes()
+		{
+			// This requires that the project be built in 32-bit mode (as much of the IDispatch support does)
+			var dict = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+			var referenceTypeValueToRecord = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+			using (var _ = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
+			{
+				_.SET(referenceTypeValueToRecord, dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
+			}
+		}
+
 		[ComVisible(true)]
 		private class DispIdZeroRepeatedOnPropertyAndItsGetter
 		{
