@@ -862,19 +862,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (IDispatchAccess.ImplementsIDispatch(target))
 			{
-				int dispId;
-				if (optionalName == null)
-					dispId = 0;
-				else
-				{
-					// We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
-					// VBScript source that we may have rewritten (don't try to catch exceptions here - it may be important to the caller
-					// if there was an IDispatchAccessException with particular values)
-					dispId = IDispatchAccess.GetDispId(target, optionalName);
-				}
 				return (invokeTarget, invokeArguments) =>
 				{
 					// As above, don't try to wrap any errors here
+					int dispId;
+					if (optionalName == null)
+						dispId = 0;
+					else
+					{
+						// We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+						// VBScript source that we may have rewritten (don't try to catch exceptions here - it may be important to the caller
+						// if there was an IDispatchAccessException with particular values)
+						dispId = IDispatchAccess.GetDispId(invokeTarget, optionalName);
+					}
 					return IDispatchAccess.Invoke<object>(
 						invokeTarget,
 						onlyConsiderMethods
@@ -1127,17 +1127,17 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (IDispatchAccess.ImplementsIDispatch(target))
 			{
-				int dispId;
-				if (optionalMemberAccessor == null)
-					dispId = 0;
-				else
-				{
-					// We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
-					// VBScript source that we may have rewritten
-					dispId = IDispatchAccess.GetDispId(target, optionalMemberAccessor);
-				}
 				return (invokeTarget, invokeArguments, value) =>
 				{
+					int dispId;
+					if (optionalMemberAccessor == null)
+						dispId = 0;
+					else
+					{
+						// We don't use the nameRewriter here since we won't have rewritten the COM component, it's the C# generated from the
+						// VBScript source that we may have rewritten
+						dispId = IDispatchAccess.GetDispId(invokeTarget, optionalMemberAccessor);
+					}
 					IDispatchAccess.Invoke<object>(
 						invokeTarget,
 						IsVBScriptValueType(value) ? IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT : IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUTREF,
