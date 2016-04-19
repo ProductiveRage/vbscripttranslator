@@ -1222,7 +1222,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 		/// <summary>
 		/// VBScript expects integer array index values but will accept fractional values or even strings representing integers or fractional values.
-		/// Any fractional values are rounded to the closest even number (so 1.5 rounds to 1, 2.5 also rounds to 2, 3.5 rounds to 4, etc..)
+		/// Any fractional values are rounded to the closest even number (so 1.5 rounds to 2, 2.5 also rounds to 2, 3.5 rounds to 4, etc..)
 		/// </summary>
 		private Expression GetVBScriptStyleArrayIndexParsingExpression(Expression index)
 		{

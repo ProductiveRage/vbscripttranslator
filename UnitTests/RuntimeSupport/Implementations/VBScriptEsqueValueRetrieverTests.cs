@@ -16,7 +16,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 	public class VBScriptEsqueValueRetrieverTests
 	{
 		[Fact]
-		public void VALDoesNotAlterMinusOneNull()
+		public void VALDoesNotAlterNull()
 		{
 			Assert.Equal(
 				null,
@@ -25,7 +25,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusOneOne()
+		public void VALDoesNotAlterOne()
 		{
 			Assert.Equal(
 				1,
@@ -34,7 +34,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusOneOnePointOneFloat()
+		public void VALDoesNotAlterOnePointOneFloat()
 		{
 			Assert.Equal(
 				1.1f,
@@ -43,7 +43,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusOneOnePointOneDouble()
+		public void VALDoesNotAlterOnePointOneDouble()
 		{
 			Assert.Equal(
 				1.1d,
@@ -52,7 +52,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusOneOnePointOneDecimal()
+		public void VALDoesNotAlterOnePointOneDecimal()
 		{
 			Assert.Equal(
 				1.1m,
@@ -70,7 +70,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusEmptyString()
+		public void VALDoesNotAlterEmptyString()
 		{
 			Assert.Equal(
 				"",
@@ -79,7 +79,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
-		public void VALDoesNotAlterMinusNonEmptyString()
+		public void VALDoesNotAlterNonEmptyString()
 		{
 			Assert.Equal(
 				"Test",
@@ -638,7 +638,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		{
 			get
 			{
-				yield return new object[] { "An object array", new object[] { 1, 2 }, new object[] { 1, 2} };
+				yield return new object[] { "An object array", new object[] { 1, 2 }, new object[] { 1, 2 } };
 
 				dynamic dictionary = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
 				dictionary.Add("key1", "value1");
