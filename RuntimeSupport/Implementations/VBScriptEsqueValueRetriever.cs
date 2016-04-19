@@ -214,6 +214,17 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		}
 
 		/// <summary>
+		/// Determines whether the given CLR type is capable of holding only VBScript value type instances.
+		/// </summary>
+		private bool IsCLRTypeVBScriptValueType(Type t)
+		{
+			if (t == null)
+				throw new ArgumentNullException("t");
+			
+			return t.IsValueType || typeof(DBNull).IsAssignableFrom(t) || typeof(string).IsAssignableFrom(t) || t.IsArray;
+		}
+
+		/// <summary>
 		/// The comparison (o == VBScriptConstants.Nothing) will return false even if o is VBScriptConstants.Nothing due to the implementation details of
 		/// DispatchWrapper. This method delivers a reliable way to test for it.
 		/// </summary>
@@ -953,7 +964,16 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 								a.Parameter.Name
 							);
 						}
-						var argumentParameterInArray = Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index));
+
+						Expression argumentParameterInArray = Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index));
+
+						// If this parameter's type can only hold VBScript value types - wrap the argument access in a VAL call
+						if (IsCLRTypeVBScriptValueType(a.Parameter.ParameterType))
+						{
+							var coerceToVBSValueTypeMethod = typeof(VBScriptEsqueValueRetriever).GetMethod("VAL", new[] { typeof(object), typeof(string) });
+							argumentParameterInArray = Expression.Call(Expression.Constant(this), coerceToVBSValueTypeMethod, argumentParameterInArray, Expression.Constant("GenerateGetInvoker (parameter of value type)"));
+						}
+
 						return Expression.Convert(
 							Expression.Condition(
 								Expression.TypeIs(argumentParameterInArray, a.Parameter.ParameterType),

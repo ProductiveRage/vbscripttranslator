@@ -516,6 +516,39 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			}
 		}
 
+		[Fact]
+		public void CallingCLRMethodsThatHaveValueTypeParametersWorksWithReferenceTypes()
+		{
+			var recordset = new ADODB.Recordset();
+			recordset.Fields.Append("name", ADODB.DataTypeEnum.adVarChar, 20, ADODB.FieldAttributeEnum.adFldUpdatable);
+			recordset.Open(CursorType: ADODB.CursorTypeEnum.adOpenUnspecified, LockType: ADODB.LockTypeEnum.adLockUnspecified, Options: 0);
+			recordset.AddNew();
+			recordset.Fields["name"].Value = "TestName";
+			recordset.Update();
+
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+
+			object objField = _.CALL(
+				recordset,
+				new string[0],
+				_.ARGS.Val("name")
+			);
+
+			Assert.Equal(
+				"TestName",
+				_.CALL(
+					this,
+					"MockMethodReturningInputString",
+					_.ARGS.Ref(objField, v => { objField = v; })
+				)
+			);
+		}
+
+		public string MockMethodReturningInputString(string input)
+		{
+			return input;
+		}
+
 		[Theory, MemberData("ZeroArgumentBracketSuccessData")]
 		public void ZeroArgumentBracketSuccessCases(string description, object target, string[] memberAccessors, bool useBracketsWhereZeroArguments, object expectedResult)
 		{
