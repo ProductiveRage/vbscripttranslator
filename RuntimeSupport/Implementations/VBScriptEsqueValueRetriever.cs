@@ -908,12 +908,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					// better to err on the side of caution and not try to wrap up that error.
 					return ((IReflect)invokeTarget).InvokeMember(
 						optionalName ?? "[DISPID=0]",
-						BindingFlags.InvokeMethod | BindingFlags.GetProperty | BindingFlags.OptionalParamBinding,
+						BindingFlags.InvokeMethod | BindingFlags.GetProperty | BindingFlags.IgnoreCase | BindingFlags.OptionalParamBinding,
 						binder: null,
 						target: invokeTarget,
 						args: invokeArguments,
 						modifiers: null,
-						culture: Thread.CurrentThread.CurrentUICulture,
+						culture: null,
 						namedParameters: null
 					);
 				};
@@ -1163,6 +1163,23 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						IsVBScriptValueType(value) ? IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT : IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUTREF,
 						dispId,
 						argumentsArray.Concat(new[] { value }).ToArray()
+					);
+				};
+			}
+
+			if (target is IReflect)
+			{
+				return (invokeTarget, invokeArguments, value) =>
+				{
+					((IReflect)invokeTarget).InvokeMember(
+						name: optionalMemberAccessor ?? "[DISPID=0]",
+						invokeAttr: BindingFlags.SetProperty | BindingFlags.IgnoreCase,
+						binder: null,
+						target: invokeTarget,
+						args: invokeArguments.Concat(new[] { value }).ToArray(),
+						modifiers: null,
+						culture: null,
+						namedParameters: null
 					);
 				};
 			}
