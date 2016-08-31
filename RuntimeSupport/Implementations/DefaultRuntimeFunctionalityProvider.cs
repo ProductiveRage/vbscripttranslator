@@ -798,8 +798,34 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return DBNull.Value;
 			return  _valueRetriever.STR(value).ToUpper();
 		}
-		public object ESCAPE(object value) { throw new NotImplementedException(); } // TODO
-		public object UNESCAPE(object value) { throw new NotImplementedException(); } // TODO
+		public object ESCAPE(object value)
+		{
+			value = _valueRetriever.VAL(value, "'ESCAPE'");
+			if (value == null)
+				return "";
+			else if (value == DBNull.Value)
+				return DBNull.Value;
+
+			var valueString = _valueRetriever.STR(value);
+			if (valueString == "")
+				return "";
+
+			return Uri.EscapeDataString(valueString);
+		}
+		public object UNESCAPE(object value)
+		{
+			value = _valueRetriever.VAL(value, "'UNESCAPE'");
+			if (value == null)
+				return "";
+			else if (value == DBNull.Value)
+				return DBNull.Value;
+
+			var valueString = _valueRetriever.STR(value);
+			if (valueString == "")
+				return "";
+
+			return Uri.UnescapeDataString(valueString);
+		}
 		// - Type comparisons
 		public bool ISARRAY(object value)
 		{
@@ -1419,7 +1445,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			throw new NotImplementedException(); // TODO
 		}
 
-        public object NEWREGEXP()
+		public object NEWREGEXP()
 		{
 			// TODO: Ideally, the object returned here would be a managed implementation of "VBScript.RegExp" (which has a fairly simple interface), to reduce the
 			// number of dependencies. But this works and so will do for the time being.
