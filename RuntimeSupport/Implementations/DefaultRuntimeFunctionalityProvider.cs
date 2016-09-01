@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Microsoft.VisualBasic;
 using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
+using System.Text;
 
 namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
@@ -798,6 +799,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return DBNull.Value;
 			return  _valueRetriever.STR(value).ToUpper();
 		}
+		private const string NonEscapedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./";
 		public object ESCAPE(object value)
 		{
 			value = _valueRetriever.VAL(value, "'ESCAPE'");
@@ -810,7 +812,37 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (valueString == "")
 				return "";
 
-			return Uri.EscapeDataString(valueString);
+			var sb = new StringBuilder();
+			foreach (var c in valueString)
+			{
+				if (NonEscapedChars.IndexOf(c) != -1)
+				{
+					sb.Append(c);
+				}
+				else if (c <= 0xFF)
+				{
+					sb.Append("%");
+					sb.Append(((int)c).ToString("X2"));
+				}
+				else
+				{
+					sb.Append("%u");
+					sb.Append(((int)c).ToString("X4"));
+				}
+			}
+
+			return sb.ToString();
+		}
+		private static int? HexDigitToInt(char digit)
+		{
+			if (digit >= '0' && digit <= '9')
+				return digit - '0';
+			if (digit >= 'A' && digit <= 'F')
+				return (digit - 'A') + 0xA;
+			if (digit >= 'a' && digit <= 'f')
+				return (digit - 'a') + 0xA;
+
+			return null;
 		}
 		public object UNESCAPE(object value)
 		{
@@ -824,7 +856,48 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (valueString == "")
 				return "";
 
-			return Uri.UnescapeDataString(valueString);
+			int length = valueString.Length;
+			var sb = new StringBuilder();
+			for (int i = 0; i < length; i++)
+			{
+				if (valueString[i] == '%')
+				{
+					// Try to parse a %uXXXX sequence
+					if (i + 5 < length && valueString[i + 1] == 'u')
+					{
+						int? digit1 = HexDigitToInt(valueString[i + 2]);
+						int? digit2 = HexDigitToInt(valueString[i + 3]);
+						int? digit3 = HexDigitToInt(valueString[i + 4]);
+						int? digit4 = HexDigitToInt(valueString[i + 5]);
+
+						if (digit1.HasValue && digit2.HasValue && digit3.HasValue && digit4.HasValue)
+						{
+							sb.Append((char)((digit1 << 12) + (digit2 << 8) + (digit3 << 4) + digit4));
+							i += 5;
+							continue;
+						}
+					}
+
+					// Try to parse a %XX sequence
+					if (i + 2 < length)
+					{
+						int? digit1 = HexDigitToInt(valueString[i + 1]);
+						int? digit2 = HexDigitToInt(valueString[i + 2]);
+
+						if (digit1.HasValue && digit2.HasValue)
+						{
+							sb.Append((char)((digit1 << 4) + digit2));
+							i += 2;
+							continue;
+						}
+					}
+				}
+
+				// Add the character as-is
+				sb.Append(valueString[i]);
+			}
+
+			return sb.ToString();
 		}
 		// - Type comparisons
 		public bool ISARRAY(object value)

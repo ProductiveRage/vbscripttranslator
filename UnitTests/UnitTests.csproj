@@ -60,6 +60,8 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_UNESCAPE.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ESCAPE.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_MOD.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_MULT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_SUBT.cs" />
