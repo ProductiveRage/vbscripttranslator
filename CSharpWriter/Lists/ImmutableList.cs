@@ -353,7 +353,7 @@ namespace VBScriptTranslator.CSharpWriter.Lists
         }
 
         /// <summary>
-        /// This is used by the Sort method if a Comparison<T> is specified
+        /// This is used by the Sort method if a Comparison T is specified
         /// </summary>
         private class SortComparisonWrapper : IComparer<T>
         {
