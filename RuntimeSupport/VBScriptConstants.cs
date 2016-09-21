@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace VBScriptTranslator.RuntimeSupport
 {
-    public static class VBScriptConstants
+	public static class VBScriptConstants
 	{
         public static object Empty { get { return null; } }
 
@@ -18,7 +18,7 @@ namespace VBScriptTranslator.RuntimeSupport
         /// and Empty is an uninitialised VARIANT. This means Empty is equivalent to .net's null, VBScript's Null can be mapped to DBNull.Value and
         /// Nothing may be mapped to a DispatchWrapper that wraps null. Note that if this Nothing reference is passed from VBScript into a .net
         /// COM component then it will appear as a .net null. This is expected and consistent behaviour with a Nothing reference generated
-        /// natively in VBScript. See http://www.informit.com/articles/article.aspx?p=27219&seqNum=8 for more about the DispatchWrapper.
+        /// natively in VBScript. See http://www.informit.com/articles/article.aspx?p=27219&amp;seqNum=8 for more about the DispatchWrapper.
         /// </summary>
         public static object Nothing { get { return new DispatchWrapper(null); } }
 
