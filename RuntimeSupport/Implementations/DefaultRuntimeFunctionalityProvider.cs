@@ -119,7 +119,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				throw new OutOfStringSpaceException();
 			return lString + rString;
 		}
-		
+
 		/// <summary>
 		/// This may never be called with less than two values (otherwise an exception will be thrown)
 		/// </summary>
@@ -202,7 +202,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// that (an exception will be raised if this operation fails and the value will not be affect if it was already an acceptable type)
 			l = _valueRetriever.VAL(l);
 			r = _valueRetriever.VAL(r);
-			
+
 			// Let's get the outliers out of the way; VBScript Null and Empty..
 			if ((l == DBNull.Value) || (r == DBNull.Value))
 				return null; // If one or both sides of the comparison are "Null" then this is what is returned
@@ -376,7 +376,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		{
 			if (IsVBScriptNothing(l) && IsVBScriptNothing(r))
 				return true;
-			return  _valueRetriever.OBJ(l, "'Is'") ==  _valueRetriever.OBJ(r, "'Is'");
+			return _valueRetriever.OBJ(l, "'Is'") == _valueRetriever.OBJ(r, "'Is'");
 		}
 		public object EQV(object l, object r) { throw new NotImplementedException(); }
 		public object IMP(object l, object r) { throw new NotImplementedException(); }
@@ -550,8 +550,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			// If the startIndex would go past the end of valueToSearch then return zero
 			// - Since startIndex is one-based, we need to subtract one from it to perform this test
-			var valueToSearchString =  _valueRetriever.STR(valueToSearch);
-			var valueToSearchForString =  _valueRetriever.STR(valueToSearchFor);
+			var valueToSearchString = _valueRetriever.STR(valueToSearch);
+			var valueToSearchForString = _valueRetriever.STR(valueToSearchFor);
 			if (valueToSearchForString.Length + (startIndexInt - 1) > valueToSearchString.Length)
 				return 0;
 
@@ -575,7 +575,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if ((valueToSearch == null) || (valueToSearch == DBNull.Value))
 				startIndex = 1;
 			else
-				startIndex = Math.Max(1,  _valueRetriever.STR(valueToSearch).Length);
+				startIndex = Math.Max(1, _valueRetriever.STR(valueToSearch).Length);
 			return INSTRREV(valueToSearch, valueToSearchFor, startIndex);
 		}
 		public object INSTRREV(object valueToSearch, object valueToSearchFor, object startIndex) { return INSTRREV(valueToSearch, valueToSearchFor, startIndex, 0); }
@@ -610,11 +610,11 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// different substring matching logic to apply.
 			// - If the startIndex goes beyond the end of the valueToSearch then no match is allowed, similarly if the startIndex indicates a point in
 			//   the valueToSearch where there is insufficient content to match valueToSearchFor
-			var valueToSearchString =  _valueRetriever.STR(valueToSearch);
-			var valueToSearchForString =  _valueRetriever.STR(valueToSearchFor);
+			var valueToSearchString = _valueRetriever.STR(valueToSearch);
+			var valueToSearchForString = _valueRetriever.STR(valueToSearchFor);
 			if ((startIndexInt > valueToSearchString.Length) || (valueToSearchForString.Length > startIndexInt))
 				return 0;
-			
+
 			// When searching for a match, only consider the allowed substring of valueToSearch
 			var useCaseInsensitiveTextComparisonMode = (compareModeInt == 1);
 			var zeroBasedMatchIndex = valueToSearchString.Substring(0, startIndexInt).LastIndexOf(
@@ -632,7 +632,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return 0;
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).Length;
+			return _valueRetriever.STR(value).Length;
 		}
 		public object LENB(object value) { throw new NotImplementedException(); }
 		public object LEFT(object value, object maxLength)
@@ -652,7 +652,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (value == DBNull.Value)
 				return DBNull.Value;
 
-			var valueString =  _valueRetriever.STR(value);
+			var valueString = _valueRetriever.STR(value);
 			maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
 			return valueString.Substring(0, maxLengthInt);
 		}
@@ -675,7 +675,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (value == DBNull.Value)
 				return DBNull.Value;
 
-			var valueString =  _valueRetriever.STR(value);
+			var valueString = _valueRetriever.STR(value);
 			maxLengthInt = Math.Min(valueString.Length, maxLengthInt);
 			return valueString.Substring(valueString.Length - maxLengthInt);
 		}
@@ -721,7 +721,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				if (replacementIndex == -1)
 					break;
 				valueString = valueString.Substring(0, replacementIndex) + toReplaceWithString + valueString.Substring(replacementIndex + toSearchForString.Length);
-				if (maxNumberOfReplacementsNumber  != -1)
+				startIndexNumber = replacementIndex + toReplaceWithString.Length + 1;
+				if (maxNumberOfReplacementsNumber != -1)
 					maxNumberOfReplacementsNumber--;
 			}
 			return valueString;
@@ -761,7 +762,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).Trim(' ');
+			return _valueRetriever.STR(value).Trim(' ');
 		}
 		public object LTRIM(object value)
 		{
@@ -770,7 +771,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).TrimStart(' ');
+			return _valueRetriever.STR(value).TrimStart(' ');
 		}
 		public object RTRIM(object value)
 		{
@@ -779,7 +780,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).TrimEnd(' ');
+			return _valueRetriever.STR(value).TrimEnd(' ');
 		}
 		public object LCASE(object value)
 		{
@@ -788,7 +789,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).ToLower();
+			return _valueRetriever.STR(value).ToLower();
 		}
 		public object UCASE(object value)
 		{
@@ -797,7 +798,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			else if (value == DBNull.Value)
 				return DBNull.Value;
-			return  _valueRetriever.STR(value).ToUpper();
+			return _valueRetriever.STR(value).ToUpper();
 		}
 		private const string NonEscapedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./";
 		public object ESCAPE(object value)
@@ -1129,7 +1130,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			else if (arrayRank > 1)
 				throw new TypeMismatchException("'Join'");
 			return string.Join(
-				(delimiter == null) ? "" :  _valueRetriever.STR(delimiter),
+				(delimiter == null) ? "" : _valueRetriever.STR(delimiter),
 				((Array)value)
 					.Cast<object>()
 					.Select(element =>
@@ -1137,7 +1138,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						element = _valueRetriever.VAL(element, "'Join'");
 						if (element == DBNull.Value)
 							throw new TypeMismatchException("'Join'");
-						return (element == null) ? "" :  _valueRetriever.STR(element);
+						return (element == null) ? "" : _valueRetriever.STR(element);
 					})
 			);
 		}
@@ -1576,7 +1577,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			{
 				numericNumber = CLNG(number);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				throw new TypeMismatchException("Err.Raise", e);
 			}
@@ -1585,10 +1586,10 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			string sourceString, descriptionString;
 			try
 			{
-				sourceString =  _valueRetriever.STR(source);
-				descriptionString =  _valueRetriever.STR(description);
+				sourceString = _valueRetriever.STR(source);
+				descriptionString = _valueRetriever.STR(description);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				throw new TypeMismatchException("Err.Raise", e);
 			}
@@ -1605,7 +1606,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				throw new ArgumentNullException("e");
 			_trappedErrorIfAny = e;
 		}
-		
+
 		public void CLEARANYERROR()
 		{
 			// This should be called by translated code that originates from an ON ERROR GOTO 0 with no corresponding ON ERROR RESUME NEXT - the translation
@@ -1661,7 +1662,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			_activeErrorTokens[errorToken] = ErrorTokenState.OnErrorResumeNext;
 			_trappedErrorIfAny = null;
 		}
-		
+
 		public void STOPERRORTRAPPINGANDCLEARANYERROR(int errorToken)
 		{
 			if (!_activeErrorTokens.ContainsKey(errorToken))
@@ -1674,12 +1675,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		{
 			if (!_activeErrorTokens.ContainsKey(errorToken))
 				throw new Exception("This error token is not active - this indicates mismatched error token (de)registrations in the translated code");
-			
+
 			try
 			{
 				action();
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				// Translated programs shouldn't provide any actions that register or unregister error tokens, but since we've just gone off and
 				// attempted to do some unknown work, it's best to check
@@ -1705,7 +1706,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		{
 			if (valueEvaluator == null)
 				throw new ArgumentNullException("valueEvaluator");
-			
+
 			// VBScript's behaviour is quite mad here; if error-trapping is enabled when an IF condition must be evaluated, and if that evaluation results in
 			// and error being raised, then act as if the condition was met. So we default to true and then try to perform the evalaluation with HANDLEERROR.
 			// If an error is thrown and error-trapping is enabled, then true will be returned. If an error is throw an error-trapping is NOT enabled, then
@@ -1774,7 +1775,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// 1. Ensure that all values are of acceptable types (note that Empty will be parsed as a number, becoming an Int32 since it has no explicit type)
 			//    and DBNull.Value will remain as DBNull.Value
 			values = values.Select(v => _valueRetriever.VAL(v, exceptionMessageForInvalidContent)).ToArray();
-			
+
 			// 2. Determine the return type based upon all of the values types and generate a lambda that will transform an Int32 into this type
 			//    - It seems that VBScript does not do anything as simple as choosing the smallest data type (boolean, byte, Int16, Int32).. while in MOST cases it does
 			//      that (eg. boolean and Int16 => Int16, boolean and Int32 => Int32, Int16 and Int32 => Int32, boolean and Int32 => Int32) if there is a boolean and a
