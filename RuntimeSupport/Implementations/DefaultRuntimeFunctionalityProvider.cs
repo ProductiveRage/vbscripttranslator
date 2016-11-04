@@ -9,6 +9,7 @@ using Microsoft.VisualBasic;
 using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
 using System.Text;
+using System.Globalization;
 
 namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
@@ -1329,7 +1330,26 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
 			return ToClosestSecond(CDATE(value, "'Year'")).Year;
 		}
-		public object WEEKDAY(object value) { throw new NotImplementedException(); }
+		public object WEEKDAY(object value)
+		{
+			return WEEKDAY(value, VBScriptConstants.vbSunday);
+		}
+		public object WEEKDAY(object value, object firstDayOfWeek)
+		{
+			value = _valueRetriever.VAL(value, "'Weekday'");
+			if (value == DBNull.Value)
+				return DBNull.Value; // This is special case is the only real difference between the logic here and in CDATE
+			var date = ToClosestSecond(CDATE(value, "'Weekday'"));
+
+			// NOTE: VBScript weekdays go from Sunday (1) to Saturday (7) (unless overriden by firstDayOfWeek), while .NET DayOfWeek goes from Sunday (0) to Saturday (6)
+			var vbsFirstDayOfWeek = CLNG(firstDayOfWeek, "'Weekday'");
+			if (vbsFirstDayOfWeek < 0 || vbsFirstDayOfWeek > 7)
+				throw new InvalidProcedureCallOrArgumentException("'Weekday'");
+			if (vbsFirstDayOfWeek == VBScriptConstants.vbUseSystemDayOfWeek)
+				vbsFirstDayOfWeek = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek + 1;
+
+			return (((int)date.DayOfWeek + (8 - vbsFirstDayOfWeek)) % 7) + 1;
+		}
 		public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
 		public object HOUR(object value)
 		{
