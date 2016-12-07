@@ -194,7 +194,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
                     yield return new object[] { "Empty * Nothing", null, VBScriptConstants.Nothing };
 
                     yield return new object[] { "Nothing * Null", VBScriptConstants.Nothing, DBNull.Value };
-                    yield return new object[] { "Null * Nothing", VBScriptConstants.Nothing, DBNull.Value };
+                    yield return new object[] { "Null * Nothing", DBNull.Value, VBScriptConstants.Nothing };
 
                     yield return new object[] { "Nothing * 1", VBScriptConstants.Nothing, 1 };
                 }

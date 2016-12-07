@@ -13,7 +13,7 @@ namespace VBScriptTranslator.RuntimeSupport
 	{
 		// Arithemetic operators
 		double POW(object l, object r);
-		double DIV(object l, object r);
+		object DIV(object l, object r);
 		object MULT(object l, object r);
 		int INTDIV(object l, object r);
 		object MOD(object l, object r);
