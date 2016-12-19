@@ -971,20 +971,30 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						if (IsCLRTypeVBScriptValueType(a.Parameter.ParameterType))
 						{
 							var coerceToVBSValueTypeMethod = typeof(VBScriptEsqueValueRetriever).GetMethod("VAL", new[] { typeof(object), typeof(string) });
-							argumentParameterInArray = Expression.Call(Expression.Constant(this), coerceToVBSValueTypeMethod, argumentParameterInArray, Expression.Constant("GenerateGetInvoker (parameter of value type)"));
+							argumentParameterInArray = Expression.Call(
+								Expression.Constant(this),
+								coerceToVBSValueTypeMethod,
+								argumentParameterInArray,
+								Expression.Constant("GenerateGetInvoker (parameter of value type)")
+							);
 						}
 
-						return Expression.Convert(
+						return Expression.Condition(
+							Expression.TypeIs(argumentParameterInArray, a.Parameter.ParameterType),
+							Expression.Convert(argumentParameterInArray, a.Parameter.ParameterType),
 							Expression.Condition(
-								Expression.TypeIs(argumentParameterInArray, a.Parameter.ParameterType),
-								argumentParameterInArray,
-								Expression.Call(
-									changeTypeMethod,
-									argumentParameterInArray,
-									Expression.Constant(a.Parameter.ParameterType)
+								// The argument may be null (when Empty is passed in), in which case the default value for the parameter type will be used
+								Expression.Equal(argumentParameterInArray, Expression.Constant(null, typeof(object))),
+								Expression.Default(a.Parameter.ParameterType),
+								Expression.Convert(
+									Expression.Call(
+										changeTypeMethod,
+										argumentParameterInArray,
+										Expression.Constant(a.Parameter.ParameterType)
+									),
+									a.Parameter.ParameterType
 								)
-							),
-							a.Parameter.ParameterType
+							)
 						);
 					})
 					.ToArray();
@@ -996,17 +1006,22 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						var argumentParameterInArray = Expression.ArrayAccess(argumentsParameter, Expression.Constant(a.Index));
 						return (Expression)Expression.Assign(
 							a.Parameter,
-							Expression.Convert(
+							Expression.Condition(
+								Expression.TypeIs(argumentParameterInArray, a.Parameter.Type),
+								Expression.Convert(argumentParameterInArray, a.Parameter.Type),
 								Expression.Condition(
-									Expression.TypeIs(argumentParameterInArray, a.Parameter.Type),
-									argumentParameterInArray,
-									Expression.Call(
-										changeTypeMethod,
-										argumentParameterInArray,
-										Expression.Constant(a.Parameter.Type)
+									// The argument may be null (when Empty is passed in), in which case the default value for the parameter type will be used
+									Expression.Equal(argumentParameterInArray, Expression.Constant(null, typeof(object))),
+									Expression.Default(a.Parameter.Type),
+									Expression.Convert(
+										Expression.Call(
+											changeTypeMethod,
+											argumentParameterInArray,
+											Expression.Constant(a.Parameter.Type)
+										),
+										a.Parameter.Type
 									)
-								),
-								a.Parameter.Type
+								)
 							)
 						);
 					});
@@ -1214,18 +1229,23 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 								? (Expression)valueParameter
 								: Expression.ArrayAccess(argumentsParameter, Expression.Constant(index));
 						var changeTypeMethod = typeof(Convert).GetMethod("ChangeType", new[] { typeof(object), typeof(Type) });
-						return Expression.Convert(
-							Expression.Condition(
+						return Expression.Condition(
 								Expression.TypeIs(argumentExpression, arg.ParameterType),
-								argumentExpression,
-								Expression.Call(
-									changeTypeMethod,
-									argumentExpression,
-									Expression.Constant(arg.ParameterType)
+								Expression.Convert(argumentExpression, arg.ParameterType),
+								Expression.Condition(
+									// The argument may be null (when Empty is passed in), in which case the default value for the parameter type will be used
+									Expression.Equal(argumentExpression, Expression.Constant(null, typeof(object))),
+									Expression.Default(arg.ParameterType),
+									Expression.Convert(
+										Expression.Call(
+											changeTypeMethod,
+											argumentExpression,
+											Expression.Constant(arg.ParameterType)
+										),
+										arg.ParameterType
+									)
 								)
-							),
-							arg.ParameterType
-						);
+							);
 					})
 				),
 				new[]
