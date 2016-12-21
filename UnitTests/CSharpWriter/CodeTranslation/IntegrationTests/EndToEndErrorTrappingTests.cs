@@ -260,6 +260,139 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 			);
 		}
 
+		/// <summary>
+		/// An IF block within a FUNCTION that has an OERN before the block must have error-trapping around its inner statements
+		/// </summary>
+		[Fact]
+		public void IfBlockStatementsMustBeWrappedInErrorHandlingIfWithinFunctionWithOnErrorResumeNextBeforeIfBlock()
+		{
+			var source = @"
+				Function F1(ByVal value)
+					On Error Resume Next
+					If True Then
+						F1 = DateValue(value)
+					End If
+					On Error Goto 0
+				End Function
+			";
+			var expected = @"
+				public object f1(object value)
+				{
+					object retVal1 = null;
+					var errOn2 = _.GETERRORTRAPPINGTOKEN();
+					_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
+					if (_.IF(() => true, errOn2))
+					{
+						_.HANDLEERROR(errOn2, () => {
+							retVal1 = _.DATEVALUE(value);
+						});
+					}
+					_.STOPERRORTRAPPINGANDCLEARANYERROR(errOn2);
+					_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+					return retVal1;
+				}";
+			Assert.Equal(
+				SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
+		/// This is related to IfBlockStatementsMustBeWrappedInErrorHandlingIfWithinFunctionWithOnErrorResumeNextBeforeIfBlock - if the OERN comes after
+		/// the IF block then it will not affect the IF block and so the IF block does not need to consider any error-trapping (around either its own
+		/// conditional expression or its inner statements)
+		/// </summary>
+		[Fact]
+		public void IfBlockStatementsNeedNotBeWrappedInErrorHandlingIfWithinFunctionWithOnErrorResumeNextAfterIfBlock()
+		{
+			var source = @"
+				Function F1(ByVal value)
+					If True Then
+						F1 = DateValue(value)
+						Exit Function
+					End If
+					On Error Resume Next
+					F1 = Date()
+				End Function
+			";
+			var expected = @"
+				public object f1(object value)
+				{
+					object retVal1 = null;
+					var errOn2 = _.GETERRORTRAPPINGTOKEN();
+					if (_.IF(true))
+					{
+						retVal1 = _.DATEVALUE(value);
+						_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+						return retVal1;
+					}
+					_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
+					_.HANDLEERROR(errOn2, () => {
+						retVal1 = _.DATE();
+					});
+					_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+					return retVal1;
+				}";
+			Assert.Equal(
+				SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
+		/// This is related to IfBlockStatementsNeedNotBeWrappedInErrorHandlingIfWithinFunctionWithOnErrorResumeNextAfterIfBlock - if the OERN comes after
+		/// the IF block but both it and the IF block are within a looping structure (such as a FOR block) then the IF block *does* need error handling
+		/// because there is a chance that the second pass through the loop could occur with error-trapping enabled.
+		/// conditional expression or its inner statements)
+		/// </summary>
+		[Fact]
+		public void IfBlockStatementsNeedsToBeWrappedInErrorHandlingIfOnErrorResumeNextAfterComesAfterItWithinLoopingStructure()
+		{
+			// The code analysis is not clever enough to realise that the FOR block will only be executed once (since it starts and ends at 1) and so it
+			// presumes that it will be executed multiple times and so the IF block needs to be able to handle error-trapping
+			var source = @"
+				Function F1(ByVal value)
+					Dim i: For i = 1 To 1
+						If (True) Then
+							F1 = DateValue(value)
+						End If
+						On Error Resume Next
+					Next
+				End Function
+			";
+			var expected = @"
+				public object f1(object value)
+				{
+					object retVal1 = null;
+					var errOn2 = _.GETERRORTRAPPINGTOKEN();
+					object i = null;
+					i = (Int16)1;
+					while (true)
+					{
+						if (_.IF(() => true, errOn2))
+						{
+							_.HANDLEERROR(errOn2, () => {
+								retVal1 = _.DATEVALUE(value);
+							});
+						}
+						_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
+						var continueLoop3 = false;
+						_.HANDLEERROR(errOn2, () => {
+							i = _.ADD(i, (Int16)1);
+							continueLoop3 = _.StrictLTE(i, 1);
+						});
+						if (!continueLoop3)
+							break;
+					}
+					_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+					return retVal1;
+				}";
+			Assert.Equal(
+				SplitOnNewLinesSkipFirstLineAndTrimAll(expected).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
 		private static IEnumerable<string> SplitOnNewLinesSkipFirstLineAndTrimAll(string value)
 		{
 			if (value == null)
