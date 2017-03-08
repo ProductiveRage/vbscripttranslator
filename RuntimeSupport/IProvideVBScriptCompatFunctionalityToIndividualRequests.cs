@@ -104,7 +104,7 @@ namespace VBScriptTranslator.RuntimeSupport
 		int CLNG(object value);
 		float CSNG(object value);
 		string CSTR(object value);
-		string INT(object value);
+		object INT(object value);
 		string STRING(object numberOfTimesToRepeat, object character);
 
 		// - Number functions
