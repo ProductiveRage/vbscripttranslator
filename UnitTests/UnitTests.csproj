@@ -60,6 +60,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_INT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DIV.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_WEEKDAY.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_UNESCAPE.cs" />

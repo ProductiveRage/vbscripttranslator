@@ -5,12 +5,11 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.VisualBasic;
 using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
-using System.Text;
-using System.Globalization;
 
 namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
@@ -437,7 +436,38 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// Hand off all parsing here to the base valueRetriever.STR to avoid code duplication
 			return _valueRetriever.STR(value, exceptionMessageForInvalidContent);
 		}
-		public string INT(object value) { throw new NotImplementedException(); }
+		public object INT(object value)
+		{
+			value = _valueRetriever.VAL(value);
+
+			// Deal with null-like cases
+			if (value == DBNull.Value)
+				return value;
+			if (value == null)
+				return (Int16)0;
+
+			// Deal with value type that don't need changing
+			if ((value is Int16) || (value is Int32))
+				return value;
+
+			// Deal with a couple of simple case; boolean -> Int16 and Date -> Date (though without any time component)
+			if (value is bool)
+				return (Int16)((bool)value ? -1 : 0);
+			if (value is DateTime)
+				return ((DateTime)value).Date;
+			var valueWasSingle = value is Single;
+			var valueWasDecimal = value is Decimal;
+			var valueDouble = GetAsNumber<double>(value, "'Int' (" + value.ToString() + ")", Convert.ToDouble); // TODO: Appropriate exception for invalid content?
+			if (valueDouble >= 0)
+				valueDouble = Math.Floor(valueDouble);
+			else
+				valueDouble = Math.Ceiling(valueDouble);
+			if (valueWasSingle)
+				return (Single)valueDouble;
+			else if (valueWasDecimal)
+				return (Decimal)valueDouble;
+			return valueDouble;
+		}
 		public string STRING(object numberOfTimesToRepeat, object character)
 		{
 			character = _valueRetriever.VAL(character, "'String'");
@@ -1252,7 +1282,32 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		}
 		public object DATEDIFF(object value) { throw new NotImplementedException(); }
 		public object DATEPART(object value) { throw new NotImplementedException(); }
-		public object DATESERIAL(object year, object month, object date) { throw new NotImplementedException(); }
+		public object DATESERIAL(object year, object month, object date)
+		{
+			// TODO: This is not a complete implementation, it's just enough to get moving
+
+			// TODO: Implement (and write tests) for this more thoroughly - eg. (99,2,10) => 1999-2-10, (99,14,10) => 100-2-10, (2017,13,1) => 2018-1-1
+
+			var numericYear = CLNG(year);
+			var numericMonth = CLNG(month);
+			var numericDate = CLNG(date);
+
+			if ((numericMonth < 0) || (numericMonth > 12))
+			{
+				var numberOfYearsToAdd = (int)Math.Floor((double)numericMonth / 12);
+				numericYear += numberOfYearsToAdd;
+				numericMonth = numericMonth % 12;
+				if (numericMonth < 0)
+					numericMonth += 12; // For negative values (eg. -1 % 12 is -1 so need to add 12 to get to 11, -13 % 12 is also -1 so never need to add more or less than 12)
+			}
+
+			// TODO: Check days <= 0 or days > days-in-month/year
+
+			// TODO: Check small year values
+			// TODO: What about negative year values??
+
+			return new DateTime(numericYear, numericMonth, numericDate);
+		}
 		public DateTime DATEVALUE(object value)
 		{
 			// In summary, this will do a subset of the processing of CDATE (it will accept a DateTime or a parse-able string, but not a numeric value such as 123.45) and return only the date:
