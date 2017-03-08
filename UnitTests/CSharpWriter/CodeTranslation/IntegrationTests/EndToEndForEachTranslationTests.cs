@@ -3,7 +3,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndForEachTranslationTests
+	public class EndToEndForEachTranslationTests
     {
         [Fact]
         public void SimpleCaseWithoutErrorHandling()
@@ -21,7 +21,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "    if (!enumerationContent1.MoveNext())",
                 "        break;",
                 "    _env.value = enumerationContent1.Current;",
-                "    _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v2 => { _env.value = v2; }));",
+                "    _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v2 => { _env.value = v2; }));",
                 "}"
             };
             Assert.Equal(
@@ -68,7 +68,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "        _env.value = enumerationContent2.Current;",
                 "    }",
                 "    _.HANDLEERROR(errOn1, () => {",
-                "        _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
+                "        _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
                 "    });",
                 "    if (enumerationContent2 == null)",
                 "        break;",
@@ -116,7 +116,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "            break;",
                 "        _env.value = enumerationContent2.Current;",
                 "    }",
-                "    _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
+                "    _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(_env.value, v3 => { _env.value = v3; }));",
                 "    if (enumerationContent2 == null)",
                 "        break;",
                 "}",

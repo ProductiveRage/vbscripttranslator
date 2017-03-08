@@ -5,7 +5,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndConstTranslationTests
+	public class EndToEndConstTranslationTests
     {
         [Fact]
         public void RepeatedConstNameInSameScopeResultsInNameRedefinedError()
@@ -123,7 +123,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             ";
             var expected = @"
                 _outer.a = 1;
-                _.CALL(_outer, ""F1"", _.ARGS.Val(_outer.a));
+                _.CALL(this, _outer, ""F1"", _.ARGS.Val(_outer.a));
                 public object f1(ref object a)
                 {
                     return null;

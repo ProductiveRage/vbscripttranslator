@@ -257,9 +257,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Equal(
 				new PseudoField { value = "value:F1" },
 				_.CALL(
-					new PseudoRecordset(),
-					new[] { "fields" },
-					_.ARGS.Val("F1")
+					context: null,
+					target: new PseudoRecordset(),
+					members: new[] { "fields" },
+					argumentProviderBuilder: _.ARGS.Val("F1")
 				),
 				new PseudoFieldObjectComparer()
 			);
@@ -272,9 +273,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Equal(
 				new PseudoField { value = "value:F1" },
 				_.CALL(
-					new PseudoRecordset(),
-					new string[0],
-					_.ARGS.Val("F1")
+					context: null,
+					target: new PseudoRecordset(),
+					members: new string[0],
+					argumentProviderBuilder: _.ARGS.Val("F1")
 				),
 				new PseudoFieldObjectComparer()
 			);
@@ -294,9 +296,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Equal(
 				recordset.Fields["name"],
 				_.CALL(
-					recordset,
-					new[] { "fields" },
-					_.ARGS.Val("name")
+					context: null,
+					target: recordset,
+					members: new[] { "fields" },
+					argumentProviderBuilder: _.ARGS.Val("name")
 				),
 				new ADOFieldObjectComparer()
 			);
@@ -316,9 +319,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Equal(
 				recordset.Fields["name"],
 				_.CALL(
-					recordset,
-					new string[0],
-					_.ARGS.Val("name")
+					context: null,
+					target: recordset,
+					members: new string[0],
+					argumentProviderBuilder: _.ARGS.Val("name")
 				),
 				new ADOFieldObjectComparer()
 			);
@@ -345,9 +349,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 				"TestName",
 				_.VAL(
 					_.CALL(
-						recordset,
-						new string[0],
-						_.ARGS.Val("name")
+						context: null,
+						target: recordset,
+						members: new string[0],
+						argumentProviderBuilder: _.ARGS.Val("name")
 					)
 				)
 			);
@@ -361,9 +366,10 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Equal(
 				"One",
 				_.CALL(
-					data,
-					new string[0],
-					_.ARGS.Val("0")
+					context: null,
+					target: data,
+					members: new string[0],
+					argumentProviderBuilder: _.ARGS.Val("0")
 				)
 			);
 		}
@@ -373,7 +379,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		{
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 			object arg0 = 1;
-			_.CALL(this, "ByRefArgUpdatingFunction", _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(false));
+			_.CALL(context: null, target: this, member1: "ByRefArgUpdatingFunction", argumentProviderBuilder: _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(false));
 			Assert.Equal(123, arg0);
 		}
 
@@ -384,7 +390,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			object arg0 = 1;
 			try
 			{
-				_.CALL(this, "ByRefArgUpdatingFunction", _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(true));
+				_.CALL(context: null, target: this, member1: "ByRefArgUpdatingFunction", argumentProviderBuilder: _.ARGS.Ref(arg0, v => { arg0 = v; }).Val(true));
 			}
 			catch { }
 			Assert.Equal(123, arg0);
@@ -394,21 +400,21 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		public void SingleArgumentParamsArrayMethodMayBeCalledWithZeroValues()
 		{
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
-			Assert.Equal(0, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS));
+			Assert.Equal(0, _.CALL(context: null, target: this, member1: "GetNumberOfArgumentsPassedInParamsObjectArray", argumentProviderBuilder: _.ARGS));
 		}
 
 		[Fact]
 		public void SingleArgumentParamsArrayMethodMayBeCalledWithSingleValue()
 		{
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
-			Assert.Equal(1, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS.Val(1)));
+			Assert.Equal(1, _.CALL(context: null, target: this, member1: "GetNumberOfArgumentsPassedInParamsObjectArray", argumentProviderBuilder: _.ARGS.Val(1)));
 		}
 
 		[Fact]
 		public void SingleArgumentParamsArrayMethodMayBeCalledWithTwoValues()
 		{
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
-			Assert.Equal(2, _.CALL(this, "GetNumberOfArgumentsPassedInParamsObjectArray", _.ARGS.Val(1).Val(2)));
+			Assert.Equal(2, _.CALL(context: null, target: this, member1: "GetNumberOfArgumentsPassedInParamsObjectArray", argumentProviderBuilder: _.ARGS.Val(1).Val(2)));
 		}
 
 		public void ByRefArgUpdatingFunction(ref object arg0, bool throwExceptionAfterUpdatingArgument)
@@ -435,7 +441,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 			Assert.Equal(
 				"Success!",
-				_.CALL(new ImpressionOfTranslatedClassWithRewrittenPropertyName(), "Params")
+				_.CALL(context: null, target: new ImpressionOfTranslatedClassWithRewrittenPropertyName(), member1: "Params")
 			);
 		}
 
@@ -445,7 +451,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var parameterLessDelegate = (Func<object>)(() => "delegate result");
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 			Assert.Throws<TargetParameterCountException>(
-				() => _.CALL(parameterLessDelegate, new string[0], _.ARGS.Val(1).GetArgs())
+				() => _.CALL(context: null, target: parameterLessDelegate, members: new string[0], argumentProvider: _.ARGS.Val(1).GetArgs())
 			);
 		}
 
@@ -457,7 +463,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		{
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 			Assert.Throws<TypeMismatchException>(
-				() => _.CALL("abc", new string[0], _.ARGS.Val(0).GetArgs())
+				() => _.CALL(context: null, target: "abc", members: new string[0], argumentProvider: _.ARGS.Val(0).GetArgs())
 			);
 		}
 
@@ -483,7 +489,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var valueTypeValueToRecord = 123;
 			using (var _ = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
 			{
-				_.SET(valueTypeValueToRecord, dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
+				_.SET(valueTypeValueToRecord, context: dict, target: dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
 			}
 		}
 
@@ -495,9 +501,18 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var referenceTypeValueToRecord = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
 			using (var _ = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
 			{
-				_.SET(referenceTypeValueToRecord, dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
+				_.SET(referenceTypeValueToRecord, context: dict, target: dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("ACCO"));
 			}
 		}
+
+		// TODO: CALL private member when context is not instance of owning class
+		// TODO: CALL private member when context IS instance of owning class
+
+		// TODO: SET private member when context is not instance of owning class
+		// TODO: SET private member when context IS instance of owning class
+
+		// TODO: Ref tests (ensure pass context)
+		// TODO: RefIfArray tests (ensure pass context)
 
 		[ComVisible(true)]
 		private class DispIdZeroRepeatedOnPropertyAndItsGetter
@@ -529,17 +544,19 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 
 			object objField = _.CALL(
-				recordset,
-				new string[0],
-				_.ARGS.Val("name")
+				context: null,
+				target: recordset,
+				members: new string[0],
+				argumentProviderBuilder: _.ARGS.Val("name")
 			);
 
 			Assert.Equal(
 				"TestName",
 				_.CALL(
-					this,
-					"MockMethodReturningInputString",
-					_.ARGS.Ref(objField, v => { objField = v; })
+					context: null,
+					target: this,
+					member1: "MockMethodReturningInputString",
+					argumentProviderBuilder: _.ARGS.Ref(objField, v => { objField = v; })
 				)
 			);
 		}
@@ -556,7 +573,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var args = _.ARGS;
 			if (useBracketsWhereZeroArguments)
 				args = args.ForceBrackets();
-			Assert.Equal(expectedResult, _.CALL(target, memberAccessors, args.GetArgs()));
+			Assert.Equal(expectedResult, _.CALL(context: null, target: target, members: memberAccessors, argumentProvider: args.GetArgs()));
 		}
 
 		[Theory, MemberData("ZeroArgumentBracketFailData")]
@@ -566,7 +583,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var args = _.ARGS;
 			if (useBracketsWhereZeroArguments)
 				args = args.ForceBrackets();
-			Assert.Throws(exceptionType, () => _.CALL(target, memberAccessors, args.GetArgs()));
+			Assert.Throws(exceptionType, () => _.CALL(context: null, target: target, members: memberAccessors, argumentProvider: args.GetArgs()));
 		}
 
 		public static IEnumerable<object[]> ZeroArgumentBracketSuccessData

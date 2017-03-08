@@ -116,7 +116,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
 					public void class_terminate()
 					{
-                        _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""Gone!""));
+						_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(""Gone!""));
 					}
 				}";
 			Assert.Equal(
@@ -168,7 +168,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 
 					public void class_initialize()
 					{
-						_.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""Here!""));
+						_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(""Here!""));
 					}
 				}";
 			Assert.Equal(
@@ -177,6 +177,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 			);
 		}
 
+		// TODO: Need test here that has property that is set to a value in Class_Initialize
 		[Fact]
 		public void ClassInitializeCallHappensAfterFieldsSetToNull()
 		{
@@ -310,7 +311,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 					public object name()
 					{
 						object retVal1 = null;
-                        _.CALL(_env.wscript, ""Echo"", _.ARGS.Val(""get_Name""));
+						_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(""get_Name""));
 						retVal1 = ""C1"";
 						return retVal1;
 					}
@@ -447,7 +448,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 					}
 					public void name(ref object value)
 					{
-                        _.SET(""C1"", this, ""Name"");
+						_.SET(""C1"", this, this, ""Name"");
 					}
 				}";
 			Assert.Equal(

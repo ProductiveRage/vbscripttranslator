@@ -17,7 +17,7 @@ namespace VBScriptTranslator.RuntimeSupport
         /// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
         /// argument which was the result of the first call.
         /// </summary>
-        object CALL(object target, IEnumerable<string> members, IProvideCallArguments argumentProvider);
+        object CALL(object context, object target, IEnumerable<string> members, IProvideCallArguments argumentProvider);
         
         /// <summary>
         /// This will throw an exception for null target or arguments references or if the setting fails (eg. invalid number of arguments,
@@ -27,7 +27,7 @@ namespace VBScriptTranslator.RuntimeSupport
         /// comes before any others since VBScript will evaulate the right-hand side of the assignment before the left, which may be important
         /// if an error is raised at some point in the operation.
         /// </summary>
-        void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider);
+        void SET(object valueToSetTo, object context, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider);
 
         /// <summary>
         /// This will never throw an exception, a value is either considered by VBScript to be a value type (including values such as Empty,

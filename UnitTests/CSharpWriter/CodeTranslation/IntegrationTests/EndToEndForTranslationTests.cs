@@ -3,7 +3,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndForTranslationTests
+	public class EndToEndForTranslationTests
     {
         [Fact]
         public void AscendingLoopWithImplicitStep()
@@ -290,7 +290,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "   while (true)",
                 "   {",
                 "       _.HANDLEERROR(errOn1, () => {",
-                "           _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
+                "           _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(_env.i, v5 => { _env.i = v5; }));",
                 "       });",
                 "       if (!loopConstraintsInitialised4)",
                 "           break;",
@@ -334,7 +334,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "while (true)",
                 "{",
                 "   _.HANDLEERROR(errOn1, () => {",
-                "       _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",
+                "       _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(_env.i, v2 => { _env.i = v2; }));",
                 "   });",
                 "   var continueLoop3 = false;",
                 "   _.HANDLEERROR(errOn1, () => {",
@@ -438,7 +438,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                 "    object i = null; /* Undeclared in source */",
                 "    for (i = (Int16)1; _.StrictLTE(i, 5); i = _.ADD(i, (Int16)1))",
                 "    {",
-                "        _.CALL(_env.wscript, \"Echo\", _.ARGS.Ref(j, v2 => { j = v2; }));",
+                "        _.CALL(this, _env.wscript, \"Echo\", _.ARGS.Ref(j, v2 => { j = v2; }));",
                 "    }",
                 "    return retVal1;",
                 "}"

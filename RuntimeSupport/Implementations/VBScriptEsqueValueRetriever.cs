@@ -9,7 +9,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading;
 using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
 
@@ -201,7 +200,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (o == null)
 				throw new ArgumentNullException("o");
 
-			return InvokeGetter(o, null, new object[0], onlyConsiderMethods: false);
+			return InvokeGetter(o, null, new object[0], allowPrivateAccess: false, onlyConsiderMethods: false);
 		}
 
 		/// <summary>
@@ -650,7 +649,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		/// require nested CALL executions, one with target "Test" and a single argument "0" and a second with target "a" and a single
 		/// argument which was the result of the first call.
 		/// </summary>
-		public object CALL(object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
+		public object CALL(object context, object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
 		{
 			if (members == null)
 				throw new ArgumentNullException("members");
@@ -662,7 +661,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			var arguments = argumentProvider.GetInitialValues().ToArray();
 			try
 			{
-				return CALL(target, members, arguments, argumentProvider.UseBracketsWhereZeroArguments);
+				return CALL(context, target, members, arguments, argumentProvider.UseBracketsWhereZeroArguments);
 			}
 			finally
 			{
@@ -675,7 +674,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		/// <summary>
 		/// Note: The arguments array elements may be mutated if the call target has "ref" method arguments.
 		/// </summary>
-		private object CALL(object target, IEnumerable<string> members, object[] arguments, bool useBracketsWhereZeroArguments)
+		private object CALL(object context, object target, IEnumerable<string> members, object[] arguments, bool useBracketsWhereZeroArguments)
 		{
 			if (members == null)
 				throw new ArgumentNullException("members");
@@ -747,8 +746,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// 2. If target implements IDispatch then try accessing the DispId zero method or property, passing the arguments
 			// 3. If it's not an IDispatch reference, then the arguments will be passed to a method or indexed property that will accept them,
 			//    taking into account the IsDefault attribute
+			var allowPrivateAccess = AllowPrivateMemberAccess(context, target);
 			if (!memberAccessorsArray.Any() && arguments.Any())
-				return InvokeGetter(target, null, arguments, onlyConsiderMethods: false);
+				return InvokeGetter(target, null, arguments, allowPrivateAccess, onlyConsiderMethods: false);
 
 			// If there are member accessors but no arguments then we walk down each member accessor, no defaults are considered
 			// - If useBracketsWhereZeroArguments is true then only consider methods in this lookup (eg. "a.Name()" in VBScript requires that "Name"
@@ -758,16 +758,16 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			//   "onlyConsiderMethods" option since it is only when there are zero arguments and the absence or presence of brackets that different
 			//   logic is required (so other calls to WalkMemberAccessors / InvokeGetter leave that option as false).
 			if (!arguments.Any())
-				return WalkMemberAccessors(target, memberAccessorsArray, onlyConsiderMethods: useBracketsWhereZeroArguments);
+				return WalkMemberAccessors(target, memberAccessorsArray, allowPrivateAccess, onlyConsiderMethods: useBracketsWhereZeroArguments);
 
 			// If there member accessors AND arguments then all-but-the-last member accessors should be walked through as argument-less lookups
 			// and the final member accessor should be a method or property call whose name matches the member accessor. Note that the arguments
 			// can never be for an array look up at this point because there are member accessors, therefor it must be a function or property.
-			target = WalkMemberAccessors(target, memberAccessorsArray.Take(memberAccessorsArray.Length - 1), onlyConsiderMethods: false);
+			target = WalkMemberAccessors(target, memberAccessorsArray.Take(memberAccessorsArray.Length - 1), allowPrivateAccess, onlyConsiderMethods: false);
 			var finalMemberAccessor = memberAccessorsArray[memberAccessorsArray.Length - 1];
 			if (target == null)
 				throw new ArgumentException("Unable to access member \"" + finalMemberAccessor + "\" on null reference");
-			return InvokeGetter(target, finalMemberAccessor, arguments, onlyConsiderMethods: false);
+			return InvokeGetter(target, finalMemberAccessor, arguments, allowPrivateAccess, onlyConsiderMethods: false);
 		}
 
 		/// <summary>
@@ -778,7 +778,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		/// comes before any others since VBScript will evaulate the right-hand side of the assignment before the left, which may be important
 		/// if an error is raised at some point in the operation.
 		/// </summary>
-		public void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
+		public void SET(object valueToSetTo, object context, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
@@ -789,11 +789,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if ((optionalMemberAccessor == null) && !arguments.Any())
 				throw new ArgumentException("This must be called with a non-null optionalMemberAccessor and/or one or more arguments, null optionalMemberAccessor and zero arguments is not supported");
 
-			var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, arguments.Length, onlyConsiderMethods: false);
+			var allowPrivateAccess = AllowPrivateMemberAccess(context, target);
+			var cacheKey = new InvokerCacheKey(target.GetType(), optionalMemberAccessor, arguments.Length, allowPrivateAccess, onlyConsiderMethods: false);
 			SetInvoker invoker;
 			if (!_setInvokerCache.TryGetValue(cacheKey, out invoker))
 			{
-				invoker = GenerateSetInvoker(target, optionalMemberAccessor, arguments);
+				invoker = GenerateSetInvoker(target, optionalMemberAccessor, arguments, allowPrivateAccess);
 				_setInvokerCache.TryAdd(cacheKey, invoker);
 			}
 			invoker(target, arguments, valueToSetTo);
@@ -801,28 +802,40 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				argumentProvider.OverwriteValueIfByRef(index, arguments[index]);
 		}
 
+		private static bool AllowPrivateMemberAccess(object contextIfAny, object target)
+		{
+			if (target == null)
+				throw new ArgumentNullException(nameof(target));
+
+			// When one translated-from-VBScript class needs to call a translated-from-VBScript class, we need to know whether it's acceptable for it
+			// to access private members - this essentially boils down to "are they the same type?" (we don't need to worry about inheritance and we
+			// don't need to worry about protected vs private because this is ONLY for one from-VBScript instance talking to another or itself, and
+			// from-VBScript classes aren't generated that use inheritance)
+			return (contextIfAny != null) && (contextIfAny.GetType() == target.GetType());
+		}
+
 		/// <summary>
 		/// The arguments set must be an array since its contents may be mutated if the call target has "ref" parameters
 		/// </summary>
-		private object InvokeGetter(object target, string optionalName, object[] arguments, bool onlyConsiderMethods)
+		private object InvokeGetter(object target, string optionalName, object[] arguments, bool allowPrivateAccess, bool onlyConsiderMethods)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
 			if (arguments == null)
 				throw new ArgumentNullException("arguments");
 
-			var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, arguments.Length, onlyConsiderMethods);
+			var cacheKey = new InvokerCacheKey(target.GetType(), optionalName, arguments.Length, allowPrivateAccess, onlyConsiderMethods);
 			GetInvoker invoker;
 			if (!_getInvokerCache.TryGetValue(cacheKey, out invoker))
 			{
-				invoker = GenerateGetInvoker(target, optionalName, arguments, onlyConsiderMethods);
+				invoker = GenerateGetInvoker(target, optionalName, arguments, allowPrivateAccess, onlyConsiderMethods);
 				_getInvokerCache.TryAdd(cacheKey, invoker);
 			}
 			return invoker(target, arguments);
 		}
 
 		private delegate object GetInvoker(object target, object[] arguments);
-		private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments, bool onlyConsiderMethods)
+		private GetInvoker GenerateGetInvoker(object target, string optionalName, IEnumerable<object> arguments, bool allowPrivateAccess, bool onlyConsiderMethods)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
@@ -906,9 +919,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					// to wrap that up into a "Type mismatch" error. But it's possible that the member was called with correctly-typed
 					// arguments and the InvalidCastException originated from an operation inside it. There's no way to know so it's
 					// better to err on the side of caution and not try to wrap up that error.
+					var invokeAttributes = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.InvokeMethod | BindingFlags.GetProperty | BindingFlags.IgnoreCase | BindingFlags.OptionalParamBinding;
+					if (allowPrivateAccess)
+						invokeAttributes = invokeAttributes | BindingFlags.NonPublic;
 					return ((IReflect)invokeTarget).InvokeMember(
 						optionalName ?? "[DISPID=0]",
-						BindingFlags.InvokeMethod | BindingFlags.GetProperty | BindingFlags.IgnoreCase | BindingFlags.OptionalParamBinding,
+						invokeAttributes,
 						binder: null,
 						target: invokeTarget,
 						args: invokeArguments,
@@ -924,9 +940,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			MethodInfo method;
 			if (optionalName == null)
-				method = GetDefaultGetMethods(targetType, argumentsArray.Length).FirstOrDefault();
+				method = GetDefaultGetMethods(targetType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			else
-				method = GetNamedGetMethods(targetType, optionalName, argumentsArray.Length).FirstOrDefault();
+				method = GetNamedGetMethods(targetType, optionalName, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalName);
 
@@ -1101,7 +1117,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		}
 
 		private delegate void SetInvoker(object target, object[] arguments, object value);
-		private SetInvoker GenerateSetInvoker(object target, string optionalMemberAccessor, IEnumerable<object> arguments)
+		private SetInvoker GenerateSetInvoker(object target, string optionalMemberAccessor, IEnumerable<object> arguments, bool allowPrivateAccess)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
@@ -1184,6 +1200,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (target is IReflect)
 			{
+				// TODO: Check allowPrivateAccess
 				return (invokeTarget, invokeArguments, value) =>
 				{
 					((IReflect)invokeTarget).InvokeMember(
@@ -1205,12 +1222,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				// If there is a non-null optionalMemberAccessor but no arguments then try setting the non-indexed property, no defaults considered.
 				// If there is a non-null optionalMemberAccessor and there are arguments then no defaults are considered and the member accessor
 				// must be an indexed property, it can not be an array (see note above about the only place that array access is permitted).
-				method = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length).FirstOrDefault();
+				method = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			}
 			else
 			{
 				// Try accessing a default indexed property (either a a native C# property or a method with IsDefault and TranslatedProperty attributes)
-				method = GetDefaultSetMethods(targetType, argumentsArray.Length).FirstOrDefault();
+				method = GetDefaultSetMethods(targetType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			}
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalMemberAccessor);
@@ -1362,7 +1379,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			return (int)Math.Round(value, MidpointRounding.ToEven); // This is what effectively what VBScript does
 		}
 
-		private object WalkMemberAccessors(object target, IEnumerable<string> memberAccessors, bool onlyConsiderMethods)
+		private object WalkMemberAccessors(object target, IEnumerable<string> memberAccessors, bool allowPrivateAccess, bool onlyConsiderMethods)
 		{
 			if (target == null)
 				throw new ArgumentNullException("target");
@@ -1378,32 +1395,32 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				if (target == null)
 					throw new ArgumentException("Unable to access member \"" + memberAccessor + "\" on null reference");
 
-				target = InvokeGetter(target, memberAccessor, new object[0], onlyConsiderMethods);
+				target = InvokeGetter(target, memberAccessor, new object[0], allowPrivateAccess, onlyConsiderMethods);
 			}
 			return target;
 		}
 
-		private IEnumerable<MethodInfo> GetDefaultGetMethods(Type type, int numberOfArguments)
+		private IEnumerable<MethodInfo> GetDefaultGetMethods(Type type, int numberOfArguments, bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
 			if (numberOfArguments < 0)
 				throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
-			return GetGetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
+			return GetGetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments, allowPrivateAccess);
 		}
 
-		private IEnumerable<MethodInfo> GetDefaultSetMethods(Type type, int numberOfArguments)
+		private IEnumerable<MethodInfo> GetDefaultSetMethods(Type type, int numberOfArguments, bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
 			if (numberOfArguments < 0)
 				throw new ArgumentOutOfRangeException("numberOfArguments", "must be zero or greater");
 
-			return GetSetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments);
+			return GetSetMethods(type, null, DefaultMemberBehaviourOptions.MustBeDefault, MemberNameMatchBehaviourOptions.Precise, numberOfArguments, allowPrivateAccess);
 		}
 
-		private IEnumerable<MethodInfo> GetNamedGetMethods(Type type, string name, int numberOfArguments)
+		private IEnumerable<MethodInfo> GetNamedGetMethods(Type type, string name, int numberOfArguments, bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
@@ -1415,16 +1432,16 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// There the nameRewriter WILL be considered in case it's trying to access classes we've translated. However, there's also a chance that
 			// we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedGetMethods will try to match using the nameRewriter first and
 			// then fallback to a perfect match non-rewritten name and finally to a case-insensitive match to a non-rewritten name.
-			return GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
+			return GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments, allowPrivateAccess)
 				.Concat(
-					GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
+					GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments, allowPrivateAccess)
 				)
 				.Concat(
-					GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
+					GetGetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments, allowPrivateAccess)
 				);
 		}
 
-		private IEnumerable<MethodInfo> GetNamedSetMethods(Type type, string name, int numberOfArguments)
+		private IEnumerable<MethodInfo> GetNamedSetMethods(Type type, string name, int numberOfArguments, bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
@@ -1436,12 +1453,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// There the nameRewriter WILL be considered in case it's trying to access classes we've translated. However, there's also a chance that
 			// we could be accessing a non-IDispatch CLR type from somewhere, so GetNamedGetMethods will try to match using the nameRewriter first and
 			// then fallback to a perfect match non-rewritten name and finally to a case-insensitive match to a non-rewritten name.
-			return GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments)
+			return GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.UseNameRewriter, numberOfArguments, allowPrivateAccess)
 				.Concat(
-					GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments)
+					GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.Precise, numberOfArguments, allowPrivateAccess)
 				)
 				.Concat(
-					GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments)
+					GetSetMethods(type, name, DefaultMemberBehaviourOptions.DoesNotMatter, MemberNameMatchBehaviourOptions.CaseInsensitive, numberOfArguments, allowPrivateAccess)
 				);
 		}
 
@@ -1450,7 +1467,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			string optionalName,
 			DefaultMemberBehaviourOptions defaultMemberBehaviour,
 			MemberNameMatchBehaviourOptions memberNameMatchBehaviour,
-			int numberOfArguments)
+			int numberOfArguments,
+			bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
@@ -1504,7 +1522,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			var typeIsComVisible = TypeIsComVisible(type);
 			var typeHasAnyDispIdZeroMember = AnyDispIdZeroMemberExists(type);
 			var typeHasAmbiguousDispIdZeroMember = typeHasAnyDispIdZeroMember && DispIdZeroIsAmbiguous(type);
-			var allMethods = GetMethodsThatAreNotRelatedToProperties(type);
+			var allMethods = GetMethodsThatAreNotRelatedToProperties(type, allowPrivateAccess);
 			Predicate<MethodInfo> matchesArgumentCount = m =>
 			{
 				// Add some crude support for params array arguments - only dealing with the case where the target method has a single argument of type
@@ -1562,7 +1580,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			string optionalName,
 			DefaultMemberBehaviourOptions defaultMemberBehaviour,
 			MemberNameMatchBehaviourOptions memberNameMatchBehaviour,
-			int numberOfArguments)
+			int numberOfArguments,
+			bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
@@ -1575,10 +1594,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			var nameMatcher = (optionalName != null) ? GetNameMatcher(optionalName, memberNameMatchBehaviour) : (name => true);
 			return
-				GetMethodsThatAreNotRelatedToProperties(type)
+				GetMethodsThatAreNotRelatedToProperties(type, allowPrivateAccess)
 					.Where(m => nameMatcher(m.Name))
 					.Where(m => m.GetParameters().Length == (numberOfArguments + 1)) // Method takes property arguments plus one for the value
-					.Where(m => m.GetCustomAttributes(true).Cast<Attribute>().Any(a => a is TranslatedProperty))
 					.Where(m =>
 						(defaultMemberBehaviour == DefaultMemberBehaviourOptions.DoesNotMatter) ||
 						IsDefaultMember(m) ||
@@ -1598,12 +1616,15 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				);
 		}
 
-		private IEnumerable<MethodInfo> GetMethodsThatAreNotRelatedToProperties(Type type)
+		private IEnumerable<MethodInfo> GetMethodsThatAreNotRelatedToProperties(Type type, bool allowPrivateAccess)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
 
-			return type.GetMethods() // This gets all public methods, whether they're declared in the specified type or anywhere in its inheritance tree
+			var bindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static; // This gets all public methods, whether they're declared in the specified type or anywhere in its inheritance tree
+			if (allowPrivateAccess)
+				bindingFlags = bindingFlags | BindingFlags.NonPublic;
+			return type.GetMethods(bindingFlags)
 				.Except(type.GetProperties().Where(p => p.CanRead).Select(p => p.GetGetMethod()))
 				.Except(type.GetProperties().Where(p => p.CanWrite).Select(p => p.GetSetMethod()));
 		}
@@ -1763,7 +1784,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		private sealed class InvokerCacheKey
 		{
 			private readonly int _hashCode;
-			public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments, bool onlyConsiderMethods)
+			public InvokerCacheKey(object targetType, string optionalName, int numberOfArguments, bool allowPrivateAccess, bool onlyConsiderMethods)
 			{
 				if (targetType == null)
 					throw new ArgumentNullException("targetType");
@@ -1773,25 +1794,37 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				TargetType = targetType;
 				OptionalName = optionalName;
 				NumberOfArguments = numberOfArguments;
+				AllowPrivateAccess = allowPrivateAccess;
 				OnlyConsiderMethods = onlyConsiderMethods;
 
-				_hashCode = (TargetType.ToString() + "\n" + (optionalName ?? "") + "\n" + numberOfArguments.ToString() + "\n" + onlyConsiderMethods).GetHashCode();
+				// Courtesy of http://stackoverflow.com/a/263416/3813189
+				unchecked // Overflow is fine, just wrap
+				{
+					_hashCode = (int)2166136261;
+					_hashCode = (_hashCode * 16777619) ^ TargetType.GetHashCode();
+					_hashCode = (_hashCode * 16777619) ^ ((OptionalName == null) ? 0 : OptionalName.GetHashCode());
+					_hashCode = (_hashCode * 16777619) ^ NumberOfArguments;
+					_hashCode = (_hashCode * 16777619) ^ AllowPrivateAccess.GetHashCode();
+					_hashCode = (_hashCode * 16777619) ^ OnlyConsiderMethods.GetHashCode();
+				}
 			}
 
 			/// <summary>
 			/// This will never be null
 			/// </summary>
-			public object TargetType { get; private set; }
+			public object TargetType { get; }
 
 			/// <summary>
 			/// This is optional and may be null
 			/// </summary>
-			public string OptionalName { get; private set; }
+			public string OptionalName { get; }
 
 			/// <summary>
 			/// This will always be zero or greater
 			/// </summary>
-			public int NumberOfArguments { get; private set; }
+			public int NumberOfArguments { get; }
+
+			public bool AllowPrivateAccess { get; }
 
 			/// <summary>
 			/// Some member accesses will only consider methods - eg. "a.Name()" requires that "Name" be a method rather than a property on external references. Note
@@ -1799,7 +1832,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			/// will retrieve its value, as "a.Name" will. But if "a" is an IDispatch reference then it will only be queried for methods, so if it has a "Name" property
 			/// then the call will fail if the interface does not also expose that property as a method.
 			/// </summary>
-			public bool OnlyConsiderMethods { get; private set; }
+			public bool OnlyConsiderMethods { get; }
 
 			public override int GetHashCode()
 			{
@@ -1808,15 +1841,15 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			public override bool Equals(object obj)
 			{
-				if (obj == null)
-					throw new ArgumentNullException("obj");
 				var cacheKey = obj as InvokerCacheKey;
 				if (cacheKey == null)
 					return false;
 				return (
 					(TargetType == cacheKey.TargetType) &&
 					(OptionalName == cacheKey.OptionalName) &&
-					(NumberOfArguments == cacheKey.NumberOfArguments)
+					(NumberOfArguments == cacheKey.NumberOfArguments) &&
+					(AllowPrivateAccess == cacheKey.AllowPrivateAccess) &&
+					(OnlyConsiderMethods == cacheKey.OnlyConsiderMethods)
 				);
 			}
 		}

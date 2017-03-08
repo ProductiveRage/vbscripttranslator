@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace VBScriptTranslator.RuntimeSupport.Implementations
 {
-    public class DefaultCallArgumentProvider : IBuildCallArgumentProviders
+	public class DefaultCallArgumentProvider : IBuildCallArgumentProviders
     {
         private readonly List<Tuple<object, Action<object>>> _valuesWithUpdatesWhereRequired;
 		private readonly IAccessValuesUsingVBScriptRules _vbscriptValueAccessor;
@@ -59,6 +59,12 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (argumentProvidersArray.Any(p => p.NumberOfArguments == 0))
 				throw new ArgumentException("There may not be any argument providers with zero arguments");
 
+			// We need to pass a context reference to CALL and SET but we know that we're only interested in public members (which includes the
+			// case of an array indexer, which is public) so we can set context as null since we don't need to set it to anything more interesting
+			// (we don't need to have a reference to the caller in case any private members may be accessed because we're not going to access any
+			// private members)
+			object context = null;
+
 			// Process all but the last set of argument providers, updating target with each call. If at any point target is not an array
 			// then the final value will be passed ByVal (since there must be a function or property access involved, the result of which
 			// is never passed ByRef).
@@ -67,7 +73,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			{
 				if (!target.GetType().IsArray)
 					passByVal = true;
-				target = _vbscriptValueAccessor.CALL(target, new string[0], argumentProvidersArray[index]);
+				target = _vbscriptValueAccessor.CALL(context, target, new string[0], argumentProvidersArray[index]);
 			}
 			if (!target.GetType().IsArray)
 				passByVal = true;
@@ -75,7 +81,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// Process the final arguments to get the value that should actually be passed as the argument. If we've determined that this
 			// value should be passed ByVal then hand straight off to the Val method.
 			var lastArgumentProvider = argumentProvidersArray.Last();
-            var valueForArgument = _vbscriptValueAccessor.CALL(target, new string[0], lastArgumentProvider);
+            var valueForArgument = _vbscriptValueAccessor.CALL(context, target, new string[0], lastArgumentProvider);
 			if (passByVal)
 				return Val(valueForArgument);
 
@@ -86,7 +92,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// interface is to allow that to occur where necessary).
 			return Ref(
 				valueForArgument,
-				v => _vbscriptValueAccessor.SET(v, target, null, lastArgumentProvider)
+				v => _vbscriptValueAccessor.SET(v, context, target, null, lastArgumentProvider)
 			);
         }
 

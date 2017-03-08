@@ -5,7 +5,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndEraseTranslationTests
+	public class EndToEndEraseTranslationTests
     {
         [Theory, MemberData("SuccessData")]
         public void SuccessCases(string description, string source, string[] expected)
@@ -37,7 +37,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     "Error if the target is known not to be a variable",
                     "ERASE a\nFUNCTION a\nEND FUNCTION",
                     new[] {
-                        "var invalidEraseTarget1 = _.CALL(_outer, \"a\");",
+                        "var invalidEraseTarget1 = _.CALL(this, _outer, \"a\");",
                         "throw new TypeMismatchException(\"'Erase' (line 1)\");",
                         "public object a()",
                         "{",
@@ -49,7 +49,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     "Error if the target is known not to be a variable (takes precedence over other ERASE a() error case)",
                     "ERASE a()\nFUNCTION a\nEND FUNCTION",
                     new[] {
-                        "var invalidEraseTarget1 = _.CALL(_outer, \"a\", _.ARGS.ForceBrackets());",
+                        "var invalidEraseTarget1 = _.CALL(this, _outer, \"a\", _.ARGS.ForceBrackets());",
                         "throw new TypeMismatchException(\"'Erase' (line 1)\");",
                         "public object a()",
                         "{",
@@ -82,7 +82,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
                     "Member access target",
                     "ERASE a.Name",
                     new[] {
-                        "var invalidEraseTarget1 = _.CALL(_env.a, \"Name\");",
+                        "var invalidEraseTarget1 = _.CALL(this, _env.a, \"Name\");",
                         "throw new TypeMismatchException(\"'Erase' (line 1)\");"
                     }
                 };

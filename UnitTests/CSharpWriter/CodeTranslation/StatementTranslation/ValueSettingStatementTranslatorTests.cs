@@ -1,8 +1,8 @@
-﻿using VBScriptTranslator.CSharpWriter.CodeTranslation;
+﻿using System;
+using VBScriptTranslator.CSharpWriter.CodeTranslation;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using VBScriptTranslator.CSharpWriter.Lists;
 using VBScriptTranslator.CSharpWriter.Logging;
-using System;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
@@ -11,7 +11,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTranslation
 {
-    public class ValueSettingStatementTranslatorTests
+	public class ValueSettingStatementTranslatorTests
 	{
         [Fact]
         public void UndeclaredSimpleValueTypeUpdate()
@@ -84,7 +84,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _env.a, \"b\")",
+				"_.SET((Int16)1, this, _env.a, \"b\")",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -148,7 +148,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _outer.a, null, _.ARGS.Val((Int16)1))",
+				"_.SET((Int16)1, this, _outer.a, null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeVariable(
@@ -185,7 +185,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _env.a, null, _.ARGS.Val((Int16)1))",
+				"_.SET((Int16)1, this, _env.a, null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -218,7 +218,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _.RAISEERROR(new IllegalAssignmentException(\"'a'\")), null, _.ARGS.Val((Int16)1))",
+				"_.SET((Int16)1, this, _.RAISEERROR(new IllegalAssignmentException(\"'a'\")), null, _.ARGS.Val((Int16)1))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(
@@ -291,7 +291,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new CloseBrace(0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_env.a = _.VAL(_.CALL(_, \"CDATE\", _.ARGS.Val(_env.a).Val(_env.b)))",
+                "_env.a = _.VAL(_.CALL(this, _, \"CDATE\", _.ARGS.Val(_env.a).Val(_env.b)))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0), new NameToken("b", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -376,7 +376,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _.RAISEERROR(new TypeMismatchException(\"'a'\")))",
+				"_.SET((Int16)1, this, _.RAISEERROR(new TypeMismatchException(\"'a'\")))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("a", 0) })
             );
             var scopeAccessInformation = GetEmptyScopeAccessInformation();
@@ -408,7 +408,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, _.RAISEERROR(new TypeMismatchException(\"'F1'\")))",
+				"_.SET((Int16)1, this, _.RAISEERROR(new TypeMismatchException(\"'F1'\")))",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("F1", 0) })
             );
             var scopeAccessInformation = AddOutermostScopeFunction(GetEmptyScopeAccessInformation(), "F1", 0);
@@ -441,7 +441,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.StatementTra
                 new NumericValueToken("1", 0)
 			});
             var expected = new TranslatedStatementContentDetails(
-                "_.SET((Int16)1, this, \"Name\")",
+				"_.SET((Int16)1, this, this, \"Name\")",
                 new NonNullImmutableList<NameToken>(new[] { new NameToken("Name", 0) })
             );
             var scopeAccessInformation = AddPropertyToScope(GetEmptyScopeAccessInformation(), "Name", 0);

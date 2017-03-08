@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -1889,13 +1890,13 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		{
 			get { return _valueRetriever.ARGS; }
 		}
-		public object CALL(object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
+		public object CALL(object context, object target, IEnumerable<string> members, IProvideCallArguments argumentProvider)
 		{
-			return _valueRetriever.CALL(target, members, argumentProvider);
+			return _valueRetriever.CALL(context, target, members, argumentProvider);
 		}
-		public void SET(object valueToSetTo, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
+		public void SET(object valueToSetTo, object context, object target, string optionalMemberAccessor, IProvideCallArguments argumentProvider)
 		{
-			_valueRetriever.SET(valueToSetTo, target, optionalMemberAccessor, argumentProvider);
+			_valueRetriever.SET(valueToSetTo, context, target, optionalMemberAccessor, argumentProvider);
 		}
 		public bool IsVBScriptValueType(object o)
 		{

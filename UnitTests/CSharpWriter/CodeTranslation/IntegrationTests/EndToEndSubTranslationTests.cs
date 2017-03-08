@@ -3,7 +3,7 @@ using Xunit;
 
 namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationTests
 {
-    public class EndToEndSubTranslationTests
+	public class EndToEndSubTranslationTests
     {
         /// <summary>
         /// Since SUBs do not return values, attempting to set a return value within a SUB results in an illegal assignment error
@@ -20,7 +20,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "public void f1()",
                 "{",
-                "    _.SET(VBScriptConstants.Null, _.RAISEERROR(new IllegalAssignmentException(\"'F1'\")));",
+				"    _.SET(VBScriptConstants.Null, this, _.RAISEERROR(new IllegalAssignmentException(\"'F1'\")));",
                 "}"
             };
             Assert.Equal(
@@ -45,7 +45,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
             {
                 "public void f1()",
                 "{",
-                "    _.SET(VBScriptConstants.Null, _.RAISEERROR(new TypeMismatchException(\"'F1'\")));",
+				"    _.SET(VBScriptConstants.Null, this, _.RAISEERROR(new TypeMismatchException(\"'F1'\")));",
                 "}"
             };
             Assert.Equal(
