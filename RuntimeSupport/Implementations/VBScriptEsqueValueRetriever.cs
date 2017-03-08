@@ -912,6 +912,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (target is IReflect)
 			{
+				// TODO: Check allowPrivateAccess
 				var ireflectInvokeMember = typeof(IReflect).GetMethod("InvokeMember");
 				return (invokeTarget, invokeArguments) =>
 				{
@@ -1200,12 +1201,14 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (target is IReflect)
 			{
-				// TODO: Check allowPrivateAccess
 				return (invokeTarget, invokeArguments, value) =>
 				{
+					var invokeAttributes = BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.IgnoreCase;
+					if (allowPrivateAccess)
+						invokeAttributes = invokeAttributes | BindingFlags.NonPublic;
 					((IReflect)invokeTarget).InvokeMember(
 						name: optionalMemberAccessor ?? "[DISPID=0]",
-						invokeAttr: BindingFlags.SetProperty | BindingFlags.IgnoreCase,
+						invokeAttr: invokeAttributes,
 						binder: null,
 						target: invokeTarget,
 						args: invokeArguments.Concat(new[] { value }).ToArray(),
