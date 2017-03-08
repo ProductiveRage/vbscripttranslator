@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using VBScriptTranslator.RuntimeSupport;
 using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Compat;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
 using VBScriptTranslator.RuntimeSupport.Implementations;
 using Xunit;
@@ -505,15 +506,6 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			}
 		}
 
-		// TODO: CALL private member when context is not instance of owning class
-		// TODO: CALL private member when context IS instance of owning class
-
-		// TODO: SET private member when context is not instance of owning class
-		// TODO: SET private member when context IS instance of owning class
-
-		// TODO: Ref tests (ensure pass context)
-		// TODO: RefIfArray tests (ensure pass context)
-
 		[ComVisible(true)]
 		private class DispIdZeroRepeatedOnPropertyAndItsGetter
 		{
@@ -528,6 +520,171 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			{
 				[DispId(0)]
 				get { return _name; }
+			}
+		}
+
+
+		[Fact]
+		public void CallPrivateMemberFromWithinContextOfClassShouldWork()
+		{
+			const string name = "test";
+			var classWithPrivateMember = new ClassWithPrivateGetNameMethod(name);
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Equal(
+				name,
+				_.CALL(context: classWithPrivateMember, target: classWithPrivateMember, member1: "GetName")
+			);
+		}
+
+		[Fact]
+		public void CallPrivateMemberFromOutsideContextOfClassShouldThrow()
+		{
+			const string name = "test";
+			var classWithPrivateMember = new ClassWithPrivateGetNameMethod(name);
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Throws<MissingMemberException>(() =>
+				_.CALL(context: null, target: classWithPrivateMember, member1: "GetName")
+			);
+		}
+
+		[Fact]
+		public void SettingPrivatePropertyFromWithinContextOfClassShouldWork()
+		{
+			const string name = "test";
+			var classWithPrivateMember = new ClassWithPrivateNameProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(name, context: classWithPrivateMember, target: classWithPrivateMember, optionalMemberAccessor: "Name");
+			Assert.Equal(
+				name,
+				_.CALL(context: classWithPrivateMember, target: classWithPrivateMember, member1: "Name")
+			);
+		}
+
+		[Fact]
+		public void SettingPrivatePropertyFromOutsideContextOfClassShouldThrow()
+		{
+			const string name = "test";
+			var classWithPrivateMember = new ClassWithPrivateNameProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Throws<MissingMemberException>(() =>
+				_.SET(name, context: null, target: classWithPrivateMember, optionalMemberAccessor: "Name")
+			);
+		}
+
+		private class ClassWithPrivateGetNameMethod
+		{
+			private readonly string _name;
+			public ClassWithPrivateGetNameMethod(string name)
+			{
+				_name = name;
+			}
+
+			private string GetName()
+			{
+				return _name;
+			}
+		}
+
+		private class ClassWithPrivateNameProperty // This is approximately how a VBScript property is translated (into getter and setter methods)
+		{
+			private object mname { get; set; }
+			private object name()
+			{
+				return mname;
+			}
+			private void name(object strname)
+			{
+				mname = strname;
+			}
+		}
+
+		[Fact]
+		public void SettingPrivateIndexedPropertyFromWithinContextOfClassShouldWork()
+		{
+			const string name = "test";
+			var i = new object();
+			var classWithPrivateMember = new ClassWithPrivateIndexedProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(name, context: classWithPrivateMember, target: classWithPrivateMember, optionalMemberAccessor: "Test", argumentProviderBuilder: _.ARGS.Val(i));
+			Assert.Equal(
+				name,
+				_.CALL(context: classWithPrivateMember, target: classWithPrivateMember, member1: "Test", argumentProviderBuilder: _.ARGS.Val(i))
+			);
+		}
+
+		[Fact]
+		public void SettingPrivateIndexedPropertyFromOutsideContextOfClassShouldThrow()
+		{
+			const string name = "test";
+			var i = new object();
+			var classWithPrivateMember = new ClassWithPrivateIndexedProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Throws<MissingMethodException>(() =>
+				_.SET(name, context: null, target: classWithPrivateMember, optionalMemberAccessor: "Test", argumentProviderBuilder: _.ARGS.Val(i))
+			);
+		}
+
+		// This is approximately how a VBScript indexed property is translated (into getter and setter methods) since C# only supports a single indexed property
+		private class ClassWithPrivateIndexedProperty : TranslatedPropertyIReflectImplementation
+		{
+			private Dictionary<object, object> _values = new Dictionary<object, object>();
+
+			[TranslatedProperty("Test")]
+			private object test(object i)
+			{
+				return _values.ContainsKey(i) ? _values[i] : null;
+			}
+
+			[TranslatedProperty("Test")]
+			private void test(object i, object value)
+			{
+				_values[i] = value;
+			}
+		}
+
+		[Fact]
+		public void SettingPublicIndexedPropertyFromWithinContextOfClassShouldWork()
+		{
+			const string name = "test";
+			var i = new object();
+			var classWithPrivateMember = new ClassWithPublicIndexedProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(name, context: classWithPrivateMember, target: classWithPrivateMember, optionalMemberAccessor: "Test", argumentProviderBuilder: _.ARGS.Val(i));
+			Assert.Equal(
+				name,
+				_.CALL(context: classWithPrivateMember, target: classWithPrivateMember, member1: "Test", argumentProviderBuilder: _.ARGS.Val(i))
+			);
+		}
+
+		[Fact]
+		public void SettingPublicIndexedPropertyFromOutsideContextOfClassShouldWork()
+		{
+			const string name = "test";
+			var i = new object();
+			var classWithPrivateMember = new ClassWithPublicIndexedProperty();
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(name, context: classWithPrivateMember, target: classWithPrivateMember, optionalMemberAccessor: "Test", argumentProviderBuilder: _.ARGS.Val(i));
+			Assert.Equal(
+				name,
+				_.CALL(context: null, target: classWithPrivateMember, member1: "Test", argumentProviderBuilder: _.ARGS.Val(i))
+			);
+		}
+
+		// This is approximately how a VBScript indexed property is translated (into getter and setter methods) since C# only supports a single indexed property
+		private class ClassWithPublicIndexedProperty : TranslatedPropertyIReflectImplementation
+		{
+			private Dictionary<object, object> _values = new Dictionary<object, object>();
+
+			[TranslatedProperty("Test")]
+			public object test(object i)
+			{
+				return _values.ContainsKey(i) ? _values[i] : null;
+			}
+
+			[TranslatedProperty("Test")]
+			public void test(object i, object value)
+			{
+				_values[i] = value;
 			}
 		}
 
