@@ -1,14 +1,10 @@
 ﻿/* Undeclared variable: "i" (line 3) */
 using System;
-using System.Collections;
-using System.Runtime.InteropServices;
 using VBScriptTranslator.RuntimeSupport;
-using VBScriptTranslator.RuntimeSupport.Attributes;
-using VBScriptTranslator.RuntimeSupport.Exceptions;
 
 namespace TranslatedProgram
 {
-    public class Runner
+	public class Runner
     {
         private readonly IProvideVBScriptCompatFunctionalityToIndividualRequests _;
         public Runner(IProvideVBScriptCompatFunctionalityToIndividualRequests compatLayer)
@@ -33,7 +29,7 @@ namespace TranslatedProgram
             // Test
             for (_outer.i = (Int16)1; _.StrictLTE(_outer.i, 10); _outer.i = _.ADD(_outer.i, (Int16)1))
             {
-                _.CALL(_env.wscript, "Echo", _.ARGS.Val(_.CONCAT("Item", _outer.i)));
+                _.CALL(this, _env.wscript, "Echo", _.ARGS.Val(_.CONCAT("Item", _outer.i)));
             }
         }
 
