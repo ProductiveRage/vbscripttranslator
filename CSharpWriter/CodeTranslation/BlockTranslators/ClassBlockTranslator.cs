@@ -1,15 +1,15 @@
-﻿using VBScriptTranslator.RuntimeSupport;
-using VBScriptTranslator.RuntimeSupport.Compat;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using VBScriptTranslator.CSharpWriter.Lists;
 using VBScriptTranslator.CSharpWriter.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Compat;
 
 namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -308,7 +308,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					new TranslatedStatement(disposedFlagNameIfAny.Name + " = false;", indentationDepth + 2, classBlock.Name.LineIndex)
 				);
 			}
-			classHeaderStatements.AddRange(classInitializeCallStatements);
 			classHeaderStatements.AddRange(
 				explicitVariableDeclarationsFromWithinClass.Select(
 					v => new TranslatedStatement(
@@ -318,6 +317,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					)
 				)
 			);
+			classHeaderStatements.AddRange(classInitializeCallStatements);
 			classHeaderStatements.Add(
 				new TranslatedStatement("}", indentationDepth + 1, classBlock.Name.LineIndex)
 			);
