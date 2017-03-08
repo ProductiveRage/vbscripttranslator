@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>VBScriptTranslator.RuntimeSupport</id>
-    <version>1.0.16.0</version>
+    <version>1.0.18.0</version>
     <title>VBScript-to-C# Translator - RuntimeSupport library only</title>
     <authors>ProductiveRage</authors>
     <owners>ProductiveRage</owners>
@@ -11,7 +11,7 @@
     <iconUrl>https://secure.gravatar.com/avatar/6a1f781d4d5e2d50dcff04f8f049767a?s=200</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The RuntimeSupport library that may be used with VBScript-to-C# translated code</description>
-    <copyright>Copyright 2015 ProductiveRage</copyright>
+    <copyright>Copyright 2017 ProductiveRage</copyright>
     <tags>C# VBScript</tags>
   </metadata>
   <files>
