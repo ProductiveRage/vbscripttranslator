@@ -69,10 +69,11 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 						new object[] { "2.5", (double)2.5, (double)2 },
 						new object[] { "3.5", (double)3.5, (double)3 },
 
-						new object[] { "-0.5", (double)0, (double)0 },
-						new object[] { "-1.5", (double)(-1), (double)(-1) },
-						new object[] { "-2.5", (double)(-2), (double)(-2) },
-						new object[] { "-3.5", (double)(-3), (double)(-3) }
+						// These results are surprising, I had expected VBScript to remove the fraction from a number like -0.5 to leave 0 (or from -1.5 to leave -1) but it doesn't!
+						new object[] { "-0.5", (double)(-0.5), (double)(-1) },
+						new object[] { "-1.5", (double)(-1.5), (double)(-2) },
+						new object[] { "-2.5", (double)(-2.5), (double)(-3) },
+						new object[] { "-3.5", (double)(-3.5), (double)(-4) }
 					};
 				}
 			}

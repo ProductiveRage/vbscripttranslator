@@ -457,11 +457,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return ((DateTime)value).Date;
 			var valueWasSingle = value is Single;
 			var valueWasDecimal = value is Decimal;
-			var valueDouble = GetAsNumber<double>(value, "'Int' (" + value.ToString() + ")", Convert.ToDouble); // TODO: Appropriate exception for invalid content?
-			if (valueDouble >= 0)
-				valueDouble = Math.Floor(valueDouble);
-			else
-				valueDouble = Math.Ceiling(valueDouble);
+			var valueDouble = GetAsNumber<double>(value, "'Int' (" + value.ToString() + ")", Convert.ToDouble);
+			valueDouble = Math.Floor(valueDouble);
 			if (valueWasSingle)
 				return (Single)valueDouble;
 			else if (valueWasDecimal)
