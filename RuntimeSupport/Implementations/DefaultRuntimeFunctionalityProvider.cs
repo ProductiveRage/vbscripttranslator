@@ -447,7 +447,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return (Int16)0;
 
 			// Deal with value type that don't need changing
-			if ((value is Int16) || (value is Int32))
+			if ((value is byte) || (value is Int16) || (value is Int32))
 				return value;
 
 			// Deal with a couple of simple case; boolean -> Int16 and Date -> Date (though without any time component)

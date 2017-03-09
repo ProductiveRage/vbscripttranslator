@@ -53,6 +53,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 						new object[] { "Null", DBNull.Value, DBNull.Value },
 						new object[] { "True", true, (Int16)(-1) },
 						new object[] { "False", false, (Int16)0 },
+						new object[] { "Byte", (byte)123, (byte)123 },
 						new object[] { "Integer", (Int16)123, (Int16)123 },
 						new object[] { "Long (within Integer range)", (Int32)123, (Int32)123 },
 						new object[] { "Single (within Integer range)", (Single)123, (Single)123 },
