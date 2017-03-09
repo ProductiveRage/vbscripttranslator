@@ -912,7 +912,6 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			if (target is IReflect)
 			{
-				// TODO: Check allowPrivateAccess
 				var ireflectInvokeMember = typeof(IReflect).GetMethod("InvokeMember");
 				return (invokeTarget, invokeArguments) =>
 				{
@@ -1194,7 +1193,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						invokeTarget,
 						IsVBScriptValueType(value) ? IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUT : IDispatchAccess.InvokeFlags.DISPATCH_PROPERTYPUTREF,
 						dispId,
-						argumentsArray.Concat(new[] { value }).ToArray()
+						invokeArguments.Concat(new[] { value }).ToArray()
 					);
 				};
 			}

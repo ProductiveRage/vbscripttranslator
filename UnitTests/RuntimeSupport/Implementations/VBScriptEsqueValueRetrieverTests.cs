@@ -108,6 +108,23 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			Assert.Throws<ObjectDoesNotSupportPropertyOrMemberException>(() => DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever.VAL(dictionary));
 		}
 
+		/// <summary>
+		/// This test relates to a fix just applied to GenerateSetInvoker (where an argumentsArray reference was being used instead of invokeArguments, which meant that the same set of arguments
+		/// were being reused on each call)
+		/// </summary>
+		[Fact]
+		public void EnsureThatOldArgumentsAreNotReusedInSubsequentIDispatchCalls()
+		{
+			// This requires that the project be built in 32-bit mode (as much of the IDispatch support does)
+			var dict = Activator.CreateInstance(Type.GetTypeFromProgID("Scripting.Dictionary"));
+			using (var _ = VBScriptTranslator.RuntimeSupport.DefaultRuntimeSupportClassFactory.Get())
+			{
+				_.SET(1, context: dict, target: dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("a"));
+				_.SET(2, context: dict, target: dict, optionalMemberAccessor: null, argumentProviderBuilder: _.ARGS.Val("b"));
+				Assert.Equal(2, _.CALL(context: null, target: dict, member1: "Count"));
+			}
+		}
+
 		[Fact]
 		public void VALFailsOnNonComVisibleNonTranslatedClasses()
 		{
