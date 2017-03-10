@@ -1082,8 +1082,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			}
 			return string.Format(
 				"{0}{1} = new object[{2}];",
+				(scopeLocation == ScopeLocationOptions.WithinFunctionOrPropertyOrWith) ? "object " : "",
 				rewrittenName,
-					(scopeLocation == ScopeLocationOptions.WithinFunctionOrPropertyOrWith) ? "object " : "",
 				string.Join(", ", variableDeclaration.ConstantDimensionsIfAny.Select(d => d + 1))
 			);
 		}

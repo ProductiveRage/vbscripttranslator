@@ -59,6 +59,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndDimTranslationTests.cs" />
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_INT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DIV.cs" />
