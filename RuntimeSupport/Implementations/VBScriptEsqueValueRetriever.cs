@@ -935,9 +935,6 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				};
 			}
 
-			var targetParameter = Expression.Parameter(typeof(object), "target");
-			var targetValue = Expression.Convert(targetParameter, targetType);
-
 			MethodInfo method;
 			if (optionalName == null)
 				method = GetDefaultGetMethods(targetType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
@@ -945,6 +942,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				method = GetNamedGetMethods(targetType, optionalName, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalName);
+
+			return GenerateCompiledLinqExpressionGetInvoker(targetType, method);
+		}
+
+		private GetInvoker GenerateCompiledLinqExpressionGetInvoker(Type targetType, MethodInfo method)
+		{
+			if (targetType == null)
+				throw new ArgumentNullException(nameof(targetType));
+			if (method == null)
+				throw new ArgumentNullException(nameof(method));
+
+			var targetParameter = Expression.Parameter(typeof(object), "target");
+			var targetValue = Expression.Convert(targetParameter, targetType);
 
 			var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
 
@@ -1205,16 +1215,21 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					var invokeAttributes = BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.IgnoreCase;
 					if (allowPrivateAccess)
 						invokeAttributes = invokeAttributes | BindingFlags.NonPublic;
+					var combinedArguments = invokeArguments.Concat(new[] { value }).ToArray();
 					((IReflect)invokeTarget).InvokeMember(
 						name: optionalMemberAccessor ?? "[DISPID=0]",
 						invokeAttr: invokeAttributes,
 						binder: null,
 						target: invokeTarget,
-						args: invokeArguments.Concat(new[] { value }).ToArray(),
+						args: combinedArguments,
 						modifiers: null,
 						culture: null,
 						namedParameters: null
 					);
+					// Ensure that any ByRef-altered arguments are propagated back onto the callers arguments array (note that VBScript does not support
+					// the value reference being changed ByRef but it does support the index arguments - if any - being altered ByRef)
+					for (var i = 0; i < invokeArguments.Length; i++)
+						invokeArguments[i] = combinedArguments[i];
 				};
 			}
 
@@ -1234,46 +1249,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalMemberAccessor);
 
-			var targetParameter = Expression.Parameter(typeof(object), "target");
-			var argumentsParameter = Expression.Parameter(typeof(object[]), "arguments");
-			var valueParameter = Expression.Parameter(typeof(object), "value");
-			return Expression.Lambda<SetInvoker>(
-				Expression.Call(
-					Expression.Convert(targetParameter, targetType),
-					method,
-					method.GetParameters().Select((arg, index) =>
-					{
-						// The method will have one more parameter than there are arguments since the last parameter is the value to set to
-						var argumentExpression = (index == argumentsArray.Length)
-								? (Expression)valueParameter
-								: Expression.ArrayAccess(argumentsParameter, Expression.Constant(index));
-						var changeTypeMethod = typeof(Convert).GetMethod("ChangeType", new[] { typeof(object), typeof(Type) });
-						return Expression.Condition(
-								Expression.TypeIs(argumentExpression, arg.ParameterType),
-								Expression.Convert(argumentExpression, arg.ParameterType),
-								Expression.Condition(
-									// The argument may be null (when Empty is passed in), in which case the default value for the parameter type will be used
-									Expression.Equal(argumentExpression, Expression.Constant(null, typeof(object))),
-									Expression.Default(arg.ParameterType),
-									Expression.Convert(
-										Expression.Call(
-											changeTypeMethod,
-											argumentExpression,
-											Expression.Constant(arg.ParameterType)
-										),
-										arg.ParameterType
-									)
-								)
-							);
-					})
-				),
-				new[]
-				{
-					targetParameter,
-					argumentsParameter,
-					valueParameter
-				}
-			).Compile();
+			// Rather than trying to do more LINQ Expression generation, we'll reuse the GenerateCompiledLinqExpressionGetInvoker logic and wrap it so
+			// that the index-arguments-plus-value get flattened into a single arguments array
+			var getInvoker = GenerateCompiledLinqExpressionGetInvoker(targetType, method);
+			return (invokeTarget, invokeArguments, value) =>
+			{
+				var combinedArguments = invokeArguments.Concat(new[] { value }).ToArray();
+				getInvoker(invokeTarget, combinedArguments);
+
+				// Ensure that any ByRef-altered arguments are propagated back onto the callers arguments array (note that VBScript does not support
+				// the value reference being changed ByRef but it does support the index arguments - if any - being altered ByRef)
+				for (var i = 0; i < invokeArguments.Length; i++)
+					invokeArguments[i] = combinedArguments[i];
+			};
 		}
 
 		/// <summary>

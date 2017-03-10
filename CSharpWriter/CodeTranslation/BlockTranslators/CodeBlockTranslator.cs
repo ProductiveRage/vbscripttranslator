@@ -94,7 +94,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			foreach (var block in blocks)
 			{
 				var hasBlockBeenTranslated = false;
-				foreach (var translator in translators)
+				 foreach (var translator in translators)
 				{
 					var blockTranslationResult = translator(translationResult, block, scopeAccessInformation, indentationDepth);
 					if (blockTranslationResult == null)
@@ -534,7 +534,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			);
 		}
 
-		protected TranslationResult TryToTranslateFunction(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
+		protected TranslationResult TryToTranslateFunctionPropertyOrSub(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
 		{
 			var functionBlock = block as AbstractFunctionBlock;
 			if (functionBlock == null)
@@ -663,16 +663,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			// poor practice even though Option Explicit has been used, I'm willing to live with the trade-off).
 			_logger.Warning("Option Explicit is ignored by this translation process");
 			return TranslationResult.Empty;
-		}
-
-		protected TranslationResult TryToTranslateProperty(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
-		{
-			var propertyBlock = block as PropertyBlock;
-			if (propertyBlock == null)
-				return null;
-
-			// Note: Check for Default on the Get (the only place it's valid) before rendering Let or Set
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
 		}
 
 		private TranslationResult TryToTranslateRandomize(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)

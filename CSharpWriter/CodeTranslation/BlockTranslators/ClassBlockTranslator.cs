@@ -138,8 +138,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					base.TryToTranslateBlankLine,
 					base.TryToTranslateComment,
 					base.TryToTranslateDim,
-					base.TryToTranslateFunction,
-					base.TryToTranslateProperty
+					base.TryToTranslateFunctionPropertyOrSub
 				}.ToNonNullImmutableList(),
 				blocks,
 				scopeAccessInformation,
