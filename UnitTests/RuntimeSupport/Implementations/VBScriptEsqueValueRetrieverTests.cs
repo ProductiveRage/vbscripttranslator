@@ -706,6 +706,57 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 		[Fact]
+		public void ByRefIndexArgumentOnPublicPropertySetterShouldAcceptUpdatesWhenCalledOverIReflect()
+		{
+			object i = "123";
+			object value = "xyz";
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(
+				value,
+				context: null,
+				target: new ClassWithPublicIndexedPropertyThatHasByRefArguments(),
+				optionalMemberAccessor: "Test",
+				argumentProviderBuilder: _.ARGS.Ref(i, iUpdate => { i = iUpdate; })
+			);
+			Assert.Equal(i, "456");
+		}
+
+		private class ClassWithPublicIndexedPropertyThatHasByRefArguments : TranslatedPropertyIReflectImplementation
+		{
+			[TranslatedProperty("Test")]
+			public void test(ref object i, ref object value)
+			{
+				i = "456";
+			}
+		}
+
+		[Fact]
+		public void ByRefIndexArgumentOnPublicPropertySetterShouldAcceptUpdatesWhenNotCalledOverIReflect()
+		{
+			object i = "123";
+			object value = "xyz";
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			_.SET(
+				value,
+				context: null,
+				target: new ClassWithPublicIndexedPropertyThatHasByRefArgumentsButThatIsNotCalledOverIReflect(),
+				optionalMemberAccessor: "Test",
+				argumentProviderBuilder: _.ARGS.Ref(i, iUpdate => { i = iUpdate; })
+			);
+			Assert.Equal(i, "456");
+		}
+
+		// Classes translated from VBScript that have indexed properties will be derived from TranslatedPropertyIReflectImplementation but we need to test the
+		// logic when translated-from-VBScript code calls into not-translated-from-VBScript code as well (to ensure that the indexed arguments are ByRef-updated)
+		private class ClassWithPublicIndexedPropertyThatHasByRefArgumentsButThatIsNotCalledOverIReflect
+		{
+			public void test(ref object i, ref object value)
+			{
+				i = "456";
+			}
+		}
+
+		[Fact]
 		public void CallingCLRMethodsThatHaveValueTypeParametersWorksWithReferenceTypes()
 		{
 			var recordset = new ADODB.Recordset();
