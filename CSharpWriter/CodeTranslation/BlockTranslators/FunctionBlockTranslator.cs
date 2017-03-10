@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using VBScriptTranslator.RuntimeSupport.Attributes;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using VBScriptTranslator.CSharpWriter.Lists;
@@ -10,6 +9,7 @@ using VBScriptTranslator.CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.RuntimeSupport.Attributes;
 
 namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -226,8 +226,14 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			if (functionBlock.IsDefault)
 				translatedStatements.Add(new TranslatedStatement("[" + typeof(IsDefault).FullName + "]", indentationDepth, functionBlock.Name.LineIndex));
 			var property = functionBlock as PropertyBlock;
-			if ((property != null) && property.IsPublic && property.IsIndexedProperty())
+			if (property != null)
 			{
+				// All property blocks that are translated into C# methods needs to be decorated with the [TranslatedProperty] attribute. The [TranslatedProperty] attribute
+				// was originally intended only for indexed properties (which C# can only support one of per class but VBScript classes can have as many as they like) but
+				// a class with an indexed property will be emitted to inherit from TranslatedPropertyIReflectImplementation, which will try to identify properties based
+				// upon the presence of [TranslatedProperty] attributes - if some (ie. indexed properties) have these and others (non-indexed properties) don't then it
+				// will result in runtime failures. So we could apply the attribute to indexed properties and all properties within classes that have at least one
+				// indexed property but that feels like complications for little benefit so I think it's easier to just put it on ALL from-property methods.
 				translatedStatements.Add(
 					new TranslatedStatement(
 						string.Format(

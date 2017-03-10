@@ -585,7 +585,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			return base.TranslateCommon(
 				base.GetWithinFunctionBlockTranslators()
 					.Add(base.TryToTranslateClass)
-					.Add(base.TryToTranslateFunction)
+					.Add(base.TryToTranslateFunctionPropertyOrSub)
 					.Add(base.TryToTranslateOptionExplicit),
 				blocks,
 				scopeAccessInformation,
