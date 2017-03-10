@@ -40,6 +40,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_outer = outer;
 					}
 
+					[TranslatedProperty(""Name"")]
 					public object name()
 					{
 						return null;
@@ -177,7 +178,6 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 			);
 		}
 
-		// TODO: Need test here that has property that is set to a value in Class_Initialize
 		[Fact]
 		public void ClassInitializeCallHappensAfterFieldsSetToNull()
 		{
@@ -262,6 +262,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_env = env;
 						_outer = outer;
 					}
+					[TranslatedProperty(""Name"")]
 					public object name()
 					{
 						return ""C1"";
@@ -308,6 +309,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_env = env;
 						_outer = outer;
 					}
+					[TranslatedProperty(""Name"")]
 					public object name()
 					{
 						object retVal1 = null;
@@ -355,6 +357,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_env = env;
 						_outer = outer;
 					}
+					[TranslatedProperty(""Name"")]
 					public void name(ref object value)
 					{
 						_.VAL(""C1"");
@@ -401,6 +404,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_env = env;
 						_outer = outer;
 					}
+					[TranslatedProperty(""Name"")]
 					public void name(ref object value)
 					{
 						_.OBJ(""C1"");
@@ -446,6 +450,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 						_env = env;
 						_outer = outer;
 					}
+					[TranslatedProperty(""Name"")]
 					public void name(ref object value)
 					{
 						_.SET(""C1"", this, this, ""Name"");
