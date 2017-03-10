@@ -756,7 +756,23 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			}
 			return valueString;
 		}
-		public object SPACE(object value) { throw new NotImplementedException(); }
+		public object SPACE(object numberOfSpaces)
+		{
+			numberOfSpaces = _valueRetriever.VAL(numberOfSpaces, "'Space'");
+			if (numberOfSpaces == DBNull.Value)
+				throw new InvalidUseOfNullException("'Space'");
+			int numberOfSpacesNumber;
+			if (numberOfSpaces == null)
+				numberOfSpacesNumber = 0;
+			else
+			{
+				numberOfSpacesNumber = CLNG(numberOfSpaces, "'Space'");
+				if (numberOfSpacesNumber < 0)
+					throw new InvalidProcedureCallOrArgumentException("'Space'");
+			}
+
+			return new string(' ', numberOfSpacesNumber);
+		}
 		public object[] SPLIT(object value) { return SPLIT(value, " "); }
 		public object[] SPLIT(object value, object delimiter)
 		{
