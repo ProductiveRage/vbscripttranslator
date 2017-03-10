@@ -229,7 +229,7 @@ namespace VBScriptTranslator.RuntimeSupport
 		/// This will never be null (if there is no error then an ErrorDetails with Number zero will be returned)
 		/// </summary>
 		ErrorDetails ERR { get; }
-		
+
 		/* TODO
 			"TIMER", // This IS a function (as are all of the below)
 		 */
@@ -242,9 +242,9 @@ namespace VBScriptTranslator.RuntimeSupport
 		/// It is clear that "1" is a numeric constant and not a function, and so may not be called as one. However, this is not invalid VBScript and so is
 		/// not a compile time error, it is something that must result in an exception at runtime. In these cases, where it is known at the time of translation
 		/// that an exception must be thrown, this method may be used to do so at runtime. This is different to SETERROR, since that records an exception that
-		/// has already been thrown - this throws the specified exception.
+		/// has already been thrown - this throws the specified exception (it returns an object, rather than void, for the same reason as the below signatures).
 		/// </summary>
-		void RAISEERROR(Exception e);
+		object RAISEERROR(Exception e);
 
 		// These method signatures have to return a value since these are what are called when the source code includes "Err.Raise 123", which VBScript allows
 		// to exist in the form "If (Err.Raise(123)) Then" - if these didn't return values then there could be compile errors in the generated C# that were

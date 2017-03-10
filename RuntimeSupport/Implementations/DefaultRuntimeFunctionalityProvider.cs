@@ -1625,9 +1625,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		/// It is clear that "1" is a numeric constant and not a function, and so may not be called as one. However, this is not invalid VBScript and so is
 		/// not a compile time error, it is something that must result in an exception at runtime. In these cases, where it is known at the time of translation
 		/// that an exception must be thrown, this method may be used to do so at runtime. This is different to SETERROR, since that records an exception that
-		/// has already been thrown - this throws the specified exception.
+		/// has already been thrown - this throws the specified exception (it returns an object, rather than void, for the same reason as the below signatures).
 		/// </summary>
-		public void RAISEERROR(Exception e)
+		public object RAISEERROR(Exception e)
 		{
 			if (e == null)
 				throw new ArgumentNullException("e");
