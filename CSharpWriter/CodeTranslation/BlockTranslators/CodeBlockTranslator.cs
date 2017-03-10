@@ -325,7 +325,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			return translationResult.AddExplicitVariableDeclarations(
 				explicitVariableDeclarationBlock.Variables.Select(v => new VariableDeclaration(
 					v.Name,
-					(explicitVariableDeclarationBlock is PublicVariableStatement) ? VariableDeclarationScopeOptions.Public : VariableDeclarationScopeOptions.Private,
+					// Dim and Public keywords = Public, Private keyword = Private
+					(explicitVariableDeclarationBlock is PrivateVariableStatement) ? VariableDeclarationScopeOptions.Private : VariableDeclarationScopeOptions.Public,
 					(v.Dimensions == null) ? null : v.Dimensions.Select(d => (uint)d.Value)
 				))
 			);
