@@ -183,8 +183,14 @@ namespace VBScriptTranslator.RuntimeSupport.Compat
 					var getterParameters = getter.GetParameters();
 					if (getterParameters.Length != (setterParameters.Length - 1))
 						throw new ArgumentException("Where both getter and setter are non-null, the setter must have one more parameter than the gettter");
-					if (setterParameters.Last().ParameterType != getter.ReturnType)
+
+					// Ensure setter's last parameter is the same type as the getter's return type
+					var setterLastParameterType = setterParameters.Last().ParameterType;
+					if (setterLastParameterType.IsByRef)
+						setterLastParameterType = setterLastParameterType.GetElementType(); // Use the element type in case the setter's parameter is passed by reference or pointer
+					if (setterLastParameterType != getter.ReturnType)
 						throw new ArgumentException("Where both getter and setter are non-null, the setter's last parameter's type must match the getter's return type");
+
 					for (var index = 0; index < getterParameters.Length; index++)
 					{
 						if (getterParameters[index].ParameterType != setterParameters[index].ParameterType)
