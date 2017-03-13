@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Text;
 using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
@@ -11,22 +11,24 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         // =======================================================================================
         // CLASS INITIALISATION
         // =======================================================================================
-        private Expression seed;
-        public RandomizeStatement(Expression seed)
+		public RandomizeStatement(int lineIndex, Expression seedIfAny)
         {
-            this.seed = seed;
+			if (lineIndex < 0)
+				throw new ArgumentOutOfRangeException(nameof(lineIndex));
+
+			LineIndex = LineIndex;
+			SeedIfAny = seedIfAny;
         }
 
         // =======================================================================================
         // PUBLIC DATA ACCESS
         // =======================================================================================
+		public int LineIndex { get; }
+
         /// <summary>
         /// Note: This may be null
         /// </summary>
-        public Expression Seed
-        {
-            get { return this.seed; }
-        }
+		public Expression SeedIfAny { get; }
 
         /// <summary>
         /// This must never return null nor a set containing any nulls, it represents all executable statements within this structure that wraps statement(s)
@@ -36,7 +38,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
         {
             get
             {
-                yield return Seed;
+				if (SeedIfAny != null)
+					yield return SeedIfAny;
             }
         }
 
@@ -52,10 +55,10 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Basic
             StringBuilder output = new StringBuilder();
             output.Append(indenter.Indent);
             output.Append("Randomize");
-            if (this.seed != null)
+			if (SeedIfAny != null)
             {
                 output.Append(" ");
-                output.Append(this.seed.GenerateBaseSource(NullIndenter.Instance));
+				output.Append(SeedIfAny.GenerateBaseSource(NullIndenter.Instance));
             }
             return output.ToString();
         }

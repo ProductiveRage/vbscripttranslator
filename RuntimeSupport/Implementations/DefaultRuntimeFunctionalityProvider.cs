@@ -34,6 +34,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		private readonly Queue<int> _availableErrorTokens;
 		private readonly Dictionary<int, ErrorTokenState> _activeErrorTokens;
 		private readonly DefaultArithmeticFunctionalityProvider _arithmeticHandler;
+		private int _randomSeed;
 		private Exception _trappedErrorIfAny;
 		public DefaultRuntimeFunctionalityProvider(Func<string, string> nameRewriter, IAccessValuesUsingVBScriptRules valueRetriever)
 		{
@@ -46,6 +47,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			_activeErrorTokens = new Dictionary<int, ErrorTokenState>();
 			_arithmeticHandler = new DefaultArithmeticFunctionalityProvider(valueRetriever);
 			DateLiteralParser = new DateParser(DateParser.DefaultMonthNameTranslator, DateTime.Now.Year);
+			_randomSeed = 0; // Doesn't really matter what this is initially, just that it's always the same
 			_trappedErrorIfAny = null;
 		}
 
@@ -511,6 +513,30 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return "";
 			return new string(characterChar, numberOfTimesToRepeatNumber);
 		}
+		// - Randomisation functions
+		public void RANDOMIZE() { RANDOMIZE(DateTime.Now.TimeOfDay.TotalSeconds); }
+		public void RANDOMIZE(object seed)
+		{
+			// TODO: To be absolutely consistent,
+			//   Ran domize 1.111111
+			// and
+			//   Randomize 1.1111111
+			// should both result in the same next number since that's where the precision runs out for VBScript's Single type.
+			// This is the same as the .NET precision, so using CSNG on the seed should work fine (TOOD: Just need to ensure that it's tested thorougly)
+
+			// TODO: Subsequent calls to Randomize will not always result in the same value from RND being returned - eg.
+			//   RANDOMIZE 123
+			//   WScript.Echo RND()
+			//   RANDOMIZE 123
+			//   WScript.Echo RND()
+			//   RANDOMIZE 123
+			//   WScript.Echo RND()
+			// will return three distinct values (as mentioned in https://www.safaribooksonline.com/library/view/vbscript-in-a/1565927206/re148.html -
+			// "Repeatedly passing the same number to Randomize doesn’t cause Rnd to repeat the same sequence of random numbers."
+
+			// TODO: Investigate what sort of implementation we should put here, this is just something that feels roughly correct but which may have important inconsistencies with the VBScript implementation
+			_randomSeed = CSNG(seed).GetHashCode();
+		}
 		// - Number functions
 		public object ABS(object value) { throw new NotImplementedException(); }
 		public object ATN(object value) { throw new NotImplementedException(); }
@@ -519,12 +545,49 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public object FIX(object value) { throw new NotImplementedException(); }
 		public object LOG(object value) { throw new NotImplementedException(); }
 		public object OCT(object value) { throw new NotImplementedException(); }
-		public object RND(object value) { throw new NotImplementedException(); }
+		public float RND()
+		{
+			return RND(1); // Any value greater than zero passed to RND will just get the next random number, so calling RND(1) should be the same as VBScript calling just "RND()"
+		}
+		public float RND(object value)
+		{
+			value = _valueRetriever.VAL(value, "'Rnd'");
+			if (value == DBNull.Value)
+				throw new InvalidUseOfNullException("RND argument may not be null");
+
+			// See https://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx
+			var valueAsSingle = CSNG(value);
+			if (valueAsSingle == 0)
+			{
+				// Return the most recently generated number (if called repeatedly, the same number should be returned - so no changes to the seed should be mde
+				return (float)(new Random(_randomSeed)).NextDouble();
+			}
+			else if (valueAsSingle < 0)
+			{
+				// Use the provided value as the seed (always return the same number and change the sequence for any subsequent numbers - ie. don't just use the
+				// value as the seed here but update the global seed)
+				_randomSeed = valueAsSingle.GetHashCode();
+				return (float)(new Random(_randomSeed)).NextDouble();
+			}
+
+			// Greater than zero => next random number in the sequence (this should move the sequence along, so we need to change the global seed before getting
+			// the next number - if RND(0) is called next then the same number will be returned, as required for compatibility)
+			_randomSeed = new Random(_randomSeed).Next();
+			return (float)(new Random(_randomSeed)).NextDouble();
+		}
 		public object ROUND(object value) { throw new NotImplementedException(); }
 		public object SGN(object value) { throw new NotImplementedException(); }
 		public object SIN(object value) { throw new NotImplementedException(); }
 		public object SQR(object value) { throw new NotImplementedException(); }
 		public object TAN(object value) { throw new NotImplementedException(); }
+		/// <summary>
+		/// Returns the number of seconds that have elapsed since midnight
+		/// </summary>
+		public float TIMER()
+		{
+			// VBScript returns it as a "Single" (which is equivalent to a .NET float aka Single) and only appears to return up to two decimal place
+			return (float)Math.Round((decimal)DateTime.Now.TimeOfDay.TotalSeconds, decimals: 2);
+		}
 		// - String functions
 		public object ASC(object value) { throw new NotImplementedException(); }
 		public object ASCB(object value) { throw new NotImplementedException(); }

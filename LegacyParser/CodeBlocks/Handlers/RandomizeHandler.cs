@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
-using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks.SourceRendering;
+using VBScriptTranslator.LegacyParser.Tokens;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -41,8 +39,8 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 
             // Pull processed tokens from stream and return statement
             tokens.RemoveRange(0, tokensProcessed);
-            Expression seed = (seedTokens.Count == 0 ? null : new Expression(seedTokens));
-            return new RandomizeStatement(seed);
+			Expression seedIfAny = (seedTokens.Count == 0 ? null : new Expression(seedTokens));
+			return new RandomizeStatement(lineIndex: tokens[0].LineIndex, seedIfAny: seedIfAny);
         }
     }
 }

@@ -115,7 +115,8 @@ namespace VBScriptTranslator.RuntimeSupport
 		object FIX(object value);
 		object LOG(object value);
 		object OCT(object value);
-		object RND(object value);
+		float RND();
+		float RND(object value);
 		object ROUND(object value); // TODO: See http://blogs.msdn.com/b/ericlippert/archive/2003/09/26/bankers-rounding.aspx
 		object SGN(object value);
 		object SIN(object value);
@@ -230,11 +231,13 @@ namespace VBScriptTranslator.RuntimeSupport
 		/// </summary>
 		ErrorDetails ERR { get; }
 
-		/* TODO
-			"TIMER", // This IS a function (as are all of the below)
-		 */
+		/// <summary>
+		/// Returns the number of seconds that have elapsed since midnight
+		/// </summary>
+		Single TIMER();
 
-		// TODO: Integration RANDOMIZE functionality
+		void RANDOMIZE();
+		void RANDOMIZE(object seed);
 
 		/// <summary>
 		/// There are some occassions when the translated code needs to throw a runtime exception based on the content of the source code - eg.

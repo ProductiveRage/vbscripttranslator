@@ -671,8 +671,55 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			if (randomizeStatement == null)
 				return null;
 
-			// Note: See http://msdn.microsoft.com/en-us/library/e566zd96(v=vs.84).aspx when implementing RND
-			throw new NotSupportedException(block.GetType() + " translation is not supported yet");
+			var translatedRandomizeStatements = new NonNullImmutableList<TranslatedStatement>();
+
+			var mayRequireErrorWrapping = scopeAccessInformation.MayRequireErrorWrapping(block) && (randomizeStatement.SeedIfAny != null);
+			if (mayRequireErrorWrapping)
+			{
+				translatedRandomizeStatements = translatedRandomizeStatements.Add(
+					new TranslatedStatement(
+						GetHandleErrorContent(scopeAccessInformation.ErrorRegistrationTokenIfAny),
+						indentationDepth,
+						randomizeStatement.SeedIfAny.Tokens.First().LineIndex
+					)
+				);
+			}
+
+			string translatedSeedIfAny;
+			if (randomizeStatement.SeedIfAny == null)
+				translatedSeedIfAny = null;
+			else
+			{
+				var translatedSeedExpression = _statementTranslator.Translate(randomizeStatement.SeedIfAny, scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning);
+				var undeclaredVariables = translatedSeedExpression.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
+				foreach (var undeclaredVariable in undeclaredVariables)
+					_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
+				translationResult = translationResult.AddUndeclaredVariables(undeclaredVariables);
+				translatedSeedIfAny = translatedSeedExpression.TranslatedContent;
+			}
+
+			translatedRandomizeStatements = translatedRandomizeStatements.Add(new TranslatedStatement(
+				string.Format(
+					"{0}.RANDOMIZE({1});",
+					_supportRefName.Name,
+					translatedSeedIfAny
+				),
+				indentationDepth,
+				randomizeStatement.LineIndex
+			));
+
+			if (mayRequireErrorWrapping)
+			{
+				translatedRandomizeStatements = translatedRandomizeStatements.Add(
+					new TranslatedStatement(
+						"});",
+						indentationDepth,
+						randomizeStatement.SeedIfAny.Tokens.First().LineIndex
+					)
+				);
+			}
+
+			return translationResult.Add(translatedRandomizeStatements);
 		}
 
 		private TranslationResult TryToTranslateReDim(TranslationResult translationResult, ICodeBlock block, ScopeAccessInformation scopeAccessInformation, int indentationDepth)
