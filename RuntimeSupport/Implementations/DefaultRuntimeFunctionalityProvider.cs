@@ -518,24 +518,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public void RANDOMIZE(object seed)
 		{
 			// TODO: To be absolutely consistent,
-			//   Ran domize 1.111111
+			//   Randomize 1.111111
 			// and
 			//   Randomize 1.1111111
 			// should both result in the same next number since that's where the precision runs out for VBScript's Single type.
 			// This is the same as the .NET precision, so using CSNG on the seed should work fine (TOOD: Just need to ensure that it's tested thorougly)
 
-			// TODO: Subsequent calls to Randomize will not always result in the same value from RND being returned - eg.
-			//   RANDOMIZE 123
-			//   WScript.Echo RND()
-			//   RANDOMIZE 123
-			//   WScript.Echo RND()
-			//   RANDOMIZE 123
-			//   WScript.Echo RND()
-			// will return three distinct values (as mentioned in https://www.safaribooksonline.com/library/view/vbscript-in-a/1565927206/re148.html -
-			// "Repeatedly passing the same number to Randomize doesn’t cause Rnd to repeat the same sequence of random numbers."
-
-			// TODO: Investigate what sort of implementation we should put here, this is just something that feels roughly correct but which may have important inconsistencies with the VBScript implementation
-			_randomSeed = CSNG(seed).GetHashCode();
+			// The very first time that RANDOMIZE is called with a particular value, the following sequence of random numbers that is produced should be the same. However, if
+			// RANDOMIZE is called later with the same seed number then there is no guarantee that the same sequence will be generated. This is why the new seed value that is
+			// calculated here takes into account the RANDOMIZE value *and* the current seed. See the note "Repeatedly passing the same number to Randomize doesn’t cause Rnd
+			// to repeat the same sequence of random numbers." from https://www.safaribooksonline.com/library/view/vbscript-in-a/1565927206/re148.htm
+			var valueFromSeed = CSNG(seed).GetHashCode();
+			var randomValueFromCurrentSeed = new Random(_randomSeed).NextDouble();
+			_randomSeed = (valueFromSeed * randomValueFromCurrentSeed).GetHashCode();
 		}
 		// - Number functions
 		public object ABS(object value) { throw new NotImplementedException(); }
