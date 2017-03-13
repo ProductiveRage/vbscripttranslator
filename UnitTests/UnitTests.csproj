@@ -63,6 +63,7 @@
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_INT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DIV.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_RANDOMIZE_and_RND.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_WEEKDAY.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_UNESCAPE.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_ESCAPE.cs" />

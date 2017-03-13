@@ -517,17 +517,14 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public void RANDOMIZE() { RANDOMIZE(DateTime.Now.TimeOfDay.TotalSeconds); }
 		public void RANDOMIZE(object seed)
 		{
-			// TODO: To be absolutely consistent,
-			//   Randomize 1.111111
-			// and
-			//   Randomize 1.1111111
-			// should both result in the same next number since that's where the precision runs out for VBScript's Single type.
-			// This is the same as the .NET precision, so using CSNG on the seed should work fine (TOOD: Just need to ensure that it's tested thorougly)
-
 			// The very first time that RANDOMIZE is called with a particular value, the following sequence of random numbers that is produced should be the same. However, if
 			// RANDOMIZE is called later with the same seed number then there is no guarantee that the same sequence will be generated. This is why the new seed value that is
 			// calculated here takes into account the RANDOMIZE value *and* the current seed. See the note "Repeatedly passing the same number to Randomize doesn’t cause Rnd
 			// to repeat the same sequence of random numbers." from https://www.safaribooksonline.com/library/view/vbscript-in-a/1565927206/re148.htm
+			// Note: The seed should only have the precision of the Single type (in VBScript, though it's the same in .NET) ad so precision after a certain point will have no
+			// effect. For example, the following two seeds will result in the same sequence being generated:
+			//   Randomize 1.111111
+			//   Randomize 1.1111111
 			var valueFromSeed = CSNG(seed).GetHashCode();
 			var randomValueFromCurrentSeed = new Random(_randomSeed).NextDouble();
 			_randomSeed = (valueFromSeed * randomValueFromCurrentSeed).GetHashCode();
