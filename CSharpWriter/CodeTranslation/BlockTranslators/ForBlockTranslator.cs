@@ -213,12 +213,12 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				if ((loopStep != loopStartExpressionContent.TranslatedContent) && (loopStep != loopEnd))
 					numericValuesTheTypeMustBeAbleToContain.Add(loopStep);
 
-				// The LoopStartConstraintInitialiser takes both two "initialisation content" parameters - one to initialise its content without taking
-				// into account the other constraints and one that DOES take into account the others. This will be important further down since if a
-				// loop's constraints are all individually evaluated ok and error-trapping is enabled and the loop start value is a Date but one of
-				// the others would cause an Overflow, the loop will be entered once with the loop variable set to the loop start Date value. This
-				// is different to the case where error-trapping is enabled and one of the loop constraint evaluation fails; in that case, the
-				// loop will still be entered once but the loop variable will not be set.
+				// The LoopStartConstraintInitialiser takes two "initialisation content" parameters - one to initialise its content without taking
+				// into account the other constraints and one that DOES take into account the others. This will be important further down since if
+				// a loop's constraints are all individually evaluated ok and error-trapping is enabled and the loop start value is a Date but one
+				// of the others would cause an Overflow, the loop will be entered once with the loop variable set to the loop start Date value.
+				// This is different to the case where error-trapping is enabled and one of the loop constraint evaluation fails; in that case,
+				// the loop will still be entered once but the loop variable will not be set.
 				var loopStartName = _tempNameGenerator(new CSharpName("loopStart"), scopeAccessInformation);
 				loopConstraintInitialisersWhereRequired.Add(new LoopStartConstraintInitialiser(
 					loopStartName,
@@ -256,7 +256,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			CSharpName constraintsInitialisedFlagNameIfAny;
 			if (!loopConstraintInitialisersWhereRequired.Any())
 				constraintsInitialisedFlagNameIfAny = null;
-			else if (scopeAccessInformation.ErrorRegistrationTokenIfAny == null)
+			else if ((scopeAccessInformation.ErrorRegistrationTokenIfAny == null) && !byRefArgumentsToRewrite.Any())
 			{
 				constraintsInitialisedFlagNameIfAny = null;
 				foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
@@ -284,9 +284,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 					));
 				}
 				constraintsInitialisedFlagNameIfAny = _tempNameGenerator(new CSharpName("loopConstraintsInitialised"), scopeAccessInformation);
-				var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
-				translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
-				indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
 				translationResult = translationResult
 					.Add(new TranslatedStatement(
 						string.Format(
@@ -295,8 +292,16 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 						),
 						indentationDepth,
 						forBlock.LoopVar.LineIndex // This statement doesn't directly exist in the source, so we'll have to approximate here
-					))
-					.Add(new TranslatedStatement(
+					));
+				var byRefMappingOpeningTranslationDetails = byRefArgumentsToRewrite.OpenByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
+				translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
+				var distanceToIndentLoopConstraintCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+				indentationDepth += distanceToIndentLoopConstraintCodeDueToByRefMappings;
+
+				if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+				{
+					translationResult = translationResult
+						.Add(new TranslatedStatement(
 						string.Format(
 							"{0}.HANDLEERROR({1}, () => {{",
 							_supportRefName.Name,
@@ -305,6 +310,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 						indentationDepth,
 						forBlock.LoopVar.LineIndex // This statement doesn't directly exist in the source, so we'll have to approximate here
 					));
+				}
 				LoopStartConstraintInitialiser loopStartConstraintInitialiserIfAny = null;
 				foreach (var loopConstraintInitialiser in loopConstraintInitialisersWhereRequired)
 				{
@@ -395,10 +401,11 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 						constraintsInitialisedFlagNameIfAny.Name + " = true;",
 						indentationDepth + 1,
 						forBlock.LoopVar.LineIndex // This statement doesn't directly exist in the source, so we'll have to approximate here
-					))
-					.Add(new TranslatedStatement("});", indentationDepth, forBlock.LoopVar.LineIndex)); // This statement doesn't directly exist in the source, so we'll have to approximate here
+					));
+				if (scopeAccessInformation.ErrorRegistrationTokenIfAny != null)
+					translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth, forBlock.LoopVar.LineIndex)); // This statement doesn't directly exist in the source, so we'll have to approximate here
 
-				indentationDepth += byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+				indentationDepth -= distanceToIndentLoopConstraintCodeDueToByRefMappings;
 				translationResult = byRefArgumentsToRewrite.CloseByRefReplacementDefinitionWork(translationResult, indentationDepth, _nameRewriter);
 			}
 
@@ -668,7 +675,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				
 				// If the loop variable required aliasing then set up the alias before the HANDLEERROR call (and then map it back after the HANDLEERROR call
 				// is terminated - a little bit further down in this function)
-				int distanceToIdentEvaluationCodeDueToByRefMappings;
+				int distanceToIndentEvaluationCodeDueToByRefMappings;
 				if (loopVarAliasIfRequired != null)
 				{
 					var byRefMappingOpeningTranslationDetails = (new[] { loopVarAliasIfRequired }).ToNonNullImmutableList().OpenByRefReplacementDefinitionWork(
@@ -677,11 +684,11 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 						_nameRewriter
 					);
 					translationResult = byRefMappingOpeningTranslationDetails.TranslationResult;
-					distanceToIdentEvaluationCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
-					indentationDepth += distanceToIdentEvaluationCodeDueToByRefMappings;
+					distanceToIndentEvaluationCodeDueToByRefMappings = byRefMappingOpeningTranslationDetails.DistanceToIndentCodeWithMappedValues;
+					indentationDepth += distanceToIndentEvaluationCodeDueToByRefMappings;
 				}
 				else
-					distanceToIdentEvaluationCodeDueToByRefMappings = 0;
+					distanceToIndentEvaluationCodeDueToByRefMappings = 0;
 				translationResult = translationResult
 					.Add(new TranslatedStatement(
 						string.Format(
@@ -711,7 +718,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				translationResult = translationResult.Add(new TranslatedStatement("});", indentationDepth + 1, forBlock.LoopVar.LineIndex));
 				if (loopVarAliasIfRequired != null)
 				{
-					indentationDepth -= distanceToIdentEvaluationCodeDueToByRefMappings;
+					indentationDepth -= distanceToIndentEvaluationCodeDueToByRefMappings;
 					translationResult = (new[] { loopVarAliasIfRequired }).ToNonNullImmutableList().CloseByRefReplacementDefinitionWork(
 						translationResult,
 						indentationDepth + 1,
