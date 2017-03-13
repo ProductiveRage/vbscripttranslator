@@ -268,8 +268,18 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 				}
 			}
 
-			foreach (var argument in callSetItemExpressionSegment.Arguments)
-				rewrittenReferences = GetByRefArgumentsThatNeedRewriting(argument, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue: true);
+			// The built-in functions always take arguments ByVal (at least, I'm fairly confident they do - and, looking through the list of them, I can't see any that look like
+			// they wouldn't) and so we can avoid ByRef mappings for calls to those functions
+			var isCallToBuiltInFunction =
+				(callSetItemExpressionSegment.MemberAccessTokens.Count() == 1) &&
+				(callSetItemExpressionSegment.MemberAccessTokens.Single() is BuiltInFunctionToken);
+			if (!isCallToBuiltInFunction)
+			{
+				foreach (var argument in callSetItemExpressionSegment.Arguments)
+				{
+					rewrittenReferences = GetByRefArgumentsThatNeedRewriting(argument, scopeAccessInformation, rewrittenReferences, expressionIsDirectArgumentValue: true);
+				}
+			}
 
 			return rewrittenReferences;
 		}

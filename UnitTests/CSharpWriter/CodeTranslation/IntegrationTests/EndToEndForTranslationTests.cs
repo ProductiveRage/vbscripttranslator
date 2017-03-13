@@ -503,7 +503,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 				}";
 
 			Assert.Equal(
-				expected.Split(new[] {  Environment.NewLine }, StringSplitOptions.None).Select(s => s.Trim()).Where(s => s != "").ToArray(),
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Select(s => s.Trim()).Where(s => s != "").ToArray(),
 				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
 			);
 		}
@@ -602,6 +602,41 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 				public object f2(object value)
 				{
 					return _.VAL(value);
+				}";
+
+			Assert.Equal(
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Select(s => s.Trim()).Where(s => s != "").ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
+		/// This is a companion to IfByRefArgumentIsRequiredForLoopConstraintsAndIsPassedToAnotherFunctionThenByRefMappingRequired and shows that we can make things a little better by
+		/// presuming that all built-in functions take arguments ByVal (which I'm fairly confident is always the case), which means that ByRef mappings may be avoided for some cases.
+		/// </summary>
+		[Fact]
+		public void IfByRefArgumentIsRequiredForLoopConstraintsAndIsPassedToBuiltInFunctionByRefThenNoByRefMappingRequired()
+		{
+			var source = @"
+				Function F1(ByRef x)
+					Dim i: For i = 1 To UBOUND(x)
+					Next
+				End Function";
+
+			var expected = @"
+				public object f1(ref object x)
+				{
+					object retVal1 = null;
+					object i = null;
+					var loopEnd2 = _.UBOUND(x);
+					var loopStart3 = _.NUM((Int16)1, loopEnd2);
+					if (_.StrictLTE(loopStart3, loopEnd2))
+					{
+						for (i = loopStart3; _.StrictLTE(i, loopEnd2); i = _.ADD(i, (Int16)1))
+						{
+						}
+					}
+					return retVal1;
 				}";
 
 			Assert.Equal(
