@@ -269,11 +269,28 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 			}
 
 			// The built-in functions always take arguments ByVal (at least, I'm fairly confident they do - and, looking through the list of them, I can't see any that look like
-			// they wouldn't) and so we can avoid ByRef mappings for calls to those functions
+			// they wouldn't) and so we can avoid ByRef mappings for calls to those functions so long as there are no nested function calls used to provide the arguments to the
+			// call to the built-in function. We could dig deeper and recursively examine any nested function calls to see if they are also built-in function calls (or otherwise
+			// provably ByVal calls) but this is already complicated enough and the purpose of this is mostly aesthetic (to make the C# code a little more succinct, rather than
+			// to fix any functional issue).
 			var isCallToBuiltInFunction =
 				(callSetItemExpressionSegment.MemberAccessTokens.Count() == 1) &&
 				(callSetItemExpressionSegment.MemberAccessTokens.Single() is BuiltInFunctionToken);
-			if (!isCallToBuiltInFunction)
+			var callToFunctionHasArgumentsThatAreNestedCalls = callSetItemExpressionSegment.Arguments
+				.SelectMany(argumentExpression => argumentExpression.Segments)
+				.Select(segment =>
+				{
+					if (segment is CallSetItemExpressionSegment)
+						return new[] { (CallSetItemExpressionSegment)segment };
+					if (segment is CallSetExpressionSegment)
+						return ((CallSetExpressionSegment)segment).CallExpressionSegments;
+					return null;
+				})
+				.Where(callSetItemSegments => callSetItemSegments != null)
+				.SelectMany(callSetItemSegment => callSetItemSegment)
+				.Where(callExpressionSegment => callExpressionSegment.Arguments.Any())
+				.Any();
+			if (!isCallToBuiltInFunction || callToFunctionHasArgumentsThatAreNestedCalls)
 			{
 				foreach (var argument in callSetItemExpressionSegment.Arguments)
 				{

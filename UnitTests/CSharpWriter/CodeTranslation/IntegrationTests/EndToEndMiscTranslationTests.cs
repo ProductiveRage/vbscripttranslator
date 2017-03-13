@@ -364,6 +364,71 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 		}
 
 		/// <summary>
+		/// Some code was added to make common FOR loop structures more succinct in the generated C# (when an array is passed into a method ByRef and then the upper
+		/// loop constraint is UBOUND of that array, for example) but that disabled ByRef argument mapping in cases where it shouldn't. This is a simple example where
+		/// the ByRef x argument is passed to a builtin function, which will accept it ByVal and so there is no need for a ByRef mapping (which is required when an
+		/// ByRef argument is passed to another method ByRef because that will require putting a reference to the original argument in a lambda, which is not legal
+		/// in C#).
+		/// </summary>
+		[Fact]
+		public void ByRefArgumentDoesNotRequireByRefArgumentMappingWhenPassedDirectlyToBuiltInFunction()
+		{
+			var source = @"
+				Function F1(x)
+					WScript.Echo TypeName(x)
+				End Function";
+			var expected = @"
+				public object f1(ref object x)
+				{
+					object retVal1 = null;
+					_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(_.TYPENAME(x)));
+					return retVal1;
+				}";
+			Assert.Equal(
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
+		/// This is a companion to ByRefArgumentDoesNotRequireByRefArgumentMappingWhenPassedDirectlyToBuiltInFunction that illustrates that a ByRef mapping is
+		/// required when a ByRef argument is passed to a builtin function if it is passed indirectly, via a nested function call.
+		/// </summary>
+		[Fact]
+		public void ByRefArgumentRequireByRefArgumentMappingWhenPassedIndirectlyToBuiltInFunction()
+		{
+			var source = @"
+				Function F1(x)
+					WScript.Echo TypeName(F2(x))
+				End Function
+
+				Function F2(x)
+					F2 = x
+				End Function";
+			var expected = @"
+				public object f1(ref object x)
+				{
+					object retVal1 = null;
+					object byrefalias2 = x;
+					try
+					{
+						_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(_.TYPENAME(_.CALL(this, _outer, ""F2"", _.ARGS.Ref(byrefalias2, v3 => { byrefalias2 = v3; })))));
+					}
+					finally { x = byrefalias2; }
+					return retVal1;
+				}
+
+				public object f2(ref object x)
+				{
+					return _.VAL(x);
+				}";
+			Assert.Equal(
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
 		/// This illustrated a bug that was identified with numeric literals of the form "&H001" - the trailing zeroes were causing an exception in the
 		/// parsing process
 		/// </summary>
