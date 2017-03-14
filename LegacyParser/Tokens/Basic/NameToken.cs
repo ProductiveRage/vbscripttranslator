@@ -18,8 +18,12 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 			// of another type. This is process is kind of hokey but I'm trying to layer on a little additional type safety to some very old code so
 			// I'm willing to live with this approach to it (the base class - the AtomToken - having knowledge of all of the derived types is not a
 			// great design decision).
-			if ((this.GetType() == typeof(NameToken)) && IsReservedKeyword)
-				throw new ArgumentException("Invalid content for a NameToken, may not used reserved keyword \"" + content + "\"");
+			if (this.GetType() == typeof(NameToken))
+			{
+				var recognisedType = TryToGetAsRecognisedType(content, lineIndex);
+				if ((recognisedType != null) && !(recognisedType is NameToken))
+					throw new ArgumentException("Invalid content for a NameToken");
+			}
 		}
 	}
 }

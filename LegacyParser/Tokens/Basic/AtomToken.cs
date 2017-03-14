@@ -489,27 +489,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 			}
 		}
 
-		// Fromhttps://support.microsoft.com/en-us/help/216528/info-reserved-words-in-vbscript-5.5-and-jscript-5.5
-		private static string[] _reservedKeywords = new[]
-		{
-			"And", "As", "Boolean", "ByRef", "Byte", "ByVal", "Call", "Case", "Class", "Const", "Currency", "Debug", "Dim", "Do", "Double", "Each", "Else", "ElseIf", "Empty", "End", "EndIf", "Enum", "Eqv", "Event", "Exit",
-			"False", "For", "Function", "Get", "GoTo", "If", "Imp", "Implements", "In", "Integer", "Is", "Let", "Like", "Long", "Loop", "LSet", "Me", "Mod", "New", "Next", "Not", "Nothing", "Null", "On", "Option", "Optional", "Or",
-			"ParamArray", "Preserve", "Private", "Public", "RaiseEvent", "ReDim", "Rem", "Resume", "RSet", "Select", "Set", "Shared", "Single", "Static", "Stop", "Sub", "Then", "To", "True", "Type", "TypeOf", "Until", "Variant",
-			"Wend", "While", "With", "Xor"
-		};
-
-		/// <summary>
-		/// VBScript has a special list of reserved keywords - it's not simply a case of any VBScript function and value name is reserved (for example, Date is a function but
-		/// it's acceptable to declare a variable named Date)
-		/// </summary>
-		public bool IsReservedKeyword
-		{
-			get
-			{
-				return _reservedKeywords.Any(keyword => Content.Equals(keyword, StringComparison.OrdinalIgnoreCase));
-			}
-		}
-
 		/// <summary>
 		/// Does this AtomContent describe a reserved VBScript keyword that must be handled by
 		/// a targeted AbstractCodeBlockHandler? (eg. "FOR", "DIM")
