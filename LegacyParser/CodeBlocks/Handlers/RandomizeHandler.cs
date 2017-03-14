@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
+using VBScriptTranslator.LegacyParser.Tokens.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
@@ -25,7 +26,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 			// section will throw an exception if invalid tokens are encountered.
 			var lineIndex = tokens[0].LineIndex; // We'll need this value, so get it before throwing any tokens away
 			int tokensProcessed = 1;
-			List<IToken> seedTokens = new List<IToken>();
+			var seedTokens = new List<IToken>();
 			for (int index = 1; index < tokens.Count; index++)
 			{
 				if (base.isEndOfStatement(tokens, index))
@@ -35,6 +36,12 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 				}
 				seedTokens.Add(base.getToken_AtomOrDateStringLiteralOnly(tokens, index));
 				tokensProcessed++;
+			}
+			if ((seedTokens.Count == 2) && (seedTokens[0] is OpenBrace) && (seedTokens[1] is CloseBrace))
+			{
+				// Randomize may have optional brackets in its invocation - if it has a seed argument then this will be fine but if there
+				// is no seed and there are brackets then the translator will get confused, so just strip them out in that case
+				seedTokens.Clear();
 			}
 
 			// Pull processed tokens from stream and return statement
