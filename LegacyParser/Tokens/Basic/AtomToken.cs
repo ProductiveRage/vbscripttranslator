@@ -331,7 +331,6 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 				{
 					"TRUE", "FALSE",
 					"EMPTY", "NOTHING", "NULL", 
-					"TIMER",
 					"ERR",
 
 					// These are the constants from http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbscon3.htm that appear to work in VBScript
@@ -403,7 +402,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 					"FORMATCURRENCY", "FORMATDATETIME", "FORMATNUMBER", "FORMATPERCENT",
 					"FILTER", "GETLOCALE", "GETREF", "INPUTBOX", "LOADPICTURE", "MID", "MSGBOX", "RGB", "SETLOCALE", "SGN", "STRREVERSE", 
 					"SCRIPTENGINE",
-					"ESCAPE", "UNESCAPE"
+					"ESCAPE", "UNESCAPE",
+					"TIMER"
 				}
 			);
 		}
