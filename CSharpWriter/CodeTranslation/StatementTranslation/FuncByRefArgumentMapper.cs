@@ -272,7 +272,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 			// they wouldn't) and so we can avoid ByRef mappings for calls to those functions so long as there are no nested function calls used to provide the arguments to the
 			// call to the built-in function. We could dig deeper and recursively examine any nested function calls to see if they are also built-in function calls (or otherwise
 			// provably ByVal calls) but this is already complicated enough and the purpose of this is mostly aesthetic (to make the C# code a little more succinct, rather than
-			// to fix any functional issue).
+			// to fix any functional issue). Note: If error-trapping may be in play then none of this matters - if we're passing a ByRef argument to a builtin function within
+			// a HANDLEERROR lambda then we'll need a ByRef alias otherwise we'd be trying to reference a ref argument within a lambda (which is not gonna fly).
 			var isCallToBuiltInFunction =
 				(callSetItemExpressionSegment.MemberAccessTokens.Count() == 1) &&
 				(callSetItemExpressionSegment.MemberAccessTokens.Single() is BuiltInFunctionToken);
@@ -290,7 +291,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 				.SelectMany(callSetItemSegment => callSetItemSegment)
 				.Where(callExpressionSegment => callExpressionSegment.Arguments.Any())
 				.Any();
-			if (!isCallToBuiltInFunction || callToFunctionHasArgumentsThatAreNestedCalls)
+			if (!isCallToBuiltInFunction || callToFunctionHasArgumentsThatAreNestedCalls || (scopeAccessInformation.ErrorRegistrationTokenIfAny != null))
 			{
 				foreach (var argument in callSetItemExpressionSegment.Arguments)
 				{

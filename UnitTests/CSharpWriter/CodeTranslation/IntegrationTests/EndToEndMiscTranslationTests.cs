@@ -429,6 +429,41 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 		}
 
 		/// <summary>
+		/// This is another companion to ByRefArgumentDoesNotRequireByRefArgumentMappingWhenPassedDirectlyToBuiltInFunction - if a ByRef argument is passed to a builtin
+		/// function and error-trapping may be enabled then a ByRef mapping will be required to avoid trying to reference the ref argument within the HANDLEERROR lambda
+		/// </summary>
+		[Fact]
+		public void ByRefArgumentWillRequireByRefArgumentMappingWhenPassedDirectlyToBuiltInFunctionIfErrorTrappingMayBeEnabled()
+		{
+			var source = @"
+				Function F1(x)
+					On Error Resume Next
+					WScript.Echo TypeName(x)
+				End Function";
+			var expected = @"
+				public object f1(ref object x)
+				{
+					object retVal1 = null;
+					var errOn2 = _.GETERRORTRAPPINGTOKEN();
+					_.STARTERRORTRAPPINGANDCLEARANYERROR(errOn2);
+					object byrefalias3 = x;
+					try
+					{
+						_.HANDLEERROR(errOn2, () => {
+							_.CALL(this, _env.wscript, ""Echo"", _.ARGS.Val(_.TYPENAME(byrefalias3)));
+						});
+					}
+					finally { x = byrefalias3; }
+					_.RELEASEERRORTRAPPINGTOKEN(errOn2);
+					return retVal1;
+				}";
+			Assert.Equal(
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
 		/// This illustrated a bug that was identified with numeric literals of the form "&H001" - the trailing zeroes were causing an exception in the
 		/// parsing process
 		/// </summary>
