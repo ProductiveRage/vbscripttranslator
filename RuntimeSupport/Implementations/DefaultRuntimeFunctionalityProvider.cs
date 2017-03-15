@@ -718,7 +718,20 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return DBNull.Value;
 			return _valueRetriever.STR(value).Length;
 		}
-		public object LENB(object value) { throw new NotImplementedException(); }
+		public object LENB(object value)
+		{
+			// For almost all cases, returning twice the string length should work here. VBScript uses UTF-16 but I think that it's possible to construct strings that are an odd number
+			// of bytes long if you try hard. As such, this shouldn't be considered a particularly robust implementation but (hopefully) it will be good enough. The places that I have
+			// encountered it are where binary data has been stored in a string to pass to an ADO Command as type adBinary - a length is required for the data that is passed and that
+			// (so far) seems to work fine when a value of twice the string is used (and it seems to work when the length passed to CreateParamter is larger than the actual data, so
+			// it hopefully isn't a problem to over-report the LENB value by one byte for cases where there IS an odd number of bytes).
+			value = _valueRetriever.VAL(value, "'LenB'");
+			if (value == null)
+				return 0;
+			else if (value == DBNull.Value)
+				return DBNull.Value;
+			return _valueRetriever.STR(value).Length * 2;
+		}
 		public object LEFT(object value, object maxLength)
 		{
 			// Validate inputs first
