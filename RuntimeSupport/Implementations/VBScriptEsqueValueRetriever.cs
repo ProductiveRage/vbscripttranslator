@@ -1088,13 +1088,34 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			else
 			{
 				// If there IS a a return type then assign the method call's return value to the result variable
+				var result = methodCall.Type.IsValueType ? (Expression)Expression.Convert(methodCall, typeof(object)) : methodCall;
 				methodCallAndAndResultAssignments = new Expression[]
 				{
 					Expression.Assign(
 						resultVariable,
-						methodCall.Type.IsValueType ? (Expression)Expression.Convert(methodCall, typeof(object)) : methodCall
+						result
 					)
 				};
+				if (TypeIsComVisible(method.ReturnType) && !method.ReturnType.IsValueType)
+				{
+					// If the return type is ComVisible (but not just the base object type) then VBScript would translate a
+					// null return value into Nothing (aka. new DispatchWrapper(null)). We can only do this when retrieving
+					// values over reflection in this manner, there's no way for us to try to add this behaviour to IDispatch
+					// or IReflect calls, we'll have to hope that those classes behave properly already.
+					var dispatchWrapperConstructor = typeof(DispatchWrapper).GetConstructor(new[] { typeof(object) });
+					methodCallAndAndResultAssignments = methodCallAndAndResultAssignments
+						.Concat(new[]
+						{
+							Expression.IfThen( // TODO
+								Expression.Equal(resultVariable, Expression.Constant(null, method.ReturnType)),
+								Expression.Assign(
+									resultVariable,
+									Expression.New(dispatchWrapperConstructor, Expression.Constant(null, typeof(object)))
+								)
+							)
+						})
+						.ToArray();
+				}
 			}
 
 			// Note: The Throw expression will require a return type to be specified since the Try block has a return type

@@ -791,6 +791,36 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			return input;
 		}
 
+		[Fact]
+		public void NothingShouldBeReturnedForNullForPropertyOfComVisibleType()
+		{
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			var value = _.CALL(context: null, target: new ClassWithComVisiblePropertyThatIsAlwaysNull(), member1: "Value");
+			Assert.IsType<DispatchWrapper>(value);
+			Assert.Null(((DispatchWrapper)value).WrappedObject);
+		}
+
+		[Fact]
+		public void NothingShouldNotBeReturnedForNullForPropertyOfObjectType()
+		{
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Null(
+				_.CALL(context: null, target: new ClassWithObjectPropertyThatIsAlwaysNull(), member1: "Value")
+			);
+		}
+
+		[ComVisible(true)]
+		private class ClassWithComVisiblePropertyThatIsAlwaysNull
+		{
+			public ClassWithComVisiblePropertyThatIsAlwaysNull Value { get { return null; } }
+		}
+
+		[ComVisible(true)]
+		private class ClassWithObjectPropertyThatIsAlwaysNull
+		{
+			public object Value { get { return null; } }
+		}
+
 		[Theory, MemberData("ZeroArgumentBracketSuccessData")]
 		public void ZeroArgumentBracketSuccessCases(string description, object target, string[] memberAccessors, bool useBracketsWhereZeroArguments, object expectedResult)
 		{
