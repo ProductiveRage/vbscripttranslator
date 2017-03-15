@@ -1096,7 +1096,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						result
 					)
 				};
-				if (TypeIsComVisible(method.ReturnType) && !method.ReturnType.IsValueType)
+				if (TypeIsComVisible(method.ReturnType) && !IsCLRTypeVBScriptValueType(method.ReturnType))
 				{
 					// If the return type is ComVisible (but not just the base object type) then VBScript would translate a
 					// null return value into Nothing (aka. new DispatchWrapper(null)). We can only do this when retrieving
@@ -1106,7 +1106,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					methodCallAndAndResultAssignments = methodCallAndAndResultAssignments
 						.Concat(new[]
 						{
-							Expression.IfThen( // TODO
+							Expression.IfThen(
 								Expression.Equal(resultVariable, Expression.Constant(null, method.ReturnType)),
 								Expression.Assign(
 									resultVariable,

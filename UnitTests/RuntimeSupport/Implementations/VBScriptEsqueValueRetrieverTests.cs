@@ -809,6 +809,19 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			);
 		}
 
+		/// <summary>
+		/// VBScript has its own ideas about what constitutes a value type, so it won't get Nothing from a null property value if the property's type is string (even though
+		/// string is ComVisible and not "object" and not a .NET value type)
+		/// </summary>
+		[Fact]
+		public void NothingShouldNotBeReturnedForNullForPropertyOfStringType()
+		{
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Null(
+				_.CALL(context: null, target: new ClassWithObjectPropertyThatIsAlwaysNull(), member1: "Value")
+			);
+		}
+
 		[ComVisible(true)]
 		private class ClassWithComVisiblePropertyThatIsAlwaysNull
 		{
