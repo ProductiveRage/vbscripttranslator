@@ -588,13 +588,11 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (IsVBScriptValueType(o) && !o.GetType().IsArray)
 				throw new ObjectNotCollectionException("Object not a collection");
 
-			// Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object
-			var enumerable = o as IEnumerable;
-			if (enumerable != null)
-				return enumerable;
-
-			// Failing that, attempt access through IDispatch - try calling the method with DispId -4 (if there is one) and casting the return
-			// value to IEnumVariant and then wrapping up into a managed IEnumerable
+			// Try to access through IDispatch - try calling the method with DispId -4 (if there is one) and casting the return value to IEnumVariant
+			// and then wrapping up into a managed IEnumerable. Prefer this approach to IEnumerable if we have the choice of both because there are
+			// some weird cases (eg. http://stackoverflow.com/questions/42626484/msxmll-6-0-xmldomnodelist-fails-when-is-invoked-getenumerator,
+			// where the DOM Node List from MSXML 6.0 implements IEnumerable but throws "The object's type must not be a Windows Runtime type"
+			// if you try to actually call GetEnumerator.
 			if (IDispatchAccess.ImplementsIDispatch(o))
 			{
 				object enumerator;
@@ -613,6 +611,11 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					throw new ObjectNotCollectionException("IDispatch reference has a DispId -4 return value that does not implement IEnumVariant");
 				return new ManagedEnumeratorWrapper(new IDispatchEnumeratorWrapper(enumeratorAsEnumVariant));
 			}
+
+			// Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object
+			var enumerable = o as IEnumerable;
+			if (enumerable != null)
+				return enumerable;
 
 			// Give up and throw the VBScript error message
 			throw new ObjectNotCollectionException("Object not a collection");
