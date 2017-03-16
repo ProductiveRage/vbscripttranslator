@@ -214,7 +214,7 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                 if (bracketCount == 0)
                 {
                     IToken token = getToken(tokens, offset, allowedTokenTypes);
-                    if (token.Content == ",")
+                    if (token is ArgumentSeparatorToken)
                     {
                         // Got it.. add current entry to list (don't worry if it's blank,
                         // let the caller decide whether that's valid or not)
@@ -228,9 +228,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
                     // Not got separator, add to buffer (check for brackets)
                     IToken token = getToken(tokens, offset, allowedTokenTypes);
                     buffer.Add(token);
-                    if (token.Content == "(")
+                    if (token is OpenBrace)
                         bracketCount++;
-                    else if (token.Content == ")")
+                    else if (token is CloseBrace)
                     {
                         bracketCount--;
                         if (bracketCount < 0)
