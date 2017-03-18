@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using VBScriptTranslator.RuntimeSupport;
-using VBScriptTranslator.RuntimeSupport.Attributes;
-using VBScriptTranslator.RuntimeSupport.Compat;
-using VBScriptTranslator.RuntimeSupport.Exceptions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.Extensions;
 using VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation;
 using VBScriptTranslator.CSharpWriter.Lists;
@@ -12,6 +8,10 @@ using VBScriptTranslator.CSharpWriter.Logging;
 using VBScriptTranslator.LegacyParser.CodeBlocks;
 using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
+using VBScriptTranslator.RuntimeSupport;
+using VBScriptTranslator.RuntimeSupport.Attributes;
+using VBScriptTranslator.RuntimeSupport.Compat;
+using VBScriptTranslator.RuntimeSupport.Exceptions;
 
 namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 {
@@ -639,33 +639,9 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			if (blocks == null)
 				throw new ArgumentNullException("blocks");
 
-			foreach (var block in blocks)
-			{
-				if (block == null)
-					throw new ArgumentException("Null reference encountered in blocks set");
+			return blocks.EnumerateAllTokens().OfType<DateLiteralToken>();
 
-				IEnumerable<Statement> expressionsToInterrogate;
-				var nonNestedExpressionContainingBlock = block as IHaveNonNestedExpressions;
-				if (nonNestedExpressionContainingBlock != null)
-					expressionsToInterrogate = nonNestedExpressionContainingBlock.NonNestedExpressions;
-				else
-				{
-					var statement = block as Statement;
-					if (statement != null)
-						expressionsToInterrogate = new[] { statement };
-					else
-						expressionsToInterrogate = new Statement[0];
-				}
-				foreach (var dateLiteral in expressionsToInterrogate.SelectMany(e => e.Tokens.OfType<DateLiteralToken>()))
-					yield return dateLiteral;
 
-				var nestedContentBlock = block as IHaveNestedContent;
-				if (nestedContentBlock != null)
-				{
-					foreach (var nestedDateLiteral in EnumerateAllDateLiteralTokens(nestedContentBlock.AllExecutableBlocks))
-						yield return nestedDateLiteral;
-				}
-			}
 		}
 
 		private class Annotated<T> where T : ICodeBlock
