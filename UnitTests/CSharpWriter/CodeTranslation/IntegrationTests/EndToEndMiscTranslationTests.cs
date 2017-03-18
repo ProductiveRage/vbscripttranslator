@@ -483,6 +483,33 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 			);
 		}
 
+		/// <summary>
+		/// This proves a bug fix around the translation of statements within with blocks, where the first token in the statement is a member accessor - the CALL that
+		/// was generated was incorrectly interpreting the method name as an argument
+		/// </summary>
+		[Fact]
+		public void WithReferenceShouldNotConfuseBracketResolution()
+		{
+			var source = @"
+				Function Render(x)
+					With x
+						.Draw ""Test""
+					End With
+				End Function";
+			var expected = @"
+				public object render(ref object x)
+				{
+					object retVal1 = null;
+					var with2 = _.OBJ(x);
+					_.CALL(this, with2, ""Draw"", _.ARGS.Val(""Test""));
+					return retVal1;
+				}";
+			Assert.Equal(
+				expected.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
 		[Theory, MemberData("VariousBracketDeterminedRefValArgumentData")]
 		public void VariousBracketDeterminedRefValArgumentCases(string source, string expectedResult)
 		{
