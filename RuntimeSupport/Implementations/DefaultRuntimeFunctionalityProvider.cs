@@ -531,9 +531,33 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			_randomSeed = (valueFromSeed * randomValueFromCurrentSeed).GetHashCode();
 		}
 		// - Number functions
-		public object ABS(object value) { throw new NotImplementedException(); }
-		public object ATN(object value) { throw new NotImplementedException(); }
-		public object COS(object value) { throw new NotImplementedException(); }
+		public object ABS(object value)
+		{
+			value = _valueRetriever.VAL(value, "'Abs'");
+			if (value is bool)
+				return (bool)value ? (Int16)1 : (Int16)0;
+			if (value is byte)
+				return value;
+			if (value is Int16)
+				return (Int16)Math.Abs((Int16)value);
+			if (value is Int32)
+				return (Int16)Math.Abs((Int16)value);
+			if (value is decimal)
+				return (decimal)Math.Abs((decimal)value);
+			return Math.Abs(CDBL_Precise(value, "'Abs'"));
+		}
+		public object ATN(object value)
+		{
+			// TODO: Tests need to confirm that double precision is used (eg. COS returns different values for 1.111111 and 1.1111111)
+			var radians = CDBL_Precise(value, "'Atn'");
+			return Math.Atan(radians);
+		}
+		public object COS(object value)
+		{
+			// TODO: Tests need to confirm that double precision is used (eg. COS returns different values for 1.111111 and 1.1111111)
+			var radians = CDBL_Precise(value, "'Cos'");
+			return Math.Cos(radians);
+		}
 		public object EXP(object value) { throw new NotImplementedException(); }
 		public object FIX(object value) { throw new NotImplementedException(); }
 		public object LOG(object value) { throw new NotImplementedException(); }
@@ -570,8 +594,23 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		}
 		public object ROUND(object value) { throw new NotImplementedException(); }
 		public object SGN(object value) { throw new NotImplementedException(); }
-		public object SIN(object value) { throw new NotImplementedException(); }
-		public object SQR(object value) { throw new NotImplementedException(); }
+		public object SIN(object value)
+		{
+			// TODO: Tests need to confirm that double precision is used (eg. COS returns different values for 1.111111 and 1.1111111)
+			var radians = CDBL_Precise(value, "'Sin'");
+			return Math.Sin(radians);
+		}
+		public object SQR(object value)
+		{
+			// TODO: Require tests
+			// - Always returns double
+			// - Accepts double precision input (eg. 1.111111 vs 1.1111111)
+			// - Negative values => InvalidProcedureCallOrArgumentException (though zero is, of course, an acceptable input)
+			var numericValue = CDBL_Precise(value, "'Sqr'");
+			if (numericValue < 0)
+				throw new InvalidProcedureCallOrArgumentException();
+			return Math.Sqrt(numericValue);
+		}
 		public object TAN(object value) { throw new NotImplementedException(); }
 		/// <summary>
 		/// Returns the number of seconds that have elapsed since midnight
@@ -1374,6 +1413,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public object DATEDIFF(object interval, object date1, object date2) // TODO: Need to support optional firstDayOrWeek and firstWeekOfYear arguments
 		{
 			// TODO: Need to confirm that arguments are evaluated in the correct order (if date1 and date2 are invalid, which is reported?)
+			// TODO: Document that it returns VBScript "Long" (aka .NET Int32)
 			var i = CSTR(interval, "'DateDiff'");
 			var d1 = CDATE(date1, "'DateDiff'");
 			var d2 = CDATE(date2, "'DateDiff'");
