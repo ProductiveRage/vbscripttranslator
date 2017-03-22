@@ -389,7 +389,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		// - Type conversions
 		public byte CBYTE(object value) { return CBYTE(value, "'CByte'"); }
 		private byte CBYTE(object value, string exceptionMessageForInvalidContent) { return GetAsNumber<byte>(value, exceptionMessageForInvalidContent, Convert.ToByte); }
-		public bool CBOOL(object value) { return _valueRetriever.BOOL(value, "'CBool'"); }
+		public bool CBOOL(object value) { return BOOL(value, "'CBool'"); }
+		private bool CBOOL(object value, string exceptionMessageForInvalidContent) { return _valueRetriever.BOOL(value, exceptionMessageForInvalidContent); }
 		public decimal CCUR(object value) { return CCUR(value, "'CCur'"); }
 		private decimal CCUR(object value, string exceptionMessageForInvalidContent)
 		{
@@ -708,7 +709,16 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			return zeroBasedMatchIndex + 1;
 		}
 
-		public object MID(object value) { throw new NotImplementedException(); }
+		public object MID(object value, object start) { throw new NotImplementedException(); }
+		public object MID(object value, object start, object length)
+		{
+			// TODO: This is just a thrown-together implementation, it needs proper testing relating to the order in which arguments should be evaluated, what argument values are and
+			// aren't valid (is length -1 valid??) but it's just enough to make it work for my particular case that I have right at hand now.
+			var valueString = CSTR(value, "'Mid'");
+			var startAsNumber = CLNG(start, "'Mid'");
+			var lengthAsNumber = CLNG(length, "'Mid'");
+			return valueString.Substring(startAsNumber, Math.Min(lengthAsNumber, valueString.Length - startAsNumber));
+		}
 		public object LEN(object value)
 		{
 			value = _valueRetriever.VAL(value, "'Len'");
@@ -1361,7 +1371,27 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				throw new InvalidProcedureCallOrArgumentException("'DateAdd'");
 			return dateValue;
 		}
-		public object DATEDIFF(object value) { throw new NotImplementedException(); }
+		public object DATEDIFF(object interval, object date1, object date2) // TODO: Need to support optional firstDayOrWeek and firstWeekOfYear arguments
+		{
+			// TODO: Need to confirm that arguments are evaluated in the correct order (if date1 and date2 are invalid, which is reported?)
+			var i = CSTR(interval, "'DateDiff'");
+			var d1 = CDATE(date1, "'DateDiff'");
+			var d2 = CDATE(date2, "'DateDiff'");
+
+			var difference = d2.Subtract(d1);
+			switch (i)
+			{
+				default:
+					throw new NotSupportedException($"Unsupported interval: '{interval}'"); // This will be a different exception type once all VBScript-support interval strings are supported
+
+				case "d":
+					return (int)Math.Ceiling(difference.TotalDays);
+				case "m":
+					var yearDifference = d2.Year - d1.Year;
+					var monthDifference = d2.Month - d1.Month;
+					return (yearDifference * 12) + monthDifference;
+			}
+		}
 		public object DATEPART(object value) { throw new NotImplementedException(); }
 		public object DATESERIAL(object year, object month, object date)
 		{
@@ -1381,7 +1411,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				if (numericMonth < 0)
 					numericMonth += 12; // For negative values (eg. -1 % 12 is -1 so need to add 12 to get to 11, -13 % 12 is also -1 so never need to add more or less than 12)
 			}
-
+		
 			// TODO: Check days <= 0 or days > days-in-month/year
 
 			// TODO: Check small year values
@@ -1487,7 +1517,24 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			return (((int)date.DayOfWeek + (8 - vbsFirstDayOfWeek)) % 7) + 1;
 		}
-		public object WEEKDAYNAME(object value) { throw new NotImplementedException(); }
+		public object WEEKDAYNAME(object value) { return WEEKDAYNAME(value, abbreviate: false); }
+		public object WEEKDAYNAME(object value, object abbreviate) { return WEEKDAYNAME(value, abbreviate, firstDayOfWeek: VBScriptConstants.vbSunday); }
+		public object WEEKDAYNAME(object value, object abbreviate, object firstDayOfWeek)
+		{
+			var numericValue = CLNG(value, "'WeekdayName'");
+			if ((numericValue < 1) || (numericValue > 7))
+				throw new InvalidProcedureCallOrArgumentException();
+
+			var booleanAbbreviate = CBOOL(abbreviate, "'WeekdayName'"); // TODO: Ensure that this behaviour is correct (including errors) and ensure evaluate arguments in correct order
+
+			var numericFirstDayOfWeek = CLNG(firstDayOfWeek, "'WeekdayName'");
+			if (numericFirstDayOfWeek != VBScriptConstants.vbSunday)
+				throw new NotSupportedException(); // TODO: Deal with firstDayOfWeek properly (and ensure evaluate arguments in correct order)
+
+			// The first day in January 2017 is Sunday and VBScript treats day 1 as Sunday, so we can just take our 1-7 range and use that as the day number in Jan 2017
+			// (then we take the name of the day for the generated date and we're all done)
+			return new DateTime(2017, 1, numericValue).ToString(booleanAbbreviate ? "ddd" : "dddd");
+		}
 		public object HOUR(object value)
 		{
 			value = _valueRetriever.VAL(value, "'Hour'");

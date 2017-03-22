@@ -62,6 +62,7 @@
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndDimTranslationTests.cs" />
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndSelectTranslationTests.cs" />
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DATEDIFF.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_INT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DIV.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_RANDOMIZE_and_RND.cs" />

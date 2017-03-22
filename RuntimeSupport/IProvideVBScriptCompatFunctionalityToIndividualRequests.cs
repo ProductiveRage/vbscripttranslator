@@ -146,7 +146,8 @@ namespace VBScriptTranslator.RuntimeSupport
 		object LENB(object value);
 		object LEFT(object value, object maxLength);
 		object LEFTB(object value, object maxLength);
-		object MID(object value);
+		object MID(object value, object start);
+		object MID(object value, object start, object length);
 		object RGB(object value);
 		object RIGHT(object value, object maxLength);
 		object RIGHTB(object value, object maxLength);
@@ -190,7 +191,7 @@ namespace VBScriptTranslator.RuntimeSupport
 		DateTime DATE();
 		DateTime TIME();
 		object DATEADD(object interval, object number, object value);
-		object DATEDIFF(object value);
+		object DATEDIFF(object interval, object date1, object date2);
 		object DATEPART(object value);
 		object DATESERIAL(object year, object month, object date);
 		DateTime DATEVALUE(object value);
@@ -201,6 +202,8 @@ namespace VBScriptTranslator.RuntimeSupport
 		object WEEKDAY(object value);
 		object WEEKDAY(object value, object firstDayOfWeek);
 		object WEEKDAYNAME(object value);
+		object WEEKDAYNAME(object value, object abbreviate);
+		object WEEKDAYNAME(object value, object abbreviate, object firstDayOfWeek);
 		object HOUR(object value);
 		object MINUTE(object value);
 		object SECOND(object value);
