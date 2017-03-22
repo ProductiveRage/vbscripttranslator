@@ -617,6 +617,15 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (enumerable != null)
 				return enumerable;
 
+			// TODO: Document (and enable reflection caching / LINQ expressions... :S)
+			// TODO: The enumerator should only have to have MoveNext, Reset, and Current member - it shouldn't have to implement IEnumerator
+			var getEnumeratorMethod = o.GetType().GetMethod("GetEnumerator", Type.EmptyTypes);
+			if ((getEnumeratorMethod != null) && (getEnumeratorMethod.ReturnType != null) && typeof(IEnumerator).IsAssignableFrom(getEnumeratorMethod.ReturnType))
+			{
+				var enumerator = (IEnumerator)getEnumeratorMethod.Invoke(o, new object[0]);
+				return new ManagedEnumeratorWrapper(enumerator);
+			}
+
 			// Give up and throw the VBScript error message
 			throw new ObjectNotCollectionException("Object not a collection");
 		}
