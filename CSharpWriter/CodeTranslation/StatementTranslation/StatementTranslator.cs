@@ -504,17 +504,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.StatementTranslation
 					new NonNullImmutableList<NameToken>()
 				);
 			}
-			else if (builtInValueExpressionSegment.Token.Content.Equals("Timer", StringComparison.OrdinalIgnoreCase))
-			{
-				return new TranslatedStatementContentDetailsWithContentType(
-					string.Format(
-						"{0}.TIMER()",
-						_supportRefName.Name
-					),
-					ExpressionReturnTypeOptions.Value,
-					new NonNullImmutableList<NameToken>()
-				);
-			}
 
 			// Handle regular value-type constants
 			var constantProperty = typeof(VBScriptConstants).GetProperty(

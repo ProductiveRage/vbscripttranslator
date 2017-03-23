@@ -321,7 +321,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 		}
 
 		/// <summary>
-		/// Does the content appear to represent a VBScript expression - eg. "TIMER". An exception will be raised for null, blank or whitespace-containing input.
+		/// Does the content appear to represent a VBScript expression - eg. "NOTHING". An exception will be raised for null, blank or whitespace-containing input.
 		/// </summary>
 		protected static bool isVBScriptValue(string atomContent)
 		{
@@ -402,8 +402,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 					"FORMATCURRENCY", "FORMATDATETIME", "FORMATNUMBER", "FORMATPERCENT",
 					"FILTER", "GETLOCALE", "GETREF", "INPUTBOX", "LOADPICTURE", "MID", "MSGBOX", "RGB", "SETLOCALE", "SGN", "STRREVERSE", 
 					"SCRIPTENGINE",
-					"ESCAPE", "UNESCAPE",
-					"TIMER"
+					"ESCAPE", "UNESCAPE"
 				}
 			);
 		}
@@ -427,7 +426,8 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 					"ATN", "COS", "SIN", "TAN", "EXP", "LOG", "SQR", "RND", "ROUND",
 					"HEX", "OCT", "FIX", "INT", "SNG",
 					"ASC", "ASCB", "ASCW",
-					"SCRIPTENGINEBUILDVERSION", "SCRIPTENGINEMAJORVERSION", "SCRIPTENGINEMINORVERSION"
+					"SCRIPTENGINEBUILDVERSION", "SCRIPTENGINEMAJORVERSION", "SCRIPTENGINEMINORVERSION",
+					"TIMER"
 				}
 			);
 		}
@@ -507,7 +507,7 @@ namespace VBScriptTranslator.LegacyParser.Tokens.Basic
 		}
 
 		/// <summary>
-		/// Does this AtomContent describe a VBScript value (eg. "TIMER")?
+		/// Does this AtomContent describe a VBScript value (eg. "NOTHING")?
 		/// </summary>
 		public bool IsVBScriptValue
 		{
