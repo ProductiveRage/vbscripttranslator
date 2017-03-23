@@ -30,6 +30,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		private readonly ConcurrentDictionary<InvokerCacheKey, GetInvoker> _getInvokerCache;
 		private readonly ConcurrentDictionary<InvokerCacheKey, SetInvoker> _setInvokerCache;
 		private readonly ConcurrentDictionary<string, bool> _absentDefaultMemberCache;
+		private readonly ConcurrentDictionary<Type, Func<object, IEnumerator>> _duckTypeEnumeratorBuilderCache;
 		public VBScriptEsqueValueRetriever(Func<string, string> nameRewriter, AbsentDefaultMemberOnComObjectCacheOptions absentDefaultMemberOnComObjectCacheOptions)
 		{
 			if (nameRewriter == null)
@@ -43,6 +44,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			_getInvokerCache = new ConcurrentDictionary<InvokerCacheKey, GetInvoker>();
 			_setInvokerCache = new ConcurrentDictionary<InvokerCacheKey, SetInvoker>();
 			_absentDefaultMemberCache = new ConcurrentDictionary<string, bool>();
+			_duckTypeEnumeratorBuilderCache = new ConcurrentDictionary<Type, Func<object, IEnumerator>>();
 		}
 
 		public enum AbsentDefaultMemberOnComObjectCacheOptions
@@ -585,7 +587,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			// VBScript will only consider object references to be enumerable (unlike C#, which will consider a string to be an enumerable set
 			// characters, for example)
-			if (IsVBScriptValueType(o) && !o.GetType().IsArray)
+			var type = o.GetType();
+			if (IsVBScriptValueType(o) && !type.IsArray)
 				throw new ObjectNotCollectionException("Object not a collection");
 
 			// Try to access through IDispatch - try calling the method with DispId -4 (if there is one) and casting the return value to IEnumVariant
@@ -617,17 +620,113 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (enumerable != null)
 				return enumerable;
 
-			// TODO: Document (and enable reflection caching / LINQ expressions... :S)
-			// TODO: The enumerator should only have to have MoveNext, Reset, and Current member - it shouldn't have to implement IEnumerator
-			var getEnumeratorMethod = o.GetType().GetMethod("GetEnumerator", Type.EmptyTypes);
-			if ((getEnumeratorMethod != null) && (getEnumeratorMethod.ReturnType != null) && typeof(IEnumerator).IsAssignableFrom(getEnumeratorMethod.ReturnType))
+			// VBScript seems to also support accessing GetEnumerator on .NET types that do not implement IDispatch or IEnumerable. I presume that
+			// it does something similar to .NET's duck typed support for enumerable collections (look for a "GetEnumerator" method that returns a
+			// type that has appropriate "Current", "MoveNext" and "Reset" members - so try to do the same sort of thing here.
+			Func<object, IEnumerator> duckTypedEnumeratorBuilder;
+			if (!_duckTypeEnumeratorBuilderCache.TryGetValue(type, out duckTypedEnumeratorBuilder))
 			{
-				var enumerator = (IEnumerator)getEnumeratorMethod.Invoke(o, new object[0]);
-				return new ManagedEnumeratorWrapper(enumerator);
+				duckTypedEnumeratorBuilder = TryToGetEnumeratorBuilder(type);
+				if (duckTypedEnumeratorBuilder != null)
+					_duckTypeEnumeratorBuilderCache.TryAdd(type, duckTypedEnumeratorBuilder);
 			}
+			if (duckTypedEnumeratorBuilder != null)
+				return new ManagedEnumeratorWrapper(duckTypedEnumeratorBuilder(o));
 
 			// Give up and throw the VBScript error message
 			throw new ObjectNotCollectionException("Object not a collection");
+		}
+
+		private static Func<object, IEnumerator> TryToGetEnumeratorBuilder(Type type)
+		{
+			if (type == null)
+				throw new ArgumentNullException(nameof(type));
+
+			var getEnumeratorMethod = GetAllImplementedTypes(type)
+				.Select(t => t.GetMethod("GetEnumerator", Type.EmptyTypes))
+				.FirstOrDefault(m => (m != null) && !m.IsStatic && (m.ReturnType != typeof(void)));
+			if (getEnumeratorMethod == null)
+				return null;
+
+			var enumeratorType = getEnumeratorMethod.ReturnType;
+			var implementedTypes = GetAllImplementedTypes(enumeratorType);
+			var moveNextMethod = implementedTypes
+				.Select(t => t.GetMethod("MoveNext", Type.EmptyTypes))
+				.FirstOrDefault(m => (m != null) && !m.IsStatic && (m.ReturnType == typeof(bool)));
+			var resetMethod = implementedTypes
+				.Select(t => t.GetMethod("Reset", Type.EmptyTypes))
+				.FirstOrDefault(m => (m != null) && !m.IsStatic);
+			var currentGetterMethod = implementedTypes
+				.Select(t => t.GetProperty("Current", Type.EmptyTypes))
+				.Select(p => ((p == null) || !p.CanRead || (p.GetIndexParameters() ?? new ParameterInfo[0]).Any()) ? null : p.GetGetMethod())
+				.FirstOrDefault(m => (m != null) && !m.IsStatic);
+			if ((moveNextMethod == null) || (resetMethod == null) || (currentGetterMethod == null))
+				return null;
+
+			var targetParameter = Expression.Parameter(typeof(object), "target");
+			var getEnumerator = Expression.Lambda<Func<object, object>>(
+				Expression.Convert(
+					Expression.Call(
+						Expression.Convert(targetParameter, getEnumeratorMethod.DeclaringType),
+						getEnumeratorMethod
+					),
+					typeof(object) // TODO: Do something better about boxing values?
+				),
+				targetParameter
+			).Compile();
+			var moveNext = Expression.Lambda<Func<object, bool>>(
+				Expression.Convert(
+					Expression.Call(
+						Expression.Convert(targetParameter, moveNextMethod.DeclaringType),
+						moveNextMethod
+					),
+					typeof(bool)
+				),
+				targetParameter
+			).Compile();
+			var reset = Expression.Lambda<Action<object>>(
+				Expression.Call(
+					Expression.Convert(targetParameter, resetMethod.DeclaringType),
+					resetMethod
+				),
+				targetParameter
+			).Compile();
+			var getCurrent = Expression.Lambda<Func<object, object>>(
+				Expression.Convert(
+					Expression.Call(
+						Expression.Convert(targetParameter, currentGetterMethod.DeclaringType),
+						currentGetterMethod
+					),
+					typeof(object)
+				),
+				targetParameter
+			).Compile();
+
+			return target =>
+			{
+				var enumerator = getEnumerator(target);
+				if (enumerator == null)
+					throw new Exception("GetEnumerator returned null");
+				return new DuckTypingEnumeratorWrapper(enumerator, moveNext, getCurrent, reset);
+			};
+		}
+
+		private static IEnumerable<Type> GetAllImplementedTypes(Type type)
+		{
+			if (type == null)
+				throw new ArgumentNullException(nameof(type));
+
+			yield return type;
+			if (type.BaseType != null)
+			{
+				foreach (var nestedType in GetAllImplementedTypes(type.BaseType))
+					yield return nestedType;
+			}
+			foreach (var i in type.GetInterfaces())
+			{
+				foreach (var nestedType in GetAllImplementedTypes(i))
+					yield return nestedType;
+			}
 		}
 
 		/// <summary>
@@ -1921,6 +2020,33 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				_enumerator.Reset();
 			}
 		}
+
+		private sealed class DuckTypingEnumeratorWrapper : IEnumerator
+		{
+			private readonly object _enumerator;
+			private readonly Func<object, bool> _moveNext;
+			private readonly Func<object, object> _getCurrent;
+			private readonly Action<object> _reset;
+			public DuckTypingEnumeratorWrapper(object enumerator, Func<object, bool> moveNext, Func<object, object> getCurrent, Action<object> reset)
+			{
+				if (enumerator == null)
+					throw new ArgumentNullException(nameof(enumerator));
+				if (moveNext == null)
+					throw new ArgumentNullException(nameof(moveNext));
+				if (getCurrent == null)
+					throw new ArgumentNullException(nameof(getCurrent));
+				if (reset == null)
+					throw new ArgumentNullException(nameof(reset));
+				_enumerator = enumerator;
+				_moveNext = moveNext;
+				_getCurrent = getCurrent;
+				_reset = reset;
+			}
+			public object Current { get { return _getCurrent(_enumerator); } }
+			public bool MoveNext() { return _moveNext(_enumerator); }
+			public void Reset() { _reset(_enumerator); }
+		}
+
 
 		[ComImport(), Guid("00020404-0000-0000-C000-000000000046"), InterfaceTypeAttribute(ComInterfaceType.InterfaceIsIUnknown)]
 		public interface IEnumVariant

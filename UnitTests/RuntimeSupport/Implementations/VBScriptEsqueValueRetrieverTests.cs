@@ -929,6 +929,15 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 				dictionary.Add("key1", "value1");
 				dictionary.Add("key2", "value2");
 				yield return new object[] { "Scripting Dictionary COM component", dictionary, new object[] { "key1", "key2" } };
+
+				var customIntEnumerable = new CustomEnumerable<int>(new[] { 1, 2, 3 });
+				yield return new object[] { "Object with int values that has a valid GetEnumerator but does not implement IEnumerable", customIntEnumerable, new object[] { 1, 2, 3 } };
+
+				var customIntEnumerableWithStructEnumerator = new CustomEnumerableWithStructEnumerator<int>(new[] { 1, 2, 3 });
+				yield return new object[] { "Object with int values that has a valid GetEnumerator (that returns a struct) but does not implement IEnumerable", customIntEnumerableWithStructEnumerator, new object[] { 1, 2, 3 } };
+
+				var customStringEnumerable = new CustomEnumerable<string>(new[] { "a", "b", "c" });
+				yield return new object[] { "Object with string values that has a valid GetEnumerator but does not implement IEnumerable", customStringEnumerable, new object[] { "a", "b", "c" } };
 			}
 		}
 
@@ -1001,6 +1010,76 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		{
 			[IsDefault]
 			public object value { get; set; }
+		}
+
+		private sealed class CustomEnumerable<T>
+		{
+			private readonly IEnumerable<T> _values;
+			public CustomEnumerable(IEnumerable<T> values)
+			{
+				if (values == null)
+					throw new ArgumentNullException(nameof(values));
+				_values = values;
+			}
+			public MyEnumerator<T> GetEnumerator() { return new MyEnumerator<T>(_values); }
+		}
+
+		private sealed class CustomEnumerableWithStructEnumerator<T>
+		{
+			private readonly IEnumerable<T> _values;
+			public CustomEnumerableWithStructEnumerator(IEnumerable<T> values)
+			{
+				if (values == null)
+					throw new ArgumentNullException(nameof(values));
+				_values = values;
+			}
+			public MyStructEnumerator<T> GetEnumerator() { return new MyStructEnumerator<T>(new MyEnumerator<T>(_values)); }
+		}
+
+		private struct MyStructEnumerator<T>
+		{
+			private readonly MyEnumerator<T> _enumerator;
+			public MyStructEnumerator(MyEnumerator<T> enumerator)
+			{
+				_enumerator = enumerator;
+			}
+			public T Current { get { return _enumerator.Current; } }
+			public bool MoveNext() { return _enumerator.MoveNext(); }
+			public void Reset() { _enumerator.Reset(); }
+		}
+
+		private sealed class MyEnumerator<T>
+		{
+			private readonly T[] _values;
+			private int _index;
+			public MyEnumerator(IEnumerable<T> values)
+			{
+				if (values == null)
+					throw new ArgumentNullException(nameof(values));
+				_values = values.ToArray();
+				_index = -1;
+			}
+			public T Current
+			{
+				get
+				{
+					if (_index == -1)
+						throw new InvalidOperationException("Enumeration has not started");
+					return _values[_index];
+				}
+			}
+			public bool MoveNext()
+			{
+				if (_index == _values.Length - 1)
+					return false;
+
+				_index++;
+				return true;
+			}
+			public void Reset()
+			{
+				_index = -1;
+			}
 		}
 	}
 }
