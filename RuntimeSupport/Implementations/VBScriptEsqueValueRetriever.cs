@@ -2049,7 +2049,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 
 		[ComImport(), Guid("00020404-0000-0000-C000-000000000046"), InterfaceTypeAttribute(ComInterfaceType.InterfaceIsIUnknown)]
-		public interface IEnumVariant
+		private interface IEnumVariant
 		{
 			// From https://github.com/mosa/Mono-Class-Libraries/blob/master/mcs/class/CustomMarshalers/System.Runtime.InteropServices.CustomMarshalers/EnumeratorToEnumVariantMarshaler.cs
 			[MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
