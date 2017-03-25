@@ -207,7 +207,7 @@ namespace VBScriptTranslator.RuntimeSupport
 		object HOUR(object value);
 		object MINUTE(object value);
 		object SECOND(object value);
-		object TIMESERIAL(object value);
+		DateTime TIMESERIAL(object hours, object minutes, object seconds);
 		DateTime TIMEVALUE(object value);
 		// - Object creation
 		object CREATEOBJECT(object value);

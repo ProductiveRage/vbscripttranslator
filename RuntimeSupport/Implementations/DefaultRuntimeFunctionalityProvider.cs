@@ -1486,7 +1486,40 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			}
 			return dateValue.Date;
 		}
-		public object TIMESERIAL(object value) { throw new NotImplementedException(); }
+		public DateTime TIMESERIAL(object hours, object minutes, object seconds)
+		{
+			var secondsAsNumber = CINT(seconds, "'TimeSerial'");
+			var minutesAsNumber = CINT(minutes, "'TimeSerial'");
+			var hoursAsNumber = CINT(hours, "'TimeSerial'");
+
+			minutesAsNumber += GetQuantityAtNextLargestUnit(ref secondsAsNumber, 60);
+			hoursAsNumber += GetQuantityAtNextLargestUnit(ref minutesAsNumber, 60);
+			var days = GetQuantityAtNextLargestUnit(ref hoursAsNumber, 24);
+
+			// I have no idea what the original VBScript library authors must have been thinking when they wrote their code, I've just tried to work out an algorithm
+			// that matches their results. The first oddity is that (2, 0, 0) and (-2, 0, 0) both return the same value, as if the "-" from -2 is ignored. However,
+			// (2, 1, 0) and (-2, 1, 0) do NOT return the same, so the "-" clearly isn't ignore; the first returns is interpreted as "02:01:00" while the second as
+			// "01:59:00" as if it flipped the signs and decided to treat it as (2, -1, 0). This sign-flipping-for-negative-values seems to work for every set of
+			// values that I've put at it (including large positive and negative minutes and seconds values, such as +/-8000). Note that it seems to be the first 
+			// non-zero term that triggers the sign-flipping if it is negative, not just the hours values; for example (0, 13, 20) and (0, -13, -20) both return
+			// the same result (1899-12-30 00:13:20). To make it even crazier, it is the first non-zero term AFTER values have been shifted around in order to
+			// ensure that the seconds and minutes values are smaller than sixty - for example, (2, 0, -8000) is adjusted by realising that -8000s is the same
+			// as -2h, -13m and -20s and so the hours value is cancelled out (2 - 2), leaving the three time values as (0, -13, -20) and so the final result
+			// from VBScript is 1899-12-30 00:13:20.
+			var nonZeroTermsInDescendingMagnitude = new[] { days, hoursAsNumber, minutesAsNumber, secondsAsNumber }.Where(value => value != 0);
+			var multiplier = (nonZeroTermsInDescendingMagnitude.Any() && (nonZeroTermsInDescendingMagnitude.First() < 0)) ? -1 : 1;
+			return VBScriptConstants.ZeroDate
+				.AddDays(days)
+				.AddHours(hoursAsNumber * multiplier)
+				.AddMinutes(minutesAsNumber * multiplier)
+				.AddSeconds(secondsAsNumber * multiplier);
+		}
+		private static short GetQuantityAtNextLargestUnit(ref short value, short numberInNextUnit)
+		{
+			var valueOfNextUnit = (value > 0) ? (short)Math.Floor(value / (double)numberInNextUnit) : (short)Math.Ceiling(value / (double)numberInNextUnit);
+			value = (short)(value - (valueOfNextUnit * numberInNextUnit));
+			return valueOfNextUnit;
+		}
 		public DateTime TIMEVALUE(object value)
 		{
 			// In summary, this will do a subset of the processing of CDATE (it will accept a DateTime or a parse-able string, but not a numeric value such as 123.45) and return only the time component:
