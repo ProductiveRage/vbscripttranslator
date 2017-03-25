@@ -1788,14 +1788,6 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			}
 		}
 
-		private IEnumerable<int> GetDimensions(IEnumerable<object> dimensions)
-		{
-			if (dimensions == null)
-				throw new ArgumentNullException("dimensions");
-
-			throw new NotImplementedException(); // TODO
-		}
-
 		public object NEWREGEXP()
 		{
 			// TODO: Ideally, the object returned here would be a managed implementation of "VBScript.RegExp" (which has a fairly simple interface), to reduce the
