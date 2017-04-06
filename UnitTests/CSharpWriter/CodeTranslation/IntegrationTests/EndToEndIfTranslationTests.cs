@@ -57,6 +57,26 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 		}
 
 		/// <summary>
+		/// Similar issue to DoNotGetConfusedByCommentsInLineWithConditions
+		/// </summary>
+		[Fact]
+		public void DoNotGetConfusedByCommentsInLineWithConditionsInSingleLineIfStatements()
+		{
+			var source = "If True Then WScript.Echo True 'Comment";
+			var expected = new[]
+			{
+				"if (_.IF(true))",
+				"{",
+				"_.CALL(this, _env.wscript, \"Echo\", _.ARGS.Val(true)); //Comment",
+				"}",
+			};
+			Assert.Equal(
+				expected.Select(s => s.Trim()).ToArray(),
+				WithoutScaffoldingTranslator.GetTranslatedStatements(source, WithoutScaffoldingTranslator.DefaultConsoleExternalDependencies)
+			);
+		}
+
+		/// <summary>
 		/// This addresses a bug found in testing (relating to InlineCommentStatement detection in the IfBlockTranslator, which assumed that there would
 		/// always be at least one statement within any conditional block)
 		/// </summary>

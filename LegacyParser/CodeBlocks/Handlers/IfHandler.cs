@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 using VBScriptTranslator.LegacyParser.Tokens;
 using VBScriptTranslator.LegacyParser.Tokens.Basic;
-using VBScriptTranslator.LegacyParser.CodeBlocks;
-using VBScriptTranslator.LegacyParser.CodeBlocks.Basic;
 
 namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
 {
-    /// <summary>
-    /// This was one of the most complicated block handlers to implement! It could probably be tidied up some, but would need careful attention (and unit tests)
-    /// </summary>
-    public class IfHandler : AbstractBlockHandler
+	/// <summary>
+	/// This was one of the most complicated block handlers to implement! It could probably be tidied up some, but would need careful attention (and unit tests)
+	/// </summary>
+	public class IfHandler : AbstractBlockHandler
     {
         /// <summary>
         /// The token list will be edited in-place as handlers are able to deal with the content, so the input list should expect to be mutated
@@ -209,8 +208,9 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
                 {
                     if ((!(token is AtomToken))
                     && (!(token is DateLiteralToken))
-                    && (!(token is StringToken))
-                    && (!(token is EndOfStatementSameLineToken)))
+					&& (!(token is StringToken))
+					&& (!(token is InlineCommentToken))
+					&& (!(token is EndOfStatementSameLineToken)))
                         throw new Exception("IfHandler.processSingleLine: Encountered invalid Token - should all be AtomToken, DateLiteralToken, StringToken or EndOfStatementSameLineToken until new-line end of statement");
                     ifTokens.Add(token);
                 }
