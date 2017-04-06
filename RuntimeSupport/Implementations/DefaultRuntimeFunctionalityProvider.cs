@@ -642,7 +642,21 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		public object FORMATDATETIME(object value) { throw new NotImplementedException(); }
 		public object FORMATNUMBER(object value) { throw new NotImplementedException(); }
 		public object FORMATPERCENT(object value) { throw new NotImplementedException(); }
-		public object HEX(object value) { throw new NotImplementedException(); }
+		public object HEX(object value)
+		{
+			value = _valueRetriever.VAL(value, "'Hex'");
+			if (value == DBNull.Value)
+				return DBNull.Value;
+
+			var useShortFormatForNegativeValues = (value is bool) || (value is short);
+			var numericValue = CLNG(value, "'Hex'");
+			if (numericValue >= 0)
+				return numericValue.ToString("X");
+
+			// For "short" values (ie. VBScript Ints and Booleans), -1 should be returned as FFFF -2 as as FFFE while for other values (Single, Long, Double, etc..)
+			// -1 should be returned as FFFFFFFF and -2 as FFFFFFFE
+			return ((useShortFormatForNegativeValues ? 0x10000 : 0x100000000) + numericValue).ToString("X");
+		}
 
 		public object INSTR(object valueToSearch, object valueToSearchFor) { return INSTR(1, valueToSearch, valueToSearchFor); }
 		public object INSTR(object startIndex, object valueToSearch, object valueToSearchFor) { return INSTR(startIndex, valueToSearch, valueToSearchFor, 0); }
@@ -1944,6 +1958,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			_trappedErrorIfAny = null;
 		}
 
+		// TODO: Disable debugger attribute? Does it help??
 		public void HANDLEERROR(int errorToken, Action action)
 		{
 			if (!_activeErrorTokens.ContainsKey(errorToken))

@@ -63,6 +63,7 @@
     <Compile Include="CSharpWriter\CodeTranslation\IntegrationTests\EndToEndSelectTranslationTests.cs" />
     <Compile Include="RuntimeSupport\DateParserTests.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DATEDIFF.cs" />
+    <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_HEX.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_TIMESERIAL.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_INT.cs" />
     <Compile Include="RuntimeSupport\Implementations\DefaultRuntimeFunctionalityProviderTests_DIV.cs" />
