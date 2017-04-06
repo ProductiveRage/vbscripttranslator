@@ -748,14 +748,18 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			return zeroBasedMatchIndex + 1;
 		}
 
-		public object MID(object value, object start) { throw new NotImplementedException(); }
+		public object MID(object value, object start)
+		{
+			var valueString = CSTR(value, "'Mid'");
+			return MID(value, start, valueString.Length);
+		}
 		public object MID(object value, object start, object length)
 		{
 			// TODO: This is just a thrown-together implementation, it needs proper testing relating to the order in which arguments should be evaluated, what argument values are and
 			// aren't valid (is length -1 valid??) but it's just enough to make it work for my particular case that I have right at hand now.
-			var valueString = CSTR(value, "'Mid'");
-			var startAsNumber = CLNG(start, "'Mid'");
 			var lengthAsNumber = CLNG(length, "'Mid'");
+			var startAsNumber = CLNG(start, "'Mid'");
+			var valueString = CSTR(value, "'Mid'");
 			return valueString.Substring(startAsNumber, Math.Min(lengthAsNumber, valueString.Length - startAsNumber));
 		}
 		public object LEN(object value)
