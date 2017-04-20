@@ -49,7 +49,9 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				throw new ArgumentOutOfRangeException("indentationDepth", "must be zero or greater");
 
 			var isSingleReturnValueStatementFunction = IsSingleReturnValueStatementFunctionWithoutAnyByRefMappings(functionBlock, scopeAccessInformation);
-			var returnValueName = functionBlock.HasReturnValue ? _tempNameGenerator(new CSharpName("retVal"), scopeAccessInformation) : null;
+			var returnValueName = functionBlock.HasReturnValue
+				? _tempNameGenerator(new CSharpName("retVal"), scopeAccessInformation.Extend(functionBlock, functionBlock.Statements.ToNonNullImmutableList())) // Ensure call Extend so that ScopeDefiningParent is the current function
+				: null;
 			var translationResult = TranslationResult.Empty.Add(
 				TranslateFunctionHeader(
 					functionBlock,
@@ -77,12 +79,12 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			translationResult = translationResult.Add(
 				Translate(
 					functionBlock.Statements.ToNonNullImmutableList(),
-						scopeAccessInformation.Extend(
-							functionBlock,
-							returnValueName,
-							errorRegistrationTokenIfAny,
-							functionBlock.Statements.ToNonNullImmutableList()
-						),
+					scopeAccessInformation.Extend(
+						functionBlock,
+						returnValueName,
+						errorRegistrationTokenIfAny,
+						functionBlock.Statements.ToNonNullImmutableList()
+					),
 					isSingleReturnValueStatementFunction,
 					indentationDepth + 1
 				)
