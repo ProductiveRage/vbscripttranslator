@@ -252,13 +252,13 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks.Handlers
             List<IToken> truthTokens, notTokens;
             if (offsetElse == -1)
             {
-                truthTokens = base.getTokenListSection(ifTokens, 0).ToList();
+                truthTokens = base.getTokenListSection(ifTokens, 0);
                 notTokens = null;
             }
             else
             {
-                truthTokens = base.getTokenListSection(ifTokens, 0, offsetElse).ToList();
-                notTokens = base.getTokenListSection(ifTokens, offsetElse + 1).ToList();
+                truthTokens = base.getTokenListSection(ifTokens, 0, offsetElse);
+                notTokens = base.getTokenListSection(ifTokens, offsetElse + 1);
             }
 
             // Note: It's not valid for Post-THEN content to be empty

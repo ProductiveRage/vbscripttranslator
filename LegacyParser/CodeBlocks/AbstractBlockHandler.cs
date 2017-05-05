@@ -236,31 +236,29 @@ namespace VBScriptTranslator.LegacyParser.CodeBlocks
 		/// <summary>
 		/// Return a new list that is a subset of the input token list
 		/// </summary>
-		protected IEnumerable<IToken> getTokenListSection(IEnumerable<IToken> tokens, int start, int count)
+		protected List<IToken> getTokenListSection(IEnumerable<IToken> tokens, int start, int count)
 		{
 			if (tokens == null)
 				throw new ArgumentNullException("tokens");
-            var tokensArray = tokens.ToArray();
-			if ((start < 0) || (start >= tokensArray.Length))
+
+			var numberOfTokens = tokens.Count();
+			if ((start < 0) || (start >= numberOfTokens))
 				throw new ArgumentException("Invalid start value [" + start.ToString() + "]");
-			if ((count < 0) || (start + count > tokensArray.Length))
+			if ((count < 0) || (start + count > numberOfTokens))
 				throw new ArgumentException("Invalid count value [" + start.ToString() + ", " + count.ToString() + "]");
-			var tokensOut = new List<IToken>();
-			for (int index = start; index < start + count; index++)
-				tokensOut.Add(tokensArray[index]);
-            return tokensOut.ToArray();
+
+			return tokens.Skip(start).Take(count).ToList();
 		}
 
 		/// <summary>
-		/// Return a new list that is a subset of the input token list - taken from the
-		/// start position to the end of the token list
+		/// Return a new list that is a subset of the input token list - taken from the start position to the end of the token list
 		/// </summary>
-		protected IEnumerable<IToken> getTokenListSection(IEnumerable<IToken> tokens, int start)
+		protected List<IToken> getTokenListSection(IEnumerable<IToken> tokens, int start)
 		{
 			if (tokens == null)
 				throw new ArgumentNullException("tokens");
-            var tokensArray = tokens.ToArray();
-			return getTokenListSection(tokensArray, start, tokensArray.Length - start);
+
+			return getTokenListSection(tokens, start, tokens.Count() - start);
 		}
 	}
 }
