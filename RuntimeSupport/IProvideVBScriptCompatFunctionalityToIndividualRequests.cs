@@ -123,9 +123,9 @@ namespace VBScriptTranslator.RuntimeSupport
 		object SQR(object value);
 		object TAN(object value);
 		// - String functions
-		object ASC(object value);
+		short ASC(object value);
 		object ASCB(object value);
-		object ASCW(object value);
+		short ASCW(object value);
 		string CHR(object value);
 		object CHRB(object value);
 		object CHRW(object value);

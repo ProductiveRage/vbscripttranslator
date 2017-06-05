@@ -621,14 +621,44 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			return (float)Math.Round((decimal)DateTime.Now.TimeOfDay.TotalSeconds, decimals: 2);
 		}
 		// - String functions
-		public object ASC(object value) { throw new NotImplementedException(); }
+		public short ASC(object value)
+		{
+			value = VAL(value);
+			if (value == null)
+				throw new InvalidProcedureCallOrArgumentException();
+			if (value == DBNull.Value)
+				throw new InvalidUseOfNullException();
+
+			var s = CSTR(value);
+			if (s == "")
+				throw new InvalidProcedureCallOrArgumentException();
+
+			var characterValue = s[0];
+			return (short)Encoding.Default.GetBytes(new[] { characterValue })[0];
+		}
 		public object ASCB(object value) { throw new NotImplementedException(); }
-		public object ASCW(object value) { throw new NotImplementedException(); }
+		public short ASCW(object value)
+		{
+			value = VAL(value);
+			if (value == null)
+				throw new InvalidProcedureCallOrArgumentException();
+			if (value == DBNull.Value)
+				throw new InvalidUseOfNullException();
+
+			var s = CSTR(value);
+			if (s == "")
+				throw new InvalidProcedureCallOrArgumentException();
+
+			return (short)s[0];
+		}
 		public string CHR(object value)
 		{
 			try
 			{
-				return new string((char)CBYTE(value), 1);
+				// Need to use Encoding.Default.GetChars so that we can reliably get the information back out using ASC (if used something that seems simple like
+				// "return new string((char)CBYTE(value), 1);" then the correct value won't always be returned from ASC - eg. 155)
+				var c = Encoding.Default.GetChars(new[] { CBYTE(value) })[0];
+				return new string(c, 1);
 			}
 			catch (VBScriptOverflowException e)
 			{
@@ -774,7 +804,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			var lengthAsNumber = CLNG(length, "'Mid'");
 			var startAsNumber = CLNG(start, "'Mid'");
 			var valueString = CSTR(value, "'Mid'");
-			return valueString.Substring(startAsNumber, Math.Min(lengthAsNumber, valueString.Length - startAsNumber));
+			return valueString.Substring(startAsNumber - 1, Math.Min(lengthAsNumber, valueString.Length - (startAsNumber - 1)));
 		}
 		public object LEN(object value)
 		{
