@@ -187,7 +187,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return left;
 			return bitwiseOperationValues.Item2(left.Value | right.Value);
 		}
-		public object XOR(object l, object r) { throw new NotImplementedException(); }
+		public object XOR(object l, object r)
+		{
+			var bitwiseOperationValues = GetForBitwiseOperations("'Xor'", l, r);
+			var left = bitwiseOperationValues.Item1.First();
+			var right = bitwiseOperationValues.Item1.Skip(1).Single();
+			if ((left == null) || (right == null))
+			{
+				// If GetForBitwiseOperations returns null values then it means there were VBScript Null values provided. When XOR'ing, if either (or both)
+				// values are Null then Null is returned.
+				return DBNull.Value;
+			}
+			return bitwiseOperationValues.Item2(left.Value ^ right.Value);
+		}
 
 		// Comparison operators (these return VBScript Null if one or both sides of the comparison are VBScript Null)
 		/// <summary>
