@@ -211,7 +211,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 		/// </summary>
 		public bool IsVBScriptValueType(object o)
 		{
-			return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is string) || (o.GetType().IsArray));
+			return ((o == null) || (o == DBNull.Value) || (o is ValueType) || (o is CurrencyWrapper) || (o is string) || (o.GetType().IsArray));
 		}
 
 		/// <summary>
@@ -522,6 +522,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return (bool)value ? (Int16)(-1) : (Int16)0; // Return an "Integer" for True / False
 			if (value is DateTime)
 				return DateToDouble((DateTime)value);
+			if (value is CurrencyWrapper)
+				return ((CurrencyWrapper)value).WrappedObject;
 			return null;
 		}
 

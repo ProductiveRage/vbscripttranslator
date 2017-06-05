@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using VBScriptTranslator.RuntimeSupport.Exceptions;
 
 namespace VBScriptTranslator.RuntimeSupport.Implementations
@@ -48,8 +49,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			// range that Currency can describe (whereas other types will move up to the next biggest type - Currency COULD do this with Double, but doesn't). The notable
 			// exception is that if a Currency is added to a Date then the result will be a date.. unless the result would overflow the expressible Date range, in which
 			// case it will be a Double.
-			var lCurrency = TryToCoerceInto<decimal>(l);
-			var rCurrency = TryToCoerceInto<decimal>(r);
+			var lCurrency = TryToCoerceIntoCurrency(l);
+			var rCurrency = TryToCoerceIntoCurrency(r);
 			var lDate = TryToCoerceInto<DateTime>(l);
 			var rDate = TryToCoerceInto<DateTime>(r);
 			if (((lCurrency != null) && (rDate != null)) || ((rCurrency != null) && (lDate != null)))
@@ -541,6 +542,14 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (value is T)
 				return (T)value;
 			return (T?)null;
+		}
+
+		private decimal? TryToCoerceIntoCurrency(object value)
+		{
+			var currencyWrapper = value as CurrencyWrapper;
+			if (currencyWrapper != null)
+				return currencyWrapper.WrappedObject;
+			return TryToCoerceInto<decimal>(value);
 		}
 	}
 }
