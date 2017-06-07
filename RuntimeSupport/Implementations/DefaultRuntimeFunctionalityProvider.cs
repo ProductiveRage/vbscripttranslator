@@ -1867,7 +1867,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 					return ErrorDetails.NoError;
 				var currentErrorAsVBScriptSpecificError = currentError as SpecificVBScriptException;
 				return new ErrorDetails(
-					(currentErrorAsVBScriptSpecificError != null) ? currentErrorAsVBScriptSpecificError.ErrorNumber : 1, // TODO: Still need a better way to get error number for non-VBScript-specific errors
+					(currentErrorAsVBScriptSpecificError != null) ? currentErrorAsVBScriptSpecificError.ErrorNumber : currentError.HResult, // TODO: Is HResult appropriate?
 					currentError.Source,
 					currentError.Message,
 					originalExceptionIfKnown: currentError
