@@ -59,7 +59,6 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 			var undeclaredVariablesInLoopSourceContent = loopSourceContent.GetUndeclaredVariablesAccessed(scopeAccessInformation, _nameRewriter);
 			foreach (var undeclaredVariable in undeclaredVariablesInLoopSourceContent)
 				_logger.Warning("Undeclared variable: \"" + undeclaredVariable.Content + "\" (line " + (undeclaredVariable.LineIndex + 1) + ")");
-
 			var translationResult = TranslationResult.Empty.AddUndeclaredVariables(undeclaredVariablesInLoopSourceContent);
 			var enumerationContentVariableName = _tempNameGenerator(new CSharpName("enumerationContent"), scopeAccessInformation);
 			var enumeratorInitialisationContent = string.Format(
@@ -68,6 +67,8 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 				_supportRefName.Name,
 				loopSourceContent.TranslatedContent
 			);
+			if (!scopeAccessInformation.IsDeclaredReference(forEachBlock.LoopVar, _nameRewriter))
+				translationResult = translationResult.AddUndeclaredVariables(new[] { forEachBlock.LoopVar });
 			var rewrittenLoopVarName = _nameRewriter.GetMemberAccessTokenName(forEachBlock.LoopVar);
 			var loopVarTargetContainer = scopeAccessInformation.GetNameOfTargetContainerIfAnyRequired(forEachBlock.LoopVar, _envRefName, _outerRefName, _nameRewriter);
 			if (loopVarTargetContainer != null)
