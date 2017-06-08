@@ -608,7 +608,15 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				catch (IDispatchAccess.IDispatchAccessException e)
 				{
 					if (e.ErrorType == IDispatchAccess.CommonErrors.DISP_E_MEMBERNOTFOUND)
+					{
+						// The VBScript.RegExp Execute method returns a match collection that is enumerable and implements IDispatch but doesn't
+						// have a DispId -4 enumerator property. In this case, we need to allow IEnumerable access (but we prefer IDispatch access
+						// as explained above in relation to MSXML).
+						var enumerableIDispatchFallback = o as IEnumerable;
+						if (enumerableIDispatchFallback != null)
+							return enumerableIDispatchFallback;
 						throw new ObjectNotCollectionException("IDispatch reference does not have a method with DispId -4");
+					}
 					throw;
 				}
 				var enumeratorAsEnumVariant = enumerator as IEnumVariant;
@@ -617,7 +625,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				return new ManagedEnumeratorWrapper(new IDispatchEnumeratorWrapper(enumeratorAsEnumVariant));
 			}
 
-			// Try casting to IEnumerable first - it's the easiest approach and will work with (many) managed references and some COM object
+			// Now try casting to IEnumerable - it's the easiest approach and will work with (many) managed references and some COM objects
 			var enumerable = o as IEnumerable;
 			if (enumerable != null)
 				return enumerable;
