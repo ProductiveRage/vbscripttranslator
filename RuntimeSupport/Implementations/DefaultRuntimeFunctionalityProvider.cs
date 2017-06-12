@@ -816,7 +816,10 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			var lengthAsNumber = CLNG(length, "'Mid'");
 			var startAsNumber = CLNG(start, "'Mid'");
 			var valueString = CSTR(value, "'Mid'");
-			return valueString.Substring(startAsNumber - 1, Math.Min(lengthAsNumber, valueString.Length - (startAsNumber - 1)));
+			var startIndex = startAsNumber - 1;
+			if (startIndex >= valueString.Length)
+				return "";
+			return valueString.Substring(startIndex, Math.Min(lengthAsNumber, valueString.Length - startIndex));
 		}
 		public object LEN(object value)
 		{
