@@ -1382,6 +1382,44 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				// If there is a non-null optionalMemberAccessor and there are arguments then no defaults are considered and the member accessor
 				// must be an indexed property, it can not be an array (see note above about the only place that array access is permitted).
 				method = GetNamedSetMethods(targetType, optionalMemberAccessor, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
+
+				if (method == null)
+				{
+					// 2017-06-22 Dion: Well... we have an optionalMemberAccessor but this isn't an indexed property. It may be a regular property
+					// on the object whose type has a default indexer property. (e.g. in the line `Set Session.Contents("blah") = "blah"`, Contents
+					// is just a get-only property of a dictionary type that has a default indexer property to set its values) (Case 33958)
+					var propBindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.IgnoreCase;
+					if (allowPrivateAccess)
+						propBindingFlags |= BindingFlags.NonPublic;
+
+					var prop = targetType.GetProperty(optionalMemberAccessor, propBindingFlags); // This will throw if the property is ambiguous - that's ok for us right now
+					if (prop != null && prop.GetIndexParameters().Length == 0 && prop.CanRead && prop.GetGetMethod(allowPrivateAccess) != null)
+					{
+						// We have a property that looks like what is being asked for, now let's ensure it has a default property method invoker and wrap it up
+						// NOTE: This only checks for a default property indexer using GetDefaultSetMethods - it won't try the avenues of IsArray/IDispatch/IReflect etc!
+						method = GetDefaultSetMethods(prop.PropertyType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
+						if (method != null)
+						{
+							// Jackpot! Now for this crazy expression that I can't figure out a better way to do right now.
+							// Rather than trying to do more LINQ Expression generation, we'll reuse the GenerateCompiledLinqExpressionGetInvoker logic and wrap it so
+							// that the index-arguments-plus-value get flattened into a single arguments array
+							var targetNamedPropGetInvoker = GenerateCompiledLinqExpressionGetInvoker(targetType, prop.GetGetMethod(allowPrivateAccess));
+							var subTargetDefaultPropGetInvoker = GenerateCompiledLinqExpressionGetInvoker(prop.PropertyType, method);
+							return (invokeTarget, invokeArguments, value) =>
+							{
+								var subTarget = targetNamedPropGetInvoker(invokeTarget, new[] { optionalMemberAccessor });
+
+								var combinedArguments = invokeArguments.Concat(new[] { value }).ToArray();
+								subTargetDefaultPropGetInvoker(subTarget, combinedArguments);
+
+								// Ensure that any ByRef-altered arguments are propagated back onto the callers arguments array (note that VBScript does not support
+								// the value reference being changed ByRef but it does support the index arguments - if any - being altered ByRef)
+								for (var i = 0; i < invokeArguments.Length; i++)
+									invokeArguments[i] = combinedArguments[i];
+							};
+						}
+					}
+				}
 			}
 			else
 			{
