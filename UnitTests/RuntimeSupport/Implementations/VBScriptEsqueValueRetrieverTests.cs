@@ -541,6 +541,43 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 		}
 
 
+		/*====================================================================================================*/
+		[Fact]
+		public void SettingNestedObjectDefaultIndexedPropertyWorks()
+		{
+			// This tests that calls like `Session.Contents(...) = ...` works. Contents is a regular getter-only property on Session.
+			// The brackets in there are used because Contents' type is a dictionary that has a default property with an index parameter.
+			// So essentially that code could also be written as `(Session.Contents)(...) = ...` to make it clear that the Contents object
+			// itself has the indexer, not the Contents property on Session. (Case 33958)
+			var obj = new ExampleClassWithRegularPropertyThatHasADefaultIndexedPropertyWithin();
+			string newKey = "ABC";
+			string newVal = "DEF";
+			using (var _ = DefaultRuntimeSupportClassFactory.Get())
+			{
+				_.SET(newVal, context: null, target: obj, optionalMemberAccessor: "PropWithDefaultIndexedProp", argumentProviderBuilder: _.ARGS.Val(newKey));
+			}
+			Assert.True(obj.PropWithDefaultIndexedProp["ABC"] == "DEF");
+		}
+
+		[ComVisible(true)]
+		private class ExampleClassWithRegularPropertyThatHasADefaultIndexedPropertyWithin
+		{
+			public ExampleClassWithDefaultIndexedProperty PropWithDefaultIndexedProp { get; } = new ExampleClassWithDefaultIndexedProperty();
+		}
+
+		[ComVisible(true)]
+		private class ExampleClassWithDefaultIndexedProperty
+		{
+			private Dictionary<string, string> _dict = new Dictionary<string, string>();
+
+			[DispId(0)]
+			public string this[string key] {
+				get { return _dict[key]; }
+				set { _dict[key] = value; }
+			}
+		}
+		/*====================================================================================================*/
+
 		[Fact]
 		public void CallPrivateMemberFromWithinContextOfClassShouldWork()
 		{
