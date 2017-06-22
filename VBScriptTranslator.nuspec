@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>VBScriptTranslator</id>
-    <version>1.8.6.0</version>
+    <version>1.8.10.0</version>
     <title>VBScript-to-C# Translator</title>
     <authors>ProductiveRage</authors>
     <owners>ProductiveRage</owners>
@@ -16,12 +16,16 @@
   </metadata>
   <files>
     <file src="VBScriptTranslator.CSharpWriter.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.CSharpWriter.pdb" target="lib\net45" />
     <file src="VBScriptTranslator.CSharpWriter.xml" target="lib\net45" />
     <file src="VBScriptTranslator.LegacyParser.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.LegacyParser.pdb" target="lib\net45" />
     <file src="VBScriptTranslator.LegacyParser.xml" target="lib\net45" />
     <file src="VBScriptTranslator.StageTwoParser.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.StageTwoParser.pdb" target="lib\net45" />
     <file src="VBScriptTranslator.StageTwoParser.xml" target="lib\net45" />
     <file src="VBScriptTranslator.RuntimeSupport.dll" target="lib\net45" />
+    <file src="VBScriptTranslator.RuntimeSupport.pdb" target="lib\net45" />
     <file src="VBScriptTranslator.RuntimeSupport.xml" target="lib\net45" />
   </files>
 </package>
