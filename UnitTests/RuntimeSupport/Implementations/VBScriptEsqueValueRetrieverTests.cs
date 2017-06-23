@@ -543,6 +543,25 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 
 		/*====================================================================================================*/
 		[Fact]
+		public void GettingNestedObjectDefaultIndexedPropertyWorks()
+		{
+			// This tests that calls like `Session.Contents(...)` works. Contents is a regular getter-only property on Session.
+			// The brackets in there are used because Contents' type is a dictionary that has a default property with an index parameter.
+			// So essentially that code could also be written as `(Session.Contents)(...)` to make it clear that the Contents object
+			// itself has the indexer, not the Contents property on Session. (Case 33958)
+			var obj = new ExampleClassWithRegularPropertyThatHasADefaultIndexedPropertyWithin();
+			string key = "ABC";
+			string val = "DEF";
+			obj.PropWithDefaultIndexedProp[key] = val;
+			string result;
+			using (var _ = DefaultRuntimeSupportClassFactory.Get())
+			{
+				result = _.VAL(_.CALL(context: null, target: obj, member1: "PropWithDefaultIndexedProp", argumentProviderBuilder: _.ARGS.Val(key))) as string;
+			}
+			Assert.True(result == "DEF");
+		}
+
+		[Fact]
 		public void SettingNestedObjectDefaultIndexedPropertyWorks()
 		{
 			// This tests that calls like `Session.Contents(...) = ...` works. Contents is a regular getter-only property on Session.

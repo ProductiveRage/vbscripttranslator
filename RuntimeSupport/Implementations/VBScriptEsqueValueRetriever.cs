@@ -1060,7 +1060,38 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (optionalName == null)
 				method = GetDefaultGetMethods(targetType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
 			else
+			{
 				method = GetNamedGetMethods(targetType, optionalName, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
+
+				if (method == null)
+				{
+					// 2017-06-22 Dion: Well... we have an optionalMemberAccessor but this isn't an indexed property. It may be a regular property
+					// on the object whose type has a default indexer property. (e.g. in the line `Set Session.Contents("blah") = "blah"`, Contents
+					// is just a get-only property of a dictionary type that has a default indexer property to set its values) (Case 33958)
+					var propBindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.IgnoreCase;
+					if (allowPrivateAccess)
+						propBindingFlags |= BindingFlags.NonPublic;
+
+					var prop = targetType.GetProperty(optionalName, propBindingFlags); // This will throw if the property is ambiguous - that's ok for us right now
+					if (prop != null && prop.GetIndexParameters().Length == 0 && prop.CanRead && prop.GetGetMethod(allowPrivateAccess) != null)
+					{
+						// We have a property that looks like what is being asked for, now let's ensure it has a default property method invoker and wrap it up
+						// NOTE: This only checks for a default property indexer using GetDefaultGetMethods - it won't try the avenues of IsArray/IDispatch/IReflect etc!
+						method = GetDefaultGetMethods(prop.PropertyType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
+						if (method != null)
+						{
+							// Jackpot! Now for this crazy expression that I can't figure out a better way to do right now.
+							var targetNamedPropGetInvoker = GenerateCompiledLinqExpressionGetInvoker(targetType, prop.GetGetMethod(allowPrivateAccess));
+							var subTargetDefaultPropGetInvoker = GenerateCompiledLinqExpressionGetInvoker(prop.PropertyType, method);
+							return (invokeTarget, invokeArguments) =>
+							{
+								var subTarget = targetNamedPropGetInvoker(invokeTarget, new[] { optionalName });
+								return subTargetDefaultPropGetInvoker(subTarget, invokeArguments);
+							};
+						}
+					}
+				}
+			}
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalName);
 
