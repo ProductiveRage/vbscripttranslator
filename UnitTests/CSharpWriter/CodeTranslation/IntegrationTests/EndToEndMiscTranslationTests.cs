@@ -475,7 +475,7 @@ namespace VBScriptTranslator.UnitTests.CSharpWriter.CodeTranslation.IntegrationT
 			";
 			var expected = new[]
 			{
-				"_outer.some_constant = 1;"
+				"_outer.some_constant = (Int16)1;"
 			};
 			Assert.Equal(
 				expected.Select(s => s.Trim()).ToArray(),

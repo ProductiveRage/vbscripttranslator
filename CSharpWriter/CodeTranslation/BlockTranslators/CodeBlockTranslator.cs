@@ -257,7 +257,7 @@ namespace VBScriptTranslator.CSharpWriter.CodeTranslation.BlockTranslators
 								"{0}{1} = {2};",
 								(scopeAccessInformation.ScopeDefiningParent.Scope == ScopeLocationOptions.OutermostScope) ? (_outerRefName.Name + ".") : "",
 								_nameRewriter.GetMemberAccessTokenName(value.Name),
-								value.Value.Content
+								_statementTranslator.Translate(new Expression(new[] { value.Value }), scopeAccessInformation, ExpressionReturnTypeOptions.Value, _logger.Warning).TranslatedContent
 							),
 							indentationDepth,
 							value.Name.LineIndex
