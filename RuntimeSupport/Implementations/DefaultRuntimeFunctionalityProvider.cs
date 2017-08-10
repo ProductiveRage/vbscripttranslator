@@ -921,7 +921,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			// Real work (2017-08-10 DWR: This loops has been rewritten to use a string builder to try to reduce the string allocations - inspired by https://stackoverflow.com/a/244933/3813189)
 			var sb = new StringBuilder();
-			var indexToStartAt = 0;
+			if (startIndexNumber > 1)
+				sb.Append(valueString.Substring(0, startIndexNumber - 1));
+			var indexToStartAt = startIndexNumber - 1;
 			var comparison = (compareModeNumber == 0) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 			while ((maxNumberOfReplacementsNumber == -1) || (maxNumberOfReplacementsNumber > 0))
 			{

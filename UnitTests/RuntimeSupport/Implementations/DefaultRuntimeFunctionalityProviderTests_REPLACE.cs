@@ -76,6 +76,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 					yield return new object[] { "Replace \"es\" in \"testEst\" with \"{*^*}\" (case-insensitive), up to one occurrence", "testEst", "es", "{*^*}", 1, 1, 1, "t{*^*}tEst" };
 					yield return new object[] { "Replace \"es\" in \"testEst\" with \"{*^*}\" (case-insensitive), up to two occurrences", "testEst", "es", "{*^*}", 1, 2, 1, "t{*^*}t{*^*}t" };
 					yield return new object[] { "Replace \"es\" in \"testEst\" with \"{*^*}\" (case-insensitive), up to three occurrences", "testEst", "es", "{*^*}", 1, 3, 1, "t{*^*}t{*^*}t" };
+					yield return new object[] { "Replace \"es\" in \"testEst\" with \"{*^*}\" (case-insensitive) with start position 3", "testEst", "es", "{*^*}", 3, -1, 1, "test{*^*}t" };
 
 					yield return new object[] { "maxNumberOfReplacements int.MaxValue (not large enough to overflow)", "testEst", "es", "{*^*}", 1, int.MaxValue, 0, "t{*^*}tEst" };
 					yield return new object[] { "startIndex equal to the max allowed VBScript string length (not large enough to overflow)", "testEst", "es", "{*^*}", (int.MaxValue / 2) - 1, -1, 0, "testEst" };
