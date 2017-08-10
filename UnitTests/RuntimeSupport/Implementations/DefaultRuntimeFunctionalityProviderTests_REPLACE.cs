@@ -92,6 +92,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 					yield return new object[] { "Replace \"t\" in \"test\" with \"Z\"", "test", "t", "Z", "ZesZ" };
 					yield return new object[] { "Replace \"es\" in \"testEst\" with \"{*^*}\"", "testEst", "es", "{*^*}", "t{*^*}tEst" };
 					yield return new object[] { "Replace \":/\" in \"http:/test.com\" with \"://\"", "http:/test.com", ":/", "://", "http://test.com" };
+					yield return new object[] { "Replace \"<row\" in \"<row><row /></row>\" with \"\\r\\n<row\"", "<row><row /></row>", "<row", "\r\n<row", "\r\n<row>\r\n<row /></row>" };
 
 					yield return new object[] { "Replace 1 (integer) in 1 (integer) with 2 (integer)", 1, 1, 2, "2" };
 					yield return new object[] { "Replace \".\" in 1.1 (number) with \"*\"", 1.1, ".", "*", "1*1" };
