@@ -1056,6 +1056,8 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 				};
 			}
 
+			// TODO: There is a problem here with things like "source.Get(abc)" because it could be a call to a method "Get" on the source reference or it could be that "Get"
+			// is a property that we need to retrieve and then make a member-less request against
 			MethodInfo method;
 			if (optionalName == null)
 				method = GetDefaultGetMethods(targetType, argumentsArray.Length, allowPrivateAccess).FirstOrDefault();
