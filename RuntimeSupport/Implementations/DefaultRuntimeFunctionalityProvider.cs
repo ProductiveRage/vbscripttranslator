@@ -919,22 +919,26 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if ((maxNumberOfReplacementsNumber == 0) || (valueString == "") || (toSearchForString == "") || (startIndexNumber > valueString.Length)) // Note: VBScript's startIndex is one-based while C#'s is zero-based
 				return valueString;
 
-			// Real work
+			// Real work (2017-08-10 DWR: This loops has been rewritten to use a string builder to try to reduce the string allocations - inspired by https://stackoverflow.com/a/244933/3813189)
+			var sb = new StringBuilder();
+			var indexToStartAt = 0;
+			var comparison = (compareModeNumber == 0) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 			while ((maxNumberOfReplacementsNumber == -1) || (maxNumberOfReplacementsNumber > 0))
 			{
-				var replacementIndex = valueString.IndexOf(
-					toSearchForString,
-					startIndexNumber - 1, // VBScript's startIndex is one-based while C#'s is zero-based
-					(compareModeNumber == 0) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase
-				);
-				if (replacementIndex == -1)
+				var index = valueString.IndexOf(toSearchForString, indexToStartAt, comparison);
+				if (index == -1)
 					break;
-				valueString = valueString.Substring(0, replacementIndex) + toReplaceWithString + valueString.Substring(replacementIndex + toSearchForString.Length);
-				startIndexNumber = replacementIndex + toReplaceWithString.Length + 1;
+
+				sb.Append(valueString.Substring(indexToStartAt, index - indexToStartAt));
+				sb.Append(toReplaceWithString);
+				index += toSearchForString.Length;
+
+				indexToStartAt = index;
 				if (maxNumberOfReplacementsNumber != -1)
 					maxNumberOfReplacementsNumber--;
 			}
-			return valueString;
+			sb.Append(valueString.Substring(indexToStartAt));
+			return sb.ToString();
 		}
 		public object SPACE(object numberOfSpaces)
 		{
