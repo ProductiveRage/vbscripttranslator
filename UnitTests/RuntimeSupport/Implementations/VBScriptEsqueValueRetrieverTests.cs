@@ -845,7 +845,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
 			Assert.Equal(
 				"YEAH!",
-				_.CALL(context: null, target: new ClassWithDefaultMethodWithSingleOptionalArgument())
+				_.VAL(_.CALL(context: null, target: new ClassWithDefaultMethodWithSingleOptionalArgument()))
 			);
 		}
 

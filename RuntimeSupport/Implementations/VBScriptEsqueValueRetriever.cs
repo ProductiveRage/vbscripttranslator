@@ -1066,10 +1066,10 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			if (method == null)
 				throw new MissingMemberException(targetType.FullName, optionalName);
 
-			return GenerateCompiledLinqExpressionGetInvoker(targetType, method);
+			return GenerateCompiledLinqExpressionGetInvoker(targetType, method, argumentsArray.Length);
 		}
 
-		private GetInvoker GenerateCompiledLinqExpressionGetInvoker(Type targetType, MethodInfo method)
+		private GetInvoker GenerateCompiledLinqExpressionGetInvoker(Type targetType, MethodInfo method, int numberOfArguments)
 		{
 			if (targetType == null)
 				throw new ArgumentNullException(nameof(targetType));
@@ -1088,7 +1088,19 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			Expression[] argExpressions;
 			IEnumerable<Expression> byRefArgAssignmentsForMethodCall, byRefArgAssignmentsForReturn;
 			IEnumerable<ParameterExpression> variablesToDeclareForHandlingOfArguments;
-			if ((methodParameters.Length == 1) && ParameterIsObjectParamsArray(methodParameters[0]))
+			if ((numberOfArguments == 0) && methodParameters.All(p => p.CustomAttributes.Any(attribute => attribute.AttributeType == typeof(OptionalAttribute))))
+			{
+				// This is related to the "even-cruder support for [Optional] parameters" referenced in GetGetMethods - if an argument-less member
+				// is requested then we'll match a method that has all [Optional]-annotated parameters (this may be used when trying to coerce an
+				// object reference into a value type where the default member has an [Optional] parameter). This is described as being "crude"
+				// because it doesn't deal with the case of providing SOME arguments and then leaving some of the [Optional] parameters without
+				// values - this would be much more complex and I don't currently require it anywhere.
+				argExpressions = Enumerable.Range(0, methodParameters.Length).Select(i => Expression.Constant(Missing.Value, typeof(object))).ToArray();
+				byRefArgAssignmentsForMethodCall = new Expression[0];
+				byRefArgAssignmentsForReturn = new Expression[0];
+				variablesToDeclareForHandlingOfArguments = new ParameterExpression[0];
+			}
+			else if ((methodParameters.Length == 1) && ParameterIsObjectParamsArray(methodParameters[0]))
 			{
 				// Add support for the rudimentary params support considered by the "GetGetMethods" function - if the target function has a single
 				// argument of type params object[] then pass the arguments array straight in for that argument (no need to try to break it down
@@ -1395,7 +1407,7 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 			// Rather than trying to do more LINQ Expression generation, we'll reuse the GenerateCompiledLinqExpressionGetInvoker logic and wrap it so
 			// that the index-arguments-plus-value get flattened into a single arguments array
-			var getInvoker = GenerateCompiledLinqExpressionGetInvoker(targetType, method);
+			var getInvoker = GenerateCompiledLinqExpressionGetInvoker(targetType, method, argumentsArray.Length);
 			return (invokeTarget, invokeArguments, value) =>
 			{
 				var combinedArguments = invokeArguments.Concat(new[] { value }).ToArray();
@@ -1659,12 +1671,23 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			var allMethods = GetMethodsThatAreNotRelatedToProperties(type, allowPrivateAccess);
 			Predicate<MethodInfo> matchesArgumentCount = m =>
 			{
-				// Add some crude support for params array arguments - only dealing with the case where the target method has a single argument of type
-				// params object[] (there is corresponding code the in the GenerateGetInvoker for dealing with methods of this form)
 				var args = m.GetParameters();
 				if (args.Length == numberOfArguments)
 					return true;
-				return (args.Length == 1) && ParameterIsObjectParamsArray(args[0]);
+
+				// Add some crude support for params array arguments - only dealing with the case where the target method has a single argument of type
+				// params object[] (there is corresponding code the in the GenerateGetInvoker for dealing with methods of this form)
+				if ((args.Length == 1) && ParameterIsObjectParamsArray(args[0]))
+					return true;
+
+				// Add even-cruder support for [Optional] parameters - there are probably some very complicated rules to try to work out for cases where
+				// fewer arguments are provided than the total number of parameters but where there are enough values for all of the non-[Optional] parameters
+				// and zero, one or more of the [Optional] parameters as well.. all I need for now is for default-member lookups to work where zero arguments
+				// are provided and all of the default method parameters are [Optional]. GenerateGetInvoker needs code to deal with this.
+				if ((numberOfArguments == 0) && args.All(arg => arg.CustomAttributes.Any(attribute => attribute.AttributeType == typeof(OptionalAttribute))))
+					return true;
+
+				return false;
 			};
 			var applicableMethods = allMethods
 					.Where(m => nameMatcher(m.Name))
