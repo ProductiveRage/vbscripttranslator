@@ -834,6 +834,31 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 			public object Value { get { return null; } }
 		}
 
+		/// <summary>
+		/// When a VBScript WSC has a reference to a ComVisible object with a DispId zero method that has a single [Optional] parameter and it wants to coerce that object into
+		/// a value type, it will call the default member and pass a Missing value to the argument. The VBScriptTranslator runtime library has not previously done this - this
+		/// test illustrates the issue.
+		/// </summary>
+		[Fact]
+		public void WhenLookingForParameterLessDefaultMemberOnComVisibleClassSupportOptionalArguments()
+		{
+			var _ = DefaultRuntimeSupportClassFactory.DefaultVBScriptValueRetriever;
+			Assert.Equal(
+				"YEAH!",
+				_.CALL(context: null, target: new ClassWithDefaultMethodWithSingleOptionalArgument())
+			);
+		}
+
+		[ComVisible(true)]
+		public sealed class ClassWithDefaultMethodWithSingleOptionalArgument
+		{
+			[DispId(0)]
+			public object Item([Optional] object arg)
+			{
+				return "YEAH!";
+			}
+		}
+
 		[Theory, MemberData("ZeroArgumentBracketSuccessData")]
 		public void ZeroArgumentBracketSuccessCases(string description, object target, string[] memberAccessors, bool useBracketsWhereZeroArguments, object expectedResult)
 		{
