@@ -13,7 +13,6 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 
 		private const int LOCALE_SYSTEM_DEFAULT = 2048;
 		private const int DISPID_PROPERTYPUT = -3;
-		private const int SizeOfNativeVariant = 16;
 		private static readonly ComTypes.DISPPARAMS EmptyDISPPARAMS = new ComTypes.DISPPARAMS()
 		{
 			cArgs = 0,
@@ -21,6 +20,9 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 			rgdispidNamedArgs = IntPtr.Zero,
 			rgvarg = IntPtr.Zero
 		};
+		// Variant size is 16 bytes on a 32-bit process, and 24 bytes on a 64-bit process
+		// (https://referencesource.microsoft.com/#mscorlib/system/Runtime/InteropServices/Variant.cs)
+		private static readonly int SizeOfNativeVariant = IntPtr.Size == 4 ? 16 : 24;
 
 		public enum InvokeFlags : ushort
 		{
@@ -223,11 +225,10 @@ namespace VBScriptTranslator.RuntimeSupport.Implementations
 						try { Marshal.GetObjectsForNativeVariants(rgvarg, args.Length); }
 						catch (Exception)
 						{
-							// In Visual Studio 2012, if the "Prefer 32-bit" build option is not enabled then arguments do not get written into memory
-							// correctly which will result in the request failing. If an exception has been raised then we can confirm if this is the
-							// problem by trying to pull the arguments back out of the "rgvarg", if this operation fails then the absence of this
-							// build option is most likely the cause.
-							message += " - this may be due to the \"Prefer 32-bit\" option not being enabled in Visual Studio";
+							// 2019-10-25 Dion: This problem previously happened if the process was not running as 32-bit, as we were using an incorrect
+							// value for the size of a native variant structure. However, this class should support 64-bit now, so this error shouldn't
+							// really happen again. I'm keeping the check in, just in case. If you see this, something's gone very wrong.
+							message += " - the native memory containing the arguments to pass over appears corrupted";
 						}
 					}
 					throw new IDispatchAccessException(message, source, memberNameIfSpecified: null, dispIdIfKnown: dispId,  errorType: errorType);
