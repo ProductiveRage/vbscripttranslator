@@ -65,10 +65,6 @@
       <Project>{05ca6867-a198-4952-883b-60c0a29c8bae}</Project>
       <Name>StageTwoParser</Name>
     </ProjectReference>
-    <ProjectReference Include="..\UnitTests\UnitTests.csproj">
-      <Project>{69946782-bab3-4c3f-ab64-a351998256e2}</Project>
-      <Name>UnitTests</Name>
-    </ProjectReference>
     <ProjectReference Include="..\LegacyParser\LegacyParser.csproj">
       <Project>{a9d32e0b-f434-4b08-a883-a62c5be5131a}</Project>
       <Name>LegacyParser</Name>

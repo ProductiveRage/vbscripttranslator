@@ -990,7 +990,7 @@ namespace VBScriptTranslator.UnitTests.RuntimeSupport.Implementations
 				var fieldY = y as ADODB.Field;
 				if (fieldY == null)
 					throw new ArgumentException("y is not an ADODB.Field");
-				return fieldX.Value == fieldY.Value;
+				return fieldX.Value.Equals(fieldY.Value);
 			}
 
 			public int GetHashCode(object obj)
